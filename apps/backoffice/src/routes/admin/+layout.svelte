@@ -6,10 +6,8 @@
     import 'iconify-icon';
 
     const menuItems = [
-        { name: 'Dashboard', icon: 'solar:widget-bold', href: '/admin' },
         { name: 'Statistics', icon: 'solar:chart-bold', href: '/admin/statistics' },
-        { name: 'Membres', icon: 'solar:users-group-rounded-bold', href: '/admin/users' },
-        { name: 'Messages', icon: 'solar:letter-bold', href: '/admin/contacts' },
+        { name: 'Users', icon: 'solar:users-group-rounded-bold', href: '/admin/users' },
     ];
 </script>
 

@@ -7,7 +7,7 @@ export const trpcHandler =
     authManager,
     env,
     jobs,
-  }: Omit<CreateContextOptions, 'req' | 'resHeaders' | 'info' | 'logger' | 'storage' | 'stripe'>) =>
+  }: Omit<CreateContextOptions, 'req' | 'resHeaders' | 'info' | 'logger'>) =>
   (c: Context, next: Next) =>
     trpcServer({
       router: appRouter,

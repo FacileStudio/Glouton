@@ -5,12 +5,6 @@ model Media {
         mimeType  String
         size      Int
 
-        avatarUser    User?   @relation("UserAvatar", fields: [avatarUserId], references: [id])
-        avatarUserId  String? @unique
-
-        coverUser     User?   @relation("UserCover", fields: [coverUserId], references: [id])
-        coverUserId   String? @unique
-
         messageId    String?
         message      Message? @relation("MessageAttachments", fields: [messageId], references: [id])
 

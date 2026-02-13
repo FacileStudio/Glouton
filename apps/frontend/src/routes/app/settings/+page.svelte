@@ -2,7 +2,6 @@
   import authStore from '$lib/auth-store';
   import { trpc } from '$lib/trpc';
   import { Button, Input, Spinner, Alert, Toggle, LanguageSwitcher } from '@repo/ui';
-  import { uploadFile } from '@repo/storage-client';
   import { logger } from '@repo/logger';
   import 'iconify-icon';
   import type { SessionUser } from '@repo/auth-shared';
@@ -12,25 +11,11 @@
   let activeTab = $state('profile');
   let saving = $state(false);
   let message = $state<{ type: 'success' | 'error'; text: string } | null>(null);
-  let uploading = $state(false);
-  let uploadingBanner = $state(false);
-  let avatarInput: HTMLInputElement = $state(null);
-  let bannerInput: HTMLInputElement = $state(null);
   let showSavedMessage = $state(false);
 
   let deleting = $state(false);
   let deleteModalOpen = $state(false);
   let deleteConfirmationText = $state('');
-
-  let user = $state(null);
-
-  onMount(async () => {
-    try {
-      user = await trpc.user.me.query();
-    } catch (err) {
-      logger.error({ err }, 'Failed to fetch user data on settings page');
-    }
-  });
 
   let formData = $state({
     firstName: $authStore.user?.firstName || '',
@@ -120,73 +105,6 @@
     }
   }
 
-  async function handleAvatarChange(event: Event) {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    if (!file) return;
-
-    uploading = true;
-    message = null;
-    try {
-      const uploadUrlResponse = await trpc.media.getUploadUrl.mutate({
-        fileName: file.name,
-        fileType: file.type,
-      });
-
-      await uploadFile(file, uploadUrlResponse.uploadUrl);
-
-      const newImage = await trpc.media.updateAvatar.mutate({
-        url: uploadUrlResponse.publicUrl,
-        key: uploadUrlResponse.fileKey,
-        size: file.size,
-      });
-      const updatedUser = { ...$authStore.user, avatarUrl: newImage.url };
-
-      authStore.updateUser(updatedUser as SessionUser);
-      message = { type: 'success', text: 'Avatar updated successfully!' };
-    } catch (err) {
-      logger.error({ err }, 'Failed to upload avatar');
-      message = { type: 'error', text: 'Failed to upload avatar' };
-    } finally {
-      uploading = false;
-    }
-  }
-
-  async function handleBannerChange(event: Event) {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    if (!file) return;
-
-    uploadingBanner = true;
-    message = null;
-    try {
-      const uploadUrlResponse = await trpc.media.getUploadUrl.mutate({
-        fileName: file.name,
-        fileType: file.type,
-      });
-
-      await uploadFile(file, uploadUrlResponse.uploadUrl);
-
-      const newImage = await trpc.media.updateCover.mutate({
-        url: uploadUrlResponse.publicUrl,
-        key: uploadUrlResponse.fileKey,
-        size: file.size,
-      });
-      const updatedUser = {
-        ...$authStore.user,
-        coverImageUrl: newImage.url,
-      };
-
-      authStore.updateUser(updatedUser as SessionUser);
-      message = { type: 'success', text: 'Banner updated successfully!' };
-    } catch (err) {
-      logger.error({ err }, 'Failed to upload banner');
-      message = { type: 'error', text: 'Failed to upload banner' };
-    } finally {
-      uploadingBanner = false;
-    }
-  }
-
   async function handleDeleteAccount() {
     deleteModalOpen = true;
     deleteConfirmationText = '';
@@ -251,83 +169,6 @@
   <div class="max-w-3xl mx-auto">
     {#if activeTab === 'profile'}
       <div in:fade={{ duration: 300 }} class="space-y-8">
-        <div
-          class="group relative bg-white rounded-[32px] border border-neutral-200 overflow-hidden shadow-sm transition-shadow hover:shadow-md"
-        >
-          <div class="h-40 bg-neutral-100 relative overflow-hidden">
-            {#if user?.coverImage?.url}
-              <img src={user?.coverImage?.url} alt="Banner" class="w-full h-full object-cover" />
-            {:else}
-              <div
-                class="w-full h-full bg-[radial-gradient(#e5e5e5_1px,transparent_1px)] [background-size:16px_16px]"
-              ></div>
-            {/if}
-
-            <button
-              type="button"
-              disabled={uploadingBanner}
-              onclick={() => bannerInput.click()}
-              class="absolute top-4 right-4 bg-white/90 backdrop-blur text-black px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-black hover:text-white transition-colors flex items-center gap-2 shadow-sm"
-            >
-              {#if uploadingBanner}
-                <Spinner size="sm" />
-              {/if}
-              <iconify-icon icon="solar:camera-add-bold"></iconify-icon>
-              Edit Cover
-            </button>
-            <input
-              type="file"
-              bind:this={bannerInput}
-              onchange={handleBannerChange}
-              accept="image/*"
-              class="hidden"
-            />
-          </div>
-
-          <div class="px-8 pb-8 -mt-12 flex items-end justify-between">
-            <div class="relative group/avatar">
-              <div class="w-24 h-24 rounded-3xl bg-white p-1.5 shadow-xl">
-                <div
-                  class="w-full h-full rounded-2xl bg-neutral-100 overflow-hidden flex items-center justify-center border border-neutral-100 relative"
-                >
-                  {#if user?.avatar?.url}
-                    <img src={user.avatar.url} alt="Avatar" class="w-full h-full object-cover" />
-                  {:else}
-                    <span class="text-3xl font-black text-neutral-300"
-                      >{$authStore.user?.firstName?.[0]}</span
-                    >
-                  {/if}
-
-                  <button
-                    onclick={() => avatarInput.click()}
-                    disabled={uploading}
-                    class="absolute inset-0 bg-black/50 opacity-0 group-hover/avatar:opacity-100 transition-opacity flex items-center justify-center text-white cursor-pointer backdrop-blur-sm"
-                  >
-                    {#if uploading}
-                      <Spinner size="sm" />
-                    {:else}
-                      <iconify-icon icon="solar:camera-minimalistic-bold" width="24"></iconify-icon>
-                    {/if}
-                  </button>
-                </div>
-              </div>
-              <input
-                type="file"
-                bind:this={avatarInput}
-                onchange={handleAvatarChange}
-                accept="image/*"
-                class="hidden"
-              />
-            </div>
-
-            <div class="mb-2 text-right">
-              <p class="text-sm font-bold text-neutral-500 uppercase tracking-wider">
-                Public Profile
-              </p>
-            </div>
-          </div>
-        </div>
-
         <div class="bg-white p-8 rounded-[32px] border border-neutral-200 space-y-6 shadow-sm">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="space-y-2">

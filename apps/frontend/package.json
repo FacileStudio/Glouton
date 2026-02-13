@@ -17,7 +17,6 @@
     "@fontsource-variable/inter": "^5.2.8",
     "@fontsource/poppins": "^5.2.7",
     "@repo/i18n": "workspace:*",
-    "@repo/storage-client": "workspace:*",
     "@repo/trpc-client": "workspace:*",
     "@repo/types": "workspace:*",
     "@repo/ui": "workspace:*",

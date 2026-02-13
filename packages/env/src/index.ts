@@ -6,7 +6,6 @@ const baseSchema = z.object({
 
 export const publicEnvSchema = baseSchema.extend({
   API_URL: z.string().url(),
-  STRIPE_PRICE_ID: z.string().optional(),
 });
 
 export const serverEnvSchema = baseSchema.extend({
@@ -15,17 +14,6 @@ export const serverEnvSchema = baseSchema.extend({
   TRUSTED_ORIGINS: z.string().transform((s) => s.split(',').map((u) => u.trim())),
 
   ENCRYPTION_SECRET: z.string().min(1),
-
-  STRIPE_SECRET_KEY: z.string().startsWith('sk_'),
-  STRIPE_WEBHOOK_SECRET: z.string().startsWith('whsec_'),
-
-  MINIO_ROOT_USER: z.string(),
-  MINIO_ROOT_PASSWORD: z.string(),
-  MINIO_BUCKET_NAME: z.string(),
-  MINIO_ENDPOINT: z.string().url(),
-  MINIO_PUBLIC_URL: z.string().url(),
-
-  DISCORD_WEBHOOK_URL: z.string().url().optional(),
 
   REDIS_HOST: z.string().default('localhost'),
   REDIS_PORT: z.coerce.number().default(6379),

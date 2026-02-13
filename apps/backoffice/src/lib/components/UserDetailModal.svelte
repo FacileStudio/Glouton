@@ -147,13 +147,9 @@
 	{:else if user}
 		<div class="space-y-6">
 			<div class="flex items-start gap-4">
-				{#if user.avatar?.url}
-					<img src={user.avatar.url} alt={user.firstName} class="w-20 h-20 rounded-2xl object-cover" />
-				{:else}
-					<div class="w-20 h-20 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 font-black text-3xl">
-						{user.firstName[0]}
-					</div>
-				{/if}
+				<div class="w-20 h-20 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 font-black text-3xl">
+					{user.firstName[0]}
+				</div>
 
 				<div class="flex-1">
 					<div class="flex items-center gap-3 mb-2">
