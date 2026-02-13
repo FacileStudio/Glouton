@@ -14,6 +14,8 @@ const contactSchema = z.object({
     .max(50, 'Name must be less than 50 characters'),
 });
 
+type ContactInput = z.infer<typeof contactSchema>;
+
 export const contactRouter = router({
   create: publicProcedure.input(contactSchema).mutation(async ({ ctx, input }) => {
     return contactService.create(ctx.db, input);

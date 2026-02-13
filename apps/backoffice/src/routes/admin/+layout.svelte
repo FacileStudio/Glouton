@@ -1,6 +1,7 @@
 <script lang="ts">
     import authStore from '$lib/auth-store';
     import { page } from '$app/stores';
+    import { resolve } from '$app/paths';
     import { Button } from '@repo/ui';
     import 'iconify-icon';
 
@@ -24,9 +25,9 @@
         </div>
 
         <nav class="flex-1 px-4 space-y-2">
-            {#each menuItems as item}
+            {#each menuItems as item (item.href)}
                 <a
-                    href={item.href}
+                    href={resolve(item.href)}
                     class="flex items-center gap-3 px-4 py-3 rounded-2xl font-bold transition-all
                     {$page.url.pathname === item.href
                         ? 'bg-indigo-50 text-indigo-600 shadow-sm'

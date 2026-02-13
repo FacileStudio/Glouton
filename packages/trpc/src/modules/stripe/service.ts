@@ -1,5 +1,5 @@
 import { StripeService as StripeLib } from '@repo/stripe';
-import { PrismaClient } from '@repo/database';
+import type { PrismaClient } from '@repo/database';
 import type Stripe from 'stripe';
 
 export const stripeService = {

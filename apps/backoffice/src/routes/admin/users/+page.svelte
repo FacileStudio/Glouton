@@ -4,11 +4,12 @@
 	import UserDetailModal from '$lib/components/UserDetailModal.svelte';
 	import { Spinner, SearchInput, Badge, EmptyState } from '@repo/ui';
 	import { logger } from '@repo/logger';
+	import type { User, UserStats } from '$lib/types';
 	import 'iconify-icon';
 
 	let pageLoading = $state(true);
-	let users: any[] = $state([]);
-	let stats: any = $state(null);
+	let users: User[] = $state([]);
+	let stats: UserStats | null = $state(null);
 	let searchQuery = $state('');
 	let selectedUserId = $state('');
 	let banningUserId = $state('');

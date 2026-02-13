@@ -1,5 +1,5 @@
 <script lang="ts">
-  export let rooms: any[] = [];
+  export let rooms: Array<{ id: string; name?: string; isOnline?: boolean; messages?: Array<{ text: string }> }> = [];
   export let activeRoomId: string;
   export let onRoomSelect: (id: string) => void;
   export let onNewChat: () => void; // Ajout de la prop manquante
@@ -19,7 +19,7 @@
   </div>
 
   <div class="flex-1 overflow-y-auto space-y-2 px-3">
-    {#each rooms as room}
+    {#each rooms as room (room.id)}
       <button
         on:click={() => onRoomSelect(room.id)}
         class="w-full p-4 flex items-center gap-4 rounded-[24px] transition-all {activeRoomId === room.id ? 'bg-white shadow-sm ring-1 ring-slate-100' : 'hover:bg-white/60'}"

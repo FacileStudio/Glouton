@@ -1,5 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
+  import { resolve } from '$app/paths';
   import { fly, fade } from 'svelte/transition';
   import { trpc } from '$lib/trpc';
   import authStore from '$lib/auth-store';
@@ -16,9 +17,9 @@
     try {
       const { token, user } = await trpc.auth.login.mutate({ email, password });
       authStore.setAuth({ token }, user);
-      await goto('/app/profile');
-    } catch (err: any) {
-      error = err.message || 'Authentication failed.';
+      await goto(resolve('/app/profile'));
+    } catch (err) {
+      error = err instanceof Error ? err.message : 'Authentication failed.';
       loading = false;
     }
   }
@@ -34,7 +35,7 @@
 >
   <nav class="p-8 flex justify-between items-center relative z-10">
     <a
-      href="/"
+      href={resolve('/')}
       class="group flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] hover:opacity-50 transition"
     >
       <iconify-icon
@@ -99,7 +100,7 @@
         </button>
 
         <a
-          href="/register"
+          href={resolve('/register')}
           class="text-xs font-black uppercase tracking-[0.2em] hover:underline underline-offset-8 decoration-2 transition-all"
         >
           Create Account

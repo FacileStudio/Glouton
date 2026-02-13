@@ -10,11 +10,13 @@
 
   export let schema: z.ZodObject<z.ZodRawShape, "strip", z.ZodTypeAny>;
   export let initialData: Record<string, unknown> = {};
-  export let onSubmit: (data: Record<string, unknown>) => Promise<void>;
+  export let onSubmit: (_data: Record<string, unknown>) => Promise<void>;
   export let submitLabel = "Enregistrer";
+  export let getPresignedUrl: (_filename: string, _folder: string) => Promise<string> = async () => "";
 
-  const adapter = zod(schema) as unknown;
+  const adapter = zod(schema);
 
+  // @ts-expect-error - superForm types don't support dynamic schemas, but runtime behavior is correct
   const { form, errors, constraints, enhance, delayed } = superForm(
     defaults(initialData, adapter),
     {
@@ -74,7 +76,7 @@
           </label>
 
           {#if getFieldType(field) === 'image'}
-            <ImageUpload bind:value={$form[field]} />
+            <ImageUpload bind:value={$form[field]} {getPresignedUrl} />
 
           {:else if getFieldType(field) === 'select'}
             <div class="relative flex items-center">

@@ -3,9 +3,11 @@
     import { isAdmin } from '@repo/auth-shared';
     import { Badge } from '@repo/ui';
     import UserMenu from './UserMenu.svelte';
+    import type { User } from '$lib/types';
     import 'iconify-icon';
 
-    export let user: any;
+
+    export let user: User;
     export let onTogglePremium: (id: string, current: boolean) => void;
     export let onDelete: (id: string, name: string) => void;
     export let onChangeRole: (id: string, role: string) => void;

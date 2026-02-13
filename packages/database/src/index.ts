@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
 
@@ -18,9 +18,13 @@ export const prisma = globalForPrisma.prisma ?? new PrismaClient({
   log: ['error', 'warn'],
 });
 
+export const db = prisma;
+
 if (typeof process !== 'undefined' && process.env?.NODE_ENV !== 'production') {
   globalForPrisma.prisma = prisma;
 }
 
 export type * from '@prisma/client';
-export { UserRole } from '@prisma/client';
+export { UserRole, Prisma } from '@prisma/client';
+export type InputJsonValue = Prisma.InputJsonValue;
+export type JsonValue = Prisma.JsonValue;

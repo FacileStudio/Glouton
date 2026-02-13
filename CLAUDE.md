@@ -104,6 +104,7 @@ cd apps/frontend && bun run check-env    # Validate frontend .env
   - `@repo/storage`: MinIO S3 service (server-only)
   - `@repo/storage-client`: File upload utilities for browser/React Native (client-only)
   - `@repo/stripe`: Stripe integration
+  - `@repo/jobs`: BullMQ job queue system with Redis (server-only)
   - `@repo/env`: Zod environment validation
   - `@repo/types`: Shared TypeScript types
   - `@repo/crypto`: Encryption utilities
@@ -303,6 +304,81 @@ setLocale('fr');
 
 **Adding new locales:**
 See `packages/i18n/README.md` for detailed instructions.
+
+### Job Queue System (BullMQ + Redis)
+
+The boilerplate includes a robust job queue system for background processing using BullMQ and Redis:
+
+**Package (`@repo/jobs`):**
+- Type-safe job definitions with generic data types
+- Multiple queue support (email, media, reports, etc.)
+- Job scheduling with cron expressions
+- Priority queues and retry logic with backoff strategies
+- Progress tracking and metrics
+- Rate limiting and concurrency control
+
+**Prerequisites:**
+- Redis server running locally or remotely
+- Environment variables configured (`REDIS_HOST`, `REDIS_PORT`, etc.)
+
+**Setting up Redis:**
+```bash
+# Docker
+docker run -d --name redis -p 6379:6379 redis:alpine
+
+# Homebrew
+brew install redis
+brew services start redis
+```
+
+**Basic usage:**
+```typescript
+import { QueueManager, createJobConfig, type JobDefinition } from '@repo/jobs';
+
+// Initialize queue manager
+const config = createJobConfig({
+  host: process.env.REDIS_HOST,
+  port: parseInt(process.env.REDIS_PORT || '6379'),
+});
+
+const queueManager = new QueueManager(config);
+
+// Define a job
+const sendEmailJob: JobDefinition<{ to: string; subject: string }, void> = {
+  name: 'send-email',
+  processor: async (job) => {
+    const { to, subject } = job.data;
+    // Send email logic
+    await job.updateProgress(100);
+  },
+  options: {
+    concurrency: 5,
+  },
+};
+
+// Register worker
+queueManager.registerWorker('email', sendEmailJob);
+
+// Add job to queue
+await queueManager.addJob('email', 'send-email', {
+  to: 'user@example.com',
+  subject: 'Welcome!',
+});
+```
+
+**Integration with tRPC:**
+1. Initialize `QueueManager` in backend startup
+2. Add to tRPC context in `packages/trpc/src/context.ts`
+3. Use in procedures: `ctx.jobs.addJob(...)`
+
+**Advanced features:**
+- Scheduled jobs with cron: `JobScheduler.scheduleJob()`
+- Delayed jobs: `addJob(..., { delay: 60000 })`
+- Priority queues: `addJob(..., { priority: JobPriorities.HIGH })`
+- Bulk operations: `addBulkJobs()`
+- Queue metrics: `getQueueMetrics()`
+
+See `packages/jobs/README.md` and `packages/jobs/examples/` for detailed documentation and examples.
 
 ## Development Patterns
 

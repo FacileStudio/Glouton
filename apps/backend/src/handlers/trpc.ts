@@ -5,10 +5,9 @@ import { Context, Next } from 'hono';
 export const trpcHandler =
   ({
     authManager,
-    storage,
-    stripe,
     env,
-  }: Omit<CreateContextOptions, 'req' | 'resHeaders' | 'info' | 'logger'>) =>
+    jobs,
+  }: Omit<CreateContextOptions, 'req' | 'resHeaders' | 'info' | 'logger' | 'storage' | 'stripe'>) =>
   (c: Context, next: Next) =>
     trpcServer({
       router: appRouter,
@@ -18,9 +17,8 @@ export const trpcHandler =
           ...opts,
           req: c.req.raw,
           authManager,
-          storage,
-          stripe,
           env,
+          jobs,
           logger,
         });
       },

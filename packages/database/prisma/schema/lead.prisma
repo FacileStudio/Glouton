@@ -1,0 +1,65 @@
+model Lead {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  domain    String
+  email     String?
+  firstName String?
+  lastName  String?
+
+  status    LeadStatus @default(COLD)
+  score     Int        @default(0)
+
+  technologies String[] @default([])
+
+  metadata  Json?
+
+  huntSessionId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([huntSessionId])
+  @@index([status])
+}
+
+model HuntSession {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  targetUrl String
+  speed     Int      @default(5)
+
+  status    HuntStatus @default(PENDING)
+  progress  Int        @default(0)
+
+  totalLeads     Int @default(0)
+  successfulLeads Int @default(0)
+  failedLeads    Int @default(0)
+
+  error     String?
+
+  startedAt  DateTime?
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+}
+
+enum LeadStatus {
+  HOT
+  WARM
+  COLD
+}
+
+enum HuntStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}

@@ -10,8 +10,10 @@
 
   const entity = $page.params.entity;
 
+  type EntityItem = Record<string, unknown> & { id: string };
+
   let config: EntityConfig | null = null;
-  let data: ListResult<any> | null = null;
+  let data: ListResult<EntityItem> | null = null;
   let permissions = {
     canCreate: false,
     canRead: false,
@@ -27,25 +29,24 @@
   let showEditModal = false;
   let showViewModal = false;
   let showDeleteConfirm = false;
-  let selectedItem: any = null;
+  let selectedItem: EntityItem | null = null;
   let itemToDelete: string | null = null;
 
   let loading = true;
-  let error: string | null = null;
 
   async function loadConfig() {
     try {
       config = await trpc.admin.getEntityConfig.query({ entity });
-    } catch (e: any) {
-      error = e.message;
-      toast.push(e.message, 'error');
+    } catch (e) {
+      const errorMsg = e instanceof Error ? e.message : 'Failed to load config';
+      toast.push(errorMsg, 'error');
     }
   }
 
   async function loadPermissions() {
     try {
       permissions = await trpc.admin.getPermissions.query({ entity });
-    } catch (e: any) {
+    } catch (e) {
       logger.error({ err: e }, 'Failed to load permissions');
     }
   }
@@ -65,8 +66,8 @@
           sortOrder: currentSort?.order,
         },
       });
-    } catch (e: any) {
-      error = e.message;
+    } catch (e) {
+      logger.error({ err: e }, 'Failed to load data');
     } finally {
       loading = false;
     }
@@ -99,18 +100,19 @@
     loadData();
   }
 
-  async function handleCreate(formData: any) {
+  async function handleCreate(formData: Record<string, unknown>) {
     try {
       await trpc.admin.create.mutate({ entity, data: formData });
       showCreateModal = false;
       await loadData();
       toast.push(`${config?.displayName} created successfully!`, 'success');
-    } catch (e: any) {
-      toast.push('Failed to create: ' + e.message, 'error');
+    } catch (e) {
+      const errorMsg = e instanceof Error ? e.message : 'Failed to create';
+      toast.push('Failed to create: ' + errorMsg, 'error');
     }
   }
 
-  async function handleUpdate(formData: any) {
+  async function handleUpdate(formData: Record<string, unknown>) {
     if (!selectedItem) return;
 
     try {
@@ -123,8 +125,9 @@
       selectedItem = null;
       await loadData();
       toast.push(`${config?.displayName} updated successfully!`, 'success');
-    } catch (e: any) {
-      toast.push('Failed to update: ' + e.message, 'error');
+    } catch (e) {
+      const errorMsg = e instanceof Error ? e.message : 'Failed to update';
+      toast.push('Failed to update: ' + errorMsg, 'error');
     }
   }
 
@@ -142,8 +145,9 @@
       itemToDelete = null;
       await loadData();
       toast.push(`${config?.displayName} deleted successfully!`, 'success');
-    } catch (e: any) {
-      toast.push('Failed to delete: ' + e.message, 'error');
+    } catch (e) {
+      const errorMsg = e instanceof Error ? e.message : 'Failed to delete';
+      toast.push('Failed to delete: ' + errorMsg, 'error');
     }
   }
 
@@ -156,8 +160,9 @@
     try {
       selectedItem = await trpc.admin.get.query({ entity, id });
       showEditModal = true;
-    } catch (e: any) {
-      toast.push('Failed to load item: ' + e.message, 'error');
+    } catch (e) {
+      const errorMsg = e instanceof Error ? e.message : 'Failed to load item';
+      toast.push('Failed to load item: ' + errorMsg, 'error');
     }
   }
 
@@ -165,8 +170,9 @@
     try {
       selectedItem = await trpc.admin.get.query({ entity, id });
       showViewModal = true;
-    } catch (e: any) {
-      toast.push('Failed to load item: ' + e.message, 'error');
+    } catch (e) {
+      const errorMsg = e instanceof Error ? e.message : 'Failed to load item';
+      toast.push('Failed to load item: ' + errorMsg, 'error');
     }
   }
 
@@ -250,7 +256,7 @@
 <Modal open={showViewModal && !!selectedItem && !!config} title="View {config?.displayName || ''}" onClose={handleCancel}>
   {#if selectedItem && config}
     <div class="grid gap-4 p-6">
-      {#each config.fields as field}
+      {#each config.fields as field (field.name)}
         <div class="grid grid-cols-[150px_1fr] gap-4">
           <strong class="text-slate-700">{field.label}:</strong>
           <span class="text-slate-900">{selectedItem[field.name] ?? '-'}</span>

@@ -1,0 +1,24 @@
+{
+  "name": "@repo/jobs",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./types": "./src/types.ts",
+    "./workers": "./src/workers/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@repo/tsconfig": "workspace:*",
+    "@types/node": "^22.10.5",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@repo/logger": "workspace:*",
+    "bullmq": "^5.31.3",
+    "ioredis": "^5.4.2"
+  }
+}

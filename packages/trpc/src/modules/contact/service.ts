@@ -1,7 +1,7 @@
-import type { PrismaClient, Contact } from '@repo/database';
+import type { PrismaClient } from '@repo/database';
 
 export const contactService = {
-  create: async (db: PrismaClient, data: Omit<Contact, 'id' | 'createdAt'>) => {
+  create: async (db: PrismaClient, data: { email: string; firstName: string; lastName: string }) => {
     const contact = await db.contact.create({ data });
     return {
       id: contact.id,

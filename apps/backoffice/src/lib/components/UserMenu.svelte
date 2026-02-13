@@ -2,7 +2,12 @@
     import { clickOutside } from '$lib/utils/clickOutside';
     import 'iconify-icon';
 
-    export let user: any;
+    interface User {
+        isPremium: boolean;
+        role: string;
+    }
+
+    export let user: User;
     export let onTogglePremium: () => void;
     export let onDelete: () => void;
     export let onChangeRole: (newRole: string) => void;

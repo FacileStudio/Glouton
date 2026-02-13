@@ -1,12 +1,13 @@
 <script lang="ts">
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
+  import { resolve } from '$app/paths';
   import 'iconify-icon';
 
   $: status = $page.status;
   $: message = $page.error?.message || 'Unauthorized Action';
 
-  const goDashboard = () => goto('/admin/contacts');
+  const goDashboard = () => goto(resolve('/admin/contacts'));
   const goBack = () => window.history.back();
 </script>
 

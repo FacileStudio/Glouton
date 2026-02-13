@@ -29,12 +29,12 @@
         const room = await trpc.chat.createGroup.mutate({ name: groupName });
         dispatch('created', room.id);
       }
-    } catch (e: any) {
-      // Extraction du message d'erreur de Zod ou du serveur
-      if (e.data?.zodError) {
+    } catch (e: unknown) {
+      const error = e as { data?: { zodError?: unknown }; message?: string };
+      if (error.data?.zodError) {
         serverError = "Le nom doit contenir au moins 3 caractères.";
       } else {
-        serverError = e.message || "Une erreur est survenue.";
+        serverError = error.message || "Une erreur est survenue.";
       }
     } finally {
       loading = false;

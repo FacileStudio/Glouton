@@ -1,13 +1,14 @@
 <script lang="ts">
-	import { Modal, Badge, Spinner, Button, Tabs } from '@repo/ui';
+	import { Modal, Badge, Spinner, Tabs } from '@repo/ui';
 	import { trpc } from '$lib/trpc';
 	import { logger } from '@repo/logger';
+	import type { UserDetail } from '$lib/types';
 	import 'iconify-icon';
 
 	let { userId = $bindable(''), onClose = () => {} }: { userId?: string; onClose?: () => void } = $props();
 
 	let loading = $state(true);
-	let user: any = $state(null);
+	let user: UserDetail | null = $state(null);
 	let activeTab = $state<'overview' | 'activity' | 'moderation'>('overview');
 	let actionLoading = $state(false);
 
@@ -78,10 +79,10 @@
 
 		actionLoading = true;
 		try {
-			const until = new Date();
-			until.setDate(until.getDate() + suspensionDays);
+			const now = Date.now();
+			const suspendUntil = new Date(now + suspensionDays * 24 * 60 * 60 * 1000);
 
-			await trpc.user.suspend.mutate({ id: userId, reason: suspensionReason, until });
+			await trpc.user.suspend.mutate({ id: userId, reason: suspensionReason, until: suspendUntil });
 			await loadUser();
 			suspensionReason = '';
 		} catch (err) {
@@ -219,7 +220,7 @@
 					<div>
 						<h3 class="text-sm font-black uppercase text-slate-400 mb-3">Recent Messages</h3>
 						<div class="space-y-2 max-h-60 overflow-y-auto">
-							{#each user.messages.slice(0, 5) as message}
+							{#each user.messages.slice(0, 5) as message (message.id)}
 								<div class="bg-slate-50 p-3 rounded-xl text-sm">
 									<div class="text-slate-600 mb-1">{message.text}</div>
 									<div class="text-xs text-slate-400">{formatDate(message.createdAt)}</div>
@@ -231,7 +232,7 @@
 			{:else if activeTab === 'activity'}
 				<div class="space-y-3 max-h-96 overflow-y-auto">
 					{#if user.auditLogs && user.auditLogs.length > 0}
-						{#each user.auditLogs as log}
+						{#each user.auditLogs as log (log.id)}
 							<div class="bg-slate-50 p-4 rounded-xl">
 								<div class="flex items-center justify-between mb-2">
 									<Badge variant={log.action === 'DELETE' ? 'rose' : log.action === 'CREATE' ? 'emerald' : 'amber'}>

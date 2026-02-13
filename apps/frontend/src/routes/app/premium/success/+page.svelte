@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { resolve } from '$app/paths';
   import { trpc } from '$lib/trpc';
   import { onMount } from 'svelte';
   import { browser } from '$app/environment';
@@ -23,7 +24,7 @@
           colors: ['#4f46e5', '#10b981', '#fbbf24']
         });
       }
-    } catch (err: any) {
+    } catch {
       error = 'Impossible de vérifier votre nouvel abonnement.';
     } finally {
       pageLoading = false;
@@ -42,8 +43,8 @@
         error = 'Error accessing customer portal.';
         actionLoading = false;
       }
-    } catch (err: any) {
-      error = err.message || 'Unable to manage subscription.';
+    } catch (err) {
+      error = err instanceof Error ? err.message : 'Unable to manage subscription.';
       actionLoading = false;
     }
   }
@@ -96,7 +97,7 @@
 
         <div class="space-y-3">
           <a
-            href="/"
+            href={resolve('/')}
             class="w-full bg-black text-white py-3 px-4 rounded-lg hover:bg-gray-800 transition flex items-center justify-center gap-2 font-medium"
           >
             Accéder au Dashboard

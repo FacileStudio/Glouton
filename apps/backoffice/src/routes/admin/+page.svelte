@@ -1,5 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
+  import { resolve } from '$app/paths';
   import { trpc } from '$lib/trpc';
   import { onMount } from 'svelte';
   import { logger } from '@repo/logger';
@@ -18,7 +19,7 @@
   });
 
   function navigateToEntity(entity: string) {
-    goto(`/admin/${entity}`);
+    goto(resolve(`/admin/${entity}`));
   }
 </script>
 
@@ -32,7 +33,7 @@
     <div class="loading">Loading entities...</div>
   {:else}
     <div class="entity-grid">
-      {#each entities as entity}
+      {#each entities as entity (entity)}
         <button class="entity-card" on:click={() => navigateToEntity(entity)}>
           <div class="entity-icon">
             <iconify-icon icon="mdi:database" width="32"></iconify-icon>
