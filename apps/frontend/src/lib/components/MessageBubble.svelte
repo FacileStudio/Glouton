@@ -1,6 +1,19 @@
 <script lang="ts">
   import { slide } from 'svelte/transition';
-  export let msg: any;
+  import { resolve } from '$app/paths';
+
+  interface Attachment {
+    url: string;
+  }
+
+  interface Message {
+    text?: string;
+    user: { name: string };
+    createdAt: Date;
+    attachments?: Attachment[];
+  }
+
+  export let msg: Message;
   export let isMe: boolean;
 </script>
 
@@ -17,8 +30,8 @@
 
       {#if msg.attachments?.length > 0}
         <div class="grid grid-cols-1 gap-2 {msg.text ? 'mt-3' : ''}">
-          {#each msg.attachments as file}
-            <a href={file.url} target="_blank" class="block overflow-hidden rounded-xl border border-white/20">
+          {#each msg.attachments as file (file.url)}
+            <a href={resolve(file.url)} target="_blank" rel="noopener noreferrer" class="block overflow-hidden rounded-xl border border-white/20">
               <img src={file.url} alt="" class="max-h-64 w-full object-cover hover:scale-105 transition duration-500" />
             </a>
           {/each}

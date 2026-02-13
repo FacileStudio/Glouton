@@ -5,7 +5,7 @@
   import { logger } from '@repo/logger';
 
   const dispatch = createEventDispatcher();
-  export let room: any;
+  export let room: { id: string; name?: string; isGroup?: boolean; participants?: Array<{ userId: string; role?: string; user?: { name?: string } }> };
   export let currentUserId: string;
 
   let inviteEmail = "";
@@ -78,7 +78,7 @@
       <section>
         <h4 class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-4">Members</h4>
         <div class="space-y-3">
-          {#each participants as p}
+          {#each participants as p (p.userId)}
             <div class="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-white">
               <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-xl bg-slate-200 overflow-hidden font-bold flex items-center justify-center text-slate-500">

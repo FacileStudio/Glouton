@@ -3,10 +3,11 @@
 	import { trpc } from '$lib/trpc';
 	import { onMount } from 'svelte';
 	import { logger } from '@repo/logger';
+	import type { UserStats, Contact } from '$lib/types';
 
 	let loading = $state(true);
-	let userStats: any = $state(null);
-	let contactStats: any = $state(null);
+	let userStats: UserStats | null = $state(null);
+	let contactStats: Contact[] | null = $state(null);
 
 	onMount(async () => {
 		await Promise.all([fetchUserStats(), fetchContactStats()]);
@@ -73,7 +74,7 @@
 
 	const userGrowthData = $derived(() => {
 		if (!userStats?.userGrowth) return [];
-		return userStats.userGrowth.map((item: any) => ({
+		return (userStats.userGrowth as Array<{date: string; count: number}>).map((item) => ({
 			x: item.date,
 			y: item.count,
 		}));
@@ -113,7 +114,7 @@
 			});
 		}
 
-		if (userStatusDistribution().some((d: any) => d.value > 0)) {
+		if (userStatusDistribution().some((d) => d.value > 0)) {
 			chartList.push({
 				title: 'User Status Distribution',
 				description: 'Breakdown of users by status',
@@ -126,7 +127,7 @@
 			});
 		}
 
-		if (userRoleDistribution().some((d: any) => d.value > 0)) {
+		if (userRoleDistribution().some((d) => d.value > 0)) {
 			chartList.push({
 				title: 'User Role Distribution',
 				description: 'Breakdown of users by role',

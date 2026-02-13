@@ -1,6 +1,7 @@
 <script lang="ts">
   import authStore from '$lib/auth-store';
   import { goto } from '$app/navigation';
+  import { resolve } from '$app/paths';
   import { fly, fade } from 'svelte/transition';
   import type { User } from '@repo/types';
   import { trpc } from '$lib/trpc';
@@ -20,7 +21,7 @@
     else if (step === 2 && email) step = 3;
   };
 
-  const prevStep = () => (step > 1 ? step-- : goto('/login'));
+  const prevStep = () => (step > 1 ? step-- : goto(resolve('/login')));
 
   async function handleRegister() {
     if (password !== confirmPassword) {
@@ -38,9 +39,9 @@
         lastName,
       });
       authStore.setAuth({ token }, user as User);
-      await goto('/app/profile');
-    } catch (err: any) {
-      error = err.message || 'Initialization failed.';
+      await goto(resolve('/app/profile'));
+    } catch (err) {
+      error = err instanceof Error ? err.message : 'Initialization failed.';
       loading = false;
     }
   }

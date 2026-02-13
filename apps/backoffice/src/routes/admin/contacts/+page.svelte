@@ -3,13 +3,13 @@
     import authStore from '$lib/auth-store';
     import { onMount } from 'svelte';
     import { fade } from 'svelte/transition';
-    import { Spinner, EmptyState, Button, Card } from '@repo/ui';
+    import { Spinner, EmptyState, Button } from '@repo/ui';
     import { toast } from '@repo/utils';
+    import type { Contact } from '$lib/types';
     import 'iconify-icon';
 
     let pageLoading = true;
-    let error = '';
-    let contacts: any[] = [];
+    let contacts: Contact[] = [];
 
     $: if (!$authStore.loading && !$authStore.session) {
         authStore.logout();
@@ -18,8 +18,7 @@
     onMount(async () => {
         try {
             contacts = await trpc.contact.list.query();
-        } catch (err: any) {
-            error = 'Impossible de récupérer les messages.';
+        } catch {
             toast.push('Impossible de récupérer les messages.', 'error');
         } finally {
             pageLoading = false;

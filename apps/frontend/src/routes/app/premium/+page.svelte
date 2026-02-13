@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { resolve } from '$app/paths';
   import { trpc } from '$lib/trpc';
   import { onMount } from 'svelte';
   import { browser } from '$app/environment';
@@ -11,7 +12,6 @@
   let pageLoading = true;
   let actionLoading = false;
   let subscriptionStatus = null;
-  let error = '';
 
   $: canceled = $page.url.searchParams.get('canceled') === 'true';
 
@@ -22,8 +22,7 @@
 
     try {
       subscriptionStatus = await trpc.stripe.getSubscription.query();
-    } catch (err: any) {
-      error = 'Impossible de charger le statut de l\'abonnement.';
+    } catch {
       toast.push('Impossible de charger le statut de l\'abonnement.', 'error');
     } finally {
       pageLoading = false;
@@ -33,19 +32,17 @@
   async function handleBecomePremium() {
     if (!browser) return;
     actionLoading = true;
-    error = '';
     try {
       const result = await trpc.stripe.createCheckoutSession.mutate({ priceId: PREMIUM_PRICE_ID });
       if (result.url) {
         window.location.href = result.url;
       } else {
-        error = 'Error creating payment session.';
         toast.push('Error creating payment session.', 'error');
         actionLoading = false;
       }
-    } catch (err: any) {
-      error = err.message || 'Failed to initialize Premium.';
-      toast.push(err.message || 'Failed to initialize Premium.', 'error');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to initialize Premium.';
+      toast.push(errorMessage, 'error');
       actionLoading = false;
     }
   }
@@ -53,19 +50,17 @@
   async function handleManageSubscription() {
     if (!browser) return;
     actionLoading = true;
-    error = '';
     try {
       const result = await trpc.stripe.createPortalSession.mutate();
       if (result.url) {
         window.location.href = result.url;
       } else {
-        error = 'Error accessing customer portal.';
         toast.push('Error accessing customer portal.', 'error');
         actionLoading = false;
       }
-    } catch (err: any) {
-      error = err.message || 'Unable to manage subscription.';
-      toast.push(err.message || 'Unable to manage subscription.', 'error');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unable to manage subscription.';
+      toast.push(errorMessage, 'error');
       actionLoading = false;
     }
   }
@@ -153,7 +148,7 @@
           </Button>
         {/if}
 
-        <a href="/" class="block text-center text-gray-500 text-sm hover:text-gray-900 mt-4 flex items-center justify-center gap-1">
+        <a href={resolve('/')} class="block text-center text-gray-500 text-sm hover:text-gray-900 mt-4 flex items-center justify-center gap-1">
           <iconify-icon icon="solar:arrow-left-linear"></iconify-icon> Retour
         </a>
       </Card>

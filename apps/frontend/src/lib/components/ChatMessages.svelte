@@ -2,7 +2,7 @@
   import { fly } from 'svelte/transition';
   import MessageBubble from './MessageBubble.svelte';
 
-  export let messages: any[] = [];
+  export let messages: Array<{ id: string; userId: string; text: string; createdAt: Date }> = [];
   export let currentUserId: string = "";
   export let scrollContainer: HTMLElement | undefined = undefined;
 </script>

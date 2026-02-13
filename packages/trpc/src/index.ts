@@ -6,6 +6,7 @@ import { mediaRouter } from './modules/media/router';
 import { chatRouter } from './modules/chat/router';
 import { authRouter } from './modules/auth/router';
 import { adminRouter } from './modules/admin/router';
+import { leadRouter } from './modules/lead/router';
 import { createOpenApiDocument } from './openapi';
 
 export const appRouter = router({
@@ -16,6 +17,7 @@ export const appRouter = router({
   media: mediaRouter,
   chat: chatRouter,
   admin: adminRouter,
+  lead: leadRouter,
 });
 export const openApiDocument = createOpenApiDocument(appRouter);
 

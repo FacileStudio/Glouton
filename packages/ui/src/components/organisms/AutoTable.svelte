@@ -6,12 +6,8 @@
     export let data: unknown[];
 
     function handleExport() {
-        try {
-            downloadCSV(data, `export-${entityName}-${new Date().toISOString().split('T')[0]}`);
-            toast.push("Export réussi !", "success");
-        } catch (_e) {
-            toast.push("Erreur lors de l'export", "error");
-        }
+        downloadCSV(data, `export-${entityName}-${new Date().toISOString().split('T')[0]}`);
+        toast.push("Export réussi !", "success");
     }
 </script>
 

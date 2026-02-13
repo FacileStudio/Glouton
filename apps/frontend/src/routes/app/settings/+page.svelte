@@ -9,7 +9,6 @@
   import { onMount } from 'svelte';
   import { fade, slide, scale } from 'svelte/transition';
 
-  // --- LOGIC SECTION ---
   let activeTab = $state('profile');
   let saving = $state(false);
   let message = $state<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -19,7 +18,6 @@
   let bannerInput: HTMLInputElement = $state(null);
   let showSavedMessage = $state(false);
 
-  // Delete Account Logic
   let deleting = $state(false);
   let deleteModalOpen = $state(false);
   let deleteConfirmationText = $state('');
@@ -88,7 +86,7 @@
       setTimeout(() => {
         showSavedMessage = false;
       }, 3000);
-    } catch (err) {
+    } catch {
       message = { type: 'error', text: 'Failed to update profile' };
     } finally {
       saving = false;
@@ -115,7 +113,7 @@
       formData.newPassword = '';
       formData.confirmPassword = '';
       message = { type: 'success', text: 'Password changed successfully!' };
-    } catch (err) {
+    } catch {
       message = { type: 'error', text: 'Failed to change password' };
     } finally {
       saving = false;
@@ -190,7 +188,6 @@
   }
 
   async function handleDeleteAccount() {
-    // Instead of native confirm, we open our modal
     deleteModalOpen = true;
     deleteConfirmationText = '';
   }
@@ -228,7 +225,7 @@
 
   <div class="flex justify-center">
     <div class="inline-flex p-1.5 bg-neutral-100 rounded-[24px] gap-1 overflow-x-auto max-w-full">
-      {#each tabs as tab}
+      {#each tabs as tab (tab.id)}
         <button
           onclick={() => (activeTab = tab.id)}
           class="flex items-center gap-2 px-6 py-3 rounded-[20px] font-bold text-sm transition-all duration-300 whitespace-nowrap
@@ -459,7 +456,7 @@
               <h4 class="font-black uppercase text-sm mb-1">Session</h4>
               <p class="text-sm text-neutral-500">Log out from this device</p>
             </div>
-            <Button onclick={() => authStore.logout()}>
+            <Button onclick={() => authStore.logout()} class="bg-red-600">
               <iconify-icon icon="solar:logout-2-bold" width="20"></iconify-icon>
               Log Out
             </Button>
@@ -481,7 +478,7 @@
                   cannot be recovered.
                 </p>
               </div>
-              <Button onclick={handleDeleteAccount} disabled={deleting}>
+              <Button onclick={handleDeleteAccount} disabled={deleting} class="bg-red-600">
                 <iconify-icon icon="solar:trash-bin-trash-bold" width="20"></iconify-icon>
                 {deleting ? 'Deleting...' : 'Delete Account'}
               </Button>
@@ -499,7 +496,7 @@
           <p class="text-neutral-500 text-sm">Choose how we communicate with you.</p>
         </div>
 
-        {#each [{ label: 'Email Notifications', sub: 'Receive updates about your account activity via email.', bind: 'email' }, { label: 'Push Notifications', sub: 'Receive real-time alerts on your device.', bind: 'push' }, { label: 'Marketing Emails', sub: 'Be the first to know about new features and offers.', bind: 'marketing' }] as item}
+        {#each [{ label: 'Email Notifications', sub: 'Receive updates about your account activity via email.', bind: 'email' }, { label: 'Push Notifications', sub: 'Receive real-time alerts on your device.', bind: 'push' }, { label: 'Marketing Emails', sub: 'Be the first to know about new features and offers.', bind: 'marketing' }] as item (item.bind)}
           <div
             class="p-6 flex items-center justify-between hover:bg-neutral-50/50 transition-colors"
           >
@@ -521,7 +518,7 @@
           <p class="text-neutral-500 text-sm">Control who can see your profile and activity.</p>
         </div>
 
-        {#each [{ label: 'Public Profile', sub: 'Allow anyone to view your profile information.', bind: 'profileVisible' }, { label: 'Online Status', sub: 'Show the green dot when you are active.', bind: 'showOnline' }, { label: 'Activity Log', sub: 'Allow friends to see what you are working on.', bind: 'activityStatus' }] as item}
+        {#each [{ label: 'Public Profile', sub: 'Allow anyone to view your profile information.', bind: 'profileVisible' }, { label: 'Online Status', sub: 'Show the green dot when you are active.', bind: 'showOnline' }, { label: 'Activity Log', sub: 'Allow friends to see what you are working on.', bind: 'activityStatus' }] as item (item.bind)}
           <div
             class="p-6 flex items-center justify-between hover:bg-neutral-50/50 transition-colors"
           >

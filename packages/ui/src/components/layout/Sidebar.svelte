@@ -2,7 +2,10 @@
   import 'iconify-icon';
   export let items: { label: string; icon: string; href: string }[] = [];
   export let activeHref = '/';
+  export let resolvePath: (path: string) => string = (path) => path;
 </script>
+
+<!-- eslint-disable svelte/no-navigation-without-resolve -->
 
 <aside
   class="w-72 h-screen sticky top-0 bg-white border-r-2 border-neutral-100 p-8 flex flex-col selection:bg-black selection:text-white"
@@ -13,7 +16,7 @@
         <div class="w-3.5 h-3.5 bg-white rotate-45"></div>
       </div>
       <h1 class="text-xl font-black tracking-tight uppercase leading-none text-black">
-        Mono<span class="text-neutral-400">Repo</span>
+        Glouton
       </h1>
     </div>
   </div>
@@ -21,7 +24,7 @@
   <nav class="flex-1 space-y-2">
     {#each items as item (item.href)}
       <a
-        href={item.href}
+        href={resolvePath(item.href)}
         data-sveltekit-reload
         class="group relative flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-200
         {activeHref === item.href
@@ -61,7 +64,7 @@
         </div>
       </div>
 
-      <a href="/app/profile" data-sveltekit-reload class="absolute inset-0 z-10" aria-label="View Profile"></a>
+      <a href={resolvePath('/app/profile')} data-sveltekit-reload class="absolute inset-0 z-10" aria-label="View Profile"></a>
     </div>
   </div>
 </aside>

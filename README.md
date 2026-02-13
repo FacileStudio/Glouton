@@ -1,29 +1,43 @@
-# tRPC Monorepo Boilerplate
+# Glouton - Lead Generation System
 
-Production-ready monorepo boilerplate with full-stack type safety, modern architecture, and best practices built-in.
+Production-ready lead generation platform with automated web scraping, intelligent lead scoring, and real-time progress tracking. Built with tRPC, SvelteKit, and BullMQ for enterprise-scale performance.
 
 ## Features
 
-- **Full Type Safety**: End-to-end type safety with tRPC
-- **Modern Stack**: Bun, Hono, SvelteKit, Expo (React Native)
-- **Authentication**: Custom JWT-based auth system
-- **File Storage**: MinIO S3-compatible storage with client-side uploads
-- **Payments**: Stripe integration with webhooks
-- **Internationalization**: Type-safe i18n with Svelte and React hooks
-- **Database**: Prisma ORM with multi-schema support
-- **Monorepo**: Turborepo for efficient builds and caching
-- **Clean Architecture**: Clear client/server separation
+- 🔍 **Automated Lead Extraction** - Crawl websites and extract contact information
+- 🎯 **Smart Lead Scoring** - Automatic classification (HOT/WARM/COLD) based on quality metrics
+- 🚀 **Real-time Progress** - Live updates on hunt status with 5-second polling
+- 💼 **Technology Detection** - Identify tech stacks (React, Vue, WordPress, etc.)
+- 📊 **Analytics Dashboard** - Comprehensive statistics and insights
+- 🔒 **Enterprise Security** - SSRF protection, input validation, rate limiting
+- ⚡ **Background Processing** - Async job queue with Redis and BullMQ
+- 🎨 **Professional UI** - Modern, responsive interface with Quick Start templates
+- 📱 **Quick Start Templates** - Pre-configured searches for common use cases
+- 🔐 **JWT Authentication** - Secure user authentication and authorization
+- 📈 **Hunt Session Tracking** - Monitor and analyze extraction jobs
 
 ## Quick Start
 
+### Prerequisites
+
+- **Bun** (latest version)
+- **PostgreSQL** (running locally or remote)
+- **Redis** (for job queue)
+
+### Installation
+
 ```bash
+# Clone repository
+git clone https://github.com/FacileStudio/Glouton.git
+cd Glouton
+
 # Install dependencies
 bun install
 
-# Setup database
-cd packages/database && bun run db:push
+# Set up database and schema
+bun run dev:db:setup
 
-# Start all apps
+# Start development servers
 bun run dev
 ```
 
@@ -32,23 +46,40 @@ bun run dev
 Copy `.env.example` to `.env` in `apps/backend/`:
 
 ```bash
-# JWT
+# Database
+DATABASE_URL=postgresql://user@localhost:5432/myapp
+
+# Redis (Job Queue)
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_DB=0
+
+# JWT Authentication
 ENCRYPTION_SECRET=your-secret-key-min-32-chars
 
-# Stripe
-STRIPE_SECRET_KEY=sk_test_...
-STRIPE_WEBHOOK_SECRET=whsec_...
-
-# MinIO/S3
-MINIO_ENDPOINT=http://localhost:9000
-MINIO_ROOT_USER=minioadmin
-MINIO_ROOT_PASSWORD=minioadmin
-MINIO_BUCKET_NAME=uploads
-
-# CORS
-FRONTEND_URL=http://localhost:5173
-TRUSTED_ORIGINS=http://localhost:5173,http://localhost:3002
+# Server Config
+PORT=3001
+FRONTEND_URL=http://localhost:3000
+TRUSTED_ORIGINS=http://localhost:3000,http://localhost:3001,http://localhost:3002
 ```
+
+### Usage
+
+1. Navigate to `http://localhost:3000/app/leads`
+2. Click the search input to see Quick Start templates
+3. Select a template or enter a custom URL
+4. Adjust the depth level (1-10)
+5. Click "START SEARCH"
+6. Watch leads appear in real-time!
+
+### Quick Start Templates
+
+- **Tech News & Startups** - TechCrunch, tech blogs (Depth: 7)
+- **Product Launches** - ProductHunt, startup directories (Depth: 6)
+- **Trending Developers** - GitHub trending (Depth: 5)
+- **Content Creators** - Medium, blogging platforms (Depth: 6)
+- **Design Agencies** - Dribbble, design portfolios (Depth: 7)
+- **Development Firms** - Clutch, agency listings (Depth: 8)
 
 ## Architecture
 

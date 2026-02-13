@@ -7,7 +7,7 @@
     export let value: string = "";
     export let label = "Image de couverture";
 
-    export let getPresignedUrl: (filename: string, folder: string) => Promise<string>;
+    export let getPresignedUrl: (_filename: string, _folder: string) => Promise<string>;
 
     let uploading = false;
     let previewUrl = value;
