@@ -3,14 +3,14 @@
 	import { trpc } from '$lib/trpc';
 	import { onMount } from 'svelte';
 	import { logger } from '@repo/logger';
-	import type { UserStats, Contact } from '$lib/types';
+	import type { UserStats } from '$lib/types';
 
 	let loading = $state(true);
 	let userStats: UserStats | null = $state(null);
-	let contactStats: Contact[] | null = $state(null);
+	let leadStats: any | null = $state(null);
 
 	onMount(async () => {
-		await Promise.all([fetchUserStats(), fetchContactStats()]);
+		await Promise.all([fetchUserStats(), fetchLeadStats()]);
 		loading = false;
 	});
 
@@ -22,69 +22,84 @@
 		}
 	}
 
-	async function fetchContactStats() {
+	async function fetchLeadStats() {
 		try {
-			contactStats = await trpc.contact.list.query({});
+			leadStats = await trpc.lead.getStats.query();
 		} catch (err) {
-			logger.error({ err }, 'Failed to fetch contact statistics');
+			logger.error({ err }, 'Failed to fetch lead statistics');
 		}
 	}
 
 	const stats = $derived(() => {
-		if (!userStats) return [];
-		return [
-			{
-				title: 'Total Users',
-				value: userStats.totalUsers || 0,
-				icon: 'solar:users-group-two-rounded-bold',
-				color: 'indigo' as const,
-			},
-			{
-				title: 'Active Users',
-				value: userStats.activeUsers || 0,
-				icon: 'solar:user-check-rounded-bold',
-				color: 'emerald' as const,
-			},
-			{
-				title: 'Suspended',
-				value: userStats.suspendedUsers || 0,
-				icon: 'solar:user-block-rounded-bold',
-				color: 'amber' as const,
-			},
-			{
-				title: 'Banned',
-				value: userStats.bannedUsers || 0,
-				icon: 'solar:user-cross-rounded-bold',
-				color: 'rose' as const,
-			},
-			{
-				title: 'Premium Users',
-				value: userStats.premiumUsers || 0,
-				icon: 'solar:crown-bold',
-				color: 'violet' as const,
-			},
-			{
-				title: 'Total Contacts',
-				value: contactStats?.data?.length || 0,
-				icon: 'solar:letter-bold',
-				color: 'cyan' as const,
-			},
-		];
+		const statsList = [];
+
+		if (userStats) {
+			statsList.push(
+				{
+					title: 'Total Users',
+					value: userStats.totalUsers || 0,
+					icon: 'solar:users-group-two-rounded-bold',
+					color: 'indigo' as const,
+				},
+				{
+					title: 'Active Users',
+					value: userStats.activeUsers || 0,
+					icon: 'solar:user-check-rounded-bold',
+					color: 'emerald' as const,
+				}
+			);
+		}
+
+		if (leadStats) {
+			statsList.push(
+				{
+					title: 'Total Leads',
+					value: leadStats.totalLeads || 0,
+					icon: 'solar:user-id-bold',
+					color: 'blue' as const,
+				},
+				{
+					title: 'Hot Leads',
+					value: leadStats.hotLeads || 0,
+					icon: 'solar:fire-bold',
+					color: 'rose' as const,
+				},
+				{
+					title: 'Warm Leads',
+					value: leadStats.warmLeads || 0,
+					icon: 'solar:star-bold',
+					color: 'amber' as const,
+				},
+				{
+					title: 'Cold Leads',
+					value: leadStats.coldLeads || 0,
+					icon: 'solar:snowflake-bold',
+					color: 'cyan' as const,
+				},
+				{
+					title: 'Active Hunts',
+					value: (leadStats.pendingHunts || 0) + (leadStats.processingHunts || 0),
+					icon: 'solar:magnifer-zoom-in-bold',
+					color: 'violet' as const,
+				},
+				{
+					title: 'Success Rate',
+					value: leadStats.successRate ? `${leadStats.successRate.toFixed(1)}%` : '0%',
+					icon: 'solar:chart-bold',
+					color: 'emerald' as const,
+				}
+			);
+		}
+
+		return statsList;
 	});
 
-	const userGrowthData = $derived(() => {
-		if (!userStats?.userGrowth) return [];
-		return (userStats.userGrowth as Array<{date: string; count: number}>).map((item) => ({
-			x: item.date,
-			y: item.count,
-		}));
-	});
-
-	const userRoleDistribution = $derived(() => {
-		if (!userStats) return [];
+	const leadStatusDistribution = $derived(() => {
+		if (!leadStats) return [];
 		return [
-			{ label: 'Users', value: (userStats.totalUsers || 0) - (userStats.adminUsers || 0) },
-			{ label: 'Admins', value: userStats.adminUsers || 0 },
+			{ label: 'Hot', value: leadStats.hotLeads || 0 },
+			{ label: 'Warm', value: leadStats.warmLeads || 0 },
+			{ label: 'Cold', value: leadStats.coldLeads || 0 },
 		];
 	});
 
@@ -94,22 +109,21 @@
 			{ label: 'Active', value: userStats.activeUsers || 0 },
 			{ label: 'Suspended', value: userStats.suspendedUsers || 0 },
 			{ label: 'Banned', value: userStats.bannedUsers || 0 },
-			{ label: 'Pending', value: userStats.pendingUsers || 0 },
 		];
 	});
 
 	const charts = $derived(() => {
 		const chartList = [];
 
-		if (userGrowthData().length > 0) {
+		if (leadStatusDistribution().some((d) => d.value > 0)) {
 			chartList.push({
-				title: 'User Growth',
-				description: 'New user registrations over time',
-				type: 'area' as const,
-				data: userGrowthData(),
-				x: 'x',
-				y: 'y',
-				color: '#4f46e5',
+				title: 'Lead Quality Distribution',
+				description: 'Breakdown of leads by status (Hot, Warm, Cold)',
+				type: 'pie' as const,
+				data: leadStatusDistribution(),
+				value: 'value',
+				label: 'label',
+				colors: ['#ef4444', '#f59e0b', '#06b6d4'],
 				height: 300,
 			});
 		}
@@ -118,24 +132,11 @@
 			chartList.push({
 				title: 'User Status Distribution',
 				description: 'Breakdown of users by status',
-				type: 'pie' as const,
-				data: userStatusDistribution(),
-				value: 'value',
-				label: 'label',
-				colors: ['#10b981', '#f59e0b', '#ef4444', '#94a3b8'],
-				height: 300,
-			});
-		}
-
-		if (userRoleDistribution().some((d) => d.value > 0)) {
-			chartList.push({
-				title: 'User Role Distribution',
-				description: 'Breakdown of users by role',
 				type: 'bar' as const,
-				data: userRoleDistribution(),
+				data: userStatusDistribution(),
 				x: 'label',
 				y: 'value',
-				color: '#8b5cf6',
+				color: '#4f46e5',
 				height: 300,
 			});
 		}
@@ -151,8 +152,8 @@
 		</div>
 	{:else}
 		<AdminAutoStats
-			title="Platform Statistics"
-			description="Overview of platform metrics and analytics"
+			title="Lead Generation Statistics"
+			description="Overview of lead hunting metrics and user activity"
 			stats={stats()}
 			charts={charts()}
 		/>

@@ -19,9 +19,6 @@ model User {
   lastLoginAt    DateTime?
   lastLoginIp    String?
 
-  avatar         Media?           @relation("UserAvatar")
-  coverImage     Media?           @relation("UserCover")
-
   messages      Message[]
   rooms         RoomParticipant[]
 

@@ -229,13 +229,9 @@
 							<tr class="hover:bg-slate-50 transition-colors">
 								<td class="px-6 py-4">
 									<div class="flex items-center gap-3">
-										{#if user.avatar?.url}
-											<img src={user.avatar.url} alt={user.firstName} class="w-10 h-10 rounded-xl object-cover" />
-										{:else}
-											<div class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 font-bold">
-												{user.firstName[0]}
-											</div>
-										{/if}
+										<div class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 font-bold">
+											{user.firstName[0]}
+										</div>
 										<div>
 											<div class="font-bold text-slate-900 flex items-center gap-2">
 												{user.firstName} {user.lastName}

@@ -30,13 +30,9 @@
 >
     <div class="flex items-center gap-4 mb-4">
         <div class="relative flex-shrink-0">
-            {#if user.avatar?.url}
-                <img src={user.avatar.url} alt={user.firstName} class="w-16 h-16 rounded-[22px] object-cover" />
-            {:else}
-                <div class="w-16 h-16 rounded-[22px] bg-slate-50 flex items-center justify-center text-slate-400 font-black text-2xl border border-slate-200">
-                    {user.firstName[0]}
-                </div>
-            {/if}
+            <div class="w-16 h-16 rounded-[22px] bg-slate-50 flex items-center justify-center text-slate-400 font-black text-2xl border border-slate-200">
+                {user.firstName[0]}
+            </div>
 
             {#if isAdmin(user)}
                 <div class="absolute -top-2 -right-2 w-7 h-7 bg-rose-500 text-white rounded-full shadow-lg border-2 border-white flex items-center justify-center z-10">

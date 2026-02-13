@@ -3,7 +3,6 @@
   import { trpc } from '$lib/trpc';
   import { onMount } from 'svelte';
   import { fade, scale, fly } from 'svelte/transition';
-  import { uploadFileSimple } from '@repo/storage-client';
   import { toast } from '@repo/utils';
   import 'iconify-icon';
 
@@ -13,17 +12,11 @@
     email: string;
     createdAt: Date;
     role: string;
-    avatar?: { url: string };
-    coverImage?: { url: string };
   }
 
   let loading = true;
-  let actionLoading: 'avatar' | 'cover' | 'removeAvatar' | 'removeCover' | '' = '';
   let user: UserData | null = null;
   let isPremiumUser = false;
-
-  let avatarInput: HTMLInputElement;
-  let coverInput: HTMLInputElement;
 
   onMount(async () => {
     await loadData();
@@ -40,48 +33,6 @@
       loading = false;
     }
   }
-
-  async function handleFileUpload(event: Event, type: 'avatar' | 'cover') {
-    const target = event.target as HTMLInputElement;
-    const file = target.files?.[0];
-    if (!file) return;
-
-    actionLoading = type;
-    try {
-      const { uploadUrl, publicUrl, fileKey } = await trpc.media.getUploadUrl.mutate({
-        fileName: file.name,
-        fileType: file.type,
-      });
-      await uploadFileSimple(file, uploadUrl);
-      if (type === 'avatar') {
-        await trpc.media.updateAvatar.mutate({ url: publicUrl, key: fileKey, size: file.size });
-      } else {
-        await trpc.media.updateCover.mutate({ url: publicUrl, key: fileKey, size: file.size });
-      }
-      await loadData();
-      toast.push(`${type === 'avatar' ? 'Identité' : 'Territoire'} mis à jour !`, 'success');
-    } catch {
-      toast.push('Échec de l\'aspiration. Réessayez.', 'error');
-    } finally {
-      actionLoading = '';
-      target.value = '';
-    }
-  }
-
-  async function handleRemoveMedia(type: 'avatar' | 'cover') {
-    if (!confirm(`Supprimer cette image du festin ?`)) return;
-    actionLoading = type === 'avatar' ? 'removeAvatar' : 'removeCover';
-    try {
-      if (type === 'avatar') await trpc.media.removeAvatar.mutate();
-      else await trpc.media.removeCover.mutate();
-      await loadData();
-      toast.push('Média dévoré (supprimé)', 'success');
-    } catch {
-      toast.push('Erreur lors de la suppression', 'error');
-    } finally {
-      actionLoading = '';
-    }
-  }
 </script>
 
 <main class="min-h-screen bg-white text-black pb-20 selection:bg-yellow-400 selection:text-black">
@@ -93,74 +44,8 @@
       </p>
     </div>
   {:else if user}
-    <section class="relative h-[40vh] min-h-[350px] w-full bg-black group overflow-hidden">
-      {#if user.coverImage?.url && actionLoading !== 'cover'}
-        <img
-          src={user.coverImage.url}
-          alt="Territoire"
-          class="w-full h-full object-cover transition-transform duration-[2000ms] group-hover:scale-110 grayscale hover:grayscale-0 transition-all"
-          in:fade
-        />
-      {:else if actionLoading === 'cover' || actionLoading === 'removeCover'}
-        <div class="absolute inset-0 flex items-center justify-center bg-neutral-900">
-          <iconify-icon icon="svg-spinners:bars-scale-middle" width="40" class="text-yellow-400"></iconify-icon>
-        </div>
-      {:else}
-        <div class="absolute inset-0 flex items-center justify-center bg-neutral-100">
-           <span class="text-[10px] font-black uppercase tracking-[0.5em] text-neutral-300">Aucun territoire défini</span>
-        </div>
-      {/if}
-
-      <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4 z-20 backdrop-blur-sm">
-        <button
-          on:click={() => coverInput.click()}
-          class="bg-yellow-400 text-black px-8 py-3 rounded-full font-black uppercase text-xs tracking-widest hover:scale-105 transition shadow-2xl flex items-center gap-2"
-        >
-          <iconify-icon icon="solar:map-arrow-square-bold" width="18"></iconify-icon>
-          Changer de bannière
-        </button>
-        {#if user.coverImage}
-          <button
-            on:click={() => handleRemoveMedia('cover')}
-            class="bg-white text-red-600 p-3 rounded-full hover:bg-red-600 hover:text-white transition shadow-2xl"
-          >
-            <iconify-icon icon="solar:trash-bold-duotone" width="22"></iconify-icon>
-          </button>
-        {/if}
-      </div>
-      <input type="file" bind:this={coverInput} on:change={(e) => handleFileUpload(e, 'cover')} class="hidden" accept="image/*" />
-    </section>
-
-    <div class="max-w-7xl mx-auto px-6">
-      <div class="relative -mt-32 flex flex-col md:flex-row items-end gap-12 pb-12 border-b-2 border-neutral-100">
-        
-        <aside class="relative z-30 flex flex-col items-center md:items-start">
-          <div class="relative group">
-            <div class="w-64 h-64 rounded-[60px] border-[12px] border-white bg-black overflow-hidden shadow-2xl relative transition-all duration-700 group-hover:rounded-[30px] group-hover:rotate-2">
-              {#if user.avatar?.url && actionLoading !== 'avatar'}
-                <img src={user.avatar.url} alt="L'Ogre" class="w-full h-full object-cover" in:scale />
-              {:else if actionLoading === 'avatar' || actionLoading === 'removeAvatar'}
-                <div class="w-full h-full flex items-center justify-center bg-neutral-900">
-                  <iconify-icon icon="svg-spinners:90-ring-with-bg" width="40" class="text-yellow-400"></iconify-icon>
-                </div>
-              {:else}
-                <div class="w-full h-full flex items-center justify-center text-yellow-400 bg-neutral-900">
-                  <iconify-icon icon="solar:ghost-bold" width="100"></iconify-icon>
-                </div>
-              {/if}
-            </div>
-
-            <button
-              on:click={() => avatarInput.click()}
-              class="absolute -bottom-2 -right-2 bg-yellow-400 text-black w-16 h-16 rounded-full flex items-center justify-center shadow-xl hover:scale-110 transition active:scale-90 border-[6px] border-white z-40"
-              disabled={actionLoading !== ''}
-            >
-              <iconify-icon icon="solar:camera-bold" width="24"></iconify-icon>
-            </button>
-            <input type="file" bind:this={avatarInput} on:change={(e) => handleFileUpload(e, 'avatar')} class="hidden" accept="image/*" />
-          </div>
-        </aside>
-
+    <div class="max-w-7xl mx-auto px-6 pt-12">
+      <div class="relative flex flex-col md:flex-row items-end gap-12 pb-12 border-b-2 border-neutral-100">
         <div class="flex-1 text-center md:text-left space-y-4 pb-4">
           <div class="flex flex-col md:flex-row md:items-center gap-4">
             <h1 class="text-5xl md:text-7xl font-black uppercase tracking-tighter leading-none">

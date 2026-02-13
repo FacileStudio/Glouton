@@ -1,10 +1,8 @@
 import { Context } from 'hono';
 import { prisma } from '@repo/database';
-import { StorageService } from '@repo/storage';
 import { StripeService } from '@repo/stripe';
 
 export interface HealthCheckDependencies {
-  storage: StorageService;
   stripe: StripeService;
 }
 
@@ -21,7 +19,6 @@ interface HealthCheckResponse {
   services: {
     api: ServiceStatus;
     database: ServiceStatus;
-    storage: ServiceStatus;
     stripe: ServiceStatus;
   };
 }
@@ -30,22 +27,6 @@ async function checkDatabase(): Promise<ServiceStatus> {
   const start = Date.now();
   try {
     await prisma.$queryRaw`SELECT 1`;
-    return {
-      status: 'healthy',
-      latency: Date.now() - start,
-    };
-  } catch (error) {
-    return {
-      status: 'unhealthy',
-      error: error instanceof Error ? error.message : 'Unknown error',
-    };
-  }
-}
-
-async function checkStorage(storage: StorageService): Promise<ServiceStatus> {
-  const start = Date.now();
-  try {
-    await storage.list();
     return {
       status: 'healthy',
       latency: Date.now() - start,
@@ -78,9 +59,8 @@ export function createHealthCheckHandler(deps: HealthCheckDependencies) {
   return async (c: Context) => {
     const startTime = Date.now();
 
-    const [databaseStatus, storageStatus, stripeStatus] = await Promise.all([
+    const [databaseStatus, stripeStatus] = await Promise.all([
       checkDatabase(),
-      checkStorage(deps.storage),
       checkStripe(deps.stripe),
     ]);
 
@@ -92,7 +72,6 @@ export function createHealthCheckHandler(deps: HealthCheckDependencies) {
     const services = {
       api: apiStatus,
       database: databaseStatus,
-      storage: storageStatus,
       stripe: stripeStatus,
     };
 
