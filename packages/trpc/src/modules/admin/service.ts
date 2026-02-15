@@ -58,7 +58,7 @@ export class AdminService {
       searchFields: ['key', 'mimeType'],
       defaultSort: { field: 'createdAt', order: 'desc' },
     },
-      ];
+  ];
 
   constructor(private db: SQL) {
     this.permissionService = new PermissionService(db);

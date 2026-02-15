@@ -5,7 +5,6 @@ import { adminRouter } from './modules/admin/router';
 import { leadRouter } from './modules/lead/router';
 import { emailRouter } from './modules/email/router';
 import { huntRunRouter } from './modules/hunt-run/router';
-import { opportunityRouter } from './modules/opportunity/router';
 
 export const appRouter = router({
   auth: authRouter,
@@ -14,7 +13,6 @@ export const appRouter = router({
   lead: leadRouter,
   email: emailRouter,
   huntRun: huntRunRouter,
-  opportunity: opportunityRouter,
 });
 
 export type AppRouter = typeof appRouter;
