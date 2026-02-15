@@ -16,13 +16,21 @@
 
   const adapter = zod(schema);
 
-  // @ts-expect-error - superForm types don't support dynamic schemas, but runtime behavior is correct
   const { form, errors, constraints, enhance, delayed } = superForm(
+    /**
+     * defaults
+     */
     defaults(initialData, adapter),
     {
       validators: adapter,
       SPA: true,
+      /**
+       * onUpdate
+       */
       async onUpdate({ form }) {
+        /**
+         * if
+         */
         if (form.valid) {
           try {
             await onSubmit(form.data);
@@ -44,10 +52,21 @@
     const fieldSchema = shape[fieldName];
     const typeName = fieldSchema?._def?.typeName;
 
+    /**
+     * if
+     */
     if (fieldName.toLowerCase().includes('image')) return 'image';
+    /**
+     * if
+     */
     if (typeName === 'ZodNumber') return 'number';
+    /**
+     * if
+     */
     if (typeName === 'ZodBoolean') return 'checkbox';
-    // Support des Enums classiques et Native Enums (Prisma)
+    /**
+     * if
+     */
     if (typeName === 'ZodEnum' || typeName === 'ZodNativeEnum') return 'select';
 
     return 'text';
@@ -60,7 +79,13 @@
     const fieldSchema = shape[fieldName];
     const def = fieldSchema._def;
 
+    /**
+     * if
+     */
     if (def.typeName === 'ZodEnum') return def.values;
+    /**
+     * if
+     */
     if (def.typeName === 'ZodNativeEnum') return Object.values(def.values);
     return [];
   }
@@ -142,10 +167,3 @@
     </Button>
   </div>
 </form>
-
-<style>
-  /* Petit hack pour styliser proprement le select sur certains navigateurs */
-  select {
-    background-image: none;
-  }
-</style>

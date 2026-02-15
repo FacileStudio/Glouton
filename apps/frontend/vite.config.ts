@@ -11,5 +11,5 @@ export default defineConfig({
       allow: ['..', '../../packages']
     }
   },
-  assetsInclude: ['**/*.woff', '**/*.woff2', '**/*.ttf', '**/*.otf']
+  assetsInclude: ['***.woff2', '***.otf']
 });

@@ -8,12 +8,16 @@
 @source "../../ui/src/**/*.{svelte,ts,js}";
 
 @theme {
-  --font-title: 'Poppins', sans-serif;
-  --font-body: 'Satoshi', sans-serif;
+  --font-title: 'Poppins', system-ui, -apple-system, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  --font-body: 'Satoshi', system-ui, -apple-system, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
 
-  --color-primary: #4f46e5;
-  --color-primary-hover: #4338ca;
-  --color-primary-light: #eef2ff;
+  --color-background: #FAF7F5;
+  --color-brand-gold: #FEC129;
+  --color-brand-purple: #291334;
+
+  --color-primary: #291334;
+  --color-primary-hover: #1a0b20;
+  --color-primary-light: #FAF7F5;
 
   --color-secondary: #f1f5f9;
   --color-secondary-hover: #e2e8f0;
@@ -26,14 +30,19 @@
   --color-success-hover: #059669;
   --color-success-light: #f0fdf4;
 
-  --color-warning: #f59e0b;
-  --color-warning-hover: #d97706;
+  --color-warning: #FEC129;
+  --color-warning-hover: #e5ad1f;
   --color-warning-light: #fffbeb;
+
+  --color-accent: #FEC129;
+  --color-accent-hover: #e5ad1f;
+  --color-accent-light: #fef9e7;
 
   --radius-sm: 12px;
   --radius-md: 16px;
   --radius-lg: 24px;
   --radius-xl: 32px;
+  --radius-2xl: 35px;
 
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
@@ -42,12 +51,23 @@
 }
 
 @layer base {
+  * {
+    font-synthesis: none;
+  }
+
   body {
     font-family: var(--font-body);
+    background-color: var(--color-background);
   }
 
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-title);
+    font-weight: 900;
+    letter-spacing: -0.02em;
+  }
+
+  iconify-icon {
+    font-family: var(--font-body) !important;
   }
 }
 
@@ -147,4 +167,103 @@
   .border-warning {
     border-color: var(--color-warning);
   }
+
+  .bg-accent {
+    background-color: var(--color-accent);
+  }
+
+  .bg-accent-hover {
+    background-color: var(--color-accent-hover);
+  }
+
+  .bg-accent-light {
+    background-color: var(--color-accent-light);
+  }
+
+  .text-accent {
+    color: var(--color-accent);
+  }
+
+  .text-accent-hover {
+    color: var(--color-accent-hover);
+  }
+
+  .border-accent {
+    border-color: var(--color-accent);
+  }
+
+  .bg-brand-purple {
+    background-color: var(--color-brand-purple);
+  }
+
+  .text-brand-purple {
+    color: var(--color-brand-purple);
+  }
+
+  .bg-brand-gold {
+    background-color: var(--color-brand-gold);
+  }
+
+  .text-brand-gold {
+    color: var(--color-brand-gold);
+  }
 }
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes backdrop-fade-in {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(8px);
+  }
+}
+
+@keyframes backdrop-fade-out {
+  from {
+    opacity: 1;
+    backdrop-filter: blur(8px);
+  }
+  to {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+  }
+}
+

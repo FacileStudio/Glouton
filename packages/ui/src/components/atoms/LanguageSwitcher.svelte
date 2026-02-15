@@ -13,7 +13,13 @@
 
   let currentLocale = $derived(locales.find((l) => l.code === $locale) || locales[0]);
 
+  /**
+   * handleSelect
+   */
   function handleSelect(code: Locale) {
+    /**
+     * setLocale
+     */
     setLocale(code);
     isOpen = false;
   }
@@ -23,7 +29,7 @@
   <button
     type="button"
     onclick={() => (isOpen = !isOpen)}
-    class="flex items-center justify-between w-full px-4 py-3 bg-white border border-neutral-200 rounded-2xl shadow-sm hover:border-neutral-300 transition-all group"
+    class="flex items-center justify-between w-full px-4 py-3 bg-white border border-neutral-200 rounded-2xl shadow-sm hover:border-neutral-300 transition-all group cursor-pointer"
     aria-haspopup="listbox"
     aria-expanded={isOpen}
   >
@@ -53,7 +59,7 @@
         {#each locales as lang (lang.code)}
           <button
             onclick={() => handleSelect(lang.code)}
-            class="flex items-center justify-between w-full px-4 py-3 rounded-[18px] transition-all
+            class="flex items-center justify-between w-full px-4 py-3 rounded-[18px] transition-all cursor-pointer
             {$locale === lang.code
               ? 'bg-neutral-900 text-white'
               : 'text-neutral-600 hover:bg-neutral-100'}"

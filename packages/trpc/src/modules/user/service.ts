@@ -6,12 +6,11 @@ export const userService = {
   getProfile: async (db: PrismaClient, userId: string) => {
     const user = await db.user.findUnique({
       where: { id: userId },
-      include: {
-        avatar: true,
-        coverImage: true,
-      },
     });
 
+    /**
+     * if
+     */
     if (!user) {
       throw new TRPCError({
         code: 'NOT_FOUND',
@@ -20,6 +19,53 @@ export const userService = {
     }
 
     return user;
+  },
+
+  getConfiguredSources: async (db: PrismaClient, userId: string) => {
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      select: {
+        hunterApiKey: true,
+        apolloApiKey: true,
+        snovApiKey: true,
+        hasdataApiKey: true,
+        contactoutApiKey: true,
+      },
+    });
+
+    /**
+     * if
+     */
+    if (!user) {
+      throw new TRPCError({
+        code: 'NOT_FOUND',
+        message: 'User not found',
+      });
+    }
+
+    const configuredSources: string[] = [];
+    /**
+     * if
+     */
+    if (user.hunterApiKey) configuredSources.push('HUNTER');
+    /**
+     * if
+     */
+    if (user.apolloApiKey) configuredSources.push('APOLLO');
+    /**
+     * if
+     */
+    if (user.snovApiKey) configuredSources.push('SNOV');
+    /**
+     * if
+     */
+    if (user.hasdataApiKey) configuredSources.push('HASDATA');
+    /**
+     * if
+     */
+    if (user.contactoutApiKey) configuredSources.push('CONTACTOUT');
+
+    return configuredSources;
   },
 
   getAllUsers: async (
@@ -33,18 +79,30 @@ export const userService = {
   ) => {
     const where: any = {};
 
+    /**
+     * if
+     */
     if (filters?.status && filters.status !== 'all') {
       where.status = filters.status.toUpperCase();
     }
 
+    /**
+     * if
+     */
     if (filters?.role && filters.role !== 'all') {
       where.role = filters.role.toUpperCase();
     }
 
+    /**
+     * if
+     */
     if (filters?.emailVerified !== undefined) {
       where.emailVerified = filters.emailVerified;
     }
 
+    /**
+     * if
+     */
     if (filters?.isPremium !== undefined) {
       where.isPremium = filters.isPremium;
     }
@@ -52,7 +110,6 @@ export const userService = {
     return await db.user.findMany({
       where,
       include: {
-        avatar: true,
         messages: { select: { id: true } },
         rooms: { select: { roomId: true } },
         subscription: true,
@@ -65,8 +122,6 @@ export const userService = {
     const user = await db.user.findUnique({
       where: { id: userId },
       include: {
-        avatar: true,
-        coverImage: true,
         messages: {
           select: { id: true, text: true, createdAt: true },
           orderBy: { createdAt: 'desc' },
@@ -91,6 +146,9 @@ export const userService = {
       },
     });
 
+    /**
+     * if
+     */
     if (!user) {
       throw new TRPCError({
         code: 'NOT_FOUND',
@@ -248,6 +306,9 @@ export const userService = {
   ) => {
     const user = await db.user.findUnique({ where: { id: userId } });
 
+    /**
+     * if
+     */
     if (!user) {
       throw new TRPCError({
         code: 'NOT_FOUND',
@@ -257,6 +318,9 @@ export const userService = {
 
     const isValid = await auth.verifyPassword(currentPassword, user.password);
 
+    /**
+     * if
+     */
     if (!isValid) {
       throw new TRPCError({
         code: 'UNAUTHORIZED',
@@ -275,6 +339,9 @@ export const userService = {
   deleteOwnAccount: async (db: PrismaClient, userId: string) => {
     const user = await db.user.findUnique({ where: { id: userId } });
 
+    /**
+     * if
+     */
     if (!user) {
       throw new TRPCError({
         code: 'NOT_FOUND',
@@ -285,6 +352,63 @@ export const userService = {
     return await db.user.delete({
       where: { id: userId },
     });
+  },
+
+  updateApiKeys: async (
+    db: PrismaClient,
+    userId: string,
+    apiKeys: {
+      hunterApiKey?: string;
+      apolloApiKey?: string;
+      snovApiKey?: string;
+      hasdataApiKey?: string;
+      contactoutApiKey?: string;
+    }
+  ) => {
+    try {
+      const updateData: any = {};
+
+      /**
+       * if
+       */
+      if (apiKeys.hunterApiKey !== undefined) {
+        updateData.hunterApiKey = apiKeys.hunterApiKey || null;
+      }
+      /**
+       * if
+       */
+      if (apiKeys.apolloApiKey !== undefined) {
+        updateData.apolloApiKey = apiKeys.apolloApiKey || null;
+      }
+      /**
+       * if
+       */
+      if (apiKeys.snovApiKey !== undefined) {
+        updateData.snovApiKey = apiKeys.snovApiKey || null;
+      }
+      /**
+       * if
+       */
+      if (apiKeys.hasdataApiKey !== undefined) {
+        updateData.hasdataApiKey = apiKeys.hasdataApiKey || null;
+      }
+      /**
+       * if
+       */
+      if (apiKeys.contactoutApiKey !== undefined) {
+        updateData.contactoutApiKey = apiKeys.contactoutApiKey || null;
+      }
+
+      return await db.user.update({
+        where: { id: userId },
+        data: updateData,
+      });
+    } catch (error) {
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Failed to update API keys',
+      });
+    }
   },
 };
 

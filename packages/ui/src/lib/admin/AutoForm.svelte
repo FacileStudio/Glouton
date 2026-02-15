@@ -24,22 +24,37 @@
   let errors = $state<Record<string, string>>({});
   let isSubmitting = $state(false);
 
+  /**
+   * handleSubmit
+   */
   function handleSubmit(e: Event) {
     e.preventDefault();
     errors = {};
 
     config.fields.forEach((field) => {
+      /**
+       * if
+       */
       if (field.required && !formData[field.name]) {
         errors[field.name] = `${field.label} is required`;
       }
     });
 
+    /**
+     * if
+     */
     if (Object.keys(errors).length > 0) return;
 
     isSubmitting = true;
+    /**
+     * onSubmit
+     */
     onSubmit(formData);
   }
 
+  /**
+   * getIcon
+   */
   const getIcon = (type: string) => {
     const icons: Record<string, string> = {
       string: 'solar:pen-new-square-linear',

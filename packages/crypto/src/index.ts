@@ -7,7 +7,13 @@ const TAG_LENGTH = 16;
 export class CryptoService {
   private key: Buffer;
 
+  /**
+   * constructor
+   */
   constructor(env: { ENCRYPTION_KEY: string }) {
+    /**
+     * if
+     */
     if (!env.ENCRYPTION_KEY) throw new Error('ENCRYPTION_KEY required');
     this.key = crypto.createHash('sha256').update(env.ENCRYPTION_KEY).digest();
   }

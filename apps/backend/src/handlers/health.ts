@@ -23,6 +23,9 @@ interface HealthCheckResponse {
   };
 }
 
+/**
+ * checkDatabase
+ */
 async function checkDatabase(): Promise<ServiceStatus> {
   const start = Date.now();
   try {
@@ -39,6 +42,9 @@ async function checkDatabase(): Promise<ServiceStatus> {
   }
 }
 
+/**
+ * checkStripe
+ */
 async function checkStripe(stripe: StripeService): Promise<ServiceStatus> {
   const start = Date.now();
   try {
@@ -55,12 +61,21 @@ async function checkStripe(stripe: StripeService): Promise<ServiceStatus> {
   }
 }
 
+/**
+ * createHealthCheckHandler
+ */
 export function createHealthCheckHandler(deps: HealthCheckDependencies) {
   return async (c: Context) => {
     const startTime = Date.now();
 
     const [databaseStatus, stripeStatus] = await Promise.all([
+      /**
+       * checkDatabase
+       */
       checkDatabase(),
+      /**
+       * checkStripe
+       */
       checkStripe(deps.stripe),
     ]);
 
@@ -96,12 +111,21 @@ export function createHealthCheckHandler(deps: HealthCheckDependencies) {
   };
 }
 
+/**
+ * createLivenessHandler
+ */
 export function createLivenessHandler() {
+  /**
+   * return
+   */
   return (c: Context) => {
     return c.json({ status: 'alive', timestamp: new Date().toISOString() }, 200);
   };
 }
 
+/**
+ * createReadinessHandler
+ */
 export function createReadinessHandler() {
   return async (c: Context) => {
     const [databaseStatus] = await Promise.all([checkDatabase()]);

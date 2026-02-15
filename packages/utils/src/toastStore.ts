@@ -9,6 +9,9 @@ export interface Toast {
   duration?: number;
 }
 
+/**
+ * createToastStore
+ */
 const createToastStore = () => {
   const { subscribe, update } = writable<Toast[]>([]);
 
@@ -16,10 +19,22 @@ const createToastStore = () => {
     subscribe,
     push: (message: string, type: ToastType = 'info', duration = 3000) => {
       const id = Math.floor(Math.random() * 1000000);
+      /**
+       * update
+       */
       update((all) => [{ id, type, message, duration }, ...all]);
 
+      /**
+       * if
+       */
       if (duration !== Infinity) {
+        /**
+         * setTimeout
+         */
         setTimeout(() => {
+          /**
+           * update
+           */
           update((all) => all.filter((t) => t.id !== id));
         }, duration);
       }

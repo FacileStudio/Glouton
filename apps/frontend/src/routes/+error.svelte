@@ -7,10 +7,19 @@
   $: status = $page.status;
   $: message = $page.error?.message || 'Something went wrong';
 
+  /**
+   * goHome
+   */
   function goHome() {
+    /**
+     * goto
+     */
     goto(resolve('/'));
   }
 
+  /**
+   * goBack
+   */
   function goBack() {
     window.history.back();
   }
@@ -60,7 +69,7 @@
         <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
           <button
             on:click={goHome}
-            class="group relative px-8 py-3 bg-primary text-white font-semibold rounded-lg shadow-lg hover:bg-primary-hover transition-all duration-200 hover:scale-105 active:scale-95 flex items-center gap-2"
+            class="group relative px-8 py-3 bg-primary text-white font-semibold rounded-lg shadow-lg hover:bg-primary-hover transition-all duration-200 hover:scale-105 active:scale-95 flex items-center gap-2 cursor-pointer"
           >
             <iconify-icon icon="solar:home-2-bold" width="20"></iconify-icon>
             <span>Go Home</span>
@@ -73,7 +82,7 @@
 
           <button
             on:click={goBack}
-            class="px-8 py-3 bg-white text-primary font-semibold rounded-lg shadow-md hover:shadow-lg border-2 border-primary transition-all duration-200 hover:scale-105 active:scale-95 flex items-center gap-2"
+            class="px-8 py-3 bg-white text-primary font-semibold rounded-lg shadow-md hover:shadow-lg border-2 border-primary transition-all duration-200 hover:scale-105 active:scale-95 flex items-center gap-2 cursor-pointer"
           >
             <iconify-icon icon="solar:arrow-left-bold" width="20"></iconify-icon>
             <span>Go Back</span>

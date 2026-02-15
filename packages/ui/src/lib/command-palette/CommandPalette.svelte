@@ -25,22 +25,34 @@
 	let groupedCommands = $derived(groupByCategory(filteredCommands));
 
 	$effect(() => {
+		/**
+		 * if
+		 */
 		if (dialog && open) {
 			dialog.showModal();
 			searchInput?.focus();
 			selectedIndex = 0;
 		}
+		/**
+		 * if
+		 */
 		if (dialog && !open) {
 			dialog.close();
 			query = '';
 		}
 	});
 
+	/**
+	 * groupByCategory
+	 */
 	function groupByCategory(commands: Command[]): SvelteMap<string, Command[]> {
 		const groups = new SvelteMap<string, Command[]>();
 
 		commands.forEach(cmd => {
 			const category = cmd.category || 'General';
+			/**
+			 * if
+			 */
 			if (!groups.has(category)) {
 				groups.set(category, []);
 			}
@@ -50,58 +62,106 @@
 		return groups;
 	}
 
+	/**
+	 * close
+	 */
 	function close() {
 		open = false;
 	}
 
+	/**
+	 * executeCommand
+	 */
 	function executeCommand(command: Command) {
 		command.action();
+		/**
+		 * close
+		 */
 		close();
 	}
 
+	/**
+	 * handleKeydown
+	 */
 	function handleKeydown(event: KeyboardEvent) {
+		/**
+		 * if
+		 */
 		if (event.key === 'ArrowDown') {
 			event.preventDefault();
 			selectedIndex = Math.min(selectedIndex + 1, filteredCommands.length - 1);
+			/**
+			 * scrollSelectedIntoView
+			 */
 			scrollSelectedIntoView();
 		} else if (event.key === 'ArrowUp') {
 			event.preventDefault();
 			selectedIndex = Math.max(selectedIndex - 1, 0);
+			/**
+			 * scrollSelectedIntoView
+			 */
 			scrollSelectedIntoView();
 		} else if (event.key === 'Enter') {
 			event.preventDefault();
 			const command = filteredCommands[selectedIndex];
+			/**
+			 * if
+			 */
 			if (command) executeCommand(command);
 		} else if (event.key === 'Escape') {
 			event.preventDefault();
+			/**
+			 * close
+			 */
 			close();
 		}
 	}
 
+	/**
+	 * scrollSelectedIntoView
+	 */
 	function scrollSelectedIntoView() {
 		const selected = document.querySelector('[data-selected="true"]');
 		selected?.scrollIntoView({ block: 'nearest' });
 	}
 
+	/**
+	 * handleGlobalKeydown
+	 */
 	function handleGlobalKeydown(event: KeyboardEvent) {
+		/**
+		 * if
+		 */
 		if (event[modifierKey] && event.key.toLowerCase() === shortcut.toLowerCase()) {
 			event.preventDefault();
 			open = !open;
 		}
 	}
 
+	/**
+	 * onMount
+	 */
 	onMount(() => {
 		window.addEventListener('keydown', handleGlobalKeydown);
 		const unsubscribe = commandRegistry.subscribe(() => {
 			filteredCommands = commandRegistry.search(query);
 		});
 
+		/**
+		 * return
+		 */
 		return () => {
 			window.removeEventListener('keydown', handleGlobalKeydown);
+			/**
+			 * unsubscribe
+			 */
 			unsubscribe();
 		};
 	});
 
+	/**
+	 * onDestroy
+	 */
 	onDestroy(() => {
 		window.removeEventListener('keydown', handleGlobalKeydown);
 	});

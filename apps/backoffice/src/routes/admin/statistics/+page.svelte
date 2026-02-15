@@ -9,11 +9,17 @@
 	let userStats: UserStats | null = $state(null);
 	let leadStats: any | null = $state(null);
 
+	/**
+	 * onMount
+	 */
 	onMount(async () => {
 		await Promise.all([fetchUserStats(), fetchLeadStats()]);
 		loading = false;
 	});
 
+	/**
+	 * fetchUserStats
+	 */
 	async function fetchUserStats() {
 		try {
 			userStats = await trpc.user.getStats.query();
@@ -22,9 +28,12 @@
 		}
 	}
 
+	/**
+	 * fetchLeadStats
+	 */
 	async function fetchLeadStats() {
 		try {
-			leadStats = await trpc.lead.getStats.query();
+			leadStats = await trpc.lead.query.getStats.query();
 		} catch (err) {
 			logger.error({ err }, 'Failed to fetch lead statistics');
 		}
@@ -33,59 +42,65 @@
 	const stats = $derived(() => {
 		const statsList = [];
 
+		/**
+		 * if
+		 */
 		if (userStats) {
 			statsList.push(
 				{
 					title: 'Total Users',
 					value: userStats.totalUsers || 0,
-					icon: 'solar:users-group-two-rounded-bold',
+					icon: 'solar:users-group-two-rounded-bold-duotone',
 					color: 'indigo' as const,
 				},
 				{
 					title: 'Active Users',
 					value: userStats.activeUsers || 0,
-					icon: 'solar:user-check-rounded-bold',
+					icon: 'solar:user-check-rounded-bold-duotone',
 					color: 'emerald' as const,
 				}
 			);
 		}
 
+		/**
+		 * if
+		 */
 		if (leadStats) {
 			statsList.push(
 				{
 					title: 'Total Leads',
 					value: leadStats.totalLeads || 0,
-					icon: 'solar:user-id-bold',
+					icon: 'solar:user-id-bold-duotone',
 					color: 'blue' as const,
 				},
 				{
 					title: 'Hot Leads',
 					value: leadStats.hotLeads || 0,
-					icon: 'solar:fire-bold',
+					icon: 'solar:fire-bold-duotone',
 					color: 'rose' as const,
 				},
 				{
 					title: 'Warm Leads',
 					value: leadStats.warmLeads || 0,
-					icon: 'solar:star-bold',
+					icon: 'solar:star-bold-duotone',
 					color: 'amber' as const,
 				},
 				{
 					title: 'Cold Leads',
 					value: leadStats.coldLeads || 0,
-					icon: 'solar:snowflake-bold',
+					icon: 'solar:snowflake-bold-duotone',
 					color: 'cyan' as const,
 				},
 				{
 					title: 'Active Hunts',
 					value: (leadStats.pendingHunts || 0) + (leadStats.processingHunts || 0),
-					icon: 'solar:magnifer-zoom-in-bold',
+					icon: 'solar:magnifer-zoom-in-bold-duotone',
 					color: 'violet' as const,
 				},
 				{
 					title: 'Success Rate',
 					value: leadStats.successRate ? `${leadStats.successRate.toFixed(1)}%` : '0%',
-					icon: 'solar:chart-bold',
+					icon: 'solar:chart-bold-duotone',
 					color: 'emerald' as const,
 				}
 			);
@@ -95,6 +110,9 @@
 	});
 
 	const leadStatusDistribution = $derived(() => {
+		/**
+		 * if
+		 */
 		if (!leadStats) return [];
 		return [
 			{ label: 'Hot', value: leadStats.hotLeads || 0 },
@@ -104,6 +122,9 @@
 	});
 
 	const userStatusDistribution = $derived(() => {
+		/**
+		 * if
+		 */
 		if (!userStats) return [];
 		return [
 			{ label: 'Active', value: userStats.activeUsers || 0 },
@@ -115,6 +136,9 @@
 	const charts = $derived(() => {
 		const chartList = [];
 
+		/**
+		 * if
+		 */
 		if (leadStatusDistribution().some((d) => d.value > 0)) {
 			chartList.push({
 				title: 'Lead Quality Distribution',
@@ -128,6 +152,9 @@
 			});
 		}
 
+		/**
+		 * if
+		 */
 		if (userStatusDistribution().some((d) => d.value > 0)) {
 			chartList.push({
 				title: 'User Status Distribution',

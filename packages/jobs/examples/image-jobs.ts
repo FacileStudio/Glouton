@@ -20,6 +20,9 @@ export const processImageJob: JobDefinition<ProcessImageData, string> = {
 
     await job.updateProgress(10);
 
+    /**
+     * for
+     */
     for (let i = 0; i < operations.length; i++) {
       const operation = operations[i];
       console.log(`Applying operation: ${operation}`);
@@ -50,6 +53,9 @@ export const generateThumbnailJob: JobDefinition<GenerateThumbnailData, string[]
 
     console.log(`Generating ${sizes.length} thumbnails for ${imageUrl}`);
 
+    /**
+     * for
+     */
     for (let i = 0; i < sizes.length; i++) {
       const size = sizes[i];
       console.log(`Generating thumbnail ${i + 1}/${sizes.length}: ${size.width}x${size.height}`);

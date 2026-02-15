@@ -16,8 +16,8 @@
     {type}
     {placeholder}
     bind:value
-    class="w-full px-5 py-3 rounded-2xl bg-slate-50 border-2 transition-all font-bold text-slate-700 outline-none
-    {error ? 'border-rose-200 focus:border-rose-500' : 'border-transparent focus:border-indigo-500'}
+    class="w-full px-5 py-3 rounded-2xl bg-slate-50/50 border-2 transition-all duration-200 font-medium text-brand-purple placeholder:text-slate-400 outline-none
+    {error ? 'border-danger/30 focus:border-danger focus:bg-danger-light' : 'border-slate-100 focus:border-brand-gold focus:bg-white hover:bg-white'}
     {className}"
     {...$$restProps}
     on:input

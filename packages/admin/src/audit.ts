@@ -2,8 +2,14 @@ import type { PrismaClient } from '@repo/database';
 import type { AuditLogEntry } from './types';
 
 export class AuditService {
+  /**
+   * constructor
+   */
   constructor(private db: PrismaClient) {}
 
+  /**
+   * log
+   */
   async log(entry: AuditLogEntry): Promise<void> {
     await this.db.auditLog.create({
       data: {
@@ -18,6 +24,9 @@ export class AuditService {
     });
   }
 
+  /**
+   * getEntityLogs
+   */
   async getEntityLogs(entity: string, entityId: string) {
     return this.db.auditLog.findMany({
       where: {
@@ -40,6 +49,9 @@ export class AuditService {
     });
   }
 
+  /**
+   * getUserLogs
+   */
   async getUserLogs(userId: string, limit = 100) {
     return this.db.auditLog.findMany({
       where: { userId },
@@ -50,6 +62,9 @@ export class AuditService {
     });
   }
 
+  /**
+   * getAllLogs
+   */
   async getAllLogs(options: {
     entity?: string;
     userId?: string;
@@ -83,6 +98,9 @@ export class AuditService {
     });
   }
 
+  /**
+   * countLogs
+   */
   async countLogs(options: {
     entity?: string;
     userId?: string;

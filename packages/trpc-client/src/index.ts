@@ -1,4 +1,4 @@
-import { createTRPCProxyClient, httpBatchLink } from '@trpc/client';
+import { createTRPCProxyClient, httpLink } from '@trpc/client';
 import type { AppRouter } from '@repo/trpc';
 
 interface TrpcConfig {
@@ -7,13 +7,22 @@ interface TrpcConfig {
   onUnauthorized: () => void;
 }
 
+/**
+ * createUniversalTrpcClient
+ */
 export const createUniversalTrpcClient = (config: TrpcConfig) => {
   const cleanBaseUrl = config.baseUrl.replace(/\/$/, '');
 
   return createTRPCProxyClient<AppRouter>({
     links: [
-      httpBatchLink({
+      /**
+       * httpLink
+       */
+      httpLink({
         url: cleanBaseUrl,
+        /**
+         * headers
+         */
         async headers() {
           const token = await config.getToken();
           return {
@@ -24,6 +33,9 @@ export const createUniversalTrpcClient = (config: TrpcConfig) => {
         fetch: async (url, options) => {
           const res = await fetch(url, options);
 
+          /**
+           * if
+           */
           if (
             res.status === 401 &&
             typeof window !== 'undefined' &&

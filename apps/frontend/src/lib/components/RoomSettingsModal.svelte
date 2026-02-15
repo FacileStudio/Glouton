@@ -14,36 +14,69 @@
   $: participants = room?.participants || [];
   $: isAdmin = participants.find(p => p.userId === currentUserId)?.role === 'ADMIN' || room?.isGroup;
 
+  /**
+   * inviteMember
+   */
   async function inviteMember() {
+    /**
+     * if
+     */
     if (!inviteEmail) return;
     loading = true;
     try {
       await trpc.chat.inviteMember.mutate({ roomId: room.id, email: inviteEmail });
       inviteEmail = "";
+      /**
+       * dispatch
+       */
       dispatch('refresh');
     } catch (e) { logger.error({ err: e }, 'Failed to invite member to room'); }
     finally { loading = false; }
   }
 
+  /**
+   * leaveRoom
+   */
   async function leaveRoom() {
+    /**
+     * if
+     */
     if (!confirm("Quitter cette discussion ?")) return;
     try {
       await trpc.chat.leaveRoom.mutate({ roomId: room.id });
+      /**
+       * dispatch
+       */
       dispatch('left');
     } catch (e) { logger.error({ err: e }, 'Failed to leave room'); }
   }
 
+  /**
+   * deleteRoom
+   */
   async function deleteRoom() {
+    /**
+     * if
+     */
     if (!confirm("Permanently delete this group for everyone?")) return;
     try {
       await trpc.chat.deleteRoom.mutate({ roomId: room.id });
+      /**
+       * dispatch
+       */
       dispatch('left');
     } catch (e) { logger.error({ err: e }, 'Failed to delete room'); }
   }
 
+  /**
+   * kickMember
+   */
   async function kickMember(userId: string) {
     try {
       await trpc.chat.kickMember.mutate({ roomId: room.id, userId });
+      /**
+       * dispatch
+       */
       dispatch('refresh');
     } catch (e) { logger.error({ err: e }, 'Failed to kick member from room'); }
   }

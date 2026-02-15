@@ -2,7 +2,7 @@ import type { StorybookConfig } from '@storybook/svelte-vite';
 import { mergeConfig } from 'vite';
 
 const config: StorybookConfig = {
-  stories: ['../src/**/*.mdx', '../src/**/*.stories.@(js|ts|svelte)'],
+  stories: ['../src/***.stories.@(js|ts|svelte)'],
   addons: [
     '@storybook/addon-links',
     '@storybook/addon-essentials',
@@ -18,7 +18,7 @@ const config: StorybookConfig = {
       optimizeDeps: {
         include: ['@storybook/svelte'],
       },
-      assetsInclude: ['**/*.woff', '**/*.woff2', '**/*.ttf'],
+      assetsInclude: ['***.woff2', '**/*.ttf'],
     });
   },
 };

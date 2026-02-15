@@ -2,7 +2,7 @@
   export let rooms: Array<{ id: string; name?: string; isOnline?: boolean; messages?: Array<{ text: string }> }> = [];
   export let activeRoomId: string;
   export let onRoomSelect: (id: string) => void;
-  export let onNewChat: () => void; // Ajout de la prop manquante
+  export let onNewChat: () => void;
 </script>
 
 <aside class="w-80 border-r border-slate-100 flex flex-col bg-slate-50/50">
@@ -10,7 +10,7 @@
     <h2 class="text-xl font-black tracking-tight text-slate-800">Messages</h2>
     <button
       on:click={onNewChat}
-      class="w-10 h-10 flex items-center justify-center bg-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-100 hover:scale-110 active:scale-95 transition-all"
+      class="w-10 h-10 flex items-center justify-center bg-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-100 hover:scale-110 active:scale-95 transition-all cursor-pointer"
       aria-label="Nouvelle discussion"
       title="Nouvelle discussion"
     >
@@ -22,7 +22,7 @@
     {#each rooms as room (room.id)}
       <button
         on:click={() => onRoomSelect(room.id)}
-        class="w-full p-4 flex items-center gap-4 rounded-[24px] transition-all {activeRoomId === room.id ? 'bg-white shadow-sm ring-1 ring-slate-100' : 'hover:bg-white/60'}"
+        class="w-full p-4 flex items-center gap-4 rounded-[24px] transition-all cursor-pointer {activeRoomId === room.id ? 'bg-white shadow-sm ring-1 ring-slate-100' : 'hover:bg-white/60'}"
       >
         <div class="relative">
             <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-black shadow-inner">

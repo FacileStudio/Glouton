@@ -1,20 +1,22 @@
 <script lang="ts">
     import { cva, type VariantProps } from 'class-variance-authority';
+    import 'iconify-icon';
 
     const spinnerClass = cva(
-        "animate-spin rounded-full border-b-2",
+        "inline-flex items-center justify-center",
         {
             variants: {
                 size: {
-                    sm: "h-4 w-4 border-2",
-                    md: "h-6 w-6 border-2",
-                    lg: "h-10 w-10 border-3",
-                    xl: "h-16 w-16 border-4",
+                    sm: "",
+                    md: "",
+                    lg: "",
+                    xl: "",
                 },
                 color: {
-                    primary: "border-indigo-600",
-                    white: "border-white",
-                    slate: "border-slate-600",
+                    primary: "text-brand-purple",
+                    accent: "text-brand-gold",
+                    white: "text-white",
+                    slate: "text-slate-600",
                 }
             },
             defaultVariants: {
@@ -28,8 +30,18 @@
     export let color: VariantProps<typeof spinnerClass>['color'] = 'primary';
     let className = "";
     export { className as class };
+
+    const sizeMap = {
+        sm: '16',
+        md: '24',
+        lg: '40',
+        xl: '64'
+    };
+
+    $: iconSize = sizeMap[size || 'md'];
 </script>
 
-<div class={spinnerClass({ size, color, class: className })} role="status">
+<span class={spinnerClass({ size, color, class: className })} role="status">
+    <iconify-icon icon="svg-spinners:blocks-shuffle-3" width={iconSize}></iconify-icon>
     <span class="sr-only">Loading...</span>
-</div>
+</span>

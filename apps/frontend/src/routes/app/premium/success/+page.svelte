@@ -10,13 +10,25 @@
   let subscriptionStatus  = null;
   let error = '';
 
+  /**
+   * onMount
+   */
   onMount(async () => {
+    /**
+     * if
+     */
     if (!browser) return;
 
     try {
       subscriptionStatus = await trpc.stripe.getSubscription.query();
 
+      /**
+       * if
+       */
       if (subscriptionStatus?.isPremium) {
+        /**
+         * confetti
+         */
         confetti({
           particleCount: 150,
           spread: 70,
@@ -31,12 +43,21 @@
     }
   });
 
+  /**
+   * handleManageSubscription
+   */
   async function handleManageSubscription() {
+    /**
+     * if
+     */
     if (!browser) return;
     actionLoading = true;
     error = '';
     try {
       const result = await trpc.stripe.createPortalSession.mutate();
+      /**
+       * if
+       */
       if (result.url) {
         window.location.href = result.url;
       } else {

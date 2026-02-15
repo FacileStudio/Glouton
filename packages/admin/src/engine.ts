@@ -16,6 +16,9 @@ export class AdminEngine<
   private permissionService: PermissionService;
   private auditService: AuditService;
 
+  /**
+   * constructor
+   */
   constructor(
     private db: PrismaClient,
     private config: EntityConfig<TModel, TCreateInput, TUpdateInput>,
@@ -25,6 +28,9 @@ export class AdminEngine<
     this.auditService = new AuditService(db);
   }
 
+  /**
+   * list
+   */
   async list(
     context: AdminContext,
     options: ListOptions = {}
@@ -44,10 +50,16 @@ export class AdminEngine<
       filters = {},
     } = options;
 
+    /**
+     * skip
+     */
     const skip = (page - 1) * pageSize;
 
     const where: any = { ...filters };
 
+    /**
+     * if
+     */
     if (search && this.config.searchFields && this.config.searchFields.length > 0) {
       where.OR = this.config.searchFields.map((field) => ({
         [field]: {
@@ -76,6 +88,9 @@ export class AdminEngine<
     };
   }
 
+  /**
+   * get
+   */
   async get(context: AdminContext, id: string): Promise<TModel | null> {
     await this.permissionService.requirePermission(
       context,
@@ -86,6 +101,9 @@ export class AdminEngine<
     return this.delegate.findUnique({ where: { id } });
   }
 
+  /**
+   * create
+   */
   async create(
     context: AdminContext,
     data: TCreateInput
@@ -115,6 +133,9 @@ export class AdminEngine<
     return record;
   }
 
+  /**
+   * update
+   */
   async update(
     context: AdminContext,
     id: string,
@@ -129,6 +150,9 @@ export class AdminEngine<
     const validatedData = this.config.schema.update.parse(data);
 
     const before = await this.delegate.findUnique({ where: { id } });
+    /**
+     * if
+     */
     if (!before) {
       throw new Error(`${this.config.displayName} not found`);
     }
@@ -154,6 +178,9 @@ export class AdminEngine<
     return record;
   }
 
+  /**
+   * delete
+   */
   async delete(context: AdminContext, id: string): Promise<void> {
     await this.permissionService.requirePermission(
       context,
@@ -162,6 +189,9 @@ export class AdminEngine<
     );
 
     const before = await this.delegate.findUnique({ where: { id } });
+    /**
+     * if
+     */
     if (!before) {
       throw new Error(`${this.config.displayName} not found`);
     }
@@ -179,10 +209,16 @@ export class AdminEngine<
     });
   }
 
+  /**
+   * getPermissions
+   */
   async getPermissions(context: AdminContext) {
     return this.permissionService.getEntityPermissions(context, this.config.name);
   }
 
+  /**
+   * getAuditLogs
+   */
   async getAuditLogs(context: AdminContext, entityId: string) {
     await this.permissionService.requirePermission(
       context,
@@ -193,6 +229,9 @@ export class AdminEngine<
     return this.auditService.getEntityLogs(this.config.name, entityId);
   }
 
+  /**
+   * getConfig
+   */
   getConfig() {
     return this.config;
   }

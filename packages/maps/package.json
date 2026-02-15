@@ -1,0 +1,24 @@
+{
+  "name": "@repo/maps",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@repo/tsconfig": "workspace:*",
+    "@types/node": "^22.10.5",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@googlemaps/google-maps-services-js": "^3.4.0",
+    "@repo/logger": "workspace:*",
+    "@repo/scraper": "workspace:*",
+    "playwright": "^1.49.1",
+    "axios": "^1.7.9"
+  }
+}

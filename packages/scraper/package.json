@@ -1,0 +1,27 @@
+{
+  "name": "@repo/scraper",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./types": "./src/types.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@repo/tsconfig": "workspace:*",
+    "@types/node": "^22.10.5",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@repo/logger": "workspace:*",
+    "playwright": "^1.49.1",
+    "playwright-extra": "^4.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "cheerio": "^1.0.0",
+    "user-agents": "^1.1.381",
+    "ioredis": "^5.4.2"
+  }
+}

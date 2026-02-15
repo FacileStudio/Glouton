@@ -1,4 +1,7 @@
 export function downloadCSV<T>(data: T[], filename: string) {
+  /**
+   * if
+   */
   if (data.length === 0) return;
 
   const headers = Object.keys(data[0] as object).join(',');
@@ -7,7 +10,7 @@ export function downloadCSV<T>(data: T[], filename: string) {
     return Object.values(obj as object)
       .map((value) => {
         const str = String(value).replace(/"/g, '""'); // Échapper les guillemets
-        return `"${str}"`; // Envelopper chaque valeur
+        return `"${str}"`;
       })
       .join(',');
   });

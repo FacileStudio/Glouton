@@ -3,6 +3,8 @@
   export let items: { label: string; icon: string; href: string }[] = [];
   export let activeHref = '/';
   export let resolvePath: (path: string) => string = (path) => path;
+  export let settingsHref: string | undefined = undefined;
+  export let logoSrc: string | undefined = undefined;
 </script>
 
 <!-- eslint-disable svelte/no-navigation-without-resolve -->
@@ -12,11 +14,13 @@
 >
   <div class="mb-12 px-2">
     <div class="flex items-center gap-3">
-      <div class="w-10 h-10 bg-black rounded-xl flex items-center justify-center flex-shrink-0">
-        <div class="w-3.5 h-3.5 bg-white rotate-45"></div>
-      </div>
-      <h1 class="text-xl font-black tracking-tight uppercase leading-none text-black">
-        Glouton
+      {#if logoSrc}
+        <img src={logoSrc} alt="Glouton Logo" class="w-10 h-10" />
+      {:else}
+        <iconify-icon icon="solar:ghost-bold" width="40" class="text-yellow-400"></iconify-icon>
+      {/if}
+      <h1 class="text-3xl font-black tracking-tight leading-none text-black">
+        Glouton.
       </h1>
     </div>
   </div>
@@ -41,9 +45,9 @@
     {/each}
   </nav>
 
-  <div class="mt-auto pt-6 border-t border-neutral-50">
+  <div class="mt-auto pt-6 border-t border-neutral-50 space-y-3">
     <div
-      class="relative p-4 bg-neutral-50 rounded-[24px] border border-neutral-100 transition-all duration-300 hover:border-black group"
+      class="p-4 bg-neutral-50 rounded-[24px] border border-neutral-100"
     >
       <div class="flex items-center gap-3">
         <div
@@ -58,14 +62,22 @@
           </p>
           <p class="text-[11px] font-bold text-neutral-400 uppercase tracking-wide">Operator</p>
         </div>
-
-        <div class="text-neutral-300 group-hover:text-black transition-colors">
-          <iconify-icon icon="solar:alt-arrow-right-bold" width="18"></iconify-icon>
-        </div>
       </div>
-
-      <a href={resolvePath('/app/profile')} data-sveltekit-reload class="absolute inset-0 z-10" aria-label="View Profile"></a>
     </div>
+
+    {#if settingsHref}
+      <a
+        href={resolvePath(settingsHref)}
+        data-sveltekit-reload
+        class="group flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-200
+        {activeHref === settingsHref
+          ? 'bg-neutral-900 text-white shadow-lg shadow-neutral-200'
+          : 'text-neutral-600 hover:bg-neutral-50 hover:text-black'}"
+      >
+        <iconify-icon icon="solar:settings-bold" width="20" class="transition-transform group-hover:scale-110"></iconify-icon>
+        <span class="font-bold tracking-tight text-[13px]">Paramètres</span>
+      </a>
+    {/if}
   </div>
 </aside>
 

@@ -9,6 +9,9 @@ export class StripeService {
   public readonly client: Stripe;
   private readonly webhookSecret: string;
 
+  /**
+   * constructor
+   */
   constructor(config: StripeConfig) {
     this.client = new Stripe(config.apiKey, {
       apiVersion: '2026-01-28.clover',
@@ -17,10 +20,16 @@ export class StripeService {
     this.webhookSecret = config.webhookSecret;
   }
 
+  /**
+   * constructEvent
+   */
   async constructEvent(rawBody: string, signature: string): Promise<Stripe.Event> {
     return this.client.webhooks.constructEventAsync(rawBody, signature, this.webhookSecret);
   }
 
+  /**
+   * createCheckoutSession
+   */
   async createCheckoutSession(params: {
     customerId: string;
     priceId: string;
@@ -39,6 +48,9 @@ export class StripeService {
     });
   }
 
+  /**
+   * createBillingPortalSession
+   */
   async createBillingPortalSession(customerId: string, returnUrl: string) {
     return this.client.billingPortal.sessions.create({
       customer: customerId,

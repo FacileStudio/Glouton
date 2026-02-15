@@ -1,27 +1,28 @@
 import type { PrismaClient } from '@repo/database';
 import { AdminEngine, PermissionService, AuditService } from '@repo/admin';
 import type { EntityConfig, AdminContext } from '@repo/admin';
-import { UserCreateInputSchema, UserUpdateInputSchema } from '@repo/database/zod';
 
 export class AdminService {
   private engines: Map<string, AdminEngine> = new Map();
   private permissionService: PermissionService;
   private auditService: AuditService;
 
+  /**
+   * constructor
+   */
   constructor(private db: PrismaClient) {
     this.permissionService = new PermissionService(db);
     this.auditService = new AuditService(db);
     this.registerEntities();
   }
 
+  /**
+   * registerEntities
+   */
   private registerEntities() {
     this.registerEntity({
       name: 'user',
       displayName: 'User',
-      schema: {
-        create: UserCreateInputSchema,
-        update: UserUpdateInputSchema,
-      },
       fields: [
         { name: 'email', label: 'Email', type: 'email', required: true },
         { name: 'firstName', label: 'First Name', type: 'string', required: true },
@@ -47,10 +48,6 @@ export class AdminService {
     this.registerEntity({
       name: 'contact',
       displayName: 'Contact',
-      schema: {
-        create: UserCreateInputSchema,
-        update: UserUpdateInputSchema,
-      },
       fields: [
         { name: 'email', label: 'Email', type: 'email', required: true },
         { name: 'firstName', label: 'First Name', type: 'string', required: true },
@@ -64,10 +61,6 @@ export class AdminService {
     this.registerEntity({
       name: 'media',
       displayName: 'Media',
-      schema: {
-        create: UserCreateInputSchema,
-        update: UserUpdateInputSchema,
-      },
       fields: [
         { name: 'url', label: 'URL', type: 'string', required: true },
         { name: 'key', label: 'Key', type: 'string', required: true },
@@ -82,10 +75,6 @@ export class AdminService {
     this.registerEntity({
       name: 'subscription',
       displayName: 'Subscription',
-      schema: {
-        create: UserCreateInputSchema,
-        update: UserUpdateInputSchema,
-      },
       fields: [
         { name: 'stripeCustomerId', label: 'Stripe Customer ID', type: 'string' },
         { name: 'stripeSubscriptionId', label: 'Stripe Subscription ID', type: 'string' },
@@ -100,8 +89,17 @@ export class AdminService {
     });
   }
 
+  /**
+   * registerEntity
+   */
   private registerEntity(config: EntityConfig) {
+    /**
+     * delegate
+     */
     const delegate = (this.db as any)[config.name];
+    /**
+     * if
+     */
     if (!delegate) {
       throw new Error(`Entity "${config.name}" not found in Prisma client`);
     }
@@ -109,22 +107,37 @@ export class AdminService {
     this.engines.set(config.name, engine);
   }
 
+  /**
+   * getEngine
+   */
   getEngine(entity: string): AdminEngine {
     const engine = this.engines.get(entity);
+    /**
+     * if
+     */
     if (!engine) {
       throw new Error(`Entity "${entity}" not registered`);
     }
     return engine;
   }
 
+  /**
+   * getAvailableEntities
+   */
   getAvailableEntities(): string[] {
     return Array.from(this.engines.keys());
   }
 
+  /**
+   * getEntityConfig
+   */
   getEntityConfig(entity: string) {
     return this.getEngine(entity).getConfig();
   }
 
+  /**
+   * getAllAuditLogs
+   */
   async getAllAuditLogs(options: {
     entity?: string;
     userId?: string;
@@ -135,6 +148,9 @@ export class AdminService {
     return this.auditService.getAllLogs(options);
   }
 
+  /**
+   * setPermissions
+   */
   async setPermissions(
     userId: string,
     entity: string,
@@ -148,6 +164,9 @@ export class AdminService {
     return this.permissionService.setEntityPermissions(userId, entity, permissions);
   }
 
+  /**
+   * getUserPermissions
+   */
   async getUserPermissions(userId: string) {
     return this.permissionService.getAllUserPermissions(userId);
   }

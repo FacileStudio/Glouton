@@ -5,7 +5,13 @@ import { UserRole } from '@repo/types';
 import { type OpenApiMeta } from 'trpc-to-openapi';
 
 const t = initTRPC.context<Context>().meta<OpenApiMeta>().create({
+  /**
+   * errorFormatter
+   */
   errorFormatter({ shape, error, ctx, path }) {
+    /**
+     * if
+     */
     if (ctx?.log && error.code === 'INTERNAL_SERVER_ERROR') {
       ctx.log.error({
         error: {
@@ -53,6 +59,9 @@ const loggingMiddleware = t.middleware(async ({ path, type, next, ctx }) => {
 export const publicProcedure = t.procedure.use(loggingMiddleware);
 
 const isAuthed = t.middleware(({ next, ctx }) => {
+  /**
+   * if
+   */
   if (!ctx.user) {
     throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Please log in.' });
   }
@@ -62,6 +71,9 @@ const isAuthed = t.middleware(({ next, ctx }) => {
 });
 
 const isAdmin = t.middleware(({ next, ctx }) => {
+  /**
+   * if
+   */
   if (!hasAccess(ctx.user, UserRole.ADMIN)) {
     throw new TRPCError({
       code: 'FORBIDDEN',

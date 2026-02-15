@@ -19,6 +19,13 @@ model User {
   lastLoginAt    DateTime?
   lastLoginIp    String?
 
+  hunterApiKey   String?
+  apolloApiKey   String?
+  snovApiKey     String?
+  hasdataApiKey  String?
+  contactoutApiKey String?
+  googleMapsApiKey String?
+
   messages      Message[]
   rooms         RoomParticipant[]
 
@@ -29,10 +36,17 @@ model User {
   paymentHistory PaymentHistory[]
 
   auditLogs      AuditLog[]
+  auditSessions  AuditSession[]
   adminPermissions AdminPermission[]
 
   leads          Lead[]
   huntSessions   HuntSession[]
+  emailOutreach  EmailOutreach[]
+
+  opportunityPreferences UserOpportunityPreferences?
+  opportunityNotifications UserOpportunityNotification[]
+  opportunityViews OpportunityView[]
+  opportunitySearches OpportunitySearch[]
 
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt

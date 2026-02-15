@@ -5,7 +5,13 @@
     export let entityName: string;
     export let data: unknown[];
 
+    /**
+     * handleExport
+     */
     function handleExport() {
+        /**
+         * downloadCSV
+         */
         downloadCSV(data, `export-${entityName}-${new Date().toISOString().split('T')[0]}`);
         toast.push("Export réussi !", "success");
     }
@@ -16,7 +22,7 @@
 
     <button
         on:click={handleExport}
-        class="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100 font-black text-xs hover:bg-emerald-600 hover:text-white transition-all shadow-sm"
+        class="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100 font-black text-xs hover:bg-emerald-600 hover:text-white transition-all shadow-sm cursor-pointer"
     >
         <iconify-icon icon="solar:file-download-bold" width="18"></iconify-icon>
         EXPORTER CSV

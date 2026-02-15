@@ -16,6 +16,7 @@
     "dev:db:setup": "./scripts/start-db-dev.sh && cd packages/database && bun run db:push",
     "db:studio": "cd packages/database && bun run db:studio",
     "db:seed": "cd packages/database && bun run db:seed",
+    "cleanup:stuck-hunts": "bun run scripts/cleanup-stuck-hunts.ts",
     "typecheck": "turbo run typecheck"
   },
   "devDependencies": {

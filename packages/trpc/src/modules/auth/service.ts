@@ -3,6 +3,9 @@ import { UserRole, type PrismaClient } from '@repo/types';
 import type { AuthManager } from '@repo/auth';
 import type { LoginInput, RegisterInput, SessionUser } from '@repo/auth-shared';
 
+/**
+ * mapToSessionUser
+ */
 const mapToSessionUser = (user: any): SessionUser => ({
   id: user.id,
   email: user.email,
@@ -10,8 +13,8 @@ const mapToSessionUser = (user: any): SessionUser => ({
   lastName: user.lastName,
   role: user.role,
   isPremium: user.isPremium,
-  avatarUrl: user.avatar?.url || null,
-  coverImageUrl: user.coverImage?.url || null,
+  avatarUrl: null,
+  coverImageUrl: null,
 });
 
 const userSelection = {
@@ -22,12 +25,6 @@ const userSelection = {
   password: true,
   role: true,
   isPremium: true,
-  avatar: {
-    select: { url: true },
-  },
-  coverImage: {
-    select: { url: true },
-  },
 };
 
 export const authService = {
@@ -37,6 +34,9 @@ export const authService = {
       select: userSelection,
     });
 
+    /**
+     * if
+     */
     if (!user || !(await auth.verifyPassword(input.password, user.password))) {
       throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid credentials' });
     }
@@ -49,6 +49,9 @@ export const authService = {
 
   register: async (db: PrismaClient, auth: AuthManager, input: RegisterInput) => {
     const exists = await db.user.findUnique({ where: { email: input.email } });
+    /**
+     * if
+     */
     if (exists) {
       throw new TRPCError({ code: 'CONFLICT', message: 'This email is already in use' });
     }
@@ -63,10 +66,7 @@ export const authService = {
         password: passwordHash,
         role: UserRole.USER,
       },
-      include: {
-        avatar: { select: { url: true } },
-        coverImage: { select: { url: true } },
-      },
+      select: userSelection,
     });
 
     const sessionUser = mapToSessionUser(user);

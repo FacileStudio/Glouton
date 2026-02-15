@@ -7,34 +7,43 @@
   $: status = $page.status;
   $: message = $page.error?.message || 'Unauthorized Action';
 
+  /**
+   * goDashboard
+   */
   const goDashboard = () => goto(resolve('/admin/contacts'));
+  /**
+   * goBack
+   */
   const goBack = () => window.history.back();
 </script>
 
 <div
-  class="min-h-screen bg-white text-black font-sans flex items-center justify-center px-6 selection:bg-black selection:text-white"
+  class="min-h-screen font-sans flex items-center justify-center px-6"
+  style="background-color: #FAF7F5; color: #291334;"
 >
   <div class="absolute top-12 left-12 flex items-center gap-2 opacity-20 pointer-events-none">
-    <div class="w-2 h-2 bg-black rounded-full"></div>
-    <span class="text-[10px] font-black uppercase tracking-[0.3em]">Admin Protocol</span>
+    <div class="w-2 h-2 rounded-full" style="background-color: #291334;"></div>
+    <span class="text-[10px] font-black tracking-[0.3em]">Admin Protocol</span>
   </div>
 
   <div class="max-w-4xl w-full relative">
     <div class="grid md:grid-cols-2 gap-12 items-center">
       <div class="text-center md:text-left">
         <div
-          class="inline-flex items-center justify-center w-16 h-16 bg-black text-white rounded-2xl mb-8"
+          class="inline-flex items-center justify-center w-16 h-16 text-white rounded-2xl mb-8"
+          style="background-color: #291334;"
         >
-          <iconify-icon icon="solar:shield-warning-bold" width="32"></iconify-icon>
+          <iconify-icon icon="solar:shield-warning-bold-duotone" width="32"></iconify-icon>
         </div>
 
         <h1
-          class="text-8xl md:text-[10rem] font-black italic uppercase tracking-tighter leading-none mb-4"
+          class="text-8xl md:text-[10rem] font-black italic tracking-tighter leading-none mb-4"
+          style="color: #291334;"
         >
           {status}.
         </h1>
 
-        <h2 class="text-2xl font-black uppercase tracking-tight mb-6">
+        <h2 class="text-2xl font-black tracking-tight mb-6" style="color: #291334;">
           {#if status === 404}
             Resource Missing.
           {:else if status === 403}
@@ -45,8 +54,8 @@
         </h2>
       </div>
 
-      <div class="bg-neutral-50 rounded-[40px] p-8 md:p-12 border border-neutral-100">
-        <p class="text-neutral-500 font-medium text-lg leading-relaxed mb-10">
+      <div class="rounded-[40px] p-8 md:p-12 shadow-lg" style="background-color: #EFEAE6;">
+        <p class="font-medium text-lg leading-relaxed mb-10" style="color: #291334; opacity: 0.7;">
           {#if status === 404}
             The admin resource you are trying to reach doesn't exist or has been moved. Check the
             terminal logs or return to base.
@@ -61,17 +70,19 @@
         <div class="flex flex-col gap-4">
           <button
             on:click={goDashboard}
-            class="w-full px-8 py-5 bg-black text-white font-black uppercase tracking-widest rounded-2xl hover:bg-neutral-800 transition active:scale-95 flex items-center justify-center gap-3"
+            class="w-full px-8 py-5 text-white font-black uppercase tracking-widest rounded-2xl transition active:scale-95 flex items-center justify-center gap-3 shadow-lg cursor-pointer"
+            style="background-color: #291334;"
           >
-            <iconify-icon icon="solar:widget-4-bold" width="20"></iconify-icon>
+            <iconify-icon icon="solar:widget-4-bold-duotone" width="20"></iconify-icon>
             Dashboard
           </button>
 
           <button
             on:click={goBack}
-            class="w-full px-8 py-5 bg-white text-black border border-neutral-200 font-black uppercase tracking-widest rounded-2xl hover:bg-neutral-50 transition active:scale-95 flex items-center justify-center gap-3"
+            class="w-full px-8 py-5 font-black uppercase tracking-widest rounded-2xl transition active:scale-95 flex items-center justify-center gap-3 shadow-lg cursor-pointer"
+            style="background-color: #EFEAE6; color: #291334;"
           >
-            <iconify-icon icon="solar:undo-left-round-bold" width="20"></iconify-icon>
+            <iconify-icon icon="solar:undo-left-round-bold-duotone" width="20"></iconify-icon>
             Previous
           </button>
         </div>
@@ -80,10 +91,11 @@
   </div>
 
   <div
-    class="fixed bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-4 text-[10px] font-black uppercase tracking-[0.2em] text-neutral-300"
+    class="fixed bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-4 text-[10px] font-black tracking-[0.2em]"
+    style="color: #291334; opacity: 0.3;"
   >
     <span>Status: {status}</span>
-    <span class="w-1 h-1 bg-neutral-200 rounded-full"></span>
+    <span class="w-1 h-1 rounded-full" style="background-color: #291334; opacity: 0.5;"></span>
     <span>Backoffice Panel 2.0</span>
   </div>
 </div>

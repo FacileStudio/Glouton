@@ -3,26 +3,76 @@ model Lead {
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  domain    String
+  source    LeadSource @default(HUNTER)
+  sourceId  String?
+
+  businessType BusinessType @default(DOMAIN)
+
+  domain    String?
   email     String?
   firstName String?
   lastName  String?
+  position  String?
+  department String?
+
+  businessName  String?
+  category      String?
+  coordinates   Json?
+  openingHours  String?
+  hasWebsite    Boolean @default(true)
+  city          String?
+  country       String?
 
   status    LeadStatus @default(COLD)
   score     Int        @default(0)
 
   technologies String[] @default([])
 
+  additionalEmails   String[] @default([])
+  phoneNumbers       String[] @default([])
+  physicalAddresses  String[] @default([])
+  socialProfiles     Json?
+  companyInfo        Json?
+  websiteAudit       Json?
+  scrapedAt          DateTime?
+  auditedAt          DateTime?
+
   metadata  Json?
 
   huntSessionId String?
 
+  contacted     Boolean   @default(false)
+  lastContactedAt DateTime?
+  emailsSentCount Int @default(0)
+
+  emailOutreach EmailOutreach[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([userId, email], map: "unique_user_email")
+  @@unique([userId, domain, firstName, lastName], map: "unique_user_domain_person")
   @@index([userId])
   @@index([huntSessionId])
   @@index([status])
+  @@index([source])
+  @@index([contacted])
+  @@index([businessType])
+  @@index([category])
+  @@index([country])
+  @@index([city])
+  @@index([userId, status, createdAt])
+  @@index([userId, sourceId])
+  @@index([email])
+  @@index([createdAt])
+  @@index([userId, domain])
+  @@index([userId, domain, firstName, lastName])
+  @@index([scrapedAt])
+  @@index([auditedAt])
+  @@index([userId, scrapedAt])
+  @@index([userId, auditedAt])
+  @@index([userId, businessName])
+  @@index([domain])
 }
 
 model HuntSession {
@@ -30,8 +80,13 @@ model HuntSession {
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  targetUrl String
-  speed     Int      @default(5)
+  jobId     String?  @unique
+
+  huntType  HuntType @default(DOMAIN)
+  sources    LeadSource[] @default([])
+  targetUrl String?
+  domain    String?
+  filters   Json?
 
   status    HuntStatus @default(PENDING)
   progress  Int        @default(0)
@@ -40,7 +95,15 @@ model HuntSession {
   successfulLeads Int @default(0)
   failedLeads    Int @default(0)
 
+  sourceStats Json?
+
   error     String?
+
+  lastProcessedIndex Int?
+  currentDomain      String?
+  currentSource      LeadSource?
+
+  events    HuntSessionEvent[]
 
   startedAt  DateTime?
   completedAt DateTime?
@@ -49,6 +112,8 @@ model HuntSession {
 
   @@index([userId])
   @@index([status])
+  @@index([huntType])
+  @@index([jobId])
 }
 
 enum LeadStatus {
@@ -62,4 +127,26 @@ enum HuntStatus {
   PROCESSING
   COMPLETED
   FAILED
+  CANCELLED
+}
+
+enum LeadSource {
+  HUNTER
+  APOLLO
+  SNOV
+  HASDATA
+  CONTACTOUT
+  MANUAL
+  GOOGLE_MAPS
+  OPENSTREETMAP
+}
+
+enum BusinessType {
+  DOMAIN
+  LOCAL_BUSINESS
+}
+
+enum HuntType {
+  DOMAIN
+  LOCAL_BUSINESS
 }

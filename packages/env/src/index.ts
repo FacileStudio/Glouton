@@ -15,10 +15,20 @@ export const serverEnvSchema = baseSchema.extend({
 
   ENCRYPTION_SECRET: z.string().min(1),
 
+  HUNTER_API_KEY: z.string().optional(),
+
   REDIS_HOST: z.string().default('localhost'),
   REDIS_PORT: z.coerce.number().default(6379),
   REDIS_PASSWORD: z.string().optional(),
   REDIS_DB: z.coerce.number().default(0),
+
+  SMTP_HOST: z.string(),
+  SMTP_PORT: z.coerce.number(),
+  SMTP_SECURE: z.string().default('false').transform((s) => s === 'true'),
+  SMTP_USER: z.string(),
+  SMTP_PASS: z.string(),
+  SMTP_FROM_NAME: z.string(),
+  SMTP_FROM_EMAIL: z.string().email(),
 
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).optional(),
   LOGTAIL_TOKEN: z.string().optional(),

@@ -4,14 +4,13 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
-    "./zod": "./src/zod/index.ts"
+    ".": "./src/index.ts"
   },
   "scripts": {
     "db:generate": "rm -rf src/zod && prisma generate",
     "db:migrate:dev": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
-    "db:push": "prisma db push",
+    "db:push": "prisma db push && bun run db:generate",
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
     "typecheck": "tsc --noEmit"

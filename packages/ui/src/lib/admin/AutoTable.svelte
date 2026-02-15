@@ -31,19 +31,40 @@
     class: className = '',
   }: Props = $props();
 
+  /**
+   * getFieldLabel
+   */
   const getFieldLabel = (fieldName: string) =>
     config.fields.find((f) => f.name === fieldName)?.label || fieldName;
 
+  /**
+   * formatValue
+   */
   function formatValue(value: unknown, fieldName: string): string {
+    /**
+     * if
+     */
     if (value == null) return '-';
     const field = config.fields.find((f) => f.name === fieldName);
+    /**
+     * if
+     */
     if (field?.type === 'date' && (typeof value === 'string' || typeof value === 'number'))
       return new Date(value).toLocaleDateString();
+    /**
+     * if
+     */
     if (field?.type === 'boolean') return value ? 'Yes' : 'No';
+    /**
+     * if
+     */
     if (typeof value === 'object') return 'JSON';
     return String(value);
   }
 
+  /**
+   * handleExport
+   */
   function handleExport() {
     const exportData = data.data.map((row: Record<string, unknown>) => {
       const exportRow: Record<string, string> = {};
@@ -52,6 +73,9 @@
       });
       return exportRow;
     });
+    /**
+     * downloadCSV
+     */
     downloadCSV(exportData, `export-${config.name}`);
     toast.push('Export successful!', 'success');
   }

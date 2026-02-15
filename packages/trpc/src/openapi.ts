@@ -2,7 +2,13 @@ import { generateOpenApiDocument } from 'trpc-to-openapi';
 
 const baseUrl = process.env.BACKEND_URL || 'http://localhost:3001';
 
+/**
+ * createOpenApiDocument
+ */
 export const createOpenApiDocument = (appRouter: any) =>
+  /**
+   * generateOpenApiDocument
+   */
   generateOpenApiDocument(appRouter, {
     title: 'MonorepoBoilerplate API',
     version: '1.0.0',
