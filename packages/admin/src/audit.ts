@@ -1,65 +1,68 @@
-import type { PrismaClient } from '@repo/database';
+import { SQL, sql } from 'bun';
 import type { AuditLogEntry } from './types';
 
 export class AuditService {
   /**
    * constructor
    */
-  constructor(private db: PrismaClient) {}
+  constructor(private db: SQL) {}
 
   /**
    * log
    */
   async log(entry: AuditLogEntry): Promise<void> {
-    await this.db.auditLog.create({
-      data: {
-        userId: entry.userId,
-        entity: entry.entity,
-        entityId: entry.entityId,
-        action: entry.action,
-        ...(entry.changes && { changes: entry.changes }),
-        ...(entry.ipAddress && { ipAddress: entry.ipAddress }),
-        ...(entry.userAgent && { userAgent: entry.userAgent }),
-      },
-    });
+    await this.db`
+      INSERT INTO "AuditLog" ("userId", entity, "entityId", action, changes, "ipAddress", "userAgent", "createdAt")
+      VALUES (
+        ${entry.userId},
+        ${entry.entity},
+        ${entry.entityId},
+        ${entry.action},
+        ${entry.changes ? JSON.stringify(entry.changes) : null}::jsonb,
+        ${entry.ipAddress ?? null},
+        ${entry.userAgent ?? null},
+        ${new Date()}
+      )
+    `;
   }
 
   /**
    * getEntityLogs
    */
   async getEntityLogs(entity: string, entityId: string) {
-    return this.db.auditLog.findMany({
-      where: {
-        entity,
-        entityId,
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-          },
-        },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    return this.db`
+      SELECT
+        "AuditLog".id,
+        "AuditLog"."userId",
+        "AuditLog".entity,
+        "AuditLog"."entityId",
+        "AuditLog".action,
+        "AuditLog".changes,
+        "AuditLog"."ipAddress",
+        "AuditLog"."userAgent",
+        "AuditLog"."createdAt",
+        "User".id AS "user_id",
+        "User".email AS "user_email",
+        "User"."firstName" AS "user_firstName",
+        "User"."lastName" AS "user_lastName"
+      FROM "AuditLog"
+      JOIN "User" ON "AuditLog"."userId" = "User".id
+      WHERE "AuditLog".entity = ${entity} AND "AuditLog"."entityId" = ${entityId}
+      ORDER BY "AuditLog"."createdAt" DESC
+    ` as Promise<any[]>;
   }
 
   /**
    * getUserLogs
    */
   async getUserLogs(userId: string, limit = 100) {
-    return this.db.auditLog.findMany({
-      where: { userId },
-      orderBy: {
-        createdAt: 'desc',
-      },
-      take: limit,
-    });
+    return this.db`
+      SELECT id, "userId", entity, "entityId", action, changes, "ipAddress", "userAgent", "createdAt"
+      FROM "AuditLog"
+      WHERE "userId" = ${userId}
+      ORDER BY "createdAt" DESC
+      LIMIT ${limit}
+    ` as Promise<any[]>;
   }
 
   /**
@@ -74,28 +77,41 @@ export class AuditService {
   } = {}) {
     const { entity, userId, action, limit = 100, offset = 0 } = options;
 
-    return this.db.auditLog.findMany({
-      where: {
-        ...(entity && { entity }),
-        ...(userId && { userId }),
-        ...(action && { action }),
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-          },
-        },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-      take: limit,
-      skip: offset,
-    });
+    const conditions = [];
+
+    if (entity) {
+      conditions.push(sql`"AuditLog".entity = ${entity}`);
+    }
+    if (userId) {
+      conditions.push(sql`"AuditLog"."userId" = ${userId}`);
+    }
+    if (action) {
+      conditions.push(sql`"AuditLog".action = ${action}`);
+    }
+
+    const whereClause = conditions.length > 0 ? sql`WHERE ${sql.join(conditions, sql` AND `)}` : sql``;
+
+    return this.db`
+      SELECT
+        "AuditLog".id,
+        "AuditLog"."userId",
+        "AuditLog".entity,
+        "AuditLog"."entityId",
+        "AuditLog".action,
+        "AuditLog".changes,
+        "AuditLog"."ipAddress",
+        "AuditLog"."userAgent",
+        "AuditLog"."createdAt",
+        "User".id AS "user_id",
+        "User".email AS "user_email",
+        "User"."firstName" AS "user_firstName",
+        "User"."lastName" AS "user_lastName"
+      FROM "AuditLog"
+      JOIN "User" ON "AuditLog"."userId" = "User".id
+      ${whereClause}
+      ORDER BY "AuditLog"."createdAt" DESC
+      LIMIT ${limit} OFFSET ${offset}
+    ` as Promise<any[]>;
   }
 
   /**
@@ -108,12 +124,25 @@ export class AuditService {
   } = {}) {
     const { entity, userId, action } = options;
 
-    return this.db.auditLog.count({
-      where: {
-        ...(entity && { entity }),
-        ...(userId && { userId }),
-        ...(action && { action }),
-      },
-    });
+    const conditions = [];
+
+    if (entity) {
+      conditions.push(sql`entity = ${entity}`);
+    }
+    if (userId) {
+      conditions.push(sql`"userId" = ${userId}`);
+    }
+    if (action) {
+      conditions.push(sql`action = ${action}`);
+    }
+
+    const whereClause = conditions.length > 0 ? sql`WHERE ${sql.join(conditions, sql` AND `)}` : sql``;
+
+    const result = await this.db`
+      SELECT COUNT(*) as count
+      FROM "AuditLog"
+      ${whereClause}
+    ` as Promise<[{ count: number }]>;
+    return result[0].count;
   }
 }

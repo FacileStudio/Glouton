@@ -1,51 +1,39 @@
-import type { PrismaClient } from '@repo/database';
+import type { SQL } from 'bun';
 import { logger } from '@repo/logger';
 
 /**
  * recoverAbandonedSessions
  */
-export async function recoverAbandonedSessions(db: PrismaClient): Promise<void> {
+export async function recoverAbandonedSessions(db: SQL): Promise<void> {
   try {
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
 
-    const abandonedAudits = await db.auditSession.updateMany({
-      where: {
-        status: {
-          in: ['PENDING', 'PROCESSING'],
-        },
-        updatedAt: {
-          lt: fiveMinutesAgo,
-        },
-      },
-      data: {
-        status: 'FAILED',
-        completedAt: new Date(),
-      },
-    });
+    const abandonedAudits = await db`
+      UPDATE "AuditSession"
+      SET status = 'FAILED',
+          "completedAt" = ${new Date()}
+      WHERE status IN ('PENDING', 'PROCESSING')
+        AND "updatedAt" < ${fiveMinutesAgo}
+      RETURNING id
+    ` as Promise<any[]>;
 
-    const abandonedHunts = await db.huntSession.updateMany({
-      where: {
-        status: {
-          in: ['PENDING', 'PROCESSING'],
-        },
-        updatedAt: {
-          lt: fiveMinutesAgo,
-        },
-      },
-      data: {
-        status: 'FAILED',
-        completedAt: new Date(),
-      },
-    });
+    const abandonedHunts = await db`
+      UPDATE "HuntSession"
+      SET status = 'FAILED',
+          "completedAt" = ${new Date()}
+      WHERE status IN ('PENDING', 'PROCESSING')
+        AND "updatedAt" < ${fiveMinutesAgo}
+      RETURNING id
+    ` as Promise<any[]>;
 
     /**
      * if
      */
-    if (abandonedAudits.count > 0 || abandonedHunts.count > 0) {
+    if (abandonedAudits.length > 0 || abandonedHunts.length > 0) {
       logger.info(
         {
-          auditsRecovered: abandonedAudits.count,
-          huntsRecovered: abandonedHunts.count,
+          auditsRecovered: abandonedAudits.length,
+          huntsRecovered: abandonedHunts.length,
         },
         '[RECOVERY] Marked abandoned sessions as FAILED'
       );
@@ -60,20 +48,13 @@ export async function recoverAbandonedSessions(db: PrismaClient): Promise<void> 
 /**
  * reconcileActiveSessions
  */
-export async function reconcileActiveSessions(db: PrismaClient, activeJobIds: Set<string>): Promise<void> {
+export async function reconcileActiveSessions(db: SQL, activeJobIds: Set<string>): Promise<void> {
   try {
-    const activeSessions = await db.auditSession.findMany({
-      where: {
-        status: {
-          in: ['PENDING', 'PROCESSING'],
-        },
-      },
-      select: {
-        id: true,
-        status: true,
-        createdAt: true,
-      },
-    });
+    const activeSessions = await db`
+      SELECT id, status, "createdAt"
+      FROM "AuditSession"
+      WHERE status IN ('PENDING', 'PROCESSING')
+    ` as Promise<any[]>;
 
     /**
      * for
@@ -83,13 +64,12 @@ export async function reconcileActiveSessions(db: PrismaClient, activeJobIds: Se
        * if
        */
       if (!activeJobIds.has(session.id)) {
-        await db.auditSession.update({
-          where: { id: session.id },
-          data: {
-            status: 'FAILED',
-            completedAt: new Date(),
-          },
-        });
+        await db`
+          UPDATE "AuditSession"
+          SET status = 'FAILED',
+              "completedAt" = ${new Date()}
+          WHERE id = ${session.id}
+        `;
 
         logger.warn(
           {
@@ -102,18 +82,11 @@ export async function reconcileActiveSessions(db: PrismaClient, activeJobIds: Se
       }
     }
 
-    const activeHuntSessions = await db.huntSession.findMany({
-      where: {
-        status: {
-          in: ['PENDING', 'PROCESSING'],
-        },
-      },
-      select: {
-        id: true,
-        status: true,
-        createdAt: true,
-      },
-    });
+    const activeHuntSessions = await db`
+      SELECT id, status, "createdAt"
+      FROM "HuntSession"
+      WHERE status IN ('PENDING', 'PROCESSING')
+    ` as Promise<any[]>;
 
     /**
      * for
@@ -123,13 +96,12 @@ export async function reconcileActiveSessions(db: PrismaClient, activeJobIds: Se
        * if
        */
       if (!activeJobIds.has(session.id)) {
-        await db.huntSession.update({
-          where: { id: session.id },
-          data: {
-            status: 'FAILED',
-            completedAt: new Date(),
-          },
-        });
+        await db`
+          UPDATE "HuntSession"
+          SET status = 'FAILED',
+              "completedAt" = ${new Date()}
+          WHERE id = ${session.id}
+        `;
 
         logger.warn(
           {

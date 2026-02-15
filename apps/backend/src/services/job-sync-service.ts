@@ -1,19 +1,13 @@
-import type { PrismaClient } from '@repo/database';
+import type { SQL } from 'bun';
 import type { QueueManager } from '@repo/jobs';
 import { logger } from '@repo/logger';
 
 export class JobSyncService {
-  /**
-   * constructor
-   */
   constructor(
-    private db: PrismaClient,
+    private db: SQL,
     private jobs: QueueManager
   ) {}
 
-  /**
-   * syncJobStates
-   */
   async syncJobStates(): Promise<void> {
     try {
       logger.debug('[JOBS] Syncing database states with BullMQ');
@@ -46,63 +40,42 @@ export class JobSyncService {
     }
   }
 
-  /**
-   * getActiveAuditSessions
-   */
   private async getActiveAuditSessions() {
-    return this.db.auditSession.findMany({
-      where: {
-        status: { in: ['PENDING', 'PROCESSING'] },
-        jobId: { not: null },
-      },
-      select: { id: true, jobId: true, status: true, userId: true },
-    });
+    return this.db`
+      SELECT id, "jobId", status, "userId"
+      FROM "AuditSession"
+      WHERE status IN ('PENDING', 'PROCESSING') AND "jobId" IS NOT NULL
+    ` as Promise<any[]>;
   }
 
-  /**
-   * getActiveHuntSessions
-   */
   private async getActiveHuntSessions() {
-    return this.db.huntSession.findMany({
-      where: {
-        status: { in: ['PENDING', 'PROCESSING'] },
-        jobId: { not: null },
-      },
-      select: { id: true, jobId: true, status: true, userId: true },
-    });
+    return this.db`
+      SELECT id, "jobId", status, "userId"
+      FROM "HuntSession"
+      WHERE status IN ('PENDING', 'PROCESSING') AND "jobId" IS NOT NULL
+    ` as Promise<any[]>;
   }
 
-  /**
-   * getOrphanedAuditSessions
-   */
   private async getOrphanedAuditSessions() {
-    return this.db.auditSession.findMany({
-      where: {
-        status: { in: ['PENDING', 'PROCESSING'] },
-        jobId: null,
-        createdAt: { lt: new Date(Date.now() - 5 * 60 * 1000) },
-      },
-      select: { id: true, status: true, createdAt: true },
-    });
+    return this.db`
+      SELECT id, status, "createdAt"
+      FROM "AuditSession"
+      WHERE status IN ('PENDING', 'PROCESSING')
+        AND "jobId" IS NULL
+        AND "createdAt" < ${new Date(Date.now() - 5 * 60 * 1000)}
+    ` as Promise<any[]>;
   }
 
-  /**
-   * getOrphanedHuntSessions
-   */
   private async getOrphanedHuntSessions() {
-    return this.db.huntSession.findMany({
-      where: {
-        status: { in: ['PENDING', 'PROCESSING'] },
-        jobId: null,
-        createdAt: { lt: new Date(Date.now() - 5 * 60 * 1000) },
-      },
-      select: { id: true, status: true, createdAt: true, userId: true },
-    });
+    return this.db`
+      SELECT id, status, "createdAt", "userId"
+      FROM "HuntSession"
+      WHERE status IN ('PENDING', 'PROCESSING')
+        AND "jobId" IS NULL
+        AND "createdAt" < ${new Date(Date.now() - 5 * 60 * 1000)}
+    ` as Promise<any[]>;
   }
 
-  /**
-   * syncAuditSessions
-   */
   private async syncAuditSessions(
     activeSessions: Array<{ id: string; jobId: string | null; status: string; userId: string }>,
     orphanedSessions: Array<{ id: string; status: string; createdAt: Date }>
@@ -110,33 +83,21 @@ export class JobSyncService {
     let synced = 0;
     let stalled = 0;
 
-    /**
-     * for
-     */
     for (const session of activeSessions) {
-      /**
-       * if
-       */
       if (!session.jobId) continue;
 
       const job = await this.jobs.getJob('leads', session.jobId);
-      /**
-       * if
-       */
       if (!job) {
         logger.debug(`[AUDIT] Job ${session.jobId} not found, marking session as failed`);
-        const updated = await this.db.auditSession.update({
-          where: { id: session.id },
-          data: {
-            status: 'FAILED',
-            error: 'Job not found in queue (worker may have crashed)',
-            completedAt: new Date(),
-          },
-        });
+        const [updated] = await this.db`
+          UPDATE "AuditSession"
+          SET status = 'FAILED',
+              error = 'Job not found in queue (worker may have crashed)',
+              "completedAt" = ${new Date()}
+          WHERE id = ${session.id}
+          RETURNING "userId"
+        `;
 
-        /**
-         * if
-         */
         if (globalThis.broadcastToUser && updated.userId) {
           globalThis.broadcastToUser(updated.userId, {
             type: 'audit-failed',
@@ -153,29 +114,25 @@ export class JobSyncService {
       }
 
       const jobState = await job.getState();
-      /**
-       * if
-       */
+
       if (jobState === 'completed') {
         logger.debug(`[AUDIT] Job ${session.jobId} completed but session still processing, marking as completed`);
-        await this.db.auditSession.update({
-          where: { id: session.id },
-          data: {
-            status: 'COMPLETED',
-            completedAt: new Date(),
-          },
-        });
+        await this.db`
+          UPDATE "AuditSession"
+          SET status = 'COMPLETED',
+              "completedAt" = ${new Date()}
+          WHERE id = ${session.id}
+        `;
         synced++;
       } else if (jobState === 'failed') {
         logger.debug(`[AUDIT] Job ${session.jobId} failed, marking session as failed`);
-        await this.db.auditSession.update({
-          where: { id: session.id },
-          data: {
-            status: 'FAILED',
-            error: job.failedReason || 'Job failed',
-            completedAt: new Date(),
-          },
-        });
+        await this.db`
+          UPDATE "AuditSession"
+          SET status = 'FAILED',
+              error = ${job.failedReason || 'Job failed'},
+              "completedAt" = ${new Date()}
+          WHERE id = ${session.id}
+        `;
         synced++;
       } else if (jobState === 'active') {
         logger.info({
@@ -185,9 +142,6 @@ export class JobSyncService {
         try {
           await job.moveToFailed(new Error('Server restart - job interrupted'), '0');
           const failedJob = await this.jobs.getJob('leads', session.jobId);
-          /**
-           * if
-           */
           if (failedJob) {
             await failedJob.retry();
             logger.info(`[AUDIT] Successfully retried job ${session.jobId} after restart`);
@@ -203,31 +157,24 @@ export class JobSyncService {
       }
     }
 
-    /**
-     * for
-     */
     for (const session of orphanedSessions) {
       logger.warn({
         sessionId: session.id,
         createdAt: session.createdAt,
       }, '[AUDIT] Found orphaned session without jobId, marking as failed');
-      await this.db.auditSession.update({
-        where: { id: session.id },
-        data: {
-          status: 'FAILED',
-          error: 'No job ID found - session orphaned',
-          completedAt: new Date(),
-        },
-      });
+      await this.db`
+        UPDATE "AuditSession"
+        SET status = 'FAILED',
+            error = 'No job ID found - session orphaned',
+            "completedAt" = ${new Date()}
+        WHERE id = ${session.id}
+      `;
       stalled++;
     }
 
     return { synced, stalled };
   }
 
-  /**
-   * syncHuntSessions
-   */
   private async syncHuntSessions(
     activeSessions: Array<{ id: string; jobId: string | null; status: string; userId: string }>,
     orphanedSessions: Array<{ id: string; status: string; createdAt: Date; userId: string }>
@@ -235,33 +182,20 @@ export class JobSyncService {
     let synced = 0;
     let stalled = 0;
 
-    /**
-     * for
-     */
     for (const session of activeSessions) {
-      /**
-       * if
-       */
       if (!session.jobId) continue;
 
       const job = await this.jobs.getJob('leads', session.jobId);
-      /**
-       * if
-       */
       if (!job) {
         logger.debug(`[HUNT] Job ${session.jobId} not found, marking session as failed`);
-        await this.db.huntSession.update({
-          where: { id: session.id },
-          data: {
-            status: 'FAILED',
-            error: 'Job not found in queue (worker may have crashed)',
-            completedAt: new Date(),
-          },
-        });
+        await this.db`
+          UPDATE "HuntSession"
+          SET status = 'FAILED',
+              error = 'Job not found in queue (worker may have crashed)',
+              "completedAt" = ${new Date()}
+          WHERE id = ${session.id}
+        `;
 
-        /**
-         * if
-         */
         if (globalThis.broadcastToUser && session.userId) {
           globalThis.broadcastToUser(session.userId, {
             type: 'hunt-update',
@@ -278,29 +212,24 @@ export class JobSyncService {
       }
 
       const jobState = await job.getState();
-      /**
-       * if
-       */
       if (jobState === 'completed') {
         logger.debug(`[HUNT] Job ${session.jobId} completed but session still processing, marking as completed`);
-        await this.db.huntSession.update({
-          where: { id: session.id },
-          data: {
-            status: 'COMPLETED',
-            completedAt: new Date(),
-          },
-        });
+        await this.db`
+          UPDATE "HuntSession"
+          SET status = 'COMPLETED',
+              "completedAt" = ${new Date()}
+          WHERE id = ${session.id}
+        `;
         synced++;
       } else if (jobState === 'failed') {
         logger.debug(`[HUNT] Job ${session.jobId} failed, marking session as failed`);
-        await this.db.huntSession.update({
-          where: { id: session.id },
-          data: {
-            status: 'FAILED',
-            error: job.failedReason || 'Job failed',
-            completedAt: new Date(),
-          },
-        });
+        await this.db`
+          UPDATE "HuntSession"
+          SET status = 'FAILED',
+              error = ${job.failedReason || 'Job failed'},
+              "completedAt" = ${new Date()}
+          WHERE id = ${session.id}
+        `;
         synced++;
       } else if (jobState === 'active') {
         logger.info({
@@ -310,9 +239,6 @@ export class JobSyncService {
         try {
           await job.moveToFailed(new Error('Server restart - job interrupted'), '0');
           const failedJob = await this.jobs.getJob('leads', session.jobId);
-          /**
-           * if
-           */
           if (failedJob) {
             await failedJob.retry();
             logger.info(`[HUNT] Successfully retried job ${session.jobId} after restart`);
@@ -328,23 +254,19 @@ export class JobSyncService {
       }
     }
 
-    /**
-     * for
-     */
     for (const session of orphanedSessions) {
       logger.warn({
         sessionId: session.id,
         userId: session.userId,
         createdAt: session.createdAt,
       }, '[HUNT] Found orphaned session without jobId, marking as failed');
-      await this.db.huntSession.update({
-        where: { id: session.id },
-        data: {
-          status: 'FAILED',
-          error: 'No job ID found - session orphaned',
-          completedAt: new Date(),
-        },
-      });
+      await this.db`
+        UPDATE "HuntSession"
+        SET status = 'FAILED',
+            error = 'No job ID found - session orphaned',
+            "completedAt" = ${new Date()}
+        WHERE id = ${session.id}
+      `;
       stalled++;
     }
 

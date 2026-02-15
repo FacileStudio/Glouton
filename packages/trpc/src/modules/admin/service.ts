@@ -1,27 +1,16 @@
-import type { PrismaClient } from '@repo/database';
+import { SQL } from 'bun';
 import { AdminEngine, PermissionService, AuditService } from '@repo/admin';
-import type { EntityConfig, AdminContext } from '@repo/admin';
+import type { EntityConfig } from '@repo/admin';
 
 export class AdminService {
   private engines: Map<string, AdminEngine> = new Map();
   private permissionService: PermissionService;
   private auditService: AuditService;
 
-  /**
-   * constructor
-   */
-  constructor(private db: PrismaClient) {
-    this.permissionService = new PermissionService(db);
-    this.auditService = new AuditService(db);
-    this.registerEntities();
-  }
-
-  /**
-   * registerEntities
-   */
-  private registerEntities() {
-    this.registerEntity({
-      name: 'user',
+  // Déclaration des configurations pour alléger le constructeur
+  private readonly ENTITY_CONFIGS: EntityConfig[] = [
+    {
+      name: 'user', // Note: Pense à vérifier comment AdminEngine gère le nom de la table SQL (ex: "User")
       displayName: 'User',
       fields: [
         { name: 'email', label: 'Email', type: 'email', required: true },
@@ -43,9 +32,8 @@ export class AdminService {
       listFields: ['email', 'firstName', 'lastName', 'role', 'createdAt'],
       searchFields: ['email', 'firstName', 'lastName'],
       defaultSort: { field: 'createdAt', order: 'desc' },
-    });
-
-    this.registerEntity({
+    },
+    {
       name: 'contact',
       displayName: 'Contact',
       fields: [
@@ -56,9 +44,8 @@ export class AdminService {
       listFields: ['email', 'firstName', 'lastName', 'createdAt'],
       searchFields: ['email', 'firstName', 'lastName'],
       defaultSort: { field: 'createdAt', order: 'desc' },
-    });
-
-    this.registerEntity({
+    },
+    {
       name: 'media',
       displayName: 'Media',
       fields: [
@@ -70,74 +57,42 @@ export class AdminService {
       listFields: ['url', 'mimeType', 'size', 'createdAt'],
       searchFields: ['key', 'mimeType'],
       defaultSort: { field: 'createdAt', order: 'desc' },
-    });
+    },
+      ];
 
-    this.registerEntity({
-      name: 'subscription',
-      displayName: 'Subscription',
-      fields: [
-        { name: 'stripeCustomerId', label: 'Stripe Customer ID', type: 'string' },
-        { name: 'stripeSubscriptionId', label: 'Stripe Subscription ID', type: 'string' },
-        { name: 'status', label: 'Status', type: 'string' },
-        { name: 'planId', label: 'Plan ID', type: 'string' },
-        { name: 'currentPeriodEnd', label: 'Current Period End', type: 'date' },
-        { name: 'cancelAtPeriodEnd', label: 'Cancel at Period End', type: 'boolean' },
-      ],
-      listFields: ['stripeCustomerId', 'status', 'planId', 'currentPeriodEnd'],
-      searchFields: ['stripeCustomerId', 'stripeSubscriptionId'],
-      defaultSort: { field: 'createdAt', order: 'desc' },
-    });
+  constructor(private db: SQL) {
+    this.permissionService = new PermissionService(db);
+    this.auditService = new AuditService(db);
+    this.registerEntities();
   }
 
-  /**
-   * registerEntity
-   */
-  private registerEntity(config: EntityConfig) {
-    /**
-     * delegate
-     */
-    const delegate = (this.db as any)[config.name];
-    /**
-     * if
-     */
-    if (!delegate) {
-      throw new Error(`Entity "${config.name}" not found in Prisma client`);
+  private registerEntities() {
+    for (const config of this.ENTITY_CONFIGS) {
+      this.registerEntity(config);
     }
-    const engine = new AdminEngine(this.db, config, delegate);
+  }
+
+  private registerEntity(config: EntityConfig) {
+    const engine = new AdminEngine(this.db, config);
     this.engines.set(config.name, engine);
   }
 
-  /**
-   * getEngine
-   */
   getEngine(entity: string): AdminEngine {
     const engine = this.engines.get(entity);
-    /**
-     * if
-     */
     if (!engine) {
       throw new Error(`Entity "${entity}" not registered`);
     }
     return engine;
   }
 
-  /**
-   * getAvailableEntities
-   */
   getAvailableEntities(): string[] {
     return Array.from(this.engines.keys());
   }
 
-  /**
-   * getEntityConfig
-   */
   getEntityConfig(entity: string) {
     return this.getEngine(entity).getConfig();
   }
 
-  /**
-   * getAllAuditLogs
-   */
   async getAllAuditLogs(options: {
     entity?: string;
     userId?: string;
@@ -148,9 +103,6 @@ export class AdminService {
     return this.auditService.getAllLogs(options);
   }
 
-  /**
-   * setPermissions
-   */
   async setPermissions(
     userId: string,
     entity: string,
@@ -164,9 +116,6 @@ export class AdminService {
     return this.permissionService.setEntityPermissions(userId, entity, permissions);
   }
 
-  /**
-   * getUserPermissions
-   */
   async getUserPermissions(userId: string) {
     return this.permissionService.getAllUserPermissions(userId);
   }

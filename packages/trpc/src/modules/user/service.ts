@@ -1,16 +1,15 @@
 import { TRPCError } from '@trpc/server';
-import { type PrismaClient } from '@repo/database';
+import { SQL, sql } from 'bun';
 import { type AuthManager } from '@repo/auth';
 
 export const userService = {
-  getProfile: async (db: PrismaClient, userId: string) => {
-    const user = await db.user.findUnique({
-      where: { id: userId },
-    });
+  getProfile: async (db: SQL, userId: string) => {
+    const [user] = await db`
+      SELECT *
+      FROM "User"
+      WHERE id = ${userId}
+    ` as Promise<any[]>;
 
-    /**
-     * if
-     */
     if (!user) {
       throw new TRPCError({
         code: 'NOT_FOUND',
@@ -21,21 +20,13 @@ export const userService = {
     return user;
   },
 
-  getConfiguredSources: async (db: PrismaClient, userId: string) => {
-    const user = await db.user.findUnique({
-      where: { id: userId },
-      select: {
-        hunterApiKey: true,
-        apolloApiKey: true,
-        snovApiKey: true,
-        hasdataApiKey: true,
-        contactoutApiKey: true,
-      },
-    });
+  getConfiguredSources: async (db: SQL, userId: string) => {
+    const [user] = await db`
+      SELECT "hunterApiKey", "apolloApiKey", "snovApiKey", "hasdataApiKey", "contactoutApiKey"
+      FROM "User"
+      WHERE id = ${userId}
+    ` as Promise<any[]>;
 
-    /**
-     * if
-     */
     if (!user) {
       throw new TRPCError({
         code: 'NOT_FOUND',
@@ -43,33 +34,21 @@ export const userService = {
       });
     }
 
-    const configuredSources: string[] = [];
-    /**
-     * if
-     */
-    if (user.hunterApiKey) configuredSources.push('HUNTER');
-    /**
-     * if
-     */
-    if (user.apolloApiKey) configuredSources.push('APOLLO');
-    /**
-     * if
-     */
-    if (user.snovApiKey) configuredSources.push('SNOV');
-    /**
-     * if
-     */
-    if (user.hasdataApiKey) configuredSources.push('HASDATA');
-    /**
-     * if
-     */
-    if (user.contactoutApiKey) configuredSources.push('CONTACTOUT');
+    const sourcesMap: Record<string, string> = {
+      hunterApiKey: 'HUNTER',
+      apolloApiKey: 'APOLLO',
+      snovApiKey: 'SNOV',
+      hasdataApiKey: 'HASDATA',
+      contactoutApiKey: 'CONTACTOUT',
+    };
 
-    return configuredSources;
+    return Object.entries(sourcesMap)
+      .filter(([key]) => !!user[key])
+      .map(([_, label]) => label);
   },
 
   getAllUsers: async (
-    db: PrismaClient,
+    db: SQL,
     filters?: {
       status?: 'all' | 'active' | 'suspended' | 'banned' | 'pending';
       role?: 'all' | 'admin' | 'user';
@@ -77,78 +56,38 @@ export const userService = {
       isPremium?: boolean;
     }
   ) => {
-    const where: any = {};
+    const conditions = [];
 
-    /**
-     * if
-     */
     if (filters?.status && filters.status !== 'all') {
-      where.status = filters.status.toUpperCase();
+      conditions.push(sql`status = ${filters.status.toUpperCase()}`);
     }
-
-    /**
-     * if
-     */
     if (filters?.role && filters.role !== 'all') {
-      where.role = filters.role.toUpperCase();
+      conditions.push(sql`role = ${filters.role.toUpperCase()}`);
     }
-
-    /**
-     * if
-     */
     if (filters?.emailVerified !== undefined) {
-      where.emailVerified = filters.emailVerified;
+      conditions.push(sql`"emailVerified" = ${filters.emailVerified}`);
     }
-
-    /**
-     * if
-     */
     if (filters?.isPremium !== undefined) {
-      where.isPremium = filters.isPremium;
+      conditions.push(sql`"isPremium" = ${filters.isPremium}`);
     }
 
-    return await db.user.findMany({
-      where,
-      include: {
-        messages: { select: { id: true } },
-        rooms: { select: { roomId: true } },
-        subscription: true,
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+    const whereClause = conditions.length > 0 ? sql`WHERE ${sql.join(conditions, sql` AND `)}` : sql``;
+
+    return await db`
+      SELECT *
+      FROM "User"
+      ${whereClause}
+      ORDER BY "createdAt" DESC
+    ` as Promise<any[]>;
   },
 
-  getUserById: async (db: PrismaClient, userId: string) => {
-    const user = await db.user.findUnique({
-      where: { id: userId },
-      include: {
-        messages: {
-          select: { id: true, text: true, createdAt: true },
-          orderBy: { createdAt: 'desc' },
-          take: 10,
-        },
-        rooms: {
-          select: { roomId: true, room: { select: { name: true } } },
-        },
-        subscription: true,
-        paymentHistory: {
-          orderBy: { createdAt: 'desc' },
-          take: 10,
-        },
-        sessions: {
-          orderBy: { createdAt: 'desc' },
-          take: 5,
-        },
-        auditLogs: {
-          orderBy: { createdAt: 'desc' },
-          take: 20,
-        },
-      },
-    });
+  getUserById: async (db: SQL, userId: string) => {
+    const [user] = await db`
+      SELECT *
+      FROM "User"
+      WHERE id = ${userId}
+    ` as Promise<any[]>;
 
-    /**
-     * if
-     */
     if (!user) {
       throw new TRPCError({
         code: 'NOT_FOUND',
@@ -159,168 +98,169 @@ export const userService = {
     return user;
   },
 
-  getUserStats: async (db: PrismaClient) => {
-    const [
-      totalUsers,
-      activeUsers,
-      bannedUsers,
-      suspendedUsers,
-      premiumUsers,
-      verifiedUsers,
-      adminUsers,
-    ] = await Promise.all([
-      db.user.count(),
-      db.user.count({ where: { status: 'ACTIVE' } }),
-      db.user.count({ where: { isBanned: true } }),
-      db.user.count({ where: { isSuspended: true } }),
-      db.user.count({ where: { isPremium: true } }),
-      db.user.count({ where: { emailVerified: true } }),
-      db.user.count({ where: { role: 'ADMIN' } }),
-    ]);
+  getUserStats: async (db: SQL) => {
+    const [stats] = await db`
+      SELECT 
+        COUNT(*)::int as "totalUsers",
+        COUNT(*) FILTER (WHERE status = 'ACTIVE')::int as "activeUsers",
+        COUNT(*) FILTER (WHERE "isBanned" = TRUE)::int as "bannedUsers",
+        COUNT(*) FILTER (WHERE "isSuspended" = TRUE)::int as "suspendedUsers",
+        COUNT(*) FILTER (WHERE "isPremium" = TRUE)::int as "premiumUsers",
+        COUNT(*) FILTER (WHERE "emailVerified" = TRUE)::int as "verifiedUsers",
+        COUNT(*) FILTER (WHERE role = 'ADMIN')::int as "adminUsers"
+      FROM "User"
+    ` as Promise<any[]>;
 
-    return {
-      totalUsers,
-      activeUsers,
-      bannedUsers,
-      suspendedUsers,
-      premiumUsers,
-      verifiedUsers,
-      adminUsers,
+    return stats || {
+      totalUsers: 0,
+      activeUsers: 0,
+      bannedUsers: 0,
+      suspendedUsers: 0,
+      premiumUsers: 0,
+      verifiedUsers: 0,
+      adminUsers: 0,
     };
   },
 
   updateUser: async (
-    db: PrismaClient,
+    db: SQL,
     userId: string,
     data: { isPremium?: boolean; role?: 'USER' | 'ADMIN' }
   ) => {
-    try {
-      return await db.user.update({
-        where: { id: userId },
-        data,
-      });
-    } catch (error) {
-      throw new TRPCError({
-        code: 'INTERNAL_SERVER_ERROR',
-        message: 'Failed to update user',
-      });
-    }
+    const updates = [];
+    if (data.isPremium !== undefined) updates.push(sql`"isPremium" = ${data.isPremium}`);
+    if (data.role !== undefined) updates.push(sql`role = ${data.role}`);
+
+    if (updates.length === 0) return this.getUserById(db, userId);
+
+    const [updatedUser] = await db`
+      UPDATE "User"
+      SET ${sql.join(updates, sql`, `)}, "updatedAt" = NOW()
+      WHERE id = ${userId}
+      RETURNING *
+    ` as Promise<any[]>;
+
+    if (!updatedUser) throw new TRPCError({ code: 'NOT_FOUND', message: 'User not found' });
+    return updatedUser;
   },
 
-  banUser: async (db: PrismaClient, userId: string, reason: string, bannedBy: string) => {
-    return await db.user.update({
-      where: { id: userId },
-      data: {
-        isBanned: true,
-        status: 'BANNED',
-        banReason: reason,
-        bannedAt: new Date(),
-        bannedBy,
-      },
-    });
+  banUser: async (db: SQL, userId: string, reason: string, bannedBy: string) => {
+    const [bannedUser] = await db`
+      UPDATE "User"
+      SET "isBanned" = TRUE,
+          status = 'BANNED',
+          "banReason" = ${reason},
+          "bannedAt" = NOW(),
+          "bannedBy" = ${bannedBy},
+          "updatedAt" = NOW()
+      WHERE id = ${userId}
+      RETURNING *
+    ` as Promise<any[]>;
+    return bannedUser;
   },
 
-  unbanUser: async (db: PrismaClient, userId: string) => {
-    return await db.user.update({
-      where: { id: userId },
-      data: {
-        isBanned: false,
-        status: 'ACTIVE',
-        banReason: null,
-        bannedAt: null,
-        bannedBy: null,
-      },
-    });
+  unbanUser: async (db: SQL, userId: string) => {
+    const [unbannedUser] = await db`
+      UPDATE "User"
+      SET "isBanned" = FALSE,
+          status = 'ACTIVE',
+          "banReason" = NULL,
+          "bannedAt" = NULL,
+          "bannedBy" = NULL,
+          "updatedAt" = NOW()
+      WHERE id = ${userId}
+      RETURNING *
+    ` as Promise<any[]>;
+    return unbannedUser;
   },
 
-  suspendUser: async (db: PrismaClient, userId: string, reason: string, until: Date) => {
-    return await db.user.update({
-      where: { id: userId },
-      data: {
-        isSuspended: true,
-        status: 'SUSPENDED',
-        suspensionReason: reason,
-        suspendedUntil: until,
-      },
-    });
+  suspendUser: async (db: SQL, userId: string, reason: string, until: Date) => {
+    const [suspendedUser] = await db`
+      UPDATE "User"
+      SET "isSuspended" = TRUE,
+          status = 'SUSPENDED',
+          "suspensionReason" = ${reason},
+          "suspendedUntil" = ${until},
+          "updatedAt" = NOW()
+      WHERE id = ${userId}
+      RETURNING *
+    ` as Promise<any[]>;
+    return suspendedUser;
   },
 
-  unsuspendUser: async (db: PrismaClient, userId: string) => {
-    return await db.user.update({
-      where: { id: userId },
-      data: {
-        isSuspended: false,
-        status: 'ACTIVE',
-        suspensionReason: null,
-        suspendedUntil: null,
-      },
-    });
+  unsuspendUser: async (db: SQL, userId: string) => {
+    const [unsuspendedUser] = await db`
+      UPDATE "User"
+      SET "isSuspended" = FALSE,
+          status = 'ACTIVE',
+          "suspensionReason" = NULL,
+          "suspendedUntil" = NULL,
+          "updatedAt" = NOW()
+      WHERE id = ${userId}
+      RETURNING *
+    ` as Promise<any[]>;
+    return unsuspendedUser;
   },
 
-  verifyEmail: async (db: PrismaClient, userId: string) => {
-    return await db.user.update({
-      where: { id: userId },
-      data: { emailVerified: true },
-    });
+  verifyEmail: async (db: SQL, userId: string) => {
+    const [verifiedUser] = await db`
+      UPDATE "User"
+      SET "emailVerified" = TRUE, "updatedAt" = NOW()
+      WHERE id = ${userId}
+      RETURNING *
+    ` as Promise<any[]>;
+    return verifiedUser;
   },
 
-  deleteUser: async (db: PrismaClient, userId: string) => {
-    return await db.user.delete({
-      where: { id: userId },
-    });
+  deleteUser: async (db: SQL, userId: string) => {
+    const [deletedUser] = await db`
+      DELETE FROM "User"
+      WHERE id = ${userId}
+      RETURNING *
+    ` as Promise<any[]>;
+    return deletedUser;
   },
 
-  bulkDeleteUsers: async (db: PrismaClient, userIds: string[]) => {
-    return await db.user.deleteMany({
-      where: { id: { in: userIds } },
-    });
+  bulkDeleteUsers: async (db: SQL, userIds: string[]) => {
+    if (userIds.length === 0) return { count: 0 };
+    const deletedUsers = await db`
+      DELETE FROM "User"
+      WHERE id IN (${sql.join(userIds.map(id => sql`${id}`), sql`, `)})
+      RETURNING id
+    ` as Promise<any[]>;
+    return { count: deletedUsers.length };
   },
 
   updateProfile: async (
-    db: PrismaClient,
+    db: SQL,
     userId: string,
     data: { firstName?: string; lastName?: string }
   ) => {
-    try {
-      return await db.user.update({
-        where: { id: userId },
-        data: {
-          firstName: data.firstName,
-          lastName: data.lastName,
-        },
-      });
-    } catch (error) {
-      throw new TRPCError({
-        code: 'INTERNAL_SERVER_ERROR',
-        message: 'Failed to update profile',
-      });
-    }
+    const updates = [];
+    if (data.firstName !== undefined) updates.push(sql`"firstName" = ${data.firstName}`);
+    if (data.lastName !== undefined) updates.push(sql`"lastName" = ${data.lastName}`);
+
+    if (updates.length === 0) return this.getUserById(db, userId);
+
+    const [updatedUser] = await db`
+      UPDATE "User"
+      SET ${sql.join(updates, sql`, `)}, "updatedAt" = NOW()
+      WHERE id = ${userId}
+      RETURNING *
+    ` as Promise<any[]>;
+    return updatedUser;
   },
 
   changePassword: async (
-    db: PrismaClient,
+    db: SQL,
     auth: AuthManager,
     userId: string,
     currentPassword: string,
     newPassword: string
   ) => {
-    const user = await db.user.findUnique({ where: { id: userId } });
-
-    /**
-     * if
-     */
-    if (!user) {
-      throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: 'User not found',
-      });
-    }
-
+    const user = await this.getUserById(db, userId);
     const isValid = await auth.verifyPassword(currentPassword, user.password);
 
-    /**
-     * if
-     */
     if (!isValid) {
       throw new TRPCError({
         code: 'UNAUTHORIZED',
@@ -330,32 +270,34 @@ export const userService = {
 
     const hashedPassword = await auth.hashPassword(newPassword);
 
-    return await db.user.update({
-      where: { id: userId },
-      data: { password: hashedPassword },
-    });
+    const [updatedUser] = await db`
+      UPDATE "User"
+      SET password = ${hashedPassword}, "updatedAt" = NOW()
+      WHERE id = ${userId}
+      RETURNING *
+    ` as Promise<any[]>;
+    return updatedUser;
   },
 
-  deleteOwnAccount: async (db: PrismaClient, userId: string) => {
-    const user = await db.user.findUnique({ where: { id: userId } });
+  deleteOwnAccount: async (db: SQL, userId: string) => {
+    const [deletedUser] = await db`
+      DELETE FROM "User"
+      WHERE id = ${userId}
+      RETURNING *
+    ` as Promise<any[]>;
 
-    /**
-     * if
-     */
-    if (!user) {
+    if (!deletedUser) {
       throw new TRPCError({
         code: 'NOT_FOUND',
         message: 'User not found',
       });
     }
 
-    return await db.user.delete({
-      where: { id: userId },
-    });
+    return deletedUser;
   },
 
   updateApiKeys: async (
-    db: PrismaClient,
+    db: SQL,
     userId: string,
     apiKeys: {
       hunterApiKey?: string;
@@ -365,50 +307,25 @@ export const userService = {
       contactoutApiKey?: string;
     }
   ) => {
-    try {
-      const updateData: any = {};
+    const updates = [];
+    const fields = ['hunterApiKey', 'apolloApiKey', 'snovApiKey', 'hasdataApiKey', 'contactoutApiKey'];
 
-      /**
-       * if
-       */
-      if (apiKeys.hunterApiKey !== undefined) {
-        updateData.hunterApiKey = apiKeys.hunterApiKey || null;
+    for (const field of fields) {
+      if (apiKeys[field as keyof typeof apiKeys] !== undefined) {
+        updates.push(sql`"${sql.raw(field)}" = ${apiKeys[field as keyof typeof apiKeys] || null}`);
       }
-      /**
-       * if
-       */
-      if (apiKeys.apolloApiKey !== undefined) {
-        updateData.apolloApiKey = apiKeys.apolloApiKey || null;
-      }
-      /**
-       * if
-       */
-      if (apiKeys.snovApiKey !== undefined) {
-        updateData.snovApiKey = apiKeys.snovApiKey || null;
-      }
-      /**
-       * if
-       */
-      if (apiKeys.hasdataApiKey !== undefined) {
-        updateData.hasdataApiKey = apiKeys.hasdataApiKey || null;
-      }
-      /**
-       * if
-       */
-      if (apiKeys.contactoutApiKey !== undefined) {
-        updateData.contactoutApiKey = apiKeys.contactoutApiKey || null;
-      }
-
-      return await db.user.update({
-        where: { id: userId },
-        data: updateData,
-      });
-    } catch (error) {
-      throw new TRPCError({
-        code: 'INTERNAL_SERVER_ERROR',
-        message: 'Failed to update API keys',
-      });
     }
+
+    if (updates.length === 0) return this.getUserById(db, userId);
+
+    const [updatedUser] = await db`
+      UPDATE "User"
+      SET ${sql.join(updates, sql`, `)}, "updatedAt" = NOW()
+      WHERE id = ${userId}
+      RETURNING *
+    ` as Promise<any[]>;
+
+    return updatedUser;
   },
 };
 

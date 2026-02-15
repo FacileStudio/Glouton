@@ -8,11 +8,9 @@ export const trpcHandler =
     env,
     jobs,
     smtp,
+    db
   }: Omit<CreateContextOptions, 'req' | 'resHeaders' | 'info' | 'logger'>) =>
   (c: Context, next: Next) =>
-    /**
-     * trpcServer
-     */
     trpcServer({
       router: appRouter,
       createContext: async (opts) => {
@@ -22,6 +20,7 @@ export const trpcHandler =
           req: c.req.raw,
           authManager,
           env,
+          db,
           jobs,
           smtp,
           logger,

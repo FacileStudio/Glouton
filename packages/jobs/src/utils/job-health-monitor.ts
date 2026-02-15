@@ -1,5 +1,5 @@
 import type { QueueManager } from '../queue-manager';
-import type { PrismaClient } from '@repo/database';
+import type { SQL } from 'bun'; // Changed import
 import logger from '@repo/logger';
 
 export interface HealthMonitorOptions {
@@ -14,7 +14,7 @@ export class JobHealthMonitor {
   private sessionTimeout: number;
   private enableAutoRecovery: boolean;
   private queueManager: QueueManager;
-  private db: PrismaClient;
+  private db: SQL; // Changed type
   private isRunning = false;
 
   /**
@@ -22,7 +22,7 @@ export class JobHealthMonitor {
    */
   constructor(
     queueManager: QueueManager,
-    db: PrismaClient,
+    db: SQL, // Changed type
     options: HealthMonitorOptions = {}
   ) {
     this.queueManager = queueManager;
@@ -96,19 +96,11 @@ export class JobHealthMonitor {
    */
   private async checkAuditSessions(): Promise<void> {
     try {
-      const sessions = await this.db.auditSession.findMany({
-        where: {
-          status: { in: ['PENDING', 'PROCESSING'] },
-        },
-        select: {
-          id: true,
-          jobId: true,
-          status: true,
-          startedAt: true,
-          createdAt: true,
-          userId: true,
-        },
-      });
+      const sessions = await this.db`
+        SELECT id, "jobId", status, "startedAt", "createdAt", "userId"
+        FROM "AuditSession"
+        WHERE status IN ('PENDING', 'PROCESSING')
+      `;
 
       /**
        * for
@@ -127,14 +119,13 @@ export class JobHealthMonitor {
            * if
            */
           if (this.enableAutoRecovery) {
-            await this.db.auditSession.update({
-              where: { id: session.id },
-              data: {
-                status: 'FAILED',
-                error: 'Session timed out',
-                completedAt: new Date(),
-              },
-            });
+            await this.db`
+              UPDATE "AuditSession"
+              SET status = 'FAILED',
+                  error = 'Session timed out',
+                  "completedAt" = ${new Date()}
+              WHERE id = ${session.id}
+            `;
 
             /**
              * if
@@ -171,19 +162,11 @@ export class JobHealthMonitor {
    */
   private async checkHuntSessions(): Promise<void> {
     try {
-      const sessions = await this.db.huntSession.findMany({
-        where: {
-          status: { in: ['PENDING', 'PROCESSING'] },
-        },
-        select: {
-          id: true,
-          jobId: true,
-          status: true,
-          startedAt: true,
-          createdAt: true,
-          userId: true,
-        },
-      });
+      const sessions = await this.db`
+        SELECT id, "jobId", status, "startedAt", "createdAt", "userId"
+        FROM "HuntSession"
+        WHERE status IN ('PENDING', 'PROCESSING')
+      `;
 
       /**
        * for
@@ -202,14 +185,13 @@ export class JobHealthMonitor {
            * if
            */
           if (this.enableAutoRecovery) {
-            await this.db.huntSession.update({
-              where: { id: session.id },
-              data: {
-                status: 'FAILED',
-                error: 'Session timed out',
-                completedAt: new Date(),
-              },
-            });
+            await this.db`
+              UPDATE "HuntSession"
+              SET status = 'FAILED',
+                  error = 'Session timed out',
+                  "completedAt" = ${new Date()}
+              WHERE id = ${session.id}
+            `;
 
             logger.debug('[JobHealthMonitor] Marked hunt as FAILED');
           }
@@ -264,10 +246,13 @@ export class JobHealthMonitor {
              * if
              */
             if (type === 'audit') {
-              await this.db.auditSession.update({
-                where: { id: sessionId },
-                data: updateData,
-              });
+              await this.db`
+                UPDATE "AuditSession"
+                SET status = ${updateData.status},
+                    error = ${updateData.error},
+                    "completedAt" = ${updateData.completedAt}
+                WHERE id = ${sessionId}
+              `;
 
               /**
                * if
@@ -279,10 +264,13 @@ export class JobHealthMonitor {
                 });
               }
             } else {
-              await this.db.huntSession.update({
-                where: { id: sessionId },
-                data: updateData,
-              });
+              await this.db`
+                UPDATE "HuntSession"
+                SET status = ${updateData.status},
+                    error = ${updateData.error},
+                    "completedAt" = ${updateData.completedAt}
+                WHERE id = ${sessionId}
+              `;
             }
           }
         }
@@ -302,18 +290,17 @@ export class JobHealthMonitor {
          */
         if (type === 'audit') {
           const returnValue = job.returnvalue;
-          await this.db.auditSession.update({
-            where: { id: sessionId },
-            data: {
-              status: 'COMPLETED',
-              progress: 100,
-              totalLeads: returnValue?.totalLeads ?? 0,
-              processedLeads: returnValue?.processedLeads ?? 0,
-              updatedLeads: returnValue?.updatedLeads ?? 0,
-              failedLeads: returnValue?.failedLeads ?? 0,
-              completedAt: new Date(),
-            },
-          });
+          await this.db`
+            UPDATE "AuditSession"
+            SET status = 'COMPLETED',
+                progress = 100,
+                "totalLeads" = ${returnValue?.totalLeads ?? 0},
+                "processedLeads" = ${returnValue?.processedLeads ?? 0},
+                "updatedLeads" = ${returnValue?.updatedLeads ?? 0},
+                "failedLeads" = ${returnValue?.failedLeads ?? 0},
+                "completedAt" = ${new Date()}
+            WHERE id = ${sessionId}
+          `;
 
           /**
            * if
@@ -330,14 +317,13 @@ export class JobHealthMonitor {
             });
           }
         } else {
-          await this.db.huntSession.update({
-            where: { id: sessionId },
-            data: {
-              status: 'COMPLETED',
-              progress: 100,
-              completedAt: new Date(),
-            },
-          });
+          await this.db`
+            UPDATE "HuntSession"
+            SET status = 'COMPLETED',
+                progress = 100,
+                "completedAt" = ${new Date()}
+            WHERE id = ${sessionId}
+          `;
         }
       } else if (jobState === 'failed' && dbStatus !== 'FAILED') {
         logger.debug(`[JobHealthMonitor] Syncing ${type} to FAILED`);
@@ -352,10 +338,13 @@ export class JobHealthMonitor {
          * if
          */
         if (type === 'audit') {
-          await this.db.auditSession.update({
-            where: { id: sessionId },
-            data: updateData,
-          });
+          await this.db`
+            UPDATE "AuditSession"
+            SET status = ${updateData.status},
+                error = ${updateData.error},
+                "completedAt" = ${updateData.completedAt}
+            WHERE id = ${sessionId}
+          `;
 
           /**
            * if
@@ -367,10 +356,13 @@ export class JobHealthMonitor {
             });
           }
         } else {
-          await this.db.huntSession.update({
-            where: { id: sessionId },
-            data: updateData,
-          });
+          await this.db`
+            UPDATE "HuntSession"
+            SET status = ${updateData.status},
+                error = ${updateData.error},
+                "completedAt" = ${updateData.completedAt}
+            WHERE id = ${sessionId}
+          `;
         }
       }
     } catch (error) {
@@ -446,14 +438,16 @@ export class JobHealthMonitor {
   }> {
     const [leadsMetrics, auditSessions, huntSessions] = await Promise.all([
       this.queueManager.getQueueMetrics('leads'),
-      this.db.auditSession.findMany({
-        where: { status: { in: ['PENDING', 'PROCESSING'] } },
-        select: { id: true, status: true, startedAt: true, createdAt: true },
-      }),
-      this.db.huntSession.findMany({
-        where: { status: { in: ['PENDING', 'PROCESSING'] } },
-        select: { id: true, status: true, startedAt: true, createdAt: true },
-      }),
+      this.db`
+        SELECT id, status, "startedAt", "createdAt"
+        FROM "AuditSession"
+        WHERE status IN ('PENDING', 'PROCESSING')
+      ` as Promise<any[]>,
+      this.db`
+        SELECT id, status, "startedAt", "createdAt"
+        FROM "HuntSession"
+        WHERE status IN ('PENDING', 'PROCESSING')
+      ` as Promise<any[]>,
     ]);
 
     const now = Date.now();

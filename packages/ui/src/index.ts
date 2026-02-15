@@ -4,7 +4,6 @@ export { default as Badge } from './components/atoms/Badge.svelte';
 export { default as Button } from './components/atoms/Button.svelte';
 export { default as Card } from './components/atoms/Card.svelte';
 export { default as Input } from './components/atoms/Input.svelte';
-export { default as LanguageSwitcher } from './components/atoms/LanguageSwitcher.svelte';
 export { default as Skeleton } from './components/atoms/Skeleton.svelte';
 export { default as Spinner } from './components/atoms/Spinner.svelte';
 export { default as Tabs } from './components/atoms/Tabs.svelte';
@@ -20,7 +19,6 @@ export { default as AutoTable } from './components/organisms/AutoTable.svelte';
 export { default as BottomDrawer } from './components/organisms/BottomDrawer.svelte';
 export { default as ConfirmDialog } from './components/organisms/ConfirmDialog.svelte';
 export { default as EmptyState } from './components/organisms/EmptyState.svelte';
-export { default as ImageUpload } from './components/organisms/ImageUpload.svelte';
 export { default as Modal } from './components/organisms/Modal.svelte';
 
 export { default as Sidebar } from './components/layout/Sidebar.svelte';

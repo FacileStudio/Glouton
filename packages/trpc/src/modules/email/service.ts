@@ -1,4 +1,4 @@
-import type { PrismaClient } from '@repo/database';
+import { SQL, sql } from 'bun';
 import { SMTPService, renderTemplate, type EmailTemplate } from '@repo/smtp';
 
 export class EmailService {
@@ -6,7 +6,7 @@ export class EmailService {
    * constructor
    */
   constructor(
-    private db: PrismaClient,
+    private db: SQL,
     private smtp: SMTPService,
   ) {}
 
@@ -19,9 +19,11 @@ export class EmailService {
     templateId: string;
     variables: Record<string, string>;
   }) {
-    const lead = await this.db.lead.findUnique({
-      where: { id: params.leadId },
-    });
+    const [lead] = await this.db`
+      SELECT id, email
+      FROM "Lead"
+      WHERE id = ${params.leadId}
+    ` as Promise<any[]>;
 
     /**
      * if
@@ -38,18 +40,22 @@ export class EmailService {
       throw new Error('Template not found');
     }
 
-    const outreach = await this.db.emailOutreach.create({
-      data: {
-        leadId: params.leadId,
-        userId: params.userId,
-        templateId: params.templateId,
-        subject: rendered.subject,
-        htmlBody: rendered.html,
-        textBody: rendered.text,
-        variables: params.variables,
-        status: 'PENDING',
-      },
-    });
+    const [outreach] = await this.db`
+      INSERT INTO "EmailOutreach" (
+        "leadId", "userId", "templateId", subject, "htmlBody", "textBody", variables, status, "createdAt"
+      ) VALUES (
+        ${params.leadId},
+        ${params.userId},
+        ${params.templateId},
+        ${rendered.subject},
+        ${rendered.html},
+        ${rendered.text},
+        ${JSON.stringify(params.variables)}::jsonb,
+        'PENDING',
+        ${new Date()}
+      )
+      RETURNING id
+    ` as Promise<any[]>;
 
     try {
       await this.smtp.sendEmail({
@@ -59,34 +65,29 @@ export class EmailService {
         text: rendered.text,
       });
 
-      await this.db.emailOutreach.update({
-        where: { id: outreach.id },
-        data: {
-          status: 'SENT',
-          sentAt: new Date(),
-        },
-      });
+      await this.db`
+        UPDATE "EmailOutreach"
+        SET status = 'SENT',
+            "sentAt" = ${new Date()}
+        WHERE id = ${outreach.id}
+      `;
 
-      await this.db.lead.update({
-        where: { id: params.leadId },
-        data: {
-          contacted: true,
-          lastContactedAt: new Date(),
-          emailsSentCount: {
-            increment: 1,
-          },
-        },
-      });
+      await this.db`
+        UPDATE "Lead"
+        SET contacted = TRUE,
+            "lastContactedAt" = ${new Date()},
+            "emailsSentCount" = "emailsSentCount" + 1
+        WHERE id = ${params.leadId}
+      `;
 
       return { success: true, outreachId: outreach.id };
     } catch (error) {
-      await this.db.emailOutreach.update({
-        where: { id: outreach.id },
-        data: {
-          status: 'FAILED',
-          error: error instanceof Error ? error.message : 'Unknown error',
-        },
-      });
+      await this.db`
+        UPDATE "EmailOutreach"
+        SET status = 'FAILED',
+            error = ${error instanceof Error ? error.message : 'Unknown error'}
+        WHERE id = ${outreach.id}
+      `;
 
       throw error;
     }
@@ -96,15 +97,12 @@ export class EmailService {
    * getLeadOutreach
    */
   async getLeadOutreach(leadId: string, userId: string) {
-    return this.db.emailOutreach.findMany({
-      where: {
-        leadId,
-        userId,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    return this.db`
+      SELECT id, "leadId", "userId", "templateId", subject, "htmlBody", "textBody", variables, status, "createdAt", "sentAt"
+      FROM "EmailOutreach"
+      WHERE "leadId" = ${leadId} AND "userId" = ${userId}
+      ORDER BY "createdAt" DESC
+    ` as Promise<any[]>;
   }
 
   /**
@@ -112,15 +110,17 @@ export class EmailService {
    */
   async getOutreachStats(userId: string) {
     const [total, sent, opened, replied] = await Promise.all([
-      this.db.emailOutreach.count({ where: { userId } }),
-      this.db.emailOutreach.count({ where: { userId, status: 'SENT' } }),
-      this.db.emailOutreach.count({ where: { userId, status: 'OPENED' } }),
-      this.db.emailOutreach.count({ where: { userId, status: 'REPLIED' } }),
+      this.db`SELECT COUNT(*) FROM "EmailOutreach" WHERE "userId" = ${userId}` as Promise<[{count: number}]>,
+      this.db`SELECT COUNT(*) FROM "EmailOutreach" WHERE "userId" = ${userId} AND status = 'SENT'` as Promise<[{count: number}]>,
+      this.db`SELECT COUNT(*) FROM "EmailOutreach" WHERE "userId" = ${userId} AND status = 'OPENED'` as Promise<[{count: number}]>,
+      this.db`SELECT COUNT(*) FROM "EmailOutreach" WHERE "userId" = ${userId} AND status = 'REPLIED'` as Promise<[{count: number}]>,
     ]);
 
-    const contactedLeads = await this.db.lead.count({
-      where: { userId, contacted: true },
-    });
+    const contactedLeads = (await this.db`
+      SELECT COUNT(*) as count
+      FROM "Lead"
+      WHERE "userId" = ${userId} AND contacted = TRUE
+    ` as Promise<[{count: number}]>)[0].count;
 
     return {
       totalEmails: total,

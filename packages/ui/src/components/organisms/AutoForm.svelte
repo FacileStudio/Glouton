@@ -6,7 +6,6 @@
   import 'iconify-icon';
 
   import Button from '../atoms/Button.svelte';
-  import ImageUpload from './ImageUpload.svelte';
 
   export let schema: z.ZodObject<z.ZodRawShape, "strip", z.ZodTypeAny>;
   export let initialData: Record<string, unknown> = {};
@@ -100,10 +99,7 @@
             {field}
           </label>
 
-          {#if getFieldType(field) === 'image'}
-            <ImageUpload bind:value={$form[field]} {getPresignedUrl} />
-
-          {:else if getFieldType(field) === 'select'}
+          {#if getFieldType(field) === 'select'}
             <div class="relative flex items-center">
               <select
                 id={field}

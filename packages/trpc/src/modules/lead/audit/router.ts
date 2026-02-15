@@ -3,7 +3,6 @@ import { router, protectedProcedure } from '../../../trpc';
 
 export const listAuditSessionsSchema = z.object({
   leadId: z.string().optional(),
-  // Add other filters as needed, e.g., status, pagination
   limit: z.number().min(1).max(100).default(10),
   offset: z.number().min(0).default(0),
 });
@@ -16,133 +15,79 @@ export const auditRouter = router({
         const { leadId, limit = 10, offset = 0 } = input;
         const userId = ctx.user.id;
 
-        let query = ctx.db`
+        // 1. Définir la condition de base
+        const whereLeadId = leadId ? ctx.db`AND "AuditSession"."leadId" = ${leadId}` : ctx.db``;
+
+        // 2. Requête principale (Composition récursive)
+        const auditSessions = await ctx.db`
           SELECT
-            "AuditSession".id,
-            "AuditSession"."userId",
-            "AuditSession".status,
-            "AuditSession".progress,
-            "AuditSession"."totalLeads",
-            "AuditSession"."processedLeads",
-            "AuditSession"."updatedLeads",
-            "AuditSession"."failedLeads",
-            "AuditSession"."currentDomain",
-            "AuditSession"."lastProcessedIndex",
-            "AuditSession".error,
-            "AuditSession"."startedAt",
-            "AuditSession"."completedAt",
-            "AuditSession"."createdAt",
-            "AuditSession"."updatedAt",
-            "Lead".id AS "lead.id",
-            "Lead".domain AS "lead.domain",
-            "Lead".email AS "lead.email",
-            "Lead"."firstName" AS "lead.firstName",
-            "Lead"."lastName" AS "lead.lastName"
+            s.id, s."userId", s.status, s.progress, s."totalLeads",
+            s."processedLeads", s."updatedLeads", s."failedLeads",
+            s."currentDomain", s."lastProcessedIndex", s.error,
+            s."startedAt", s."completedAt", s."createdAt", s."updatedAt",
+            l.id AS "lead_id",
+            l.domain AS "lead_domain",
+            l.email AS "lead_email",
+            l."firstName" AS "lead_firstName",
+            l."lastName" AS "lead_lastName"
+          FROM "AuditSession" s
+          LEFT JOIN "Lead" l ON s."leadId" = l.id
+          WHERE s."userId" = ${userId}
+          ${whereLeadId}
+          ORDER BY s."createdAt" DESC
+          LIMIT ${limit} OFFSET ${offset}
+        ` as any[];
+
+        // 3. Compte total
+        const [countResult] = await ctx.db`
+          SELECT COUNT(*) as count
           FROM "AuditSession"
-          LEFT JOIN "Lead" ON "AuditSession"."leadId" = "Lead".id
-          WHERE "AuditSession"."userId" = ${userId}
-        `;
+          WHERE "userId" = ${userId}
+          ${whereLeadId}
+        ` as any[];
 
-        let countQuery = ctx.db`
-          SELECT COUNT(*)
-          FROM "AuditSession"
-          WHERE "AuditSession"."userId" = ${userId}
-        `;
+        const totalAuditSessions = Number(countResult.count);
 
-        if (leadId) {
-          query = ctx.db`${query} AND "AuditSession"."leadId" = ${leadId}`;
-          countQuery = ctx.db`${countQuery} AND "AuditSession"."leadId" = ${leadId}`;
-        }
-
-        query = ctx.db`${query} ORDER BY "AuditSession"."createdAt" DESC LIMIT ${limit} OFFSET ${offset}`;
-
-        const auditSessionsRaw = await query;
-        const totalAuditSessionsRaw = await countQuery;
-
-        const totalAuditSessions = Number(totalAuditSessionsRaw[0].count);
-
-        const auditSessions = auditSessionsRaw.map((row: any) => {
-          const auditSession: any = {
-            id: row.id,
-            userId: row.userId,
-            status: row.status,
-            progress: row.progress,
-            totalLeads: row.totalLeads,
-            processedLeads: row.processedLeads,
-            updatedLeads: row.updatedLeads,
-            failedLeads: row.failedLeads,
-            currentDomain: row.currentDomain,
-            lastProcessedIndex: row.lastProcessedIndex,
-            error: row.error,
-            startedAt: row.startedAt,
-            completedAt: row.completedAt,
-            createdAt: row.createdAt,
-            updatedAt: row.updatedAt,
-          };
-
-          // Reconstruct nested lead object if lead data exists
-          if (row['lead.id']) {
-            auditSession.lead = {
-              id: row['lead.id'],
-              domain: row['lead.domain'],
-              email: row['lead.email'],
-              firstName: row['lead.firstName'],
-              lastName: row['lead.lastName'],
-            };
-          } else {
-            auditSession.lead = null;
-          }
-
-          return auditSession;
-        });
+        // 4. Mapping des résultats (Transformation des noms de colonnes "lead_xxx" en objet imbriqué)
+        const formattedSessions = auditSessions.map((row) => ({
+          ...row,
+          lead: row.lead_id ? {
+            id: row.lead_id,
+            domain: row.lead_domain,
+            email: row.lead_email,
+            firstName: row.lead_firstName,
+            lastName: row.lead_lastName,
+          } : null
+        }));
 
         return {
-          auditSessions,
+          auditSessions: formattedSessions,
           totalAuditSessions,
         };
       } catch (error) {
-        ctx.log.error({
-          action: 'list-audit-sessions-failed',
-          error: error instanceof Error ? error.message : 'Unknown error',
-        });
+        ctx.log.error({ action: 'list-audit-sessions-failed', error });
         throw new Error('Failed to retrieve audit sessions');
       }
     }),
+
   cancel: protectedProcedure
     .input(z.object({ auditSessionId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       try {
-        const { auditSessionId } = input;
-        const userId = ctx.user.id;
-
-        const result = await ctx.db`
+        const [result] = await ctx.db`
           UPDATE "AuditSession"
-          SET
-            status = 'CANCELLED',
-            "updatedAt" = NOW()
-          WHERE
-            id = ${auditSessionId} AND "userId" = ${userId}
+          SET status = 'CANCELLED', "updatedAt" = NOW()
+          WHERE id = ${input.auditSessionId} AND "userId" = ${ctx.user.id}
           RETURNING id;
-        `;
+        ` as any[];
 
-        if (result.count === 0) {
-          throw new Error('Audit session not found or not authorized to cancel');
+        if (!result) {
+          throw new Error('Audit session not found or unauthorized');
         }
 
-        ctx.log.info({
-          action: 'audit-session-cancelled',
-          auditSessionId,
-          userId,
-        });
-
-        return { success: true, auditSessionId };
+        return { success: true, auditSessionId: result.id };
       } catch (error) {
-        ctx.log.error({
-          action: 'cancel-audit-session-failed',
-          auditSessionId: input.auditSessionId,
-          userId: ctx.user.id,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        });
+        ctx.log.error({ action: 'cancel-audit-session-failed', error });
         throw new Error('Failed to cancel audit session');
       }
     }),

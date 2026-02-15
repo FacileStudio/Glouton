@@ -5,8 +5,6 @@ export type {
   Verification,
   Contact,
   Media,
-  Prisma,
-  PrismaClient,
 } from '@repo/database';
 
 export enum UserRole {
