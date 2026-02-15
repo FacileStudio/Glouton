@@ -1,5 +1,8 @@
 import type { JobConfig } from './types';
 
+/**
+ * createJobConfig
+ */
 export function createJobConfig(options?: {
   host?: string;
   port?: number;
@@ -12,6 +15,7 @@ export function createJobConfig(options?: {
       port: options?.port ?? 6379,
       password: options?.password,
       db: options?.db ?? 0,
+      maxRetriesPerRequest: null,
     },
     defaultJobOptions: {
       removeOnComplete: {
@@ -26,10 +30,21 @@ export function createJobConfig(options?: {
         type: 'exponential',
         delay: 1000,
       },
+      timeout: 1800000,
+    },
+    workerOptions: {
+      lockDuration: 300000,
+      lockRenewTime: 150000,
+      stalledInterval: 30000,
+      maxStalledCount: 2,
+      concurrency: 10,
     },
   };
 }
 
+/**
+ * parseRedisUrl
+ */
 export function parseRedisUrl(url: string): JobConfig['connection'] {
   try {
     const parsed = new URL(url);
@@ -67,3 +82,48 @@ export const CommonBackoffStrategies = {
     delay: Math.min(baseDelay * (attemptsMade + 1), 60000),
   }),
 };
+
+/**
+ * validateRedisConfiguration
+ */
+export async function validateRedisConfiguration(connection: JobConfig['connection']): Promise<{ valid: boolean; warnings: string[] }> {
+  const warnings: string[] = [];
+
+  try {
+    /**
+     * Redis
+     */
+    const Redis = (await import('ioredis')).default;
+    const redis = new Redis({
+      host: connection.host,
+      port: connection.port,
+      password: connection.password,
+      db: connection.db,
+      maxRetriesPerRequest: connection.maxRetriesPerRequest ?? null,
+    });
+
+    const maxmemoryPolicy = await redis.config('GET', 'maxmemory-policy');
+    /**
+     * if
+     */
+    if (maxmemoryPolicy && maxmemoryPolicy[1] !== 'noeviction') {
+      warnings.push(
+        `Redis maxmemory-policy is "${maxmemoryPolicy[1]}" but should be "noeviction" for BullMQ. ` +
+        `Run: redis-cli CONFIG SET maxmemory-policy noeviction`
+      );
+    }
+
+    await redis.quit();
+
+    return {
+      valid: warnings.length === 0,
+      warnings,
+    };
+  } catch (error) {
+    warnings.push(`Failed to validate Redis configuration: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    return {
+      valid: false,
+      warnings,
+    };
+  }
+}

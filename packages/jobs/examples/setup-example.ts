@@ -19,6 +19,9 @@ queueManager.registerWorker('media', generateThumbnailJob);
 
 const scheduler = new JobScheduler(queueManager);
 
+/**
+ * addSampleJobs
+ */
 async function addSampleJobs() {
   await queueManager.addJob('email', 'send-email', {
     to: 'user@example.com',
@@ -57,6 +60,9 @@ async function addSampleJobs() {
   console.log('Sample jobs added successfully!');
 }
 
+/**
+ * checkQueueMetrics
+ */
 async function checkQueueMetrics() {
   const emailMetrics = await queueManager.getQueueMetrics('email');
   const mediaMetrics = await queueManager.getQueueMetrics('media');
@@ -65,6 +71,9 @@ async function checkQueueMetrics() {
   console.log('Media Queue Metrics:', mediaMetrics);
 }
 
+/**
+ * cleanup
+ */
 async function cleanup() {
   console.log('Shutting down gracefully...');
   await queueManager.close();

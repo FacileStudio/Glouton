@@ -7,6 +7,10 @@ export const userRouter = router({
     return userService.getProfile(ctx.db, ctx.user.id);
   }),
 
+  getConfiguredSources: protectedProcedure.query(async ({ ctx }) => {
+    return userService.getConfiguredSources(ctx.db, ctx.user.id);
+  }),
+
   list: adminProcedure
     .input(
       z
@@ -121,6 +125,20 @@ export const userRouter = router({
   deleteOwnAccount: protectedProcedure.mutation(async ({ ctx }) => {
     return userService.deleteOwnAccount(ctx.db, ctx.user.id);
   }),
+
+  updateApiKeys: protectedProcedure
+    .input(
+      z.object({
+        hunterApiKey: z.string().optional(),
+        apolloApiKey: z.string().optional(),
+        snovApiKey: z.string().optional(),
+        hasdataApiKey: z.string().optional(),
+        contactoutApiKey: z.string().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      return userService.updateApiKeys(ctx.db, ctx.user.id, input);
+    }),
 });
 
 export default userRouter;

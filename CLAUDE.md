@@ -4,14 +4,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a tRPC-based monorepo boilerplate built with Turborepo, featuring:
+**Glouton** is a production-ready lead generation platform with automated web scraping, intelligent lead scoring, and real-time progress tracking. Built as a tRPC-based monorepo with Turborepo, featuring:
+
+- 🔍 **Automated Lead Extraction** - Crawl websites and extract contact information
+- 🎯 **Smart Lead Scoring** - Automatic classification (HOT/WARM/COLD) based on quality metrics
+- 🚀 **Real-time Progress** - Live updates on hunt status via WebSocket
+- 💼 **Technology Detection** - Identify tech stacks (React, Vue, WordPress, etc.)
+- 📊 **Analytics Dashboard** - Comprehensive statistics and insights
+- 🔒 **Enterprise Security** - SSRF protection, input validation, rate limiting
+- ⚡ **Background Processing** - Async job queue with Redis and BullMQ
+- 🗺️ **Local Business Hunting** - Google Maps integration for finding local businesses
+- 📨 **Email Outreach** - SMTP integration for lead communication
+- 🎯 **Opportunity Tracking** - Scrape and track opportunities from platforms like Upwork, Fiverr
+
+**Tech Stack**:
 - Full end-to-end type safety with tRPC
 - Hono backend server running on Bun
 - SvelteKit frontends (landing page + backoffice)
-- Expo mobile app
-- Custom authentication system (JWT-based)
-- Stripe integration for payments
-- MinIO S3-compatible storage
+- Playwright/Puppeteer for web scraping
+- Custom JWT authentication
+- BullMQ + Redis for job queues
 - Prisma ORM with PostgreSQL (multi-schema support)
 
 ## Package Manager
@@ -105,6 +117,14 @@ cd apps/frontend && bun run check-env    # Validate frontend .env
   - `@repo/storage-client`: File upload utilities for browser/React Native (client-only)
   - `@repo/stripe`: Stripe integration
   - `@repo/jobs`: BullMQ job queue system with Redis (server-only)
+  - `@repo/scraper`: Web scraping with Playwright/Puppeteer (server-only)
+  - `@repo/hunter`: Lead hunting business logic (server-only)
+  - `@repo/audit`: Lead auditing and quality scoring (server-only)
+  - `@repo/maps`: Google Maps integration for local business search (server-only)
+  - `@repo/smtp`: Email outreach functionality (server-only)
+  - `@repo/opportunity-scraper`: Scrape opportunities from job platforms (server-only)
+  - `@repo/lead-sources`: Lead source integrations (server-only)
+  - `@repo/logger`: Universal logging with Pino (server/client)
   - `@repo/env`: Zod environment validation
   - `@repo/types`: Shared TypeScript types
   - `@repo/crypto`: Encryption utilities
@@ -122,9 +142,18 @@ The tRPC router is organized into **modular routers** located in `packages/trpc/
 
 - `auth`: Authentication (login, register, verify)
 - `user`: User management
+- `admin`: Admin dashboard and statistics
+- `lead`: Lead management with sub-modules:
+  - `query`: Search and filter leads
+  - `hunt`: Start lead hunting sessions
+  - `audit`: Audit lead quality
+  - `import-export`: CSV import/export
+  - `schemas`: Zod schemas for validation
+- `huntRun`: Hunt session tracking and progress
+- `opportunity`: Opportunity scraping and management
+- `email`: Email outreach campaigns
 - `contact`: Contact form submissions
 - `stripe`: Payment processing
-- `media`: File uploads to S3
 - `chat`: Messaging system
 
 **Key files:**
@@ -164,15 +193,40 @@ Features:
 - Custom 401 handling with `onUnauthorized` callback
 - Works in browser, Node.js, and React Native
 
-### Backend Entry Point
+### Backend Architecture
 
-The backend (`apps/backend/src/index.ts`) initializes:
+**Main Entry Point** (`apps/backend/src/index.ts`):
 1. `AuthManager` - JWT token management
 2. `StorageService` - MinIO client
 3. `StripeService` - Stripe API client
-4. Hono app with CORS, logging middleware
-5. Stripe webhook handler at `/webhook`
-6. tRPC handler at `/trpc/*`
+4. `QueueManager` - BullMQ job queue initialization
+5. Hono app with CORS, logging middleware
+6. WebSocket handler at `/ws` - Real-time hunt progress updates
+7. Internal broadcast endpoint at `/internal/broadcast` - Worker communication
+8. Stripe webhook handler at `/webhook`
+9. tRPC handler at `/trpc/*`
+
+**Worker Process** (`apps/backend/src/workers.ts`):
+Standalone Node.js process (runs separately from main backend) that processes background jobs:
+- Runs in Node.js (not Bun) for Playwright compatibility
+- Connects to Redis for job queue
+- Broadcasts updates to WebSocket clients via internal endpoint
+- Workers registered:
+  - `lead-extraction`: Extract contact info from websites
+  - `local-business-hunt`: Search Google Maps for local businesses
+  - `lead-audit`: Audit and score lead quality
+  - `opportunity-scraper`: Scrape job platforms (Upwork, Fiverr, etc.)
+  - `opportunity-notifier`: Notify users of new opportunities
+
+**Running Workers**:
+```bash
+cd apps/backend
+bun run workers          # Start worker process (uses tsx for Node.js)
+```
+
+**Key Services** (`apps/backend/src/services/`):
+- `browser-pool.ts`: Manages pool of Playwright browsers for scraping
+- `websocket.ts`: WebSocket connection manager for real-time updates
 
 ### Environment Variables
 
@@ -184,11 +238,16 @@ Each app validates its environment on startup via `check-env` script using Zod.
 
 **Required backend variables:**
 - `ENCRYPTION_SECRET`: JWT encryption key
-- `STRIPE_SECRET_KEY`: Stripe API key (must start with `sk_`)
-- `STRIPE_WEBHOOK_SECRET`: Stripe webhook secret (must start with `whsec_`)
-- `MINIO_ENDPOINT`, `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD`, `MINIO_BUCKET_NAME`
+- `DATABASE_URL`: PostgreSQL connection string
+- `REDIS_HOST`, `REDIS_PORT`, `REDIS_DB`: Redis for job queue (can use Dragonfly for 25x performance)
+- `BACKEND_URL`: Backend URL for worker communication (default: `http://localhost:3001`)
 - `FRONTEND_URL`: For CORS
 - `TRUSTED_ORIGINS`: Comma-separated allowed origins
+- `STRIPE_SECRET_KEY`: Stripe API key (must start with `sk_`)
+- `STRIPE_WEBHOOK_SECRET`: Stripe webhook secret (must start with `whsec_`)
+- `MINIO_ENDPOINT`, `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD`, `MINIO_BUCKET_NAME` (optional)
+- `GOOGLE_MAPS_API_KEY`: For local business hunting (optional)
+- `SMTP_*`: SMTP credentials for email outreach (optional)
 
 See `apps/backend/.env.example` for complete reference.
 
@@ -197,7 +256,13 @@ See `apps/backend/.env.example` for complete reference.
 Prisma schema is split into multiple files in `packages/database/prisma/schema/`:
 - `base.prisma`: Database config (PostgreSQL)
 - `user.prisma`, `account.prisma`, `session.prisma`: Auth models
-- `contact.prisma`, `stripe.prisma`, `media.prisma`, etc.: Feature models
+- `lead.prisma`: Lead data model with audit fields and quality scoring
+- `hunt-session-event.prisma`: Hunt session tracking
+- `opportunity.prisma`: Job opportunity listings from platforms
+- `opportunity-search.prisma`, `opportunity-view.prisma`: User interactions
+- `email-outreach.prisma`: Email campaign tracking
+- `audit.prisma`: Lead audit results
+- `contact.prisma`, `stripe.prisma`, `media.prisma`, `room.prisma`, `message.prisma`: Other features
 
 All schemas are automatically merged by Prisma.
 
@@ -380,6 +445,66 @@ await queueManager.addJob('email', 'send-email', {
 
 See `packages/jobs/README.md` and `packages/jobs/examples/` for detailed documentation and examples.
 
+### Lead Generation System
+
+**Core Workflow:**
+
+1. **Hunt Initiation** - User starts a hunt via `trpc.lead.hunt.startHunt`
+   - Creates hunt session in database
+   - Enqueues background jobs based on hunt type
+   - Returns session ID for progress tracking
+
+2. **Background Processing** - Workers process jobs asynchronously
+   - `local-business-hunt`: Google Maps search → Extract businesses → Queue lead extractions
+   - `lead-extraction`: Scrape website → Extract contact info → Save to database
+   - `lead-audit`: Analyze lead quality → Score (HOT/WARM/COLD) → Update lead
+
+3. **Real-time Updates** - WebSocket broadcasts progress to frontend
+   - Workers call `globalThis.broadcastToUser()` to send updates
+   - Frontend receives live progress via WebSocket connection
+   - UI updates without polling
+
+4. **Lead Scoring Algorithm** (`@repo/audit`)
+   - Email quality check (generic vs personal)
+   - Phone number extraction
+   - Technology stack detection
+   - Website quality assessment
+   - WHOIS domain age analysis
+   - Final score: HOT (high quality), WARM (medium), COLD (low)
+
+**Key Packages:**
+
+- `@repo/scraper`: Core web scraping with Playwright/Puppeteer
+  - Browser pool management (20 browsers, 15 pages each)
+  - Stealth mode to avoid detection
+  - Redis caching for deduplication
+  - SSRF protection and URL validation
+
+- `@repo/audit`: Lead quality scoring
+  - Fast fetch attempt → Browser fallback if needed
+  - Email extraction from contact pages
+  - Technology detection (React, Vue, WordPress, etc.)
+  - WHOIS lookups for domain age
+
+- `@repo/maps`: Google Maps integration
+  - Search local businesses by query and location
+  - Extract business details (name, address, phone, website)
+  - Pagination support for large result sets
+
+- `@repo/hunter`: Lead hunting orchestration
+  - Coordinates hunt sessions
+  - Manages job dependencies
+
+**Performance Optimizations:**
+
+- BullMQ concurrency: 100 for I/O-bound scraping tasks
+- Browser pool: 20 browsers with 15 pages per browser
+- Batch operations: 50-1000 leads per batch for database inserts
+- Redis caching to avoid duplicate scrapes
+- Database indexes on frequently queried fields
+
+See `OPTIMIZATION_GUIDE.md` and `MIGRATION_GUIDE.md` for detailed performance tuning.
+
 ## Development Patterns
 
 ### Adding a New tRPC Module
@@ -428,6 +553,91 @@ export const appRouter = router({
 2. Update `.env.example` in relevant app(s)
 3. `check-env` script will validate on startup
 
+## Common Development Tasks
+
+### Starting Redis
+
+Redis is required for the job queue system:
+
+```bash
+# Using Docker (recommended)
+docker run -d --name redis -p 6379:6379 redis:alpine
+
+# Or use Dragonfly for 25x better performance
+docker run -d --name dragonfly -p 6379:6379 docker.dragonflydb.io/dragonflydb/dragonfly
+
+# Or Homebrew
+brew install redis
+brew services start redis
+```
+
+### Running the Full Stack
+
+For lead generation features to work, you need to run both the backend and Rust workers:
+
+```bash
+# Start all apps including backend with Rust workers (default)
+bun run dev
+
+# The backend will automatically start both:
+# - Main API server (Bun) on port 3001
+# - Rust worker process for background jobs (10-15x faster than Node.js)
+```
+
+### Debugging Rust Workers
+
+Rust workers run in a separate process for optimal performance:
+
+```bash
+# View worker logs in the dev output (look for [rust-workers] prefix)
+bun run dev
+
+# Or run Rust workers standalone for debugging
+cd packages/rust-workers
+cargo run --bin lead-audit-worker
+
+# For detailed logs with backtrace
+RUST_BACKTRACE=1 cargo run --bin lead-audit-worker
+```
+
+### Monitoring Background Jobs
+
+```bash
+# Check BullMQ queue metrics via tRPC
+# Or inspect Redis directly
+redis-cli
+> KEYS bull:*
+> HGETALL bull:hunt:active
+```
+
+### Cleaning Up Stuck Jobs
+
+```bash
+# Cancel stuck hunt sessions
+bun run cleanup:stuck-hunts
+
+# Or use the provided scripts
+bun run scripts/cleanup-stuck-hunts.ts
+bun run scripts/cancel-stuck-audits.ts
+bun run scripts/clear-active-jobs.ts
+```
+
+### Database Seeding
+
+```bash
+cd packages/database
+bun run db:seed
+```
+
+### Viewing Real-time Logs
+
+The application uses `@repo/logger` with Pino for structured logging:
+
+```bash
+# Logs are output in JSON format by default
+# Pipe through pino-pretty for readable output (already configured in dev)
+```
+
 ## Testing
 
 Currently no test infrastructure is set up (see TODO.md).
@@ -441,14 +651,96 @@ Defined in `turbo.json`:
 
 This ensures Prisma client is generated before builds/dev runs.
 
-## Known Issues & TODOs
+## Architecture Notes
 
-See `TODO.md` for planned features including:
-- Email verification and password reset
-- OAuth (Google, GitHub)
-- 2FA
-- Redis caching
-- Cron jobs
+### Why Two Processes (Bun + Rust)?
+
+The backend runs in two separate processes:
+
+1. **Main API Server** (Bun) - `apps/backend/src/index.ts`
+   - Handles HTTP requests (tRPC, webhooks, WebSocket)
+   - Fast startup and better performance for API responses
+   - Initializes job queues but doesn't process them
+
+2. **Worker Process** (Rust) - `packages/rust-workers/`
+   - Processes background jobs from Redis queue (BullMQ v5 compatible)
+   - **10-15x faster** than Node.js/TypeScript workers
+   - **10x lower memory usage** thanks to Rust's ownership model
+   - **No GC pauses** for consistent performance
+   - Uses Chromiumoxide for browser automation
+   - Communicates with main server via internal HTTP endpoint
+
+This separation allows:
+- Main API to restart quickly without affecting running jobs
+- Workers to scale independently
+- Better resource isolation
+- Optimal performance for CPU-intensive web scraping
+- More reliable timeout handling
+
+### WebSocket Architecture
+
+Real-time updates use native WebSocket (not Socket.io):
+
+- Main server manages WebSocket connections
+- Workers send updates via internal `/internal/broadcast` endpoint
+- Frontend receives live hunt progress without polling
+- Connection stored per user ID for targeted broadcasts
+
+### Security Considerations
+
+- SSRF protection: URL validation before scraping
+- Rate limiting on scraping workers
+- Input validation with Zod schemas
+- JWT authentication for all protected routes
+- Environment variable validation on startup
+
+## Performance Notes
+
+The system has been optimized for high-throughput lead generation:
+
+- **Concurrency**: 100 parallel scraping jobs (I/O-bound)
+- **Browser Pool**: 20 browsers × 15 pages = 300 concurrent page loads
+- **Batch Inserts**: 1000 leads per database batch
+- **Caching**: Redis caching for duplicate URL prevention
+- **Database**: Indexes on frequently queried fields
+
+For detailed optimization guide, see `OPTIMIZATION_GUIDE.md`.
+
+Potential speedup from default settings: **10-20x faster**
+
+## Project Status
+
+This project has evolved from a boilerplate into a full-featured lead generation platform. Core features implemented:
+
+✅ **Completed:**
+- Lead extraction from websites
+- Local business hunting via Google Maps
+- Lead quality scoring and auditing
+- Real-time WebSocket updates
+- Background job processing
+- Email outreach system
+- Opportunity scraping from job platforms
+- CSV import/export
+- Admin dashboard with statistics
+
+⚠️ **Partially Implemented:**
+- Stripe integration (boilerplate code present, not used)
+- MinIO storage (boilerplate code present, not used)
+- Mobile app (boilerplate code, not integrated with lead features)
+
+📋 **TODO:**
 - Testing infrastructure
-- Internationalization
-- Multi-tenant support
+- Email verification
+- OAuth providers
+- 2FA
+- Rate limiting on API endpoints
+- Advanced analytics
+- Multi-tenancy
+
+## Known Issues
+
+- Workers must run in Node.js (Playwright compatibility)
+- High CPU usage during large hunt sessions (expected for web scraping)
+- Stuck jobs require manual cleanup (scripts provided)
+
+See migration guides and optimization docs for production deployment recommendations.

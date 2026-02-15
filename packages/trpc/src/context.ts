@@ -4,14 +4,19 @@ import { type AuthManager } from '@repo/auth';
 import { type ServerEnv } from '@repo/env';
 import { QueueManager } from '@repo/jobs';
 import type { Logger } from '@repo/logger';
+import type { SMTPService } from '@repo/smtp';
 
 export interface CreateContextOptions extends FetchCreateContextFnOptions {
   authManager: AuthManager;
   env: ServerEnv;
   logger: Logger;
   jobs: QueueManager;
+  smtp?: SMTPService;
 }
 
+/**
+ * createContext
+ */
 export const createContext = async (options: CreateContextOptions) => {
   const authHeader = options.req.headers.get('authorization');
   const token = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
@@ -33,7 +38,8 @@ export const createContext = async (options: CreateContextOptions) => {
     ipAddress,
     userAgent,
     log: contextLogger,
-    jobs: options.jobs
+    jobs: options.jobs,
+    smtp: options.smtp,
   };
 };
 

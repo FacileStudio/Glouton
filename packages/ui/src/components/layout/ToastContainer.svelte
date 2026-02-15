@@ -39,7 +39,7 @@
 
             <button
                 on:click={() => toast.remove(t.id)}
-                class="text-slate-300 hover:text-slate-900 transition-colors p-1"
+                class="text-slate-300 hover:text-slate-900 transition-colors p-1 cursor-pointer"
                 aria-label="Close notification"
             >
                 <iconify-icon icon="solar:close-circle-bold" width="18"></iconify-icon>

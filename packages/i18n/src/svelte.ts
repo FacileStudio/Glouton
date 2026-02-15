@@ -10,18 +10,33 @@ const translationsMap: Record<Locale, Translations> = {
   fr,
 };
 
+/**
+ * getStoredLocale
+ */
 function getStoredLocale(): Locale | null {
+  /**
+   * if
+   */
   if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
     return null;
   }
   try {
+    /**
+     * return
+     */
     return (localStorage.getItem('locale') as Locale) || null;
   } catch {
     return null;
   }
 }
 
+/**
+ * saveLocale
+ */
 function saveLocale(locale: Locale) {
+  /**
+   * if
+   */
   if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
     return;
   }
@@ -31,6 +46,9 @@ function saveLocale(locale: Locale) {
   }
 }
 
+/**
+ * createI18nStore
+ */
 function createI18nStore() {
   const storedLocale = getStoredLocale();
 
@@ -49,16 +67,31 @@ function createI18nStore() {
   const translations = derived(locale, ($locale) => translationsMap[$locale]);
 
   const t = derived(translations, ($translations) =>
+    /**
+     * createTranslator
+     */
     createTranslator($translations)
   );
 
+  /**
+   * setLocale
+   */
   function setLocale(newLocale: Locale) {
+    /**
+     * if
+     */
     if (supportedLocales.includes(newLocale)) {
       locale.set(newLocale);
+      /**
+       * saveLocale
+       */
       saveLocale(newLocale);
     }
   }
 
+  /**
+   * translate
+   */
   function translate(key: string, params?: InterpolationParams): string {
     const translator = get(t);
     return translator(key, params);

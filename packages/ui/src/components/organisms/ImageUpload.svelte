@@ -13,8 +13,17 @@
     let previewUrl = value;
     let fileInput: HTMLInputElement;
 
+    /**
+     * handleFileChange
+     */
     async function handleFileChange(e: Event) {
+        /**
+         * file
+         */
         const file = (e.target as HTMLInputElement).files?.[0];
+        /**
+         * if
+         */
         if (!file) return;
 
         previewUrl = URL.createObjectURL(file);
@@ -67,7 +76,7 @@
             <button
                 type="button"
                 on:click|preventDefault={() => { value = ""; previewUrl = ""; }}
-                class="absolute top-4 right-4 bg-white/90 backdrop-blur-sm p-2 rounded-full text-rose-500 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity"
+                class="absolute top-4 right-4 bg-white/90 backdrop-blur-sm p-2 rounded-full text-rose-500 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                 aria-label="Remove image"
             >
                 <iconify-icon icon="solar:trash-bin-trash-bold" width="20"></iconify-icon>

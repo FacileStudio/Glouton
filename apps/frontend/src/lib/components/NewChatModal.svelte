@@ -8,29 +8,46 @@
   let email = "";
   let groupName = "";
   let loading = false;
-  let serverError = ""; // Pour stocker l'erreur Zod ou autre
+  let serverError = "";
 
-  // Validation réactive
   $: isGroupNameValid = groupName.trim().length >= 3;
   $: isEmailValid = /^\S+@\S+\.\S+$/.test(email);
   $: canSubmit = mode === 'mp' ? isEmailValid : isGroupNameValid;
 
+  /**
+   * handleSubmit
+   */
   async function handleSubmit() {
+    /**
+     * if
+     */
     if (!canSubmit || loading) return;
 
     loading = true;
     serverError = "";
 
     try {
+      /**
+       * if
+       */
       if (mode === 'mp') {
         const room = await trpc.chat.startPrivateMessage.mutate({ email });
+        /**
+         * dispatch
+         */
         dispatch('created', room.id);
       } else {
         const room = await trpc.chat.createGroup.mutate({ name: groupName });
+        /**
+         * dispatch
+         */
         dispatch('created', room.id);
       }
     } catch (e: unknown) {
       const error = e as { data?: { zodError?: unknown }; message?: string };
+      /**
+       * if
+       */
       if (error.data?.zodError) {
         serverError = "Le nom doit contenir au moins 3 caractères.";
       } else {
@@ -46,7 +63,7 @@
   <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden" transition:scale>
     <div class="p-6 border-b border-slate-50 flex justify-between items-center">
       <h3 class="text-xl font-black tracking-tight text-slate-800">Nouvelle discussion</h3>
-      <button on:click={() => dispatch('close')} class="text-slate-400 hover:text-red-500 transition-colors" aria-label="Fermer">
+      <button on:click={() => dispatch('close')} class="text-slate-400 hover:text-red-500 transition-colors cursor-pointer" aria-label="Fermer">
         <iconify-icon icon="solar:close-circle-bold" width="24"></iconify-icon>
       </button>
     </div>
@@ -54,10 +71,10 @@
     <div class="p-6 space-y-6">
       <div class="flex bg-slate-100 p-1.5 rounded-2xl">
         <button
-          class="flex-1 py-2.5 rounded-xl text-sm font-black transition-all {mode === 'mp' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700'}"
+          class="flex-1 py-2.5 rounded-xl text-sm font-black transition-all cursor-pointer {mode === 'mp' ? 'bg-white shadow-sm text-brand-purple' : 'text-slate-500 hover:text-slate-700'}"
           on:click={() => { mode = 'mp'; serverError = ""; }}>Direct</button>
         <button
-          class="flex-1 py-2.5 rounded-xl text-sm font-black transition-all {mode === 'group' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700'}"
+          class="flex-1 py-2.5 rounded-xl text-sm font-black transition-all cursor-pointer {mode === 'group' ? 'bg-white shadow-sm text-brand-purple' : 'text-slate-500 hover:text-slate-700'}"
           on:click={() => { mode = 'group'; serverError = ""; }}>Groupe</button>
       </div>
 
@@ -70,7 +87,7 @@
               bind:value={email}
               type="email"
               placeholder="ex: michel@design.fr"
-              class="w-full bg-slate-50 border-2 {email && !isEmailValid ? 'border-orange-200' : 'border-transparent'} rounded-2xl px-4 py-3.5 text-sm focus:bg-white focus:border-indigo-600 outline-none transition-all"
+              class="w-full bg-slate-50 border-2 {email && !isEmailValid ? 'border-orange-200' : 'border-transparent'} rounded-2xl px-4 py-3.5 text-sm focus:bg-white focus:border-brand-gold outline-none transition-all"
             />
           </div>
         {:else}
@@ -81,7 +98,7 @@
               bind:value={groupName}
               type="text"
               placeholder="ex: Projet Alpha"
-              class="w-full bg-slate-50 border-2 {groupName && !isGroupNameValid ? 'border-orange-200' : 'border-transparent'} rounded-2xl px-4 py-3.5 text-sm focus:bg-white focus:border-indigo-600 outline-none transition-all"
+              class="w-full bg-slate-50 border-2 {groupName && !isGroupNameValid ? 'border-orange-200' : 'border-transparent'} rounded-2xl px-4 py-3.5 text-sm focus:bg-white focus:border-brand-gold outline-none transition-all"
             />
             <div class="flex justify-between px-1">
                 <p class="text-[10px] font-bold {groupName.length < 3 ? 'text-slate-400' : 'text-green-500'}">
@@ -102,10 +119,10 @@
         <button
           type="submit"
           disabled={!canSubmit || loading}
-          class="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white py-4 rounded-2xl font-black shadow-xl shadow-indigo-100 hover:bg-indigo-700 active:scale-[0.98] transition-all disabled:opacity-40 disabled:grayscale disabled:pointer-events-none"
+          class="w-full flex items-center justify-center gap-2 bg-brand-purple text-white py-4 rounded-2xl font-black shadow-xl shadow-brand-purple/20 hover:bg-brand-gold hover:text-brand-purple active:scale-[0.98] transition-all disabled:opacity-40 disabled:grayscale disabled:pointer-events-none"
         >
           {#if loading}
-            <iconify-icon icon="line-md:loading-twotone-loop" width="20"></iconify-icon>
+            <iconify-icon icon="svg-spinners:blocks-shuffle-3" width="20"></iconify-icon>
             <span>Création...</span>
           {:else}
             <iconify-icon icon="solar:magic-stick-3-bold" width="20"></iconify-icon>

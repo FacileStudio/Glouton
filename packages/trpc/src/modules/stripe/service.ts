@@ -15,13 +15,22 @@ export const stripeService = {
       include: { subscription: true },
     });
 
+    /**
+     * if
+     */
     if (!user) throw new Error('User not found');
+    /**
+     * if
+     */
     if (user.subscription?.status === 'active') {
       throw new Error('You already have an active subscription');
     }
 
     let customerId = user.subscription?.stripeCustomerId;
 
+    /**
+     * if
+     */
     if (!customerId) {
       const customer = await stripe.client.customers.create({
         email: user.email,
@@ -65,6 +74,9 @@ export const stripeService = {
       where: { userId },
     });
 
+    /**
+     * if
+     */
     if (!subscription || !subscription.stripeCustomerId) {
       throw new Error('No subscription found');
     }
@@ -83,7 +95,13 @@ export const stripeService = {
       include: { subscription: true },
     });
 
+    /**
+     * if
+     */
     if (!user) throw new Error('User not found');
+    /**
+     * if
+     */
     if (!user.subscription) return { hasSubscription: false, isPremium: false };
 
     return {
@@ -103,6 +121,9 @@ export const stripeService = {
       include: { subscription: true },
     });
 
+    /**
+     * if
+     */
     if (!user || !user.subscription?.stripeCustomerId) {
       throw new Error('User or Stripe customer not found');
     }
@@ -113,6 +134,9 @@ export const stripeService = {
       limit: 1,
     });
 
+    /**
+     * if
+     */
     if (subscriptions.data.length === 0) {
       await db.$transaction([
         db.subscription.update({
@@ -165,11 +189,17 @@ export const stripeService = {
   ) => {
     const event = await stripe.constructEvent(rawBody, signature);
 
+    /**
+     * switch
+     */
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
         const userId = session.metadata?.userId;
 
+        /**
+         * if
+         */
         if (userId && session.mode === 'subscription' && session.subscription) {
           const subscriptionId = session.subscription as string;
           const sub = await stripe.client.subscriptions.retrieve(subscriptionId);
@@ -209,6 +239,9 @@ export const stripeService = {
           where: { stripeCustomerId: customerId },
         });
 
+        /**
+         * if
+         */
         if (existing) {
           const isActive = sub.status === 'active' || sub.status === 'trialing';
           const periodEnd = sub.items.data[0]?.current_period_end;
@@ -237,6 +270,9 @@ export const stripeService = {
           where: { stripeCustomerId: sub.customer as string },
         });
 
+        /**
+         * if
+         */
         if (existing) {
           await db.$transaction([
             db.subscription.update({
@@ -270,6 +306,9 @@ export const stripeService = {
             ? rawInvoice.payment_intent
             : rawInvoice.payment_intent?.id;
 
+        /**
+         * if
+         */
         if (existing && paymentIntentId) {
           await db.paymentHistory.create({
             data: {
@@ -290,6 +329,9 @@ export const stripeService = {
           where: { stripeCustomerId: invoice.customer as string },
         });
 
+        /**
+         * if
+         */
         if (existing) {
           await db.user.update({
             where: { id: existing.userId },

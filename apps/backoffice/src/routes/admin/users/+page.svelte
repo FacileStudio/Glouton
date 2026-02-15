@@ -20,10 +20,16 @@
 		role: 'all' as 'all' | 'admin' | 'user',
 	});
 
+	/**
+	 * onMount
+	 */
 	onMount(async () => {
 		await Promise.all([fetchUsers(), fetchStats()]);
 	});
 
+	/**
+	 * fetchUsers
+	 */
 	async function fetchUsers() {
 		pageLoading = true;
 		try {
@@ -35,6 +41,9 @@
 		}
 	}
 
+	/**
+	 * fetchStats
+	 */
 	async function fetchStats() {
 		try {
 			stats = await trpc.user.getStats.query();
@@ -44,10 +53,19 @@
 	}
 
 	$effect(() => {
+		/**
+		 * fetchUsers
+		 */
 		fetchUsers();
 	});
 
+	/**
+	 * handleDelete
+	 */
 	const handleDelete = async (id: string, name: string) => {
+		/**
+		 * if
+		 */
 		if (!confirm(`Delete ${name}? This action cannot be undone.`)) return;
 		try {
 			await trpc.user.delete.mutate({ id });
@@ -55,20 +73,32 @@
 			await fetchStats();
 		} catch (err) {
 			logger.error({ err }, 'Failed to delete user');
+			/**
+			 * alert
+			 */
 			alert('Failed to delete user');
 		}
 	};
 
+	/**
+	 * handleTogglePremium
+	 */
 	const handleTogglePremium = async (id: string, current: boolean) => {
 		try {
 			await trpc.user.update.mutate({ id, isPremium: !current });
 			users = users.map(u => u.id === id ? { ...u, isPremium: !current } : u);
 		} catch (err) {
 			logger.error({ err }, 'Failed to update premium status');
+			/**
+			 * alert
+			 */
 			alert('Failed to update premium status');
 		}
 	};
 
+	/**
+	 * handleToggleRole
+	 */
 	const handleToggleRole = async (id: string, currentRole: string) => {
 		const newRole = currentRole === 'ADMIN' ? 'USER' : 'ADMIN';
 		try {
@@ -76,12 +106,24 @@
 			users = users.map(u => u.id === id ? { ...u, role: newRole } : u);
 		} catch (err) {
 			logger.error({ err }, 'Failed to update user role');
+			/**
+			 * alert
+			 */
 			alert('Failed to update role');
 		}
 	};
 
+	/**
+	 * handleBan
+	 */
 	const handleBan = async (userId: string) => {
+		/**
+		 * if
+		 */
 		if (!banReason.trim()) {
+			/**
+			 * alert
+			 */
 			alert('Please provide a ban reason');
 			return;
 		}
@@ -93,11 +135,20 @@
 			banReason = '';
 		} catch (err) {
 			logger.error({ err }, 'Failed to ban user');
+			/**
+			 * alert
+			 */
 			alert('Failed to ban user');
 		}
 	};
 
+	/**
+	 * handleUnban
+	 */
 	const handleUnban = async (id: string) => {
+		/**
+		 * if
+		 */
 		if (!confirm('Unban this user?')) return;
 		try {
 			await trpc.user.unban.mutate({ id });
@@ -105,21 +156,36 @@
 			await fetchStats();
 		} catch (err) {
 			logger.error({ err }, 'Failed to unban user');
+			/**
+			 * alert
+			 */
 			alert('Failed to unban user');
 		}
 	};
 
+	/**
+	 * handleVerifyEmail
+	 */
 	const handleVerifyEmail = async (id: string) => {
 		try {
 			await trpc.user.verifyEmail.mutate({ id });
 			users = users.map(u => u.id === id ? { ...u, emailVerified: true } : u);
 		} catch (err) {
 			logger.error({ err }, 'Failed to verify email');
+			/**
+			 * alert
+			 */
 			alert('Failed to verify email');
 		}
 	};
 
+	/**
+	 * getStatusColor
+	 */
 	function getStatusColor(status: string) {
+		/**
+		 * switch
+		 */
 		switch (status) {
 			case 'ACTIVE': return 'emerald';
 			case 'BANNED': return 'rose';
@@ -129,13 +195,22 @@
 		}
 	}
 
+	/**
+	 * formatDate
+	 */
 	function formatDate(date: Date | string | null) {
+		/**
+		 * if
+		 */
 		if (!date) return '-';
 		return new Date(date).toLocaleDateString();
 	}
 
 	let searchTerm = $derived(searchQuery.toLowerCase().trim());
 	let filteredUsers = $derived(users.filter(user => {
+		/**
+		 * if
+		 */
 		if (!searchTerm) return true;
 		const searchContent = `${user.firstName} ${user.lastName} ${user.email} ${user.id}`.toLowerCase();
 		return searchTerm.split(' ').every(word => searchContent.includes(word));
@@ -144,51 +219,52 @@
 
 <div class="p-8 max-w-[1400px] mx-auto space-y-6">
 	<header>
-		<h1 class="text-3xl font-black text-slate-900 tracking-tighter">Members</h1>
-		<p class="text-slate-500 text-sm mt-1">Manage and moderate platform members</p>
+		<h1 class="text-3xl font-black tracking-tighter" style="color: #291334;">Members</h1>
+		<p class="text-sm mt-1" style="color: rgba(41, 19, 52, 0.6);">Manage and moderate platform members</p>
 	</header>
 
 	{#if stats}
 		<div class="grid grid-cols-4 gap-4">
-			<div class="bg-white rounded-2xl p-4 border border-slate-100">
+			<div class="rounded-2xl p-4 shadow-lg" style="background-color: #EFEAE6;">
 				<div class="flex items-center justify-between mb-2">
-					<div class="text-xs font-bold text-slate-400 uppercase">Total</div>
-					<iconify-icon icon="solar:users-group-two-rounded-bold" class="text-slate-400" width="20"></iconify-icon>
+					<div class="text-xs font-bold">Total</div>
+					<iconify-icon icon="solar:users-group-two-rounded-bold-duotone" width="20" style="color: rgba(41, 19, 52, 0.5);"></iconify-icon>
 				</div>
-				<div class="text-2xl font-black text-slate-900">{stats.totalUsers}</div>
+				<div class="text-2xl font-black" style="color: #291334;">{stats.totalUsers}</div>
 			</div>
-			<div class="bg-white rounded-2xl p-4 border border-slate-100">
+			<div class="rounded-2xl p-4 shadow-lg" style="background-color: #EFEAE6;">
 				<div class="flex items-center justify-between mb-2">
-					<div class="text-xs font-bold text-emerald-600 uppercase">Active</div>
-					<iconify-icon icon="solar:user-check-rounded-bold" class="text-emerald-600" width="20"></iconify-icon>
+					<div class="text-xs font-bold text-emerald-600">Active</div>
+					<iconify-icon icon="solar:user-check-rounded-bold-duotone" class="text-emerald-600" width="20"></iconify-icon>
 				</div>
 				<div class="text-2xl font-black text-emerald-600">{stats.activeUsers}</div>
 			</div>
-			<div class="bg-white rounded-2xl p-4 border border-slate-100">
+			<div class="rounded-2xl p-4 shadow-lg" style="background-color: #EFEAE6;">
 				<div class="flex items-center justify-between mb-2">
-					<div class="text-xs font-bold text-amber-600 uppercase">Suspended</div>
-					<iconify-icon icon="solar:user-block-rounded-bold" class="text-amber-600" width="20"></iconify-icon>
+					<div class="text-xs font-bold text-amber-600">Suspended</div>
+					<iconify-icon icon="solar:user-block-rounded-bold-duotone" class="text-amber-600" width="20"></iconify-icon>
 				</div>
 				<div class="text-2xl font-black text-amber-600">{stats.suspendedUsers}</div>
 			</div>
-			<div class="bg-white rounded-2xl p-4 border border-slate-100">
+			<div class="rounded-2xl p-4 shadow-lg" style="background-color: #EFEAE6;">
 				<div class="flex items-center justify-between mb-2">
-					<div class="text-xs font-bold text-rose-600 uppercase">Banned</div>
-					<iconify-icon icon="solar:user-cross-rounded-bold" class="text-rose-600" width="20"></iconify-icon>
+					<div class="text-xs font-bold text-rose-600">Banned</div>
+					<iconify-icon icon="solar:user-cross-rounded-bold-duotone" class="text-rose-600" width="20"></iconify-icon>
 				</div>
 				<div class="text-2xl font-black text-rose-600">{stats.bannedUsers}</div>
 			</div>
 		</div>
 	{/if}
 
-	<div class="bg-white rounded-2xl border border-slate-100 p-4">
+	<div class="rounded-2xl p-4 shadow-lg" style="background-color: #EFEAE6;">
 		<div class="flex gap-3 items-center">
 			<div class="flex-1">
 				<SearchInput bind:value={searchQuery} placeholder="Search by name, email..." />
 			</div>
 			<select
 				bind:value={filters.status}
-				class="px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-sm focus:border-indigo-300"
+				class="px-4 py-2 rounded-xl outline-none font-bold text-sm shadow-lg"
+				style="background-color: #FAF7F5; color: #291334;"
 			>
 				<option value="all">All Status</option>
 				<option value="active">Active</option>
@@ -198,7 +274,8 @@
 			</select>
 			<select
 				bind:value={filters.role}
-				class="px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-sm focus:border-indigo-300"
+				class="px-4 py-2 rounded-xl outline-none font-bold text-sm shadow-lg"
+				style="background-color: #FAF7F5; color: #291334;"
 			>
 				<option value="all">All Roles</option>
 				<option value="admin">Admin</option>
@@ -212,37 +289,37 @@
 			<Spinner size="xl" />
 		</div>
 	{:else if filteredUsers.length > 0}
-		<div class="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+		<div class="rounded-2xl overflow-hidden shadow-lg" style="background-color: #EFEAE6;">
 			<div class="overflow-x-auto">
 				<table class="w-full">
-					<thead class="bg-slate-50 border-b border-slate-100">
+					<thead style="background-color: rgba(41, 19, 52, 0.05);">
 						<tr>
-							<th class="text-left px-6 py-3 text-xs font-black text-slate-500 uppercase">User</th>
-							<th class="text-left px-6 py-3 text-xs font-black text-slate-500 uppercase">Status</th>
-							<th class="text-left px-6 py-3 text-xs font-black text-slate-500 uppercase">Role</th>
-							<th class="text-left px-6 py-3 text-xs font-black text-slate-500 uppercase">Joined</th>
-							<th class="text-right px-6 py-3 text-xs font-black text-slate-500 uppercase">Actions</th>
+							<th class="text-left px-6 py-3 text-xs font-black">User</th>
+							<th class="text-left px-6 py-3 text-xs font-black">Status</th>
+							<th class="text-left px-6 py-3 text-xs font-black">Role</th>
+							<th class="text-left px-6 py-3 text-xs font-black">Joined</th>
+							<th class="text-right px-6 py-3 text-xs font-black">Actions</th>
 						</tr>
 					</thead>
-					<tbody class="divide-y divide-slate-100">
+					<tbody>
 						{#each filteredUsers as user (user.id)}
-							<tr class="hover:bg-slate-50 transition-colors">
+							<tr class="transition-colors" style="border-bottom: 1px solid rgba(41, 19, 52, 0.1);">
 								<td class="px-6 py-4">
 									<div class="flex items-center gap-3">
-										<div class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 font-bold">
+										<div class="w-10 h-10 rounded-xl flex items-center justify-center font-bold" style="background-color: rgba(254, 193, 41, 0.15); color: #FEC129;">
 											{user.firstName[0]}
 										</div>
 										<div>
-											<div class="font-bold text-slate-900 flex items-center gap-2">
+											<div class="font-bold flex items-center gap-2" style="color: #291334;">
 												{user.firstName} {user.lastName}
 												{#if user.emailVerified}
-													<iconify-icon icon="solar:verified-check-bold" class="text-emerald-500" width="16"></iconify-icon>
+													<iconify-icon icon="solar:verified-check-bold-duotone" class="text-emerald-500" width="16"></iconify-icon>
 												{/if}
 												{#if user.isPremium}
-													<iconify-icon icon="solar:crown-bold" class="text-indigo-500" width="16"></iconify-icon>
+													<iconify-icon icon="solar:crown-bold-duotone" width="16" style="color: #FEC129;"></iconify-icon>
 												{/if}
 											</div>
-											<div class="text-sm text-slate-500">{user.email}</div>
+											<div class="text-sm" style="color: rgba(41, 19, 52, 0.6);">{user.email}</div>
 										</div>
 									</div>
 								</td>
@@ -254,49 +331,52 @@
 								<td class="px-6 py-4">
 									<button
 										onclick={() => handleToggleRole(user.id, user.role)}
-										class="px-3 py-1 rounded-lg text-xs font-bold transition-colors {user.role === 'ADMIN' ? 'bg-rose-100 text-rose-700 hover:bg-rose-200' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}"
+										class="px-3 py-1 rounded-lg text-xs font-bold transition-colors shadow-lg {user.role === 'ADMIN' ? 'bg-rose-100 text-rose-700' : ''}"
+										style="{user.role === 'ADMIN' ? '' : 'background-color: #EFEAE6; color: #291334;'}"
 									>
 										{user.role}
 									</button>
 								</td>
-								<td class="px-6 py-4 text-sm text-slate-600">
+								<td class="px-6 py-4 text-sm" style="color: rgba(41, 19, 52, 0.7);">
 									{formatDate(user.createdAt)}
 								</td>
 								<td class="px-6 py-4">
 									<div class="flex items-center justify-end gap-2">
 										<button
 											onclick={() => selectedUserId = user.id}
-											class="p-2 hover:bg-indigo-50 rounded-lg transition-colors text-slate-400 hover:text-indigo-600"
+											class="p-2 rounded-lg transition-colors"
+											style="color: rgba(41, 19, 52, 0.4);"
 											title="View details"
 										>
-											<iconify-icon icon="solar:eye-bold" width="18"></iconify-icon>
+											<iconify-icon icon="solar:eye-bold-duotone" width="18"></iconify-icon>
 										</button>
 
 										{#if !user.emailVerified}
 											<button
 												onclick={() => handleVerifyEmail(user.id)}
-												class="p-2 hover:bg-emerald-50 rounded-lg transition-colors text-slate-400 hover:text-emerald-600"
+												class="p-2 rounded-lg transition-colors text-emerald-600"
 												title="Verify email"
 											>
-												<iconify-icon icon="solar:shield-check-bold" width="18"></iconify-icon>
+												<iconify-icon icon="solar:shield-check-bold-duotone" width="18"></iconify-icon>
 											</button>
 										{/if}
 
 										<button
 											onclick={() => handleTogglePremium(user.id, user.isPremium)}
-											class="p-2 hover:bg-indigo-50 rounded-lg transition-colors text-slate-400 hover:text-indigo-600"
+											class="p-2 rounded-lg transition-colors"
+											style="color: #FEC129;"
 											title={user.isPremium ? 'Remove premium' : 'Make premium'}
 										>
-											<iconify-icon icon="solar:star-bold" width="18"></iconify-icon>
+											<iconify-icon icon="solar:star-bold-duotone" width="18"></iconify-icon>
 										</button>
 
 										{#if user.isBanned}
 											<button
 												onclick={() => handleUnban(user.id)}
-												class="p-2 hover:bg-emerald-50 rounded-lg transition-colors text-rose-500 hover:text-emerald-600"
+												class="p-2 rounded-lg transition-colors text-emerald-600"
 												title="Unban user"
 											>
-												<iconify-icon icon="solar:shield-check-bold" width="18"></iconify-icon>
+												<iconify-icon icon="solar:shield-check-bold-duotone" width="18"></iconify-icon>
 											</button>
 										{:else}
 											<button
@@ -304,19 +384,19 @@
 													banningUserId = user.id;
 													banReason = '';
 												}}
-												class="p-2 hover:bg-rose-50 rounded-lg transition-colors text-slate-400 hover:text-rose-600"
+												class="p-2 rounded-lg transition-colors text-rose-600"
 												title="Ban user"
 											>
-												<iconify-icon icon="solar:shield-warning-bold" width="18"></iconify-icon>
+												<iconify-icon icon="solar:shield-warning-bold-duotone" width="18"></iconify-icon>
 											</button>
 										{/if}
 
 										<button
 											onclick={() => handleDelete(user.id, `${user.firstName} ${user.lastName}`)}
-											class="p-2 hover:bg-rose-50 rounded-lg transition-colors text-slate-400 hover:text-rose-600"
+											class="p-2 rounded-lg transition-colors text-rose-600"
 											title="Delete user"
 										>
-											<iconify-icon icon="solar:trash-bin-trash-bold" width="18"></iconify-icon>
+											<iconify-icon icon="solar:trash-bin-trash-bold-duotone" width="18"></iconify-icon>
 										</button>
 									</div>
 								</td>
@@ -326,12 +406,13 @@
 								<tr class="bg-rose-50">
 									<td colspan="5" class="px-6 py-4">
 										<div class="flex items-center gap-3">
-											<iconify-icon icon="solar:shield-warning-bold" class="text-rose-600" width="20"></iconify-icon>
+											<iconify-icon icon="solar:shield-warning-bold-duotone" class="text-rose-600" width="20"></iconify-icon>
 											<input
 												type="text"
 												bind:value={banReason}
 												placeholder="Enter ban reason..."
-												class="flex-1 px-4 py-2 bg-white border border-rose-200 rounded-xl outline-none focus:border-rose-400"
+												class="flex-1 px-4 py-2 rounded-xl outline-none shadow-lg"
+												style="background-color: #EFEAE6;"
 												onkeydown={(e) => {
 													if (e.key === 'Enter') handleBan(user.id);
 													if (e.key === 'Escape') banningUserId = '';
@@ -339,7 +420,7 @@
 											/>
 											<button
 												onclick={() => handleBan(user.id)}
-												class="px-4 py-2 bg-rose-600 text-white rounded-xl font-bold text-sm hover:bg-rose-700 transition-colors"
+												class="px-4 py-2 text-white rounded-xl font-bold text-sm transition-colors shadow-lg bg-rose-600"
 											>
 												Ban User
 											</button>
@@ -348,7 +429,8 @@
 													banningUserId = '';
 													banReason = '';
 												}}
-												class="px-4 py-2 bg-white border border-slate-200 rounded-xl font-bold text-sm hover:bg-slate-50 transition-colors"
+												class="px-4 py-2 rounded-xl font-bold text-sm transition-colors shadow-lg"
+												style="background-color: #EFEAE6; color: #291334;"
 											>
 												Cancel
 											</button>
@@ -362,12 +444,12 @@
 			</div>
 		</div>
 
-		<div class="text-sm text-slate-500 text-center">
+		<div class="text-sm text-center" style="color: rgba(41, 19, 52, 0.5);">
 			Showing {filteredUsers.length} of {users.length} users
 		</div>
 	{:else}
 		<EmptyState
-			icon="solar:users-group-two-rounded-bold"
+			icon="solar:users-group-two-rounded-bold-duotone"
 			title="No users found"
 			description="Try adjusting your filters or search query"
 		/>

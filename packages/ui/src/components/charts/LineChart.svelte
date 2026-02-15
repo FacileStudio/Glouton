@@ -38,6 +38,9 @@
     const yTicks = $derived(ticks(yDomain, 5));
 
     const pathData = $derived(() => {
+        /**
+         * if
+         */
         if (data.length === 0) return '';
         const points = data.map((item, i) => {
             const px = xScale.scale(String((item as Record<string, unknown>)[x])) + xScale.bandwidth / 2;
@@ -47,12 +50,18 @@
         return points.join(' ');
     });
 
+    /**
+     * handleMouseMove
+     */
     function handleMouseMove(event: MouseEvent, index: number) {
         hoveredIndex = index;
         tooltipX = event.clientX;
         tooltipY = event.clientY;
     }
 
+    /**
+     * handleMouseLeave
+     */
     function handleMouseLeave() {
         hoveredIndex = null;
     }

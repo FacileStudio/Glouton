@@ -31,6 +31,9 @@
     height?: number;
   }> = [];
 
+  /**
+   * getColorClasses
+   */
   function getColorClasses(color: string = 'indigo') {
     const colors = {
       indigo: {
@@ -79,11 +82,23 @@
     return colors[color as keyof typeof colors] || colors.indigo;
   }
 
+  /**
+   * formatValue
+   */
   function formatValue(value: number | string): string {
+    /**
+     * if
+     */
     if (typeof value === 'number') {
+      /**
+       * if
+       */
       if (value >= 1000000) {
         return `${(value / 1000000).toFixed(1)}M`;
       }
+      /**
+       * if
+       */
       if (value >= 1000) {
         return `${(value / 1000).toFixed(1)}K`;
       }

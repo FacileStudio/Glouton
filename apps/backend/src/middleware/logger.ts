@@ -1,6 +1,9 @@
 import type { Context, Next } from "hono";
 import { logger } from "@repo/logger";
 
+/**
+ * loggerMiddleware
+ */
 export const loggerMiddleware = async (c: Context, next: Next) => {
   const start = Date.now();
   const { method, url } = c.req;
@@ -30,6 +33,9 @@ export const loggerMiddleware = async (c: Context, next: Next) => {
     duration: `${duration}ms`,
   };
 
+  /**
+   * if
+   */
   if (status >= 500) {
     requestLogger.error(logData);
   } else if (status >= 400) {

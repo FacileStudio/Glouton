@@ -43,6 +43,9 @@ export const sendBulkEmailJob: JobDefinition<SendBulkEmailData, number> = {
 
     console.log(`Processing bulk email to ${recipients.length} recipients`);
 
+    /**
+     * for
+     */
     for (let i = 0; i < recipients.length; i++) {
       const recipient = recipients[i];
 

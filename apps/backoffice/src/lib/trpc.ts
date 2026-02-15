@@ -4,7 +4,7 @@ import { get } from 'svelte/store';
 import env from '../lib/env';
 
 export const trpc = createUniversalTrpcClient({
-  baseUrl: `${env.API_URL}/trpc`,
+  baseUrl: env.API_URL,
 
   getToken: () => {
     const state = get(authStore);

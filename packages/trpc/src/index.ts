@@ -6,6 +6,9 @@ import { chatRouter } from './modules/chat/router';
 import { authRouter } from './modules/auth/router';
 import { adminRouter } from './modules/admin/router';
 import { leadRouter } from './modules/lead/router';
+import { emailRouter } from './modules/email/router';
+import { huntRunRouter } from './modules/hunt-run/router';
+import { opportunityRouter } from './modules/opportunity/router';
 import { createOpenApiDocument } from './openapi';
 
 export const appRouter = router({
@@ -16,6 +19,9 @@ export const appRouter = router({
   chat: chatRouter,
   admin: adminRouter,
   lead: leadRouter,
+  email: emailRouter,
+  huntRun: huntRunRouter,
+  opportunity: opportunityRouter,
 });
 export const openApiDocument = createOpenApiDocument(appRouter);
 

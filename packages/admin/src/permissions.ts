@@ -2,13 +2,22 @@ import type { PrismaClient } from '@repo/database';
 import type { EntityOperation, AdminPermissions, AdminContext } from './types';
 
 export class PermissionService {
+  /**
+   * constructor
+   */
   constructor(private db: PrismaClient) {}
 
+  /**
+   * checkPermission
+   */
   async checkPermission(
     context: AdminContext,
     entity: string,
     operation: EntityOperation
   ): Promise<boolean> {
+    /**
+     * if
+     */
     if (context.role === 'ADMIN') {
       return true;
     }
@@ -22,6 +31,9 @@ export class PermissionService {
       },
     });
 
+    /**
+     * if
+     */
     if (!permission) {
       return false;
     }
@@ -36,10 +48,16 @@ export class PermissionService {
     return operationMap[operation] || false;
   }
 
+  /**
+   * getEntityPermissions
+   */
   async getEntityPermissions(
     context: AdminContext,
     entity: string
   ): Promise<AdminPermissions> {
+    /**
+     * if
+     */
     if (context.role === 'ADMIN') {
       return {
         canCreate: true,
@@ -58,6 +76,9 @@ export class PermissionService {
       },
     });
 
+    /**
+     * if
+     */
     if (!permission) {
       return {
         canCreate: false,
@@ -75,6 +96,9 @@ export class PermissionService {
     };
   }
 
+  /**
+   * setEntityPermissions
+   */
   async setEntityPermissions(
     userId: string,
     entity: string,
@@ -96,6 +120,9 @@ export class PermissionService {
     });
   }
 
+  /**
+   * revokeEntityPermissions
+   */
   async revokeEntityPermissions(userId: string, entity: string): Promise<void> {
     await this.db.adminPermission.delete({
       where: {
@@ -107,18 +134,27 @@ export class PermissionService {
     });
   }
 
+  /**
+   * getAllUserPermissions
+   */
   async getAllUserPermissions(userId: string) {
     return this.db.adminPermission.findMany({
       where: { userId },
     });
   }
 
+  /**
+   * requirePermission
+   */
   async requirePermission(
     context: AdminContext,
     entity: string,
     operation: EntityOperation
   ): Promise<void> {
     const hasPermission = await this.checkPermission(context, entity, operation);
+    /**
+     * if
+     */
     if (!hasPermission) {
       throw new Error(
         `Permission denied: User ${context.userId} cannot ${operation} ${entity}`

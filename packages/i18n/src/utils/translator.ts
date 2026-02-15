@@ -1,6 +1,9 @@
 import type { Translations, InterpolationParams } from '../types';
 import { logger } from '@repo/logger';
 
+/**
+ * getNestedValue
+ */
 export function getNestedValue(
   obj: Translations,
   path: string
@@ -8,7 +11,13 @@ export function getNestedValue(
   const keys = path.split('.');
   let current: any = obj;
 
+  /**
+   * for
+   */
   for (const key of keys) {
+    /**
+     * if
+     */
     if (current && typeof current === 'object' && key in current) {
       current = current[key];
     } else {
@@ -19,6 +28,9 @@ export function getNestedValue(
   return typeof current === 'string' ? current : undefined;
 }
 
+/**
+ * interpolate
+ */
 export function interpolate(
   template: string,
   params: InterpolationParams = {}
@@ -28,10 +40,16 @@ export function interpolate(
   });
 }
 
+/**
+ * createTranslator
+ */
 export function createTranslator(translations: Translations) {
   return function t(key: string, params?: InterpolationParams): string {
     const value = getNestedValue(translations, key);
 
+    /**
+     * if
+     */
     if (!value) {
       logger.warn(`[i18n] Missing translation for key: "${key}"`);
       return key;
@@ -41,10 +59,16 @@ export function createTranslator(translations: Translations) {
   };
 }
 
+/**
+ * detectBrowserLocale
+ */
 export function detectBrowserLocale(
   supportedLocales: string[],
   fallback: string
 ): string {
+  /**
+   * if
+   */
   if (typeof navigator === 'undefined') {
     return fallback;
   }

@@ -2,14 +2,14 @@
     import { cva, type VariantProps } from 'class-variance-authority';
 
     const alertClass = cva(
-        "p-4 rounded-2xl font-medium flex items-start gap-3 border",
+        "p-4 rounded-2xl font-medium flex items-start gap-3 border transition-all duration-200",
         {
             variants: {
                 variant: {
-                    info: "bg-blue-50 text-blue-700 border-blue-100",
-                    success: "bg-green-50 text-green-700 border-green-100",
-                    warning: "bg-amber-50 text-amber-700 border-amber-100",
-                    danger: "bg-rose-50 text-rose-700 border-rose-100",
+                    info: "bg-blue-50 text-blue-700 border-blue-200",
+                    success: "bg-success-light text-success border-success/20",
+                    warning: "bg-warning-light text-warning-hover border-warning/20",
+                    danger: "bg-danger-light text-danger border-danger/20",
                 }
             },
             defaultVariants: {
@@ -42,7 +42,7 @@
         {#if dismissible}
             <button
                 on:click={() => visible = false}
-                class="flex-shrink-0 hover:opacity-70 transition-opacity"
+                class="flex-shrink-0 hover:opacity-70 hover:scale-110 transition-all duration-200 cursor-pointer"
                 aria-label="Dismiss"
             >
                 <iconify-icon icon="solar:close-circle-line-duotone" width="20"></iconify-icon>

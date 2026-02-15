@@ -15,6 +15,9 @@ export const chatRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const allowed = await chatService.canAccessRoom(ctx.db, ctx.user.id, input.roomId);
+      /**
+       * if
+       */
       if (!allowed) throw new TRPCError({ code: 'FORBIDDEN' });
 
       return chatService.createMessage(
@@ -30,6 +33,9 @@ export const chatRouter = router({
     .input(z.object({ roomId: z.string() }))
     .query(async ({ ctx, input }) => {
       const allowed = await chatService.canAccessRoom(ctx.db, ctx.user.id, input.roomId);
+      /**
+       * if
+       */
       if (!allowed) throw new TRPCError({ code: 'FORBIDDEN' });
 
       return chatService.listMessages(ctx.db, input.roomId);
@@ -39,12 +45,21 @@ export const chatRouter = router({
     .input(z.object({ roomId: z.string() }))
     .subscription(async ({ ctx, input }) => {
       const allowed = await chatService.canAccessRoom(ctx.db, ctx.user.id, input.roomId);
+      /**
+       * if
+       */
       if (!allowed) throw new TRPCError({ code: 'FORBIDDEN' });
 
       return observable((emit) => {
+        /**
+         * handler
+         */
         const handler = (data: any) => emit.next(data);
         const channel = `room:${input.roomId}`;
         chatEvents.on(channel, handler);
+        /**
+         * return
+         */
         return () => chatEvents.off(channel, handler);
       });
     }),
@@ -57,7 +72,13 @@ export const chatRouter = router({
     .input(z.object({ email: z.string().email() }))
     .mutation(async ({ ctx, input }) => {
       const target = await ctx.db.user.findUnique({ where: { email: input.email } });
+      /**
+       * if
+       */
       if (!target) throw new TRPCError({ code: 'NOT_FOUND' });
+      /**
+       * if
+       */
       if (target.id === ctx.user.id) throw new TRPCError({ code: 'BAD_REQUEST' });
 
       return chatService.getOrCreateDirectMessage(ctx.db, ctx.user.id, target.id);
@@ -100,9 +121,15 @@ export const chatRouter = router({
 
   onTyping: protectedProcedure.input(z.object({ roomId: z.string() })).subscription(({ input }) => {
     return observable<{ userId: string; userName: string; isTyping: boolean }>((emit) => {
+      /**
+       * handler
+       */
       const handler = (data: any) => emit.next(data);
       const channel = `typing:${input.roomId}`;
       chatEvents.on(channel, handler);
+      /**
+       * return
+       */
       return () => chatEvents.off(channel, handler);
     });
   }),

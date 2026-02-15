@@ -13,7 +13,13 @@
     export let onChangeRole: (id: string, role: string) => void;
     export let onViewDetails: (id: string) => void;
 
+    /**
+     * getStatusColor
+     */
     function getStatusColor(status: string) {
+        /**
+         * switch
+         */
         switch (status) {
             case 'ACTIVE': return 'emerald';
             case 'BANNED': return 'rose';
@@ -66,7 +72,7 @@
     <div class="flex gap-2">
         <button
             on:click={() => onViewDetails(user.id)}
-            class="flex-1 bg-slate-50 px-4 py-3 rounded-2xl flex items-center justify-center gap-2 hover:bg-indigo-50 transition-colors group/btn"
+            class="flex-1 bg-slate-50 px-4 py-3 rounded-2xl flex items-center justify-center gap-2 hover:bg-indigo-50 transition-colors group/btn cursor-pointer"
         >
             <iconify-icon icon="solar:eye-bold" class="text-slate-300 group-hover/btn:text-indigo-500"></iconify-icon>
             <span class="font-black text-slate-700 text-sm group-hover/btn:text-indigo-700">View</span>

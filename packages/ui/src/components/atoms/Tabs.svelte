@@ -11,19 +11,19 @@
     }
 </script>
 
-<div class={cn("flex items-center gap-1 bg-slate-100 p-1 rounded-2xl border border-slate-200", className)}>
+<div class={cn("grid grid-cols-2 gap-1 bg-slate-100 p-1 rounded-2xl border border-slate-200", className)}>
     {#each tabs as tab (tab.value)}
         <button
-            on:click={() => activeTab = tab.value}
+            onclick={() => activeTab = tab.value}
             class={cn(
-                "px-5 py-2 rounded-xl text-xs font-black transition-all uppercase flex items-center gap-2",
+                "px-6 py-4 rounded-xl text-base font-black transition-all uppercase flex items-center justify-center gap-3 cursor-pointer",
                 activeTab === tab.value
                     ? "bg-white text-slate-900 shadow-sm"
                     : "text-slate-500 hover:text-slate-700"
             )}
         >
             {#if tab.icon}
-                <iconify-icon icon={tab.icon} width="16"></iconify-icon>
+                <iconify-icon icon={tab.icon} width="22"></iconify-icon>
             {/if}
             {tab.label}
         </button>

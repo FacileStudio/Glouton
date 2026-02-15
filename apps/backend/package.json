@@ -4,9 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "bun run --watch src/index.ts",
-    "build": "bun build src/index.ts --outdir dist --target bun --external=* --minify",
-    "start": "bun run dist/index.js",
+    "dev": "concurrently \"bun run dev:backend\" \"bun run dev:rust-workers\" --names \"backend,rust-workers\" --prefix-colors \"cyan,red\"",
+    "dev:backend": "bun run --watch src/index.ts",
+    "dev:rust-workers": "cd ../../packages/rust-workers && cargo run --bin lead-audit-worker",
+    "build": "bun build src/index.ts --outdir dist --target bun --external=* --minify && cd ../../packages/rust-workers && cargo build --release",
+    "start": "concurrently \"bun run dist/index.js\" \"../../packages/rust-workers/target/release/lead-audit-worker\" --names \"backend,rust-workers\" --prefix-colors \"cyan,red\"",
     "typecheck": "tsc --noEmit",
     "check-env": "bun ./src/env.ts",
     "lint": "eslint src --max-warnings 0"
@@ -14,15 +16,17 @@
   "dependencies": {
     "@hono/trpc-server": "^0.4.2",
     "@repo/database": "workspace:*",
+    "@repo/jobs": "workspace:*",
     "@repo/logger": "workspace:*",
     "@repo/storage": "workspace:*",
     "@repo/trpc": "workspace:*",
     "@repo/types": "workspace:*",
-    "@repo/jobs": "workspace:*",
     "@trpc/server": "^11.9.0",
     "bcryptjs": "^3.0.3",
+    "dotenv": "^17.3.1",
     "hono": "^4.11.7",
-    "jsonwebtoken": "^9.0.3"
+    "jsonwebtoken": "^9.0.3",
+    "superjson": "^2.2.6"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
@@ -30,7 +34,9 @@
     "@types/bcryptjs": "^3.0.0",
     "@types/bun": "^1.3.8",
     "@types/jsonwebtoken": "^9.0.10",
+    "concurrently": "^9.2.1",
     "eslint": "^9.39.2",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   }
 }

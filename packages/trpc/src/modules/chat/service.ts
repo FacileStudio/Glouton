@@ -5,6 +5,9 @@ import { TRPCError } from '@trpc/server';
 export const chatEvents = new EventEmitter();
 
 export const chatService = {
+  /**
+   * canAccessRoom
+   */
   async canAccessRoom(db: PrismaClient, userId: string, roomId: string) {
     const participant = await db.roomParticipant.findUnique({
       where: { userId_roomId: { userId, roomId } },
@@ -12,6 +15,9 @@ export const chatService = {
     return !!participant;
   },
 
+  /**
+   * createMessage
+   */
   async createMessage(
     db: PrismaClient,
     userId: string,
@@ -29,7 +35,7 @@ export const chatService = {
         },
       },
       include: {
-        user: { select: { id: true, firstName: true, lastName: true, avatar: true } },
+        user: { select: { id: true, firstName: true, lastName: true } },
         attachments: true,
       },
     });
@@ -38,18 +44,24 @@ export const chatService = {
     return message;
   },
 
+  /**
+   * listMessages
+   */
   async listMessages(db: PrismaClient, roomId: string, limit = 50) {
     return await db.message.findMany({
       where: { roomId },
       take: limit,
       orderBy: { createdAt: 'desc' },
       include: {
-        user: { select: { id: true, firstName: true, lastName: true, avatar: true } },
+        user: { select: { id: true, firstName: true, lastName: true } },
         attachments: true,
       },
     });
   },
 
+  /**
+   * getMyRooms
+   */
   async getMyRooms(db: PrismaClient, userId: string) {
     return db.room.findMany({
       where: {
@@ -58,7 +70,7 @@ export const chatService = {
       include: {
         participants: {
           include: {
-            user: { select: { id: true, firstName: true, lastName: true, avatar: true } },
+            user: { select: { id: true, firstName: true, lastName: true } },
           },
         },
         messages: {
@@ -70,6 +82,9 @@ export const chatService = {
     });
   },
 
+  /**
+   * getOrCreateDirectMessage
+   */
   async getOrCreateDirectMessage(db: PrismaClient, userAId: string, userBId: string) {
     const existingRoom = await db.room.findFirst({
       where: {
@@ -81,6 +96,9 @@ export const chatService = {
       include: { participants: true },
     });
 
+    /**
+     * if
+     */
     if (existingRoom) return existingRoom;
 
     return await db.room.create({
@@ -93,6 +111,9 @@ export const chatService = {
     });
   },
 
+  /**
+   * createGroup
+   */
   async createGroup(db: PrismaClient, name: string, participantIds: string[]) {
     return await db.room.create({
       data: {
@@ -104,19 +125,28 @@ export const chatService = {
       },
       include: {
         participants: {
-          include: { user: { select: { id: true, firstName: true, lastName: true, avatar: true } } },
+          include: { user: { select: { id: true, firstName: true, lastName: true } } },
         },
       },
     });
   },
 
+  /**
+   * inviteMember
+   */
   async inviteMember(db: PrismaClient, roomId: string, email: string) {
     const user = await db.user.findUnique({ where: { email } });
+    /**
+     * if
+     */
     if (!user) throw new TRPCError({ code: 'NOT_FOUND', message: 'User not found' });
 
     const existing = await db.roomParticipant.findUnique({
       where: { userId_roomId: { userId: user.id, roomId } },
     });
+    /**
+     * if
+     */
     if (existing) throw new TRPCError({ code: 'CONFLICT', message: 'Already a member' });
 
     return await db.roomParticipant.create({
@@ -124,14 +154,23 @@ export const chatService = {
     });
   },
 
+  /**
+   * leaveRoom
+   */
   async leaveRoom(db: PrismaClient, userId: string, roomId: string) {
     return await db.roomParticipant.delete({
       where: { userId_roomId: { userId, roomId } },
     });
   },
 
+  /**
+   * kickMember
+   */
   async kickMember(db: PrismaClient, roomId: string, targetUserId: string) {
     const room = await db.room.findUnique({ where: { id: roomId } });
+    /**
+     * if
+     */
     if (!room?.isGroup) throw new TRPCError({ code: 'BAD_REQUEST', message: 'Cannot kick in DM' });
 
     return await db.roomParticipant.delete({
@@ -139,10 +178,16 @@ export const chatService = {
     });
   },
 
+  /**
+   * deleteRoom
+   */
   async deleteRoom(db: PrismaClient, roomId: string) {
     return await db.room.delete({ where: { id: roomId } });
   },
 
+  /**
+   * sendTypingEvent
+   */
   sendTypingEvent(roomId: string, userId: string, userName: string, isTyping: boolean) {
     chatEvents.emit(`typing:${roomId}`, { userId, userName, isTyping });
   },

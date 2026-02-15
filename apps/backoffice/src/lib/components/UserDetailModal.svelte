@@ -17,13 +17,22 @@
 	let suspensionDays = $state(7);
 
 	$effect(() => {
+		/**
+		 * if
+		 */
 		if (userId && userId !== '') {
+			/**
+			 * loadUser
+			 */
 			loadUser();
 		} else {
 			user = null;
 		}
 	});
 
+	/**
+	 * loadUser
+	 */
 	async function loadUser() {
 		loading = true;
 		try {
@@ -35,11 +44,23 @@
 		}
 	}
 
+	/**
+	 * handleBan
+	 */
 	async function handleBan() {
+		/**
+		 * if
+		 */
 		if (!banReason.trim()) {
+			/**
+			 * alert
+			 */
 			alert('Please provide a ban reason');
 			return;
 		}
+		/**
+		 * if
+		 */
 		if (!confirm('Are you sure you want to ban this user?')) return;
 
 		actionLoading = true;
@@ -49,13 +70,22 @@
 			banReason = '';
 		} catch (err) {
 			logger.error({ err }, 'Failed to ban user');
+			/**
+			 * alert
+			 */
 			alert('Failed to ban user');
 		} finally {
 			actionLoading = false;
 		}
 	}
 
+	/**
+	 * handleUnban
+	 */
 	async function handleUnban() {
+		/**
+		 * if
+		 */
 		if (!confirm('Are you sure you want to unban this user?')) return;
 
 		actionLoading = true;
@@ -64,17 +94,32 @@
 			await loadUser();
 		} catch (err) {
 			logger.error({ err }, 'Failed to unban user');
+			/**
+			 * alert
+			 */
 			alert('Failed to unban user');
 		} finally {
 			actionLoading = false;
 		}
 	}
 
+	/**
+	 * handleSuspend
+	 */
 	async function handleSuspend() {
+		/**
+		 * if
+		 */
 		if (!suspensionReason.trim()) {
+			/**
+			 * alert
+			 */
 			alert('Please provide a suspension reason');
 			return;
 		}
+		/**
+		 * if
+		 */
 		if (!confirm(`Are you sure you want to suspend this user for ${suspensionDays} days?`)) return;
 
 		actionLoading = true;
@@ -87,13 +132,22 @@
 			suspensionReason = '';
 		} catch (err) {
 			logger.error({ err }, 'Failed to suspend user');
+			/**
+			 * alert
+			 */
 			alert('Failed to suspend user');
 		} finally {
 			actionLoading = false;
 		}
 	}
 
+	/**
+	 * handleUnsuspend
+	 */
 	async function handleUnsuspend() {
+		/**
+		 * if
+		 */
 		if (!confirm('Are you sure you want to unsuspend this user?')) return;
 
 		actionLoading = true;
@@ -102,13 +156,22 @@
 			await loadUser();
 		} catch (err) {
 			logger.error({ err }, 'Failed to unsuspend user');
+			/**
+			 * alert
+			 */
 			alert('Failed to unsuspend user');
 		} finally {
 			actionLoading = false;
 		}
 	}
 
+	/**
+	 * handleVerifyEmail
+	 */
 	async function handleVerifyEmail() {
+		/**
+		 * if
+		 */
 		if (!confirm('Manually verify this user\'s email?')) return;
 
 		actionLoading = true;
@@ -117,18 +180,33 @@
 			await loadUser();
 		} catch (err) {
 			logger.error({ err }, 'Failed to verify user email');
+			/**
+			 * alert
+			 */
 			alert('Failed to verify email');
 		} finally {
 			actionLoading = false;
 		}
 	}
 
+	/**
+	 * formatDate
+	 */
 	function formatDate(date: Date | string | null) {
+		/**
+		 * if
+		 */
 		if (!date) return 'N/A';
 		return new Date(date).toLocaleString();
 	}
 
+	/**
+	 * getStatusColor
+	 */
 	function getStatusColor(status: string) {
+		/**
+		 * switch
+		 */
 		switch (status) {
 			case 'ACTIVE': return 'emerald';
 			case 'BANNED': return 'rose';
@@ -159,7 +237,7 @@
 					<p class="text-sm text-slate-500 mb-2">{user.email}</p>
 					<div class="flex gap-2">
 						{#if user.isPremium}
-							<Badge variant="indigo">Premium</Badge>
+							<Badge variant="primary">Premium</Badge>
 						{/if}
 						{#if user.role === 'ADMIN'}
 							<Badge variant="rose">Admin</Badge>
@@ -203,8 +281,8 @@
 				</div>
 
 				{#if user.subscription}
-					<div class="bg-indigo-50 border border-indigo-100 p-4 rounded-2xl">
-						<div class="text-xs font-black uppercase text-indigo-600 mb-2">Subscription</div>
+					<div class="bg-brand-purple/10 border border-brand-purple/20 p-4 rounded-2xl">
+						<div class="text-xs font-black uppercase text-brand-purple mb-2">Subscription</div>
 						<div class="text-sm text-slate-700">
 							<div>Status: <span class="font-bold">{user.subscription.status}</span></div>
 							<div>Plan: <span class="font-bold">{user.subscription.plan}</span></div>
@@ -264,7 +342,7 @@
 							<button
 								onclick={handleUnban}
 								disabled={actionLoading}
-								class="mt-3 px-4 py-2 bg-rose-600 text-white rounded-xl font-bold text-sm hover:bg-rose-700 transition-colors disabled:opacity-50"
+								class="mt-3 px-4 py-2 bg-rose-600 text-white rounded-xl font-bold text-sm hover:bg-rose-700 transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
 							>
 								Unban User
 							</button>
@@ -282,7 +360,7 @@
 							<button
 								onclick={handleUnsuspend}
 								disabled={actionLoading}
-								class="mt-3 px-4 py-2 bg-amber-600 text-white rounded-xl font-bold text-sm hover:bg-amber-700 transition-colors disabled:opacity-50"
+								class="mt-3 px-4 py-2 bg-amber-600 text-white rounded-xl font-bold text-sm hover:bg-amber-700 transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
 							>
 								Unsuspend User
 							</button>
@@ -299,7 +377,7 @@
 								<button
 									onclick={handleVerifyEmail}
 									disabled={actionLoading}
-									class="px-4 py-2 bg-emerald-600 text-white rounded-xl font-bold text-sm hover:bg-emerald-700 transition-colors disabled:opacity-50"
+									class="px-4 py-2 bg-emerald-600 text-white rounded-xl font-bold text-sm hover:bg-emerald-700 transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
 								>
 									Verify Email
 								</button>
@@ -319,7 +397,7 @@
 							<button
 								onclick={handleBan}
 								disabled={actionLoading || !banReason.trim()}
-								class="w-full px-4 py-2 bg-rose-600 text-white rounded-xl font-bold text-sm hover:bg-rose-700 transition-colors disabled:opacity-50"
+								class="w-full px-4 py-2 bg-rose-600 text-white rounded-xl font-bold text-sm hover:bg-rose-700 transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
 							>
 								Ban User Permanently
 							</button>
@@ -338,19 +416,19 @@
 							<div class="flex gap-2 mb-3">
 								<button
 									onclick={() => suspensionDays = 1}
-									class="flex-1 px-3 py-2 rounded-xl font-bold text-sm transition-colors {suspensionDays === 1 ? 'bg-amber-100 text-amber-700' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}"
+									class="flex-1 px-3 py-2 rounded-xl font-bold text-sm transition-colors cursor-pointer {suspensionDays === 1 ? 'bg-amber-100 text-amber-700' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}"
 								>
 									1 day
 								</button>
 								<button
 									onclick={() => suspensionDays = 7}
-									class="flex-1 px-3 py-2 rounded-xl font-bold text-sm transition-colors {suspensionDays === 7 ? 'bg-amber-100 text-amber-700' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}"
+									class="flex-1 px-3 py-2 rounded-xl font-bold text-sm transition-colors cursor-pointer {suspensionDays === 7 ? 'bg-amber-100 text-amber-700' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}"
 								>
 									7 days
 								</button>
 								<button
 									onclick={() => suspensionDays = 30}
-									class="flex-1 px-3 py-2 rounded-xl font-bold text-sm transition-colors {suspensionDays === 30 ? 'bg-amber-100 text-amber-700' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}"
+									class="flex-1 px-3 py-2 rounded-xl font-bold text-sm transition-colors cursor-pointer {suspensionDays === 30 ? 'bg-amber-100 text-amber-700' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}"
 								>
 									30 days
 								</button>
@@ -358,7 +436,7 @@
 							<button
 								onclick={handleSuspend}
 								disabled={actionLoading || !suspensionReason.trim()}
-								class="w-full px-4 py-2 bg-amber-600 text-white rounded-xl font-bold text-sm hover:bg-amber-700 transition-colors disabled:opacity-50"
+								class="w-full px-4 py-2 bg-amber-600 text-white rounded-xl font-bold text-sm hover:bg-amber-700 transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
 							>
 								Suspend for {suspensionDays} days
 							</button>

@@ -6,8 +6,16 @@ export interface JobConfig {
     port: number;
     password?: string;
     db?: number;
+    maxRetriesPerRequest?: number | null;
   };
   defaultJobOptions?: JobsOptions;
+  workerOptions?: {
+    lockDuration?: number;
+    lockRenewTime?: number;
+    stalledInterval?: number;
+    maxStalledCount?: number;
+    concurrency?: number;
+  };
 }
 
 export interface JobProcessor<T = any, R = any> {

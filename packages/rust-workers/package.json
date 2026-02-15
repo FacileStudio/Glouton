@@ -1,0 +1,10 @@
+{
+  "name": "@repo/rust-workers",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "cargo build --release",
+    "dev": "cargo run --bin lead-audit-worker",
+    "clean": "cargo clean"
+  }
+}

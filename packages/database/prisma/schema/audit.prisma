@@ -15,8 +15,46 @@ model AuditLog {
   @@index([createdAt])
 }
 
+model AuditSession {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  jobId     String?  @unique
+
+  status    AuditStatus @default(PENDING)
+  progress  Int        @default(0)
+
+  totalLeads     Int @default(0)
+  processedLeads Int @default(0)
+  updatedLeads   Int @default(0)
+  failedLeads    Int @default(0)
+
+  currentDomain  String?
+  lastProcessedIndex Int @default(0)
+
+  error     String?
+
+  startedAt  DateTime?
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([jobId])
+}
+
 enum AuditAction {
   CREATE
   UPDATE
   DELETE
+}
+
+enum AuditStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
 }

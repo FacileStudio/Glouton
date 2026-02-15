@@ -13,8 +13,6 @@
     label?: string;
   } = $props();
 
-  // We only use Tailwind for the "look" (colors/sizes)
-  // We'll use simple math for the "movement"
   const sizes = {
     sm: { track: 'h-5 w-9', knob: 'h-3.5 w-3.5', offset: 16 },
     md: { track: 'h-6 w-11', knob: 'h-4 w-4', offset: 20 },
@@ -35,7 +33,7 @@
     group relative inline-flex shrink-0 items-center rounded-full border-2 border-transparent
     transition-colors duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]
     focus:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2
-    disabled:cursor-not-allowed disabled:opacity-50
+    cursor-pointer disabled:cursor-not-allowed disabled:opacity-50
     {checked ? 'bg-black' : 'bg-neutral-200'}
     {current.track}
     {className}

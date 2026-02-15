@@ -11,7 +11,7 @@
     transition:fade
     on:click={() => open = false}
     on:keydown={(e) => e.key === 'Escape' && (open = false)}
-    class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100]"
+    class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] cursor-pointer"
   ></div>
 
   <div

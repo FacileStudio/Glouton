@@ -22,6 +22,9 @@ export class StorageService {
   public client: S3Client;
   private publicUrl: string;
 
+  /**
+   * constructor
+   */
   constructor(config: StorageConfig) {
     this.client = new S3Client({
       endpoint: config.endpoint,
@@ -33,14 +36,23 @@ export class StorageService {
     this.publicUrl = config.publicUrl || `${config.endpoint}/${config.bucket}`;
   }
 
+  /**
+   * upload
+   */
   async upload(path: string, data: any, contentType?: string) {
     const s3File = this.client.file(path);
+    /**
+     * await
+     */
     await (s3File as any).write(data, {
       type: contentType,
     });
     return this.getFileUrl(path);
   }
 
+  /**
+   * stat
+   */
   async stat(path: string): Promise<S3Stats | null> {
     try {
       return await this.client.file(path).stat();
@@ -49,8 +61,14 @@ export class StorageService {
     }
   }
 
+  /**
+   * delete
+   */
   async delete(path: string): Promise<boolean> {
     const s3File = this.client.file(path);
+    /**
+     * if
+     */
     if (await s3File.exists()) {
       await s3File.delete();
       return true;
@@ -58,20 +76,32 @@ export class StorageService {
     return false;
   }
 
+  /**
+   * exists
+   */
   async exists(path: string): Promise<boolean> {
     return await this.client.file(path).exists();
   }
 
+  /**
+   * getFileUrl
+   */
   getFileUrl(path: string): string {
     const cleanPath = path.startsWith('/') ? path.slice(1) : path;
     const cleanBase = this.publicUrl.endsWith('/') ? this.publicUrl.slice(0, -1) : this.publicUrl;
     return `${cleanBase}/${cleanPath}`;
   }
 
+  /**
+   * download
+   */
   async download(path: string): Promise<Uint8Array> {
     return new Uint8Array(await this.client.file(path).arrayBuffer());
   }
 
+  /**
+   * list
+   */
   async list(prefix?: string): Promise<StorageObject[]> {
     const objects: StorageObject[] = [];
     try {

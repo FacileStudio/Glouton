@@ -18,5 +18,5 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['@prisma/client', '@repo/database'],
   },
-  assetsInclude: ['**/*.woff', '**/*.woff2', '**/*.ttf', '**/*.otf']
+  assetsInclude: ['***.woff2', '***.otf']
 });

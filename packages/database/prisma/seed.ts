@@ -3,9 +3,12 @@ import { faker } from '@faker-js/faker';
 import * as bcrypt from 'bcrypt';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
-import { YAML } from 'bun'; // Import Bun.YAML
-import * as path from 'path'; // Keep path for path manipulation
+import { YAML } from 'bun';
+import * as path from 'path';
 
+/**
+ * if
+ */
 if (!process.env.DATABASE_URL) {
   throw new Error('DATABASE_URL environment variable is not set');
 }
@@ -18,19 +21,24 @@ const prisma = new PrismaClient({
   log: ['error', 'warn'],
 });
 
+/**
+ * main
+ */
 async function main() {
   console.log('Start seeding...');
 
-  // Clear existing data (optional, but good for consistent development)
   await prisma.contact.deleteMany();
   await prisma.user.deleteMany();
   console.log('Cleared existing data.');
 
   const usersToCreate = 10;
-  const usersForYaml: { email: string; password: string; role: string }[] = []; // Store user data for YAML
-  const clearTextPassword = 'password123'; // Define the clear text password
-  const hashedPassword = await bcrypt.hash(clearTextPassword, 10); // Hash a default password
+  const usersForYaml: { email: string; password: string; role: string }[] = [];
+  const clearTextPassword = 'password123';
+  const hashedPassword = await bcrypt.hash(clearTextPassword, 10);
 
+  /**
+   * for
+   */
   for (let i = 0; i < usersToCreate; i++) {
     const firstName = faker.person.firstName();
     const lastName = faker.person.lastName();
@@ -44,19 +52,18 @@ async function main() {
         lastName,
         password: hashedPassword,
         emailVerified: faker.datatype.boolean(),
-        role: role, // Use the determined role
+        role: role,
         isPremium: faker.datatype.boolean(),
-        // Add other optional fields if desired, e.g.:
-        // bannedAt: faker.datatype.boolean() ? faker.date.past() : null,
-        // suspensionReason: faker.lorem.sentence(),
       },
     });
-    usersForYaml.push({ email: user.email, password: clearTextPassword, role: role }); // Store for YAML
+    usersForYaml.push({ email: user.email, password: clearTextPassword, role: role });
     console.log(`Created user with id: ${user.id} and email: ${user.email} with role ${user.role}`);
   }
 
-  // Create Contacts
   const contactsToCreate = 5;
+  /**
+   * for
+   */
   for (let i = 0; i < contactsToCreate; i++) {
     const firstName = faker.person.firstName();
     const lastName = faker.person.lastName();
@@ -72,11 +79,10 @@ async function main() {
     console.log(`Created contact with id: ${contact.id} and email: ${contact.email}`);
   }
 
-  // Write user logins to YAML file
   const yamlFilePath = path.join(__dirname, 'user_logins.yml');
   try {
-    const yamlContent = YAML.stringify({ users: usersForYaml }, null, 2); // Use Bun.YAML.stringify with 2-space indentation
-    await Bun.write(yamlFilePath, yamlContent); // Use Bun.write
+    const yamlContent = YAML.stringify({ users: usersForYaml }, null, 2);
+    await Bun.write(yamlFilePath, yamlContent);
     console.log(`User logins written to ${yamlFilePath}`);
   } catch (e) {
     console.error(`Failed to write YAML file: ${e}`);
@@ -85,6 +91,9 @@ async function main() {
   console.log('Seeding finished.');
 }
 
+/**
+ * main
+ */
 main()
   .catch(async (e) => {
     console.error(e);

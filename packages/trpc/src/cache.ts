@@ -8,6 +8,9 @@ export interface GlobalCacheOptions {
   debug: boolean;
 }
 
+/**
+ * globalCacheFactory
+ */
 export const globalCacheFactory = (config: GlobalCacheOptions) => createCacheMiddleware(config);
 
 export default globalCacheFactory;

@@ -17,7 +17,13 @@
 
   const PREMIUM_PRICE_ID = env.STRIPE_PRICE_ID;
 
+  /**
+   * onMount
+   */
   onMount(async () => {
+    /**
+     * if
+     */
     if (!browser) return;
 
     try {
@@ -29,11 +35,20 @@
     }
   });
 
+  /**
+   * handleBecomePremium
+   */
   async function handleBecomePremium() {
+    /**
+     * if
+     */
     if (!browser) return;
     actionLoading = true;
     try {
       const result = await trpc.stripe.createCheckoutSession.mutate({ priceId: PREMIUM_PRICE_ID });
+      /**
+       * if
+       */
       if (result.url) {
         window.location.href = result.url;
       } else {
@@ -47,11 +62,20 @@
     }
   }
 
+  /**
+   * handleManageSubscription
+   */
   async function handleManageSubscription() {
+    /**
+     * if
+     */
     if (!browser) return;
     actionLoading = true;
     try {
       const result = await trpc.stripe.createPortalSession.mutate();
+      /**
+       * if
+       */
       if (result.url) {
         window.location.href = result.url;
       } else {
