@@ -11,7 +11,6 @@
   export let initialData: Record<string, unknown> = {};
   export let onSubmit: (_data: Record<string, unknown>) => Promise<void>;
   export let submitLabel = "Enregistrer";
-  export let getPresignedUrl: (_filename: string, _folder: string) => Promise<string> = async () => "";
 
   const adapter = zod(schema);
 
