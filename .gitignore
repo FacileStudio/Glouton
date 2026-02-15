@@ -10,6 +10,7 @@ build
 .svelte-kit
 .vercel
 .turbo
+target
 /packages/database/src/generated
 
 # Environment
