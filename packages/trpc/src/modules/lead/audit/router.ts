@@ -1,157 +1,149 @@
-import { TRPCError } from '@trpc/server';
+import { z } from 'zod';
 import { router, protectedProcedure } from '../../../trpc';
-import leadService from '../service';
-import {
-  auditStatusSchema,
-  cancelAuditSchema,
-  deleteAuditSchema,
-} from '../schemas';
+
+export const listAuditSessionsSchema = z.object({
+  leadId: z.string().optional(),
+  // Add other filters as needed, e.g., status, pagination
+  limit: z.number().min(1).max(100).default(10),
+  offset: z.number().min(0).default(0),
+});
 
 export const auditRouter = router({
-  start: protectedProcedure.mutation(async ({ ctx }) => {
-    try {
-      const result = await leadService.startAudit({
-        userId: ctx.user.id,
-        jobs: ctx.jobs,
-        db: ctx.db,
-      });
+  list: protectedProcedure
+    .input(listAuditSessionsSchema.optional())
+    .query(async ({ ctx, input = {} }) => {
+      try {
+        const { leadId, limit = 10, offset = 0 } = input;
+        const userId = ctx.user.id;
 
-      ctx.log.info({
-        action: 'start-audit',
-        auditSessionId: result.auditSessionId,
-      });
+        let query = ctx.db`
+          SELECT
+            "AuditSession".id,
+            "AuditSession"."userId",
+            "AuditSession".status,
+            "AuditSession".progress,
+            "AuditSession"."totalLeads",
+            "AuditSession"."processedLeads",
+            "AuditSession"."updatedLeads",
+            "AuditSession"."failedLeads",
+            "AuditSession"."currentDomain",
+            "AuditSession"."lastProcessedIndex",
+            "AuditSession".error,
+            "AuditSession"."startedAt",
+            "AuditSession"."completedAt",
+            "AuditSession"."createdAt",
+            "AuditSession"."updatedAt",
+            "Lead".id AS "lead.id",
+            "Lead".domain AS "lead.domain",
+            "Lead".email AS "lead.email",
+            "Lead"."firstName" AS "lead.firstName",
+            "Lead"."lastName" AS "lead.lastName"
+          FROM "AuditSession"
+          LEFT JOIN "Lead" ON "AuditSession"."leadId" = "Lead".id
+          WHERE "AuditSession"."userId" = ${userId}
+        `;
 
-      return result;
-    } catch (error) {
-      ctx.log.error({
-        action: 'start-audit-failed',
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
+        let countQuery = ctx.db`
+          SELECT COUNT(*)
+          FROM "AuditSession"
+          WHERE "AuditSession"."userId" = ${userId}
+        `;
 
-      throw new TRPCError({
-        code: 'INTERNAL_SERVER_ERROR',
-        message: error instanceof Error ? error.message : 'Failed to start audit session',
-        cause: error,
-      });
-    }
-  }),
+        if (leadId) {
+          query = ctx.db`${query} AND "AuditSession"."leadId" = ${leadId}`;
+          countQuery = ctx.db`${countQuery} AND "AuditSession"."leadId" = ${leadId}`;
+        }
 
-  list: protectedProcedure.query(async ({ ctx }) => {
-    try {
-      const sessions = await leadService.getAuditSessions(ctx.user.id, ctx.db, ctx.jobs);
-      return sessions;
-    } catch (error) {
-      ctx.log.error({
-        action: 'get-audit-sessions-failed',
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
+        query = ctx.db`${query} ORDER BY "AuditSession"."createdAt" DESC LIMIT ${limit} OFFSET ${offset}`;
 
-      throw new TRPCError({
-        code: 'INTERNAL_SERVER_ERROR',
-        message: 'Failed to retrieve audit sessions',
-        cause: error,
-      });
-    }
-  }),
+        const auditSessionsRaw = await query;
+        const totalAuditSessionsRaw = await countQuery;
 
-  getStatus: protectedProcedure.input(auditStatusSchema).query(async ({ ctx, input }) => {
-    try {
-      const session = await leadService.getAuditSessionStatus(input.auditSessionId, ctx.db);
+        const totalAuditSessions = Number(totalAuditSessionsRaw[0].count);
 
-      /**
-       * if
-       */
-      if (session.userId !== ctx.user.id) {
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'You do not have access to this audit session',
+        const auditSessions = auditSessionsRaw.map((row: any) => {
+          const auditSession: any = {
+            id: row.id,
+            userId: row.userId,
+            status: row.status,
+            progress: row.progress,
+            totalLeads: row.totalLeads,
+            processedLeads: row.processedLeads,
+            updatedLeads: row.updatedLeads,
+            failedLeads: row.failedLeads,
+            currentDomain: row.currentDomain,
+            lastProcessedIndex: row.lastProcessedIndex,
+            error: row.error,
+            startedAt: row.startedAt,
+            completedAt: row.completedAt,
+            createdAt: row.createdAt,
+            updatedAt: row.updatedAt,
+          };
+
+          // Reconstruct nested lead object if lead data exists
+          if (row['lead.id']) {
+            auditSession.lead = {
+              id: row['lead.id'],
+              domain: row['lead.domain'],
+              email: row['lead.email'],
+              firstName: row['lead.firstName'],
+              lastName: row['lead.lastName'],
+            };
+          } else {
+            auditSession.lead = null;
+          }
+
+          return auditSession;
         });
+
+        return {
+          auditSessions,
+          totalAuditSessions,
+        };
+      } catch (error) {
+        ctx.log.error({
+          action: 'list-audit-sessions-failed',
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+        throw new Error('Failed to retrieve audit sessions');
       }
+    }),
+  cancel: protectedProcedure
+    .input(z.object({ auditSessionId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      try {
+        const { auditSessionId } = input;
+        const userId = ctx.user.id;
 
-      return session;
-    } catch (error) {
-      /**
-       * if
-       */
-      if (error instanceof TRPCError) {
-        throw error;
+        const result = await ctx.db`
+          UPDATE "AuditSession"
+          SET
+            status = 'CANCELLED',
+            "updatedAt" = NOW()
+          WHERE
+            id = ${auditSessionId} AND "userId" = ${userId}
+          RETURNING id;
+        `;
+
+        if (result.count === 0) {
+          throw new Error('Audit session not found or not authorized to cancel');
+        }
+
+        ctx.log.info({
+          action: 'audit-session-cancelled',
+          auditSessionId,
+          userId,
+        });
+
+        return { success: true, auditSessionId };
+      } catch (error) {
+        ctx.log.error({
+          action: 'cancel-audit-session-failed',
+          auditSessionId: input.auditSessionId,
+          userId: ctx.user.id,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+        throw new Error('Failed to cancel audit session');
       }
-
-      ctx.log.error({
-        action: 'get-audit-status-failed',
-        auditSessionId: input.auditSessionId,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
-
-      throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: error instanceof Error ? error.message : 'Audit session not found',
-        cause: error,
-      });
-    }
-  }),
-
-  cancel: protectedProcedure.input(cancelAuditSchema).mutation(async ({ ctx, input }) => {
-    try {
-      const updatedSession = await leadService.cancelAudit(input.auditSessionId, ctx.user.id, ctx.db, ctx.jobs);
-
-      ctx.log.info({
-        action: 'cancel-audit',
-        auditSessionId: input.auditSessionId,
-      });
-
-      return updatedSession;
-    } catch (error) {
-      /**
-       * if
-       */
-      if (error instanceof TRPCError) {
-        throw error;
-      }
-
-      ctx.log.error({
-        action: 'cancel-audit-failed',
-        auditSessionId: input.auditSessionId,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
-
-      throw new TRPCError({
-        code: 'INTERNAL_SERVER_ERROR',
-        message: error instanceof Error ? error.message : 'Failed to cancel audit session',
-        cause: error,
-      });
-    }
-  }),
-
-  delete: protectedProcedure.input(deleteAuditSchema).mutation(async ({ ctx, input }) => {
-    try {
-      await leadService.deleteAudit(input.auditSessionId, ctx.user.id, ctx.db);
-
-      ctx.log.info({
-        action: 'delete-audit',
-        auditSessionId: input.auditSessionId,
-      });
-
-      return { success: true };
-    } catch (error) {
-      /**
-       * if
-       */
-      if (error instanceof TRPCError) {
-        throw error;
-      }
-
-      ctx.log.error({
-        action: 'delete-audit-failed',
-        auditSessionId: input.auditSessionId,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
-
-      throw new TRPCError({
-        code: 'INTERNAL_SERVER_ERROR',
-        message: error instanceof Error ? error.message : 'Failed to delete audit session',
-        cause: error,
-      });
-    }
-  }),
+    }),
 });
