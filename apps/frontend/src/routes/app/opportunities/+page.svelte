@@ -354,7 +354,11 @@
      * if
      */
     if (opp.budgetMin && opp.budgetMax) {
-      const currency = opp.currency || '</script>
+      const currency = opp.currency || ''
+    return `${currency}${opp.budgetMin.toLocaleString()} - ${currency}${opp.budgetMax.toLocaleString()}`;
+    }
+  }
+</script>
 
 {#if loading}
   <div class="flex flex-col items-center justify-center h-screen space-y-6" in:fade>

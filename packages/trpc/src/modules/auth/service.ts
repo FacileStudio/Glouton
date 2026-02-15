@@ -1,5 +1,6 @@
 import { TRPCError } from '@trpc/server';
-import { UserRole, type PrismaClient } from '@repo/types';
+import { UserRole } from '@repo/types';
+import { SQL, sql } from 'bun';
 import type { AuthManager } from '@repo/auth';
 import type { LoginInput, RegisterInput, SessionUser } from '@repo/auth-shared';
 
@@ -28,11 +29,12 @@ const userSelection = {
 };
 
 export const authService = {
-  login: async (db: PrismaClient, auth: AuthManager, input: LoginInput) => {
-    const user = await db.user.findUnique({
-      where: { email: input.email },
-      select: userSelection,
-    });
+  login: async (db: SQL, auth: AuthManager, input: LoginInput) => {
+    const [user] = await db`
+      SELECT id, email, "firstName", "lastName", password, role, "isPremium"
+      FROM "User"
+      WHERE email = ${input.email}
+    ` as Promise<any[]>;
 
     /**
      * if
@@ -47,8 +49,10 @@ export const authService = {
     return { token, user: sessionUser };
   },
 
-  register: async (db: PrismaClient, auth: AuthManager, input: RegisterInput) => {
-    const exists = await db.user.findUnique({ where: { email: input.email } });
+  register: async (db: SQL, auth: AuthManager, input: RegisterInput) => {
+    const [exists] = await db`
+      SELECT id FROM "User" WHERE email = ${input.email}
+    ` as Promise<any[]>;
     /**
      * if
      */
@@ -58,16 +62,20 @@ export const authService = {
 
     const passwordHash = await auth.hashPassword(input.password);
 
-    const user = await db.user.create({
-      data: {
-        email: input.email,
-        firstName: input.firstName,
-        lastName: input.lastName,
-        password: passwordHash,
-        role: UserRole.USER,
-      },
-      select: userSelection,
-    });
+    const [user] = await db`
+      INSERT INTO "User" (
+        email, "firstName", "lastName", password, role, "createdAt", "updatedAt"
+      ) VALUES (
+        ${input.email},
+        ${input.firstName},
+        ${input.lastName},
+        ${passwordHash},
+        ${UserRole.USER},
+        ${new Date()},
+        ${new Date()}
+      )
+      RETURNING id, email, "firstName", "lastName", password, role, "isPremium"
+    ` as Promise<any[]>;
 
     const sessionUser = mapToSessionUser(user);
     const token = await auth.createToken(sessionUser);

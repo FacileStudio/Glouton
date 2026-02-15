@@ -1,37 +1,61 @@
-import type { PrismaClient, UserOpportunityPreferences } from '@repo/database';
-import { OpportunitySource, OpportunityCategory } from '@repo/database';
+import { SQL, sql } from 'bun';
 import { TRPCError } from '@trpc/server';
 import type { QueueManager } from '@repo/jobs';
 
 export class OpportunityService {
-  static async getPreferences(db: PrismaClient, userId: string): Promise<UserOpportunityPreferences | null> {
-    return db.userOpportunityPreferences.findUnique({
-      where: { userId },
-    });
+  static async getPreferences(db: SQL, userId: string): Promise<UserOpportunityPreferences | null> {
+    const [preferences] = await db`
+      SELECT *
+      FROM "UserOpportunityPreferences"
+      WHERE "userId" = ${userId}
+    ` as Promise<any[]>;
+    return preferences || null;
   }
 
   static async updatePreferences(
-    db: PrismaClient,
+    db: SQL,
     userId: string,
     data: {
       discordWebhook?: string | null;
       enableDiscordNotifications?: boolean;
-      enabledSources?: OpportunitySource[];
-      enabledCategories?: OpportunityCategory[];
+      enabledSources?: any[];
+      enabledCategories?: any[];
       keywords?: string[];
       excludeKeywords?: string[];
       minBudget?: number | null;
       remoteOnly?: boolean;
     }
-  ): Promise<UserOpportunityPreferences> {
-    return db.userOpportunityPreferences.upsert({
-      where: { userId },
-      create: {
-        userId,
-        ...data,
-      },
-      update: data,
-    });
+  ): Promise<any> {
+    const [updatedPreferences] = await db`
+      INSERT INTO "UserOpportunityPreferences" (
+        "userId", "discordWebhook", "enableDiscordNotifications", "enabledSources", "enabledCategories",
+        keywords, "excludeKeywords", "minBudget", "remoteOnly", "createdAt", "updatedAt"
+      ) VALUES (
+        ${userId},
+        ${data.discordWebhook ?? null},
+        ${data.enableDiscordNotifications ?? false},
+        ${data.enabledSources ? JSON.stringify(data.enabledSources) : '[]'}::jsonb,
+        ${data.enabledCategories ? JSON.stringify(data.enabledCategories) : '[]'}::jsonb,
+        ${data.keywords ? JSON.stringify(data.keywords) : '[]'}::jsonb,
+        ${data.excludeKeywords ? JSON.stringify(data.excludeKeywords) : '[]'}::jsonb,
+        ${data.minBudget ?? null},
+        ${data.remoteOnly ?? false},
+        NOW(),
+        NOW()
+      )
+      ON CONFLICT ("userId") DO UPDATE SET
+        "discordWebhook" = COALESCE(EXCLUDED."discordWebhook", "UserOpportunityPreferences"."discordWebhook"),
+        "enableDiscordNotifications" = COALESCE(EXCLUDED."enableDiscordNotifications", "UserOpportunityPreferences"."enableDiscordNotifications"),
+        "enabledSources" = COALESCE(EXCLUDED."enabledSources", "UserOpportunityPreferences"."enabledSources"),
+        "enabledCategories" = COALESCE(EXCLUDED."enabledCategories", "UserOpportunityPreferences"."enabledCategories"),
+        keywords = COALESCE(EXCLUDED.keywords, "UserOpportunityPreferences".keywords),
+        "excludeKeywords" = COALESCE(EXCLUDED."excludeKeywords", "UserOpportunityPreferences"."excludeKeywords"),
+        "minBudget" = COALESCE(EXCLUDED."minBudget", "UserOpportunityPreferences"."minBudget"),
+        "remoteOnly" = COALESCE(EXCLUDED."remoteOnly", "UserOpportunityPreferences"."remoteOnly"),
+        "updatedAt" = NOW()
+      RETURNING *
+    ` as Promise<any[]>;
+    return updatedPreferences;
   }
 
   static async testDiscordWebhook(webhookUrl: string): Promise<{ success: boolean; error?: string }> {
@@ -54,9 +78,6 @@ export class OpportunityService {
         }),
       });
 
-      /**
-       * if
-       */
       if (!response.ok) {
         const errorText = await response.text();
         throw new TRPCError({
@@ -73,8 +94,9 @@ export class OpportunityService {
       };
     }
   }
+
   static async list(
-    db: PrismaClient,
+    db: SQL,
     filters: {
       page?: number;
       limit?: number;
@@ -88,73 +110,52 @@ export class OpportunityService {
   ) {
     const page = filters.page ?? 1;
     const limit = filters.limit ?? 20;
-    /**
-     * skip
-     */
-    const skip = (page - 1) * limit;
+    const offset = (page - 1) * limit;
 
-    const where: any = {};
+    const conditions = [];
 
-    /**
-     * if
-     */
     if (filters.sources && filters.sources.length > 0 && filters.sources.length < 16) {
-      where.sourcePlatform = { in: filters.sources };
+      conditions.push(sql`"sourcePlatform" IN (${sql.join(filters.sources.map(s => sql`${s}`))})`);
     }
 
-    /**
-     * if
-     */
     if (filters.categories && filters.categories.length > 0 && filters.categories.length < 22) {
-      where.category = { in: filters.categories };
+      conditions.push(sql`category IN (${sql.join(filters.categories.map(c => sql`${c}`))})`);
     }
 
-    /**
-     * if
-     */
     if (filters.remoteOnly) {
-      where.isRemote = true;
+      conditions.push(sql`"isRemote" = TRUE`);
     }
 
-    /**
-     * if
-     */
-    if (filters.minBudget !== undefined || filters.maxBudget !== undefined) {
-      where.AND = where.AND || [];
-      /**
-       * if
-       */
-      if (filters.minBudget !== undefined) {
-        where.AND.push({ budgetMin: { gte: filters.minBudget } });
-      }
-      /**
-       * if
-       */
-      if (filters.maxBudget !== undefined) {
-        where.AND.push({ budgetMax: { lte: filters.maxBudget } });
-      }
+    if (filters.minBudget !== undefined) {
+      conditions.push(sql`"budgetMin" >= ${filters.minBudget}`);
+    }
+    if (filters.maxBudget !== undefined) {
+      conditions.push(sql`"budgetMax" <= ${filters.maxBudget}`);
     }
 
-    /**
-     * if
-     */
     if (filters.search) {
-      where.OR = [
-        { title: { contains: filters.search, mode: 'insensitive' } },
-        { description: { contains: filters.search, mode: 'insensitive' } },
-        { company: { contains: filters.search, mode: 'insensitive' } },
+      const searchConditions = [
+        sql`title ILIKE '%' || ${filters.search} || '%'`,
+        sql`description ILIKE '%' || ${filters.search} || '%'`,
+        sql`company ILIKE '%' || ${filters.search} || '%'`,
       ];
+      conditions.push(sql`(${sql.join(searchConditions, sql` OR `)})`);
     }
 
-    const [opportunities, total] = await Promise.all([
-      db.opportunity.findMany({
-        where,
-        orderBy: { postedAt: 'desc' },
-        skip,
-        take: limit,
-      }),
-      db.opportunity.count({ where }),
+    const whereClause = conditions.length > 0 ? sql`WHERE ${sql.join(conditions, sql` AND `)}` : sql``;
+
+    const [opportunities, totalResult] = await Promise.all([
+      db`
+        SELECT *
+        FROM "Opportunity"
+        ${whereClause}
+        ORDER BY "postedAt" DESC
+        LIMIT ${limit} OFFSET ${offset}
+      ` as Promise<any[]>,
+      db`SELECT COUNT(*)::int as count FROM "Opportunity" ${whereClause}` as Promise<[{ count: number }]>,
     ]);
+
+    const total = totalResult[0]?.count || 0;
 
     return {
       opportunities,
@@ -167,14 +168,13 @@ export class OpportunityService {
     };
   }
 
-  static async getById(db: PrismaClient, id: string) {
-    const opportunity = await db.opportunity.findUnique({
-      where: { id },
-    });
+  static async getById(db: SQL, id: string) {
+    const [opportunity] = await db`
+      SELECT *
+      FROM "Opportunity"
+      WHERE id = ${id}
+    ` as Promise<any[]>;
 
-    /**
-     * if
-     */
     if (!opportunity) {
       throw new Error('Opportunity not found');
     }
@@ -182,59 +182,35 @@ export class OpportunityService {
     return opportunity;
   }
 
-  static async getStats(db: PrismaClient) {
-    const [total, remoteCount, bySource, byCategory, avgBudget] = await Promise.all([
-      db.opportunity.count(),
-      db.opportunity.count({ where: { isRemote: true } }),
-      db.opportunity.groupBy({
-        by: ['sourcePlatform'],
-        _count: true,
-      }),
-      db.opportunity.groupBy({
-        by: ['category'],
-        _count: true,
-      }),
-      db.opportunity.aggregate({
-        _avg: {
-          budgetMin: true,
-          budgetMax: true,
-        },
-      }),
+  static async getStats(db: SQL) {
+    const [
+      [totalResult],
+      [remoteCountResult],
+      bySource,
+      byCategory,
+      [avgBudget],
+      [last24hResult],
+      [last7DaysResult],
+      [withBudgetResult],
+      [lastScraped]
+    ] = await Promise.all([
+      db`SELECT COUNT(*)::int as count FROM "Opportunity"` as Promise<any[]>,
+      db`SELECT COUNT(*)::int as count FROM "Opportunity" WHERE "isRemote" = TRUE` as Promise<any[]>,
+      db`SELECT "sourcePlatform", COUNT(*)::int as _count FROM "Opportunity" GROUP BY "sourcePlatform"` as Promise<any[]>,
+      db`SELECT category, COUNT(*)::int as _count FROM "Opportunity" GROUP BY category` as Promise<any[]>,
+      db`SELECT AVG("budgetMin") as "avgMin", AVG("budgetMax") as "avgMax" FROM "Opportunity"` as Promise<any[]>,
+      db`SELECT COUNT(*)::int as count FROM "Opportunity" WHERE "scrapedAt" >= NOW() - INTERVAL '24 hours'` as Promise<any[]>,
+      db`SELECT COUNT(*)::int as count FROM "Opportunity" WHERE "scrapedAt" >= NOW() - INTERVAL '7 days'` as Promise<any[]>,
+      db`SELECT COUNT(*)::int as count FROM "Opportunity" WHERE "budgetMin" IS NOT NULL OR "budgetMax" IS NOT NULL` as Promise<any[]>,
+      db`SELECT "sourcePlatform", "scrapedAt" FROM "Opportunity" ORDER BY "scrapedAt" DESC LIMIT 1` as Promise<any[]>,
     ]);
 
-    const last24h = await db.opportunity.count({
-      where: {
-        scrapedAt: {
-          gte: new Date(Date.now() - 24 * 60 * 60 * 1000),
-        },
-      },
-    });
-
-    const last7Days = await db.opportunity.count({
-      where: {
-        scrapedAt: {
-          gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-        },
-      },
-    });
-
-    const withBudget = await db.opportunity.count({
-      where: {
-        OR: [{ budgetMin: { not: null } }, { budgetMax: { not: null } }],
-      },
-    });
-
-    const lastScraped = await db.opportunity.findFirst({
-      orderBy: { scrapedAt: 'desc' },
-      select: { sourcePlatform: true, scrapedAt: true },
-    });
-
     return {
-      total,
-      remoteCount,
-      last24h,
-      last7Days,
-      withBudget,
+      total: totalResult?.count || 0,
+      remoteCount: remoteCountResult?.count || 0,
+      last24h: last24hResult?.count || 0,
+      last7Days: last7DaysResult?.count || 0,
+      withBudget: withBudgetResult?.count || 0,
       bySource: bySource.reduce(
         (acc, item) => {
           acc[item.sourcePlatform] = item._count;
@@ -255,12 +231,12 @@ export class OpportunityService {
             scrapedAt: lastScraped.scrapedAt,
           }
         : null,
-      avgBudgetMin: avgBudget._avg.budgetMin ?? 0,
-      avgBudgetMax: avgBudget._avg.budgetMax ?? 0,
+      avgBudgetMin: Number(avgBudget?.avgMin) || 0,
+      avgBudgetMax: Number(avgBudget?.avgMax) || 0,
     };
   }
 
-  static async triggerManualScrape(jobs: QueueManager, sources: OpportunitySource[]) {
+  static async triggerManualScrape(jobs: QueueManager, sources: any[]) {
     const jobId = await jobs.addJob('opportunities', 'scrape-opportunities', {
       sources,
       triggeredAt: new Date().toISOString(),
@@ -275,63 +251,69 @@ export class OpportunityService {
   }
 
   static async saveSearch(
-    db: PrismaClient,
+    db: SQL,
     userId: string,
     searchParams: {
       query?: string;
-      sources?: OpportunitySource[];
-      categories?: OpportunityCategory[];
+      sources?: any[];
+      categories?: any[];
       remoteOnly?: boolean;
       minBudget?: number;
       maxBudget?: number;
       resultsCount: number;
     }
   ) {
-    return db.opportunitySearch.create({
-      data: {
-        userId,
-        query: searchParams.query,
-        sources: searchParams.sources || [],
-        categories: searchParams.categories || [],
-        remoteOnly: searchParams.remoteOnly || false,
-        minBudget: searchParams.minBudget,
-        maxBudget: searchParams.maxBudget,
-        resultsCount: searchParams.resultsCount,
-      },
-    });
+    const [search] = await db`
+      INSERT INTO "OpportunitySearch" (
+        "userId", query, sources, categories, "remoteOnly", "minBudget", "maxBudget", "resultsCount", "createdAt"
+      ) VALUES (
+        ${userId},
+        ${searchParams.query ?? null},
+        ${searchParams.sources ? JSON.stringify(searchParams.sources) : '[]'}::jsonb,
+        ${searchParams.categories ? JSON.stringify(searchParams.categories) : '[]'}::jsonb,
+        ${searchParams.remoteOnly ?? false},
+        ${searchParams.minBudget ?? null},
+        ${searchParams.maxBudget ?? null},
+        ${searchParams.resultsCount},
+        NOW()
+      )
+      RETURNING *
+    ` as Promise<any[]>;
+    return search;
   }
 
-  static async getSearchHistory(db: PrismaClient, userId: string, limit: number = 20) {
-    return db.opportunitySearch.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-      take: limit,
-    });
+  static async getSearchHistory(db: SQL, userId: string, limit: number = 20) {
+    return db`
+      SELECT *
+      FROM "OpportunitySearch"
+      WHERE "userId" = ${userId}
+      ORDER BY "createdAt" DESC
+      LIMIT ${limit}
+    ` as Promise<any[]>;
   }
 
-  static async deleteSearchHistory(db: PrismaClient, userId: string, searchId?: string) {
-    /**
-     * if
-     */
+  static async deleteSearchHistory(db: SQL, userId: string, searchId?: string) {
     if (searchId) {
-      return db.opportunitySearch.delete({
-        where: { id: searchId, userId },
-      });
+      return db`
+        DELETE FROM "OpportunitySearch"
+        WHERE id = ${searchId} AND "userId" = ${userId}
+        RETURNING *
+      ` as Promise<any[]>;
     }
 
-    return db.opportunitySearch.deleteMany({
-      where: { userId },
-    });
+    return db`
+      DELETE FROM "OpportunitySearch"
+      WHERE "userId" = ${userId}
+      RETURNING *
+    ` as Promise<any[]>;
   }
 
-  static async getNewOpportunitiesSince(db: PrismaClient, since: Date) {
-    return db.opportunity.findMany({
-      where: {
-        scrapedAt: {
-          gte: since,
-        },
-      },
-      orderBy: { scrapedAt: 'desc' },
-    });
+  static async getNewOpportunitiesSince(db: SQL, since: Date) {
+    return db`
+      SELECT *
+      FROM "Opportunity"
+      WHERE "scrapedAt" >= ${since}
+      ORDER BY "scrapedAt" DESC
+    ` as Promise<any[]>;
   }
 }

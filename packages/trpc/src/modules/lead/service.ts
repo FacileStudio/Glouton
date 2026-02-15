@@ -1,5 +1,5 @@
-import type { PrismaClient, LeadStatus } from '@repo/database';
-import { Prisma } from '@repo/database';
+import { SQL, sql } from 'bun';
+import type { LeadStatus } from '@repo/database';
 import type { QueueManager } from '@repo/jobs';
 
 export interface StartHuntParams {
@@ -10,7 +10,7 @@ export interface StartHuntParams {
   speed: number;
   filters?: any;
   jobs: QueueManager;
-  db: PrismaClient;
+  db: SQL;
 }
 
 export interface StartLocalBusinessHuntParams {
@@ -22,12 +22,12 @@ export interface StartLocalBusinessHuntParams {
   maxResults?: number;
   googleMapsApiKey?: string;
   jobs: QueueManager;
-  db: PrismaClient;
+  db: SQL;
 }
 
 export interface GetLeadsParams {
   userId: string;
-  db: PrismaClient;
+  db: SQL;
   filters?: {
     status?: LeadStatus;
     search?: string;
@@ -63,38 +63,55 @@ export interface DuplicateCheckParams {
     firstName?: string | null;
     lastName?: string | null;
   }>;
-  db: PrismaClient;
+  db: SQL;
 }
 
 export const leadService = {
   checkForDuplicates: async ({ userId, leads, db }: DuplicateCheckParams) => {
-    const emailsToCheck = leads.filter(l => l.email).map(l => l.email!);
-    const domainsToCheck = leads.filter(l => l.domain).map(l => l.domain!);
+    const emailsToCheck = leads.filter((l) => l.email).map((l) => l.email!);
+    const domainsToCheck = leads.filter((l) => l.domain).map((l) => l.domain!);
 
-    const existingLeads = await db.lead.findMany({
-      where: {
-        userId,
-        OR: [
-          { email: { in: emailsToCheck } },
-          {
-            AND: leads.filter(l => l.domain && l.firstName && l.lastName).map(l => ({
-              domain: l.domain!,
-              firstName: l.firstName!,
-              lastName: l.lastName!,
-            }))
-          }
-        ],
-      },
-      select: {
-        email: true,
-        domain: true,
-        firstName: true,
-        lastName: true,
-      },
-    });
+    const existingLeads = await (async () => {
+      const conditions = [sql`"userId" = ${userId}`];
+
+      const emailConditions =
+        emailsToCheck.length > 0
+          ? sql`email IN (${sql.join(emailsToCheck.map((e) => sql`${e}`))})`
+          : null;
+
+      const nameDomainConditions = leads
+        .filter((l) => l.domain && l.firstName && l.lastName)
+        .map(
+          (l) =>
+            sql`(domain = ${l.domain!} AND "firstName" = ${l.firstName!} AND "lastName" = ${l.lastName!})`
+        );
+      const nameDomainCombinedConditions =
+        nameDomainConditions.length > 0 ? sql.join(nameDomainConditions, sql` OR `) : null;
+
+      const orConditions = [];
+      if (emailConditions) {
+        orConditions.push(emailConditions);
+      }
+      if (nameDomainCombinedConditions) {
+        orConditions.push(nameDomainCombinedConditions);
+      }
+
+      if (orConditions.length > 0) {
+        conditions.push(sql`(${sql.join(orConditions, sql` OR `)})`);
+      }
+
+      const whereClause =
+        conditions.length > 0 ? sql`WHERE ${sql.join(conditions, sql` AND `)}` : sql``;
+
+      return db`
+        SELECT email, domain, "firstName", "lastName"
+        FROM "Lead"
+        ${whereClause}
+      ` as Promise<any[]>;
+    })();
 
     const duplicateKeys = new Set<string>();
-    existingLeads.forEach(existing => {
+    existingLeads.forEach((existing) => {
       /**
        * if
        */
@@ -109,7 +126,7 @@ export const leadService = {
       }
     });
 
-    const newLeads = leads.filter(lead => {
+    const newLeads = leads.filter((lead) => {
       /**
        * if
        */
@@ -137,10 +154,19 @@ export const leadService = {
     };
   },
 
-  startHunt: async ({ userId, source, targetUrl, companyName, speed, filters, jobs, db }: StartHuntParams) => {
-    const user = await db.user.findUnique({
-      where: { id: userId },
-    });
+  startHunt: async ({
+    userId,
+    source,
+    targetUrl,
+    companyName,
+    speed,
+    filters,
+    jobs,
+    db,
+  }: StartHuntParams) => {
+    const [user] = (await db`
+      SELECT id FROM "User" WHERE id = ${userId}
+    `) as Promise<any[]>;
 
     /**
      * if
@@ -149,28 +175,38 @@ export const leadService = {
       throw new Error('User not found. Please log in again.');
     }
 
-    const huntSession = await db.huntSession.create({
-      data: {
+    const [huntSession] = (await db`
+      INSERT INTO "HuntSession" (
+        "userId", "huntType", sources, "targetUrl", filters, status, progress, "createdAt", "updatedAt"
+      ) VALUES (
+        ${userId},
+        'DOMAIN',
+        ${JSON.stringify([source])}::jsonb,
+        ${targetUrl ?? null},
+        ${JSON.stringify(filters || {})}::jsonb,
+        'PENDING',
+        0,
+        ${new Date()},
+        ${new Date()}
+      )
+      RETURNING id, status, "targetUrl", "createdAt"
+    `) as Promise<any[]>;
+
+    await jobs.addJob(
+      'leads',
+      'lead-extraction',
+      {
+        huntSessionId: huntSession.id,
         userId,
-        huntType: 'DOMAIN',
         sources: [source as any],
         targetUrl,
-        filters: filters || {},
-        status: 'PENDING',
-        progress: 0,
+        companyName,
+        filters,
       },
-    });
-
-    await jobs.addJob('leads', 'lead-extraction', {
-      huntSessionId: huntSession.id,
-      userId,
-      sources: [source as any],
-      targetUrl,
-      companyName,
-      filters,
-    }, {
-      timeout: 7200000,
-    });
+      {
+        timeout: 7200000,
+      }
+    );
 
     return {
       huntSessionId: huntSession.id,
@@ -181,10 +217,20 @@ export const leadService = {
     };
   },
 
-  startLocalBusinessHunt: async ({ userId, location, categories, hasWebsite, radius, maxResults, googleMapsApiKey, jobs, db }: StartLocalBusinessHuntParams) => {
-    const user = await db.user.findUnique({
-      where: { id: userId },
-    });
+  startLocalBusinessHunt: async ({
+    userId,
+    location,
+    categories,
+    hasWebsite,
+    radius,
+    maxResults,
+    googleMapsApiKey,
+    jobs,
+    db,
+  }: StartLocalBusinessHuntParams) => {
+    const [user] = (await db`
+      SELECT id FROM "User" WHERE id = ${userId}
+    `) as Promise<any[]>;
 
     /**
      * if
@@ -193,39 +239,43 @@ export const leadService = {
       throw new Error('User not found. Please log in again.');
     }
 
-    const huntSession = await db.huntSession.create({
-      data: {
-        userId,
-        huntType: 'LOCAL_BUSINESS',
-        sources: ['GOOGLE_MAPS', 'OPENSTREETMAP'] as any,
-        filters: {
-          location,
-          categories,
-          hasWebsite,
-          radius,
-          maxResults,
-        },
-        status: 'PENDING',
-        progress: 0,
-      },
-    });
+    const [huntSession] = (await db`
+      INSERT INTO "HuntSession" (
+        "userId", "huntType", sources, filters, status, progress, "createdAt", "updatedAt"
+      ) VALUES (
+        ${userId},
+        'LOCAL_BUSINESS',
+        ${JSON.stringify(['GOOGLE_MAPS', 'OPENSTREETMAP'])}::jsonb,
+        ${JSON.stringify({ location, categories, hasWebsite, radius, maxResults })}::jsonb,
+        'PENDING',
+        0,
+        ${new Date()},
+        ${new Date()}
+      )
+      RETURNING id, status, "createdAt"
+    `) as Promise<any[]>;
 
     /**
      * for
      */
     for (const category of categories) {
-      await jobs.addJob('leads', 'local-business-hunt', {
-        huntSessionId: huntSession.id,
-        userId,
-        location,
-        category,
-        hasWebsite,
-        radius,
-        maxResults: Math.floor((maxResults || 100) / categories.length),
-        googleMapsApiKey,
-      }, {
-        timeout: 10800000,
-      });
+      await jobs.addJob(
+        'leads',
+        'local-business-hunt',
+        {
+          huntSessionId: huntSession.id,
+          userId,
+          location,
+          category,
+          hasWebsite,
+          radius,
+          maxResults: Math.floor((maxResults || 100) / categories.length),
+          googleMapsApiKey,
+        },
+        {
+          timeout: 10800000,
+        }
+      );
     }
 
     return {
@@ -238,117 +288,94 @@ export const leadService = {
   },
 
   getLeads: async ({ userId, db, filters }: GetLeadsParams) => {
-    const where: Prisma.LeadWhereInput = { userId };
+    // 1. Initialisation des conditions avec l'ID utilisateur
+    const conditions = [db`"userId" = ${userId}`];
 
-    /**
-     * if
-     */
+    // 2. Filtres simples
     if (filters?.status) {
-      where.status = filters.status;
+      conditions.push(db`status = ${filters.status}`);
     }
 
-    /**
-     * if
-     */
+    // 3. Filtres géographiques (Simplification du LIKE)
     if (filters?.country) {
-      where.country = { contains: filters.country, mode: 'insensitive' };
+      conditions.push(db`country ILIKE ${`%${filters.country}%`}`);
     }
 
-    /**
-     * if
-     */
     if (filters?.city) {
-      where.city = { contains: filters.city, mode: 'insensitive' };
+      conditions.push(db`city ILIKE ${`%${filters.city}%`}`);
     }
 
-    /**
-     * if
-     */
+    // 4. Recherche textuelle (Gestion du OR sans sql.join)
     if (filters?.search) {
-      where.OR = [
-        { domain: { contains: filters.search, mode: 'insensitive' } },
-        { email: { contains: filters.search, mode: 'insensitive' } },
-        { firstName: { contains: filters.search, mode: 'insensitive' } },
-        { lastName: { contains: filters.search, mode: 'insensitive' } },
-      ];
+      const s = `%${filters.search}%`;
+      conditions.push(db`(
+      domain ILIKE ${s} OR 
+      email ILIKE ${s} OR 
+      "firstName" ILIKE ${s} OR 
+      "lastName" ILIKE ${s}
+    )`);
     }
 
-    const queryOptions: any = {
-      where,
-      orderBy: { createdAt: 'desc' },
-    };
+    // 5. Composition de la clause WHERE (Le remplacement de sql.join)
+    // On réduit le tableau de fragments en injectant " AND " entre chaque
+    const whereClause = conditions.reduce((acc, curr) => db`${acc} AND ${curr}`);
 
-    /**
-     * if
-     */
-    if (filters?.limit !== undefined) {
-      const page = filters.page ?? 1;
-      const limit = filters.limit;
-      /**
-       * skip
-       */
-      const skip = (page - 1) * limit;
-      queryOptions.skip = skip;
-      queryOptions.take = limit;
-    }
+    // 6. Pagination
+    let limit = filters?.limit ?? 50;
+    let offset = ((filters?.page ?? 1) - 1) * limit;
 
-    const [leads, total] = await Promise.all([
-      db.lead.findMany(queryOptions),
-      db.lead.count({ where }),
+    // 7. Exécution des requêtes en parallèle
+    const [leads, totalResult] = await Promise.all([
+      db`
+      SELECT
+        id, domain, email, "firstName", "lastName", city, country, status, score, technologies,
+        "additionalEmails", "phoneNumbers", "physicalAddresses", "socialProfiles", "companyInfo",
+        "websiteAudit", "scrapedAt", "auditedAt", "huntSessionId", contacted, "lastContactedAt",
+        "emailsSentCount", "createdAt"
+      FROM "Lead"
+      WHERE ${whereClause}
+      ORDER BY "createdAt" DESC
+      LIMIT ${limit}
+      OFFSET ${offset}
+    ` as Promise<any[]>,
+      db`
+      SELECT COUNT(*) as count 
+      FROM "Lead" 
+      WHERE ${whereClause}
+    ` as Promise<[{ count: string | number }]>,
     ]);
 
+    const total = Number(totalResult[0].count);
+
     return {
-      leads: (leads || []).map((lead) => ({
-        id: lead.id,
-        domain: lead.domain,
-        email: lead.email,
-        firstName: lead.firstName,
-        lastName: lead.lastName,
-        city: lead.city,
-        country: lead.country,
-        status: lead.status,
-        score: lead.score,
-        technologies: lead.technologies,
-        additionalEmails: lead.additionalEmails,
-        phoneNumbers: lead.phoneNumbers,
-        physicalAddresses: lead.physicalAddresses,
-        socialProfiles: lead.socialProfiles,
-        companyInfo: lead.companyInfo,
-        websiteAudit: lead.websiteAudit,
-        scrapedAt: lead.scrapedAt,
-        auditedAt: lead.auditedAt,
-        huntSessionId: lead.huntSessionId,
-        contacted: lead.contacted,
-        lastContactedAt: lead.lastContactedAt,
-        emailsSentCount: lead.emailsSentCount,
-        createdAt: lead.createdAt,
-      })),
-      pagination: filters?.limit !== undefined ? {
-        page: filters.page ?? 1,
-        limit: filters.limit,
+      leads: leads || [],
+      pagination: {
+        page: filters?.page ?? 1,
+        limit,
         total,
-        totalPages: Math.ceil(total / filters.limit),
-      } : {
-        page: 1,
-        limit: total,
-        total,
-        totalPages: 1,
+        totalPages: Math.ceil(total / limit),
       },
     };
   },
 
-  getHuntSessions: async (userId: string, db: PrismaClient, jobs?: QueueManager) => {
-    const sessions = await db.huntSession.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-    });
+  getHuntSessions: async (userId: string, db: SQL, jobs?: QueueManager) => {
+    const sessions = (await db`
+      SELECT *
+      FROM "HuntSession"
+      WHERE "userId" = ${userId}
+      ORDER BY "createdAt" DESC
+    `) as Promise<any[]>;
 
     const validatedSessions = await Promise.all(
       sessions.map(async (session) => {
         /**
          * if
          */
-        if (jobs && session.jobId && (session.status === 'PENDING' || session.status === 'PROCESSING')) {
+        if (
+          jobs &&
+          session.jobId &&
+          (session.status === 'PENDING' || session.status === 'PROCESSING')
+        ) {
           try {
             const queue = jobs['queues'].get('leads');
             /**
@@ -360,14 +387,13 @@ export const leadService = {
                * if
                */
               if (!job) {
-                await db.huntSession.update({
-                  where: { id: session.id },
-                  data: {
-                    status: 'FAILED',
-                    error: 'Job not found in queue (worker may have crashed)',
-                    completedAt: new Date(),
-                  },
-                });
+                await db`
+                  UPDATE "HuntSession"
+                  SET status = 'FAILED',
+                      error = 'Job not found in queue (worker may have crashed)',
+                      "completedAt" = ${new Date()}
+                  WHERE id = ${session.id}
+                `;
                 return {
                   ...session,
                   status: 'FAILED' as const,
@@ -382,14 +408,13 @@ export const leadService = {
                */
               if (jobState === 'failed' || jobState === 'completed') {
                 const newStatus = jobState === 'failed' ? 'FAILED' : 'COMPLETED';
-                await db.huntSession.update({
-                  where: { id: session.id },
-                  data: {
-                    status: newStatus,
-                    error: jobState === 'failed' ? job.failedReason : undefined,
-                    completedAt: new Date(),
-                  },
-                });
+                await db`
+                  UPDATE "HuntSession"
+                  SET status = ${newStatus},
+                      error = ${jobState === 'failed' ? job.failedReason : null},
+                      "completedAt" = ${new Date()}
+                  WHERE id = ${session.id}
+                `;
                 return {
                   ...session,
                   status: newStatus as const,
@@ -423,10 +448,12 @@ export const leadService = {
     }));
   },
 
-  getHuntSessionStatus: async (huntSessionId: string, db: PrismaClient) => {
-    const session = await db.huntSession.findUnique({
-      where: { id: huntSessionId },
-    });
+  getHuntSessionStatus: async (huntSessionId: string, db: SQL) => {
+    const [session] = (await db`
+      SELECT *
+      FROM "HuntSession"
+      WHERE id = ${huntSessionId}
+    `) as Promise<any[]>;
 
     /**
      * if
@@ -451,10 +478,12 @@ export const leadService = {
     };
   },
 
-  deleteLead: async (leadId: string, userId: string, db: PrismaClient) => {
-    const lead = await db.lead.findUnique({
-      where: { id: leadId },
-    });
+  deleteLead: async (leadId: string, userId: string, db: SQL) => {
+    const [lead] = (await db`
+      SELECT id, "userId"
+      FROM "Lead"
+      WHERE id = ${leadId}
+    `) as Promise<any[]>;
 
     /**
      * if
@@ -470,9 +499,10 @@ export const leadService = {
       throw new Error('Unauthorized to delete this lead');
     }
 
-    await db.lead.delete({
-      where: { id: leadId },
-    });
+    await db`
+      DELETE FROM "Lead"
+      WHERE id = ${leadId}
+    `;
 
     return {
       id: lead.id,
@@ -480,83 +510,84 @@ export const leadService = {
     };
   },
 
-  getStats: async (userId: string, db: PrismaClient): Promise<LeadStats> => {
-    const [
-      totalLeads,
-      hotLeads,
-      warmLeads,
-      coldLeads,
-      contactableLeads,
-      contactedLeads,
-      totalEmails,
-      totalPhoneNumbers,
-      pendingHunts,
-      processingHunts,
-      completedHunts,
-      failedHunts,
-      scoreAggregation,
-    ] = await Promise.all([
-      db.lead.count({ where: { userId } }),
-      db.lead.count({ where: { userId, status: 'HOT' } }),
-      db.lead.count({ where: { userId, status: 'WARM' } }),
-      db.lead.count({ where: { userId, status: 'COLD' } }),
-      db.lead.count({ where: { userId, contacted: false, email: { not: null } } }),
-      db.lead.count({ where: { userId, contacted: true } }),
-      db.lead.count({ where: { userId, email: { not: null } } }),
-      db.lead.count({ where: { userId, phoneNumbers: { isEmpty: false } } }),
-      db.huntSession.count({ where: { userId, status: 'PENDING' } }),
-      db.huntSession.count({ where: { userId, status: 'PROCESSING' } }),
-      db.huntSession.count({ where: { userId, status: 'COMPLETED' } }),
-      db.huntSession.count({ where: { userId, status: 'FAILED' } }),
-      db.lead.aggregate({
-        where: { userId },
-        _avg: { score: true },
-      }),
-    ]);
+  getStats: async (userId: string, db: SQL): Promise<LeadStats> => {
+    try {
+      const [leadStats, huntStats] = await Promise.all([
+        db`
+        SELECT 
+          COUNT(*)::INT as total,
+          COUNT(*) FILTER (WHERE status = 'HOT')::INT as hot,
+          COUNT(*) FILTER (WHERE status = 'WARM')::INT as warm,
+          COUNT(*) FILTER (WHERE status = 'COLD')::INT as cold,
+          COUNT(*) FILTER (WHERE contacted = FALSE AND email IS NOT NULL)::INT as contactable,
+          COUNT(*) FILTER (WHERE contacted = TRUE)::INT as contacted,
+          COUNT(*) FILTER (WHERE email IS NOT NULL)::INT as emails,
+          -- Correction ici : on utilise cardinality() pour les colonnes text[]
+          COUNT(*) FILTER (WHERE "phoneNumbers" IS NOT NULL AND cardinality("phoneNumbers") > 0)::INT as phones,
+          COALESCE(AVG(score), 0)::FLOAT as avg_score
+        FROM "Lead" 
+        WHERE "userId" = ${userId}
+      ` as Promise<any[]>,
 
-    const totalHunts = completedHunts + failedHunts;
-    const successRate = totalHunts > 0 ? (completedHunts / totalHunts) * 100 : 0;
+        db`
+        SELECT 
+          COUNT(*) FILTER (WHERE status = 'PENDING')::INT as pending,
+          COUNT(*) FILTER (WHERE status = 'PROCESSING')::INT as processing,
+          COUNT(*) FILTER (WHERE status = 'COMPLETED')::INT as completed,
+          COUNT(*) FILTER (WHERE status = 'FAILED')::INT as failed
+        FROM "HuntSession" 
+        WHERE "userId" = ${userId}
+      ` as Promise<any[]>,
+      ]);
 
-    return {
-      totalLeads,
-      hotLeads,
-      warmLeads,
-      coldLeads,
-      contactableLeads,
-      contactedLeads,
-      totalEmails,
-      totalPhoneNumbers,
-      pendingHunts,
-      processingHunts,
-      completedHunts,
-      failedHunts,
-      successRate: Math.round(successRate * 10) / 10,
-      averageScore: Math.round((scoreAggregation._avg.score ?? 0) * 10) / 10,
-    };
+      const ls = leadStats[0] || {};
+      const hs = huntStats[0] || {};
+
+      const completed = hs.completed || 0;
+      const failed = hs.failed || 0;
+      const totalHunts = completed + failed;
+      const successRate = totalHunts > 0 ? (completed / totalHunts) * 100 : 0;
+
+      return {
+        totalLeads: ls.total || 0,
+        hotLeads: ls.hot || 0,
+        warmLeads: ls.warm || 0,
+        coldLeads: ls.cold || 0,
+        contactableLeads: ls.contactable || 0,
+        contactedLeads: ls.contacted || 0,
+        totalEmails: ls.emails || 0,
+        totalPhoneNumbers: ls.phones || 0,
+        pendingHunts: hs.pending || 0,
+        processingHunts: hs.processing || 0,
+        completedHunts: completed,
+        failedHunts: failed,
+        successRate: Math.round(successRate * 10) / 10,
+        averageScore: Math.round((ls.avg_score || 0) * 10) / 10,
+      };
+    } catch (error) {
+      console.error('[DATABASE_ERROR] getStats failed:', error);
+      throw error;
+    }
   },
-
-  startAudit: async ({ userId, jobs, db }: { userId: string; jobs: QueueManager; db: PrismaClient }) => {
-    const existingSessions = await db.auditSession.findMany({
-      where: {
-        userId,
-        status: {
-          in: ['PENDING', 'PROCESSING'],
-        },
-      },
-    });
+  startAudit: async ({ userId, jobs, db }: { userId: string; jobs: QueueManager; db: SQL }) => {
+    const existingSessions = (await db`
+      SELECT id, "jobId"
+      FROM "AuditSession"
+      WHERE "userId" = ${userId}
+        AND status IN ('PENDING', 'PROCESSING')
+    `) as Promise<any[]>;
 
     /**
      * for
      */
     for (const existingSession of existingSessions) {
       try {
-        await db.auditSession.update({
-          where: { id: existingSession.id },
-          data: {
-            status: 'CANCELLED',
-            completedAt: new Date(),
-          },
-        });
+        await db`
+          UPDATE "AuditSession"
+          SET status = 'CANCELLED',
+              "completedAt" = ${new Date()}
+          WHERE id = ${existingSession.id}
+        `;
 
         /**
          * if
@@ -587,28 +618,37 @@ export const leadService = {
       }
     }
 
-    const auditSession = await db.auditSession.create({
-      data: {
-        userId,
-        status: 'PENDING',
-        progress: 0,
-      },
-    });
+    const [auditSession] = (await db`
+      INSERT INTO "AuditSession" (
+        "userId", status, progress, "createdAt", "updatedAt"
+      ) VALUES (
+        ${userId},
+        'PENDING',
+        0,
+        ${new Date()},
+        ${new Date()}
+      )
+      RETURNING id, status, "createdAt"
+    `) as Promise<any[]>;
 
     try {
-      const job = await jobs.addJob('leads', 'lead-audit', {
-        auditSessionId: auditSession.id,
-        userId,
-      }, {
-        timeout: 21600000,
-      });
-
-      await db.auditSession.update({
-        where: { id: auditSession.id },
-        data: {
-          jobId: job.id,
+      const job = await jobs.addJob(
+        'leads',
+        'lead-audit',
+        {
+          auditSessionId: auditSession.id,
+          userId,
         },
-      });
+        {
+          timeout: 21600000,
+        }
+      );
+
+      await db`
+        UPDATE "AuditSession"
+        SET "jobId" = ${job.id}
+        WHERE id = ${auditSession.id}
+      `;
 
       return {
         auditSessionId: auditSession.id,
@@ -616,31 +656,36 @@ export const leadService = {
         createdAt: auditSession.createdAt,
       };
     } catch (error) {
-      await db.auditSession.update({
-        where: { id: auditSession.id },
-        data: {
-          status: 'FAILED',
-          error: error instanceof Error ? error.message : 'Failed to start audit job',
-          completedAt: new Date(),
-        },
-      });
+      await db`
+        UPDATE "AuditSession"
+        SET status = 'FAILED',
+            error = ${error instanceof Error ? error.message : 'Failed to start audit job'},
+            "completedAt" = ${new Date()}
+        WHERE id = ${auditSession.id}
+      `;
 
       throw error;
     }
   },
 
-  getAuditSessions: async (userId: string, db: PrismaClient, jobs?: QueueManager) => {
-    const sessions = await db.auditSession.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-    });
+  getAuditSessions: async (userId: string, db: SQL, jobs?: QueueManager) => {
+    const sessions = (await db`
+      SELECT *
+      FROM "AuditSession"
+      WHERE "userId" = ${userId}
+      ORDER BY "createdAt" DESC
+    `) as Promise<any[]>;
 
     const validatedSessions = await Promise.all(
       sessions.map(async (session) => {
         /**
          * if
          */
-        if (jobs && session.jobId && (session.status === 'PENDING' || session.status === 'PROCESSING')) {
+        if (
+          jobs &&
+          session.jobId &&
+          (session.status === 'PENDING' || session.status === 'PROCESSING')
+        ) {
           try {
             const queue = jobs['queues'].get('leads');
             /**
@@ -652,14 +697,13 @@ export const leadService = {
                * if
                */
               if (!job) {
-                await db.auditSession.update({
-                  where: { id: session.id },
-                  data: {
-                    status: 'FAILED',
-                    error: 'Job not found in queue (worker may have crashed)',
-                    completedAt: new Date(),
-                  },
-                });
+                await db`
+                  UPDATE "AuditSession"
+                  SET status = 'FAILED',
+                      error = 'Job not found in queue (worker may have crashed)',
+                      "completedAt" = ${new Date()}
+                  WHERE id = ${session.id}
+                `;
                 return {
                   ...session,
                   status: 'FAILED' as const,
@@ -674,14 +718,13 @@ export const leadService = {
                */
               if (jobState === 'failed' || jobState === 'completed') {
                 const newStatus = jobState === 'failed' ? 'FAILED' : 'COMPLETED';
-                await db.auditSession.update({
-                  where: { id: session.id },
-                  data: {
-                    status: newStatus,
-                    error: jobState === 'failed' ? job.failedReason : undefined,
-                    completedAt: new Date(),
-                  },
-                });
+                await db`
+                  UPDATE "AuditSession"
+                  SET status = ${newStatus},
+                      error = ${jobState === 'failed' ? job.failedReason : null},
+                      "completedAt" = ${new Date()}
+                  WHERE id = ${session.id}
+                `;
                 return {
                   ...session,
                   status: newStatus as const,
@@ -714,10 +757,12 @@ export const leadService = {
     }));
   },
 
-  getAuditSessionStatus: async (auditSessionId: string, db: PrismaClient) => {
-    const session = await db.auditSession.findUnique({
-      where: { id: auditSessionId },
-    });
+  getAuditSessionStatus: async (auditSessionId: string, db: SQL) => {
+    const [session] = (await db`
+      SELECT *
+      FROM "AuditSession"
+      WHERE id = ${auditSessionId}
+    `) as Promise<any[]>;
 
     /**
      * if
@@ -742,10 +787,12 @@ export const leadService = {
     };
   },
 
-  cancelAudit: async (auditSessionId: string, userId: string, db: PrismaClient, jobs?: QueueManager) => {
-    const session = await db.auditSession.findUnique({
-      where: { id: auditSessionId },
-    });
+  cancelAudit: async (auditSessionId: string, userId: string, db: SQL, jobs?: QueueManager) => {
+    const [session] = (await db`
+      SELECT *
+      FROM "AuditSession"
+      WHERE id = ${auditSessionId}
+    `) as Promise<any[]>;
 
     /**
      * if
@@ -764,17 +811,21 @@ export const leadService = {
     /**
      * if
      */
-    if (session.status === 'COMPLETED' || session.status === 'FAILED' || session.status === 'CANCELLED') {
+    if (
+      session.status === 'COMPLETED' ||
+      session.status === 'FAILED' ||
+      session.status === 'CANCELLED'
+    ) {
       throw new Error(`Cannot cancel an audit that is already ${session.status.toLowerCase()}`);
     }
 
-    const updatedSession = await db.auditSession.update({
-      where: { id: auditSessionId },
-      data: {
-        status: 'CANCELLED',
-        completedAt: new Date(),
-      },
-    });
+    const [updatedSession] = (await db`
+      UPDATE "AuditSession"
+      SET status = 'CANCELLED',
+          "completedAt" = ${new Date()}
+      WHERE id = ${auditSessionId}
+      RETURNING *
+    `) as Promise<any[]>;
 
     /**
      * if
@@ -821,10 +872,12 @@ export const leadService = {
     return updatedSession;
   },
 
-  deleteAudit: async (auditSessionId: string, userId: string, db: PrismaClient) => {
-    const session = await db.auditSession.findUnique({
-      where: { id: auditSessionId },
-    });
+  deleteAudit: async (auditSessionId: string, userId: string, db: SQL) => {
+    const [session] = (await db`
+      SELECT *
+      FROM "AuditSession"
+      WHERE id = ${auditSessionId}
+    `) as Promise<any[]>;
 
     /**
      * if
@@ -840,9 +893,10 @@ export const leadService = {
       throw new Error('Unauthorized to delete this audit session');
     }
 
-    await db.auditSession.delete({
-      where: { id: auditSessionId },
-    });
+    await db`
+      DELETE FROM "AuditSession"
+      WHERE id = ${auditSessionId}
+    `;
 
     return { success: true };
   },

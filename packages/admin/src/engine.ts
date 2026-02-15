@@ -1,4 +1,5 @@
-import type { PrismaClient, InputJsonValue } from '@repo/database';
+import type { InputJsonValue } from '@repo/database';
+import { SQL, sql } from 'bun';
 import { PermissionService } from './permissions';
 import { AuditService } from './audit';
 import type {
@@ -20,9 +21,9 @@ export class AdminEngine<
    * constructor
    */
   constructor(
-    private db: PrismaClient,
+    private db: SQL, // Changed type
     private config: EntityConfig<TModel, TCreateInput, TUpdateInput>,
-    private delegate: any
+    private delegate: any // This type needs to be refactored later
   ) {
     this.permissionService = new PermissionService(db);
     this.auditService = new AuditService(db);

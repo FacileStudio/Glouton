@@ -23,8 +23,7 @@ declare global {
 }
 
 console.log('[BACKEND] Workers are running in a separate Rust process (packages/rust-workers)');
-console.log('[BACKEND] This backend process only manages job queues and API requests');
-console.log('[BACKEND] Rust workers are 10-15x faster and more reliable than Node.js workers');
+console.log('[BACKEND] This backend process manages job queues and API requests');
 
 broadcastService.initialize(broadcastToUser, broadcastToAll);
 
@@ -36,12 +35,8 @@ const healthMonitor = new JobHealthMonitor(jobs, db, {
 
 const jobSyncService = new JobSyncService(db, jobs);
 
-/**
- * validateRedis
- */
 async function validateRedis() {
   try {
-    console.log('[REDIS] Validating Redis configuration...');
     const validation = await validateRedisConfiguration({
       host: env.REDIS_HOST,
       port: parseInt(env.REDIS_PORT),
@@ -50,27 +45,20 @@ async function validateRedis() {
       maxRetriesPerRequest: null,
     });
 
-    /**
-     * if
-     */
     if (!validation.valid) {
-      console.warn('[REDIS] Redis configuration warnings:');
-      validation.warnings.forEach(warning => console.warn(`  - ${warning}`));
+      console.warn('[REDIS] Configuration warnings:');
+      validation.warnings.forEach(w => console.warn(`  - ${w}`));
     } else {
-      console.log('[REDIS] Redis configuration is valid');
+      console.log('[REDIS] Configuration is valid');
     }
   } catch (error) {
-    console.error('[REDIS] Failed to validate Redis configuration:', error);
+    console.error('[REDIS] Validation failed:', error);
   }
 }
 
-
-/**
- * validateRedis
- */
+// Lancement des vérifications au démarrage
 validateRedis();
 jobSyncService.syncJobStates();
-
 healthMonitor.start();
 
 const app = new Hono();
@@ -78,8 +66,9 @@ const app = new Hono();
 app.use('*', corsHandler(env.TRUSTED_ORIGINS));
 app.use('*', loggerMiddleware);
 
+// Health Checks (Injection de la DB nécessaire pour Readiness)
 app.get('/health/live', createLivenessHandler());
-app.get('/health/ready', createReadinessHandler());
+app.get('/health/ready', createReadinessHandler({ db }));
 
 app.get('/ws', wsHandler);
 
@@ -100,27 +89,13 @@ app.post('/internal/broadcast', async (c) => {
     const body = await c.req.json();
     const { userId, message, broadcastAll } = body;
 
-    /**
-     * if
-     */
-    if (!message) {
-      return c.json({ error: 'Missing message' }, 400);
-    }
+    if (!message) return c.json({ error: 'Missing message' }, 400);
 
-    /**
-     * if
-     */
     if (broadcastAll) {
-      logger.debug('[INTERNAL] Broadcasting to all users', { messageType: message.type });
-      /**
-       * broadcastToAll
-       */
+      logger.debug('[INTERNAL] Broadcasting to all users', { type: message.type });
       broadcastToAll(message);
     } else if (userId) {
-      logger.debug('[INTERNAL] Broadcasting to user', { userId: userId.slice(0, 8), messageType: message.type });
-      /**
-       * broadcastToUser
-       */
+      logger.debug('[INTERNAL] Broadcasting to user', { userId: userId.slice(0, 8), type: message.type });
       broadcastToUser(userId, message);
     } else {
       return c.json({ error: 'Missing userId or broadcastAll flag' }, 400);
@@ -135,45 +110,24 @@ app.post('/internal/broadcast', async (c) => {
 
 app.all('/trpc/*', trpcHandler(config));
 
-app.get('/', (c) => c.json({ message: 'Welcome to the Glouton\'s API !' }));
+app.get('/', (c) => c.json({ message: "Welcome to the Glouton's API !" }));
 
 const port = Number(env.PORT);
 
-/**
- * gracefulShutdown
- */
 async function gracefulShutdown(signal: string) {
-  console.log(`\n[SHUTDOWN] Received ${signal}, starting graceful shutdown...`);
-
+  console.log(`\n[SHUTDOWN] Received ${signal}, closing...`);
   try {
-    console.log('[SHUTDOWN] Stopping health monitor...');
     healthMonitor.stop();
-
-    console.log('[SHUTDOWN] Closing BullMQ workers and queues...');
     await jobs.close();
-    console.log('[SHUTDOWN] BullMQ workers and queues closed successfully');
-
-    console.log('[SHUTDOWN] Graceful shutdown complete');
+    console.log('[SHUTDOWN] Success');
     process.exit(0);
   } catch (error) {
-    console.error('[SHUTDOWN] Error during graceful shutdown:', error);
+    console.error('[SHUTDOWN] Error:', error);
     process.exit(1);
   }
 }
 
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('[ERROR] Unhandled Rejection at:', promise, 'reason:', reason);
-});
-
-process.on('uncaughtException', (error) => {
-  console.error('[ERROR] Uncaught Exception:', error);
-  /**
-   * gracefulShutdown
-   */
-  gracefulShutdown('uncaughtException');
-});
 
 export default { port, fetch: app.fetch, websocket };

@@ -1,4 +1,5 @@
 import { AuthManager } from '@repo/auth';
+import { db } from '@repo/database';
 import { QueueManager, createJobConfig } from '@repo/jobs';
 import { SMTPService } from '@repo/smtp';
 import env from './env';
@@ -38,4 +39,5 @@ export default {
   env,
   jobs,
   smtp,
+  db,
 };

@@ -12,10 +12,6 @@
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
     "clean": "turbo run clean && rm -rf node_modules",
-    "dev:db": "./scripts/start-db-dev.sh",
-    "dev:db:setup": "./scripts/start-db-dev.sh && cd packages/database && bun run db:push",
-    "db:studio": "cd packages/database && bun run db:studio",
-    "db:seed": "cd packages/database && bun run db:seed",
     "cleanup:stuck-hunts": "bun run scripts/cleanup-stuck-hunts.ts",
     "typecheck": "turbo run typecheck"
   },
@@ -26,7 +22,6 @@
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
     "prettier": "^3.8.1",
-    "prettier-plugin-prisma": "^5.0.0",
     "prettier-plugin-svelte": "^3.4.1",
     "turbo": "^2.8.1",
     "typescript": "^5.9.3"

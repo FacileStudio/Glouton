@@ -1,4 +1,5 @@
-import type { PrismaClient, HuntSession, Lead } from '@repo/database';
+import { SQL, sql } from 'bun';
+import type { HuntSession, Lead } from '@repo/database';
 import { TRPCError } from '@trpc/server';
 
 export interface RunDetails {
@@ -58,11 +59,13 @@ export interface RunEvent {
 async function getRunDetails(
   huntSessionId: string,
   userId: string,
-  db: PrismaClient
+  db: SQL
 ): Promise<RunDetails> {
-  const session = await db.huntSession.findUnique({
-    where: { id: huntSessionId },
-  });
+  const [session] = await db`
+    SELECT *
+    FROM "HuntSession"
+    WHERE id = ${huntSessionId}
+  ` as Promise<any[]>;
 
   /**
    * if
@@ -84,23 +87,12 @@ async function getRunDetails(
     });
   }
 
-  const leads = await db.lead.findMany({
-    where: { huntSessionId },
-    select: {
-      id: true,
-      domain: true,
-      email: true,
-      firstName: true,
-      lastName: true,
-      position: true,
-      status: true,
-      score: true,
-      source: true,
-      contacted: true,
-      createdAt: true,
-    },
-    orderBy: { createdAt: 'desc' },
-  });
+  const leads = await db`
+    SELECT id, domain, email, "firstName", "lastName", position, status, score, source, contacted, "createdAt"
+    FROM "Lead"
+    WHERE "huntSessionId" = ${huntSessionId}
+    ORDER BY "createdAt" DESC
+  ` as Promise<any[]>;
 
   const stats = calculateStats(session, leads);
 
@@ -345,7 +337,7 @@ function generateRunEvents(session: HuntSession): RunEvent[] {
 async function getRunEvents(
   huntSessionId: string,
   userId: string,
-  db: PrismaClient,
+  db: SQL,
   options?: {
     level?: 'info' | 'warning' | 'error' | 'success';
     category?: 'system' | 'source' | 'lead' | 'enrichment';
@@ -353,9 +345,11 @@ async function getRunEvents(
     limit?: number;
   }
 ): Promise<{ events: RunEvent[]; total: number; page: number; limit: number }> {
-  const session = await db.huntSession.findUnique({
-    where: { id: huntSessionId },
-  });
+  const [session] = await db`
+    SELECT *
+    FROM "HuntSession"
+    WHERE id = ${huntSessionId}
+  ` as Promise<any[]>;
 
   /**
    * if

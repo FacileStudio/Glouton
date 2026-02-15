@@ -1,11 +1,11 @@
-import type { PrismaClient } from '@repo/database';
+import { SQL, sql } from 'bun';
 import type { EntityOperation, AdminPermissions, AdminContext } from './types';
 
 export class PermissionService {
   /**
    * constructor
    */
-  constructor(private db: PrismaClient) {}
+  constructor(private db: SQL) {}
 
   /**
    * checkPermission
@@ -22,14 +22,11 @@ export class PermissionService {
       return true;
     }
 
-    const permission = await this.db.adminPermission.findUnique({
-      where: {
-        userId_entity: {
-          userId: context.userId,
-          entity,
-        },
-      },
-    });
+    const [permission] = await this.db`
+      SELECT "canCreate", "canRead", "canUpdate", "canDelete"
+      FROM "AdminPermission"
+      WHERE "userId" = ${context.userId} AND entity = ${entity}
+    ` as Promise<any[]>;
 
     /**
      * if
@@ -67,14 +64,11 @@ export class PermissionService {
       };
     }
 
-    const permission = await this.db.adminPermission.findUnique({
-      where: {
-        userId_entity: {
-          userId: context.userId,
-          entity,
-        },
-      },
-    });
+    const [permission] = await this.db`
+      SELECT "canCreate", "canRead", "canUpdate", "canDelete"
+      FROM "AdminPermission"
+      WHERE "userId" = ${context.userId} AND entity = ${entity}
+    ` as Promise<any[]>;
 
     /**
      * if
@@ -104,43 +98,43 @@ export class PermissionService {
     entity: string,
     permissions: AdminPermissions
   ): Promise<void> {
-    await this.db.adminPermission.upsert({
-      where: {
-        userId_entity: {
-          userId,
-          entity,
-        },
-      },
-      create: {
-        userId,
-        entity,
-        ...permissions,
-      },
-      update: permissions,
-    });
+    await this.db`
+      INSERT INTO "AdminPermission" ("userId", entity, "canCreate", "canRead", "canUpdate", "canDelete")
+      VALUES (
+        ${userId},
+        ${entity},
+        ${permissions.canCreate},
+        ${permissions.canRead},
+        ${permissions.canUpdate},
+        ${permissions.canDelete}
+      )
+      ON CONFLICT ("userId", entity) DO UPDATE SET
+        "canCreate" = EXCLUDED."canCreate",
+        "canRead" = EXCLUDED."canRead",
+        "canUpdate" = EXCLUDED."canUpdate",
+        "canDelete" = EXCLUDED."canDelete"
+    `;
   }
 
   /**
    * revokeEntityPermissions
    */
   async revokeEntityPermissions(userId: string, entity: string): Promise<void> {
-    await this.db.adminPermission.delete({
-      where: {
-        userId_entity: {
-          userId,
-          entity,
-        },
-      },
-    });
+    await this.db`
+      DELETE FROM "AdminPermission"
+      WHERE "userId" = ${userId} AND entity = ${entity}
+    `;
   }
 
   /**
    * getAllUserPermissions
    */
   async getAllUserPermissions(userId: string) {
-    return this.db.adminPermission.findMany({
-      where: { userId },
-    });
+    return this.db`
+      SELECT id, "userId", entity, "canCreate", "canRead", "canUpdate", "canDelete", "createdAt", "updatedAt"
+      FROM "AdminPermission"
+      WHERE "userId" = ${userId}
+    ` as Promise<any[]>;
   }
 
   /**

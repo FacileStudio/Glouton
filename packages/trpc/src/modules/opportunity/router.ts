@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { router, protectedProcedure, adminProcedure } from '../../trpc';
 import { OpportunityService } from './service';
-import { OpportunitySource, OpportunityCategory } from '@repo/database';
+import { OpportunitySource, OpportunityCategory } from '@repo/opportunity-scraper';
 
 const opportunitySourceEnum = z.nativeEnum(OpportunitySource);
 const opportunityCategoryEnum = z.nativeEnum(OpportunityCategory);

@@ -13,10 +13,9 @@ export default defineConfig({
   },
   ssr: {
     noExternal: ['@repo/database'],
-    external: ['@prisma/client'],
   },
   optimizeDeps: {
-    exclude: ['@prisma/client', '@repo/database'],
+    exclude: ['@repo/database'],
   },
   assetsInclude: ['***.woff2', '***.otf']
 });

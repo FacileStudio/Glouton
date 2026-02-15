@@ -1,4 +1,4 @@
-import type { PrismaClient } from '@repo/database';
+import type { SQL } from 'bun';
 import { auditWebsite, type AuditResult } from '@repo/audit';
 import { scrapeWebsite, type ScrapedData } from '@repo/scraper';
 import type { Logger } from '@repo/logger';
@@ -119,14 +119,15 @@ export class WebsiteEnricher {
    * enrichLeadsBatch
    */
   async enrichLeadsBatch(
-    db: PrismaClient,
+    db: SQL,
     leadIds: string[],
     options: EnrichmentOptions = {}
   ): Promise<void> {
-    const leads = await db.lead.findMany({
-      where: { id: { in: leadIds } },
-      select: { id: true, domain: true },
-    });
+    const leads = await db`
+      SELECT id, domain
+      FROM "Lead"
+      WHERE id IN (${leadIds})
+    ` as Promise<any[]>;
 
     const uniqueDomains = Array.from(new Set(leads.map((l) => l.domain)));
     const domainToLeadIds = new Map<string, string[]>();
@@ -192,11 +193,11 @@ export class WebsiteEnricher {
          * if
          */
         if (Object.keys(updateData).length > 0) {
-          await db.lead.updateMany({
-            where: { id: { in: leadIdsForDomain } },
-            data: updateData,
-          });
-
+                        await db`
+                          UPDATE "Lead"
+                          SET ${db(updateData)}
+                          WHERE id IN (${leadIdsForDomain})
+                        `;
           this.logger.debug(
             {
               domain,
@@ -226,19 +227,26 @@ export class WebsiteEnricher {
    * enrichLeadsForSession
    */
   async enrichLeadsForSession(
-    db: PrismaClient,
+    db: SQL,
     sessionId: string,
     sessionType: 'hunt' | 'audit',
     progressCallback: (progress: number) => Promise<void>,
     options: EnrichmentOptions = {}
   ): Promise<void> {
-    const whereClause =
-      sessionType === 'hunt' ? { huntSessionId: sessionId } : { userId: sessionId };
-
-    const leads = await db.lead.findMany({
-      where: whereClause,
-      select: { id: true, domain: true },
-    });
+    let leads: any[];
+    if (sessionType === 'hunt') {
+      leads = await db`
+        SELECT id, domain
+        FROM "Lead"
+        WHERE "huntSessionId" = ${sessionId}
+      ` as Promise<any[]>; // Added cast
+    } else {
+      leads = await db`
+        SELECT id, domain
+        FROM "Lead"
+        WHERE "userId" = ${sessionId}
+      ` as Promise<any[]>; // Added cast
+    }
 
     /**
      * if
@@ -342,10 +350,11 @@ export class WebsiteEnricher {
              * if
              */
             if (Object.keys(updateData).length > 0) {
-              await db.lead.updateMany({
-                where: { id: { in: leadIds } },
-                data: updateData,
-              });
+              await db`
+                UPDATE "Lead"
+                SET ${db(updateData)}
+                WHERE id IN (${leadIds})
+              `;
 
               this.logger.debug(
                 {

@@ -10,15 +10,12 @@ import {
 export const queryRouter = router({
   list: protectedProcedure.input(listLeadsSchema).query(async ({ ctx, input }) => {
     try {
-      const filters = input ?? {};
-
-      const result = await leadService.getLeads({
+      // Le leadService doit également être mis à jour pour accepter l'instance Bun SQL
+      return await leadService.getLeads({
         userId: ctx.user.id,
         db: ctx.db,
-        filters,
+        filters: input ?? {},
       });
-
-      return result;
     } catch (error) {
       ctx.log.error({
         action: 'list-leads-failed',
@@ -28,20 +25,19 @@ export const queryRouter = router({
       throw new TRPCError({
         code: 'INTERNAL_SERVER_ERROR',
         message: 'Failed to retrieve leads',
-        cause: error,
       });
     }
   }),
 
   getById: protectedProcedure.input(getByIdSchema).query(async ({ ctx, input }) => {
     try {
-      const lead = await ctx.db.lead.findUnique({
-        where: { id: input.id },
-      });
+      // Utilisation de Bun SQL pour récupérer un lead unique
+      const [lead] = await ctx.db`
+        SELECT * FROM "Lead" 
+        WHERE id = ${input.id} 
+        LIMIT 1
+      ` as any[];
 
-      /**
-       * if
-       */
       if (!lead) {
         throw new TRPCError({
           code: 'NOT_FOUND',
@@ -49,9 +45,6 @@ export const queryRouter = router({
         });
       }
 
-      /**
-       * if
-       */
       if (lead.userId !== ctx.user.id) {
         throw new TRPCError({
           code: 'FORBIDDEN',
@@ -61,12 +54,7 @@ export const queryRouter = router({
 
       return lead;
     } catch (error) {
-      /**
-       * if
-       */
-      if (error instanceof TRPCError) {
-        throw error;
-      }
+      if (error instanceof TRPCError) throw error;
 
       ctx.log.error({
         action: 'get-lead-by-id-failed',
@@ -77,7 +65,6 @@ export const queryRouter = router({
       throw new TRPCError({
         code: 'INTERNAL_SERVER_ERROR',
         message: 'Failed to retrieve lead',
-        cause: error,
       });
     }
   }),
@@ -93,45 +80,31 @@ export const queryRouter = router({
 
       return result;
     } catch (error) {
-      /**
-       * if
-       */
-      if (error instanceof Error && error.message === 'Unauthorized to delete this lead') {
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'You do not have permission to delete this lead',
-        });
+      const msg = error instanceof Error ? error.message : '';
+      
+      if (msg === 'Unauthorized to delete this lead') {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'Unauthorized access' });
       }
-
-      /**
-       * if
-       */
-      if (error instanceof Error && error.message === 'Lead not found') {
-        throw new TRPCError({
-          code: 'NOT_FOUND',
-          message: 'Lead not found',
-        });
+      if (msg === 'Lead not found') {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Lead not found' });
       }
 
       ctx.log.error({
         action: 'delete-lead-failed',
         leadId: input.leadId,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: msg,
       });
 
       throw new TRPCError({
         code: 'INTERNAL_SERVER_ERROR',
         message: 'Failed to delete lead',
-        cause: error,
       });
     }
   }),
 
   getStats: protectedProcedure.query(async ({ ctx }) => {
     try {
-      const stats = await leadService.getStats(ctx.user.id, ctx.db);
-
-      return stats;
+      return await leadService.getStats(ctx.user.id, ctx.db);
     } catch (error) {
       ctx.log.error({
         action: 'get-stats-failed',
@@ -141,51 +114,30 @@ export const queryRouter = router({
       throw new TRPCError({
         code: 'INTERNAL_SERVER_ERROR',
         message: 'Failed to retrieve statistics',
-        cause: error,
       });
     }
   }),
 
   getActiveSessions: protectedProcedure.query(async ({ ctx }) => {
     try {
+      // Récupération parallèle des sessions avec Bun SQL
       const [activeAudits, activeHunts] = await Promise.all([
-        ctx.db.auditSession.findMany({
-          where: {
-            userId: ctx.user.id,
-            status: { in: ['PENDING', 'PROCESSING'] },
-          },
-          orderBy: { createdAt: 'desc' },
-          select: {
-            id: true,
-            status: true,
-            progress: true,
-            totalLeads: true,
-            processedLeads: true,
-            updatedLeads: true,
-            failedLeads: true,
-            currentDomain: true,
-            startedAt: true,
-            createdAt: true,
-          },
-        }),
-        ctx.db.huntSession.findMany({
-          where: {
-            userId: ctx.user.id,
-            status: { in: ['PENDING', 'PROCESSING'] },
-          },
-          orderBy: { createdAt: 'desc' },
-          select: {
-            id: true,
-            targetUrl: true,
-            status: true,
-            progress: true,
-            totalLeads: true,
-            successfulLeads: true,
-            failedLeads: true,
-            startedAt: true,
-            createdAt: true,
-          },
-        }),
+        ctx.db`
+          SELECT 
+            id, status, progress, "totalLeads", "processedLeads", 
+            "updatedLeads", "failedLeads", "currentDomain", "startedAt", "createdAt"
+          FROM "AuditSession"
+          WHERE "userId" = ${ctx.user.id} AND status IN ('PENDING', 'PROCESSING')
+          ORDER BY "createdAt" DESC
+        ` as Promise<any[]>,
+        ctx.db`
+          SELECT 
+            id, "targetUrl", status, progress, "totalLeads", 
+            "successfulLeads", "failedLeads", "startedAt", "createdAt"
+          FROM "HuntSession"
+          WHERE "userId" = ${ctx.user.id} AND status IN ('PENDING', 'PROCESSING')
+          ORDER BY "createdAt" DESC
+        ` as Promise<any[]>,
       ]);
 
       return {
@@ -201,7 +153,6 @@ export const queryRouter = router({
       throw new TRPCError({
         code: 'INTERNAL_SERVER_ERROR',
         message: 'Failed to retrieve active sessions',
-        cause: error,
       });
     }
   }),

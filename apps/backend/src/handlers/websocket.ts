@@ -25,9 +25,6 @@ export function broadcastToUser(userId: string, message: any) {
     totalUsers: clients.size,
   });
 
-  /**
-   * if
-   */
   if (!userClients) {
     logger.debug(`[WebSocket] No clients connected for user ${userId.slice(0, 8)}`);
     return;
@@ -45,9 +42,6 @@ export function broadcastToUser(userId: string, message: any) {
 
   userClients.forEach((ws) => {
     try {
-      /**
-       * if
-       */
       if (ws.readyState === 1) {
         ws.send(messageStr);
         sentCount++;
@@ -66,24 +60,15 @@ export function broadcastToUser(userId: string, message: any) {
     userClients.delete(ws);
   });
 
-  /**
-   * if
-   */
   if (userClients.size === 0) {
     clients.delete(userId);
   }
 
-  /**
-   * if
-   */
   if (message.type !== 'pong' && sentCount > 0) {
     logger.debug(`[WebSocket] Broadcasted ${message.type} to ${sentCount} client(s) for user ${userId.slice(0, 8)}`);
   }
 }
 
-/**
- * broadcastToAll
- */
 export function broadcastToAll(message: any) {
   let messageStr: string;
   try {
@@ -100,9 +85,6 @@ export function broadcastToAll(message: any) {
 
     userClients.forEach((ws) => {
       try {
-        /**
-         * if
-         */
         if (ws.readyState === 1) {
           ws.send(messageStr);
           totalSent++;
@@ -119,9 +101,6 @@ export function broadcastToAll(message: any) {
       totalStale++;
     });
 
-    /**
-     * if
-     */
     if (userClients.size === 0) {
       clients.delete(userId);
     }
@@ -132,16 +111,10 @@ export const wsHandler = upgradeWebSocket(async (c) => {
   const token = c.req.query('token');
   let userId: string | undefined;
 
-  /**
-   * if
-   */
   if (token) {
     try {
       const authManager = new AuthManager({ encryptionSecret: process.env.ENCRYPTION_SECRET! });
       const user = await authManager.verifyToken(token);
-      /**
-       * if
-       */
       if (user) {
         userId = user.id;
       }
@@ -151,22 +124,13 @@ export const wsHandler = upgradeWebSocket(async (c) => {
   }
 
   return {
-    /**
-     * onOpen
-     */
     onOpen(_event, ws) {
       ws.data = {
         userId,
         createdAt: Date.now(),
       };
 
-      /**
-       * if
-       */
       if (userId) {
-        /**
-         * if
-         */
         if (!clients.has(userId)) {
           clients.set(userId, new Set());
         }
@@ -178,16 +142,10 @@ export const wsHandler = upgradeWebSocket(async (c) => {
       ws.send(JSON.stringify(connectedMsg));
     },
 
-    /**
-     * onMessage
-     */
     onMessage(event, ws) {
       try {
         const data = JSON.parse(event.data.toString());
 
-        /**
-         * if
-         */
         if (data.type === 'ping') {
           ws.send(JSON.stringify({ type: 'pong', timestamp: new Date() }));
         }
@@ -196,25 +154,16 @@ export const wsHandler = upgradeWebSocket(async (c) => {
       }
     },
 
-    /**
-     * onClose
-     */
     onClose(_event, ws) {
       const userId = ws.data?.userId;
 
-      /**
-       * if
-       */
+
       if (userId) {
         const userClients = clients.get(userId);
-        /**
-         * if
-         */
+
         if (userClients) {
           userClients.delete(ws);
-          /**
-           * if
-           */
+          
           if (userClients.size === 0) {
             clients.delete(userId);
           }
@@ -223,26 +172,14 @@ export const wsHandler = upgradeWebSocket(async (c) => {
       }
     },
 
-    /**
-     * onError
-     */
     onError(event, ws) {
       logger.debug('[WebSocket] Connection error');
 
       const userId = ws.data?.userId;
-      /**
-       * if
-       */
       if (userId) {
         const userClients = clients.get(userId);
-        /**
-         * if
-         */
         if (userClients) {
           userClients.delete(ws);
-          /**
-           * if
-           */
           if (userClients.size === 0) {
             clients.delete(userId);
           }

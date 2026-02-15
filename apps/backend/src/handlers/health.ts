@@ -1,9 +1,8 @@
 import { Context } from 'hono';
-import { prisma } from '@repo/database';
-import { StripeService } from '@repo/stripe';
+import { SQL } from 'bun';
 
 export interface HealthCheckDependencies {
-  stripe: StripeService;
+  db: SQL;
 }
 
 interface ServiceStatus {
@@ -13,23 +12,19 @@ interface ServiceStatus {
 }
 
 interface HealthCheckResponse {
-  status: 'healthy' | 'degraded' | 'unhealthy';
+  status: 'healthy' | 'unhealthy';
   timestamp: string;
   uptime: number;
   services: {
     api: ServiceStatus;
     database: ServiceStatus;
-    stripe: ServiceStatus;
   };
 }
 
-/**
- * checkDatabase
- */
-async function checkDatabase(): Promise<ServiceStatus> {
+async function checkDatabase(db: SQL): Promise<ServiceStatus> {
   const start = Date.now();
   try {
-    await prisma.$queryRaw`SELECT 1`;
+    await db`SELECT 1`;
     return {
       status: 'healthy',
       latency: Date.now() - start,
@@ -37,99 +32,52 @@ async function checkDatabase(): Promise<ServiceStatus> {
   } catch (error) {
     return {
       status: 'unhealthy',
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: error instanceof Error ? error.message : 'Database connection failed',
     };
   }
 }
 
-/**
- * checkStripe
- */
-async function checkStripe(stripe: StripeService): Promise<ServiceStatus> {
-  const start = Date.now();
-  try {
-    await stripe.client.balance.retrieve();
-    return {
-      status: 'healthy',
-      latency: Date.now() - start,
-    };
-  } catch (error) {
-    return {
-      status: 'unhealthy',
-      error: error instanceof Error ? error.message : 'Unknown error',
-    };
-  }
-}
-
-/**
- * createHealthCheckHandler
- */
 export function createHealthCheckHandler(deps: HealthCheckDependencies) {
   return async (c: Context) => {
     const startTime = Date.now();
 
-    const [databaseStatus, stripeStatus] = await Promise.all([
-      /**
-       * checkDatabase
-       */
-      checkDatabase(),
-      /**
-       * checkStripe
-       */
-      checkStripe(deps.stripe),
-    ]);
+    const databaseStatus = await checkDatabase(deps.db);
 
     const apiStatus: ServiceStatus = {
       status: 'healthy',
       latency: Date.now() - startTime,
     };
 
-    const services = {
-      api: apiStatus,
-      database: databaseStatus,
-      stripe: stripeStatus,
-    };
-
-    const unhealthyServices = Object.values(services).filter(
-      (s) => s.status === 'unhealthy'
-    );
-    const allHealthy = unhealthyServices.length === 0;
-
-    const overallStatus: 'healthy' | 'degraded' | 'unhealthy' =
-      allHealthy ? 'healthy' : unhealthyServices.length >= 2 ? 'unhealthy' : 'degraded';
+    const overallStatus = databaseStatus.status === 'healthy' ? 'healthy' : 'unhealthy';
 
     const response: HealthCheckResponse = {
       status: overallStatus,
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
-      services,
+      services: {
+        api: apiStatus,
+        database: databaseStatus,
+      },
     };
 
-    const statusCode = overallStatus === 'healthy' ? 200 : overallStatus === 'degraded' ? 207 : 503;
+    const statusCode = overallStatus === 'healthy' ? 200 : 503;
 
     return c.json(response, statusCode);
   };
 }
 
-/**
- * createLivenessHandler
- */
 export function createLivenessHandler() {
-  /**
-   * return
-   */
   return (c: Context) => {
-    return c.json({ status: 'alive', timestamp: new Date().toISOString() }, 200);
+    return c.json({ 
+      status: 'alive', 
+      timestamp: new Date().toISOString() 
+    }, 200);
   };
 }
 
-/**
- * createReadinessHandler
- */
-export function createReadinessHandler() {
+export function createReadinessHandler(deps: { db: SQL }) {
   return async (c: Context) => {
-    const [databaseStatus] = await Promise.all([checkDatabase()]);
-
+    const databaseStatus = await checkDatabase(deps.db);
     const isReady = databaseStatus.status === 'healthy';
 
     return c.json(
