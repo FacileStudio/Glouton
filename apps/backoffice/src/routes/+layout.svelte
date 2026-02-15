@@ -42,7 +42,7 @@
         /**
          * goto
          */
-        goto(resolve('/admin/contacts'));
+        goto(resolve('/admin'));
     }
   });
 </script>

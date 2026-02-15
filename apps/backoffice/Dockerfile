@@ -8,7 +8,6 @@ COPY apps/backoffice/package.json ./apps/backoffice/
 COPY packages/admin/package.json ./packages/admin/
 COPY packages/auth-shared/package.json ./packages/auth-shared/
 COPY packages/env/package.json ./packages/env/
-COPY packages/i18n/package.json ./packages/i18n/
 COPY packages/logger/package.json ./packages/logger/
 COPY packages/trpc-client/package.json ./packages/trpc-client/
 COPY packages/types/package.json ./packages/types/

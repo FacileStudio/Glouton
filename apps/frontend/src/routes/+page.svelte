@@ -28,11 +28,9 @@
   async function handleSubmit() {
     loading = true;
     try {
-      await trpc.contact.create.mutate({ email, firstName, lastName });
       message = 'Bienvenue dans la meute. Le buffet est ouvert !';
       email = firstName = lastName = '';
     } catch (error: unknown) {
-      logger.error({ err: error }, 'Failed to submit contact form');
       message = 'Erreur. Glouton a eu une indigestion.';
     }
     loading = false;
@@ -170,44 +168,7 @@
     </div>
   </section>
 
-  <section id="contact" class="py-24 px-6 bg-black text-white rounded-[48px] mx-4 mb-4 scroll-mt-12 relative overflow-hidden">
-    <div class="absolute -right-20 -top-20 opacity-10" style="color: #FEC129;">
-        <iconify-icon icon="solar:widget-5-bold-duotone" width="400"></iconify-icon>
-    </div>
 
-    <div class="max-w-5xl mx-auto flex flex-col md:flex-row gap-20 items-center relative z-10">
-      <div class="flex-1 text-center md:text-left">
-        <h2 class="text-6xl md:text-8xl font-black tracking-tighter mb-8 text-balance leading-none">
-          Prêt à <br /> <span style="color: #FEC129;">démarrer</span> ?
-        </h2>
-        <p class="text-neutral-400 text-xl font-medium">
-          Créez votre compte et lancez votre première campagne de prospection en quelques minutes.
-        </p>
-      </div>
-
-      <form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }} class="contact-form w-full md:w-[450px] space-y-4">
-        <div class="grid grid-cols-2 gap-4">
-          <input bind:value={firstName} placeholder="Prénom" required class="w-full px-8 py-5 bg-white/5 border border-white/10 rounded-2xl outline-none transition placeholder:text-neutral-600 font-bold" />
-          <input bind:value={lastName} placeholder="Nom" required class="w-full px-8 py-5 bg-white/5 border border-white/10 rounded-2xl outline-none transition placeholder:text-neutral-600 font-bold" />
-        </div>
-        <input type="email" bind:value={email} placeholder="Email professionnel" required class="w-full px-8 py-5 bg-white/5 border border-white/10 rounded-2xl outline-none transition placeholder:text-neutral-600 font-bold" />
-        <button disabled={loading} class="submit-btn w-full text-black py-6 rounded-2xl font-black uppercase tracking-widest transition-all disabled:opacity-50 flex items-center justify-center gap-3" style="background-color: #FEC129;">
-          {#if loading}
-            <iconify-icon icon="svg-spinners:18-dots-revolve" width="24"></iconify-icon>
-            Envoi en cours...
-          {:else}
-            <iconify-icon icon="solar:letter-bold-duotone" width="22"></iconify-icon>
-            Demander une démo
-          {/if}
-        </button>
-        {#if message}
-          <div class="mt-4 text-center text-sm font-black uppercase tracking-widest" style="color: {message.includes('Erreur') ? '#ef4444' : '#FEC129'};">
-            {message}
-          </div>
-        {/if}
-      </form>
-    </div>
-  </section>
 
   <footer class="pt-24 pb-12 px-10" style="background-color: #FAF7F5;">
     <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start border-t border-neutral-100 pt-16 gap-16">
@@ -274,9 +235,7 @@
     color: black !important;
   }
 
-  .contact-form input:focus {
-    border-color: #FEC129 !important;
-  }
+
 
   .submit-btn:hover:not(:disabled) {
     background-color: white !important;
