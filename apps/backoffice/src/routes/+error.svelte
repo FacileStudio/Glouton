@@ -10,7 +10,7 @@
   /**
    * goDashboard
    */
-  const goDashboard = () => goto(resolve('/admin/contacts'));
+  const goDashboard = () => goto(resolve('/admin'));
   /**
    * goBack
    */
@@ -60,8 +60,7 @@
             The admin resource you are trying to reach doesn't exist or has been moved. Check the
             terminal logs or return to base.
           {:else if status === 403}
-            Your current security clearance does not allow access to this sector. Contact your root
-            administrator for elevation.
+            Your current security clearance does not allow access to this sector.
           {:else}
             {message}
           {/if}

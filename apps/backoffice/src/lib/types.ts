@@ -6,5 +6,5 @@ type RouterOutput = inferRouterOutputs<AppRouter>;
 export type User = RouterOutput['user']['list'][number];
 export type UserDetail = RouterOutput['user']['getById'];
 export type UserStats = RouterOutput['user']['getStats'];
-export type Contact = RouterOutput['contact']['list'][number];
+
 export type SessionUser = RouterOutput['auth']['me'];

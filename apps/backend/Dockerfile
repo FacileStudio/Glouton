@@ -11,8 +11,6 @@ COPY packages/crypto/package.json ./packages/crypto/
 COPY packages/database/package.json ./packages/database/
 COPY packages/env/package.json ./packages/env/
 COPY packages/logger/package.json ./packages/logger/
-COPY packages/storage/package.json ./packages/storage/
-COPY packages/stripe/package.json ./packages/stripe/
 COPY packages/trpc/package.json ./packages/trpc/
 COPY packages/types/package.json ./packages/types/
 
@@ -23,8 +21,6 @@ WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-
-RUN bun run db:generate
 
 FROM base AS runner
 WORKDIR /app

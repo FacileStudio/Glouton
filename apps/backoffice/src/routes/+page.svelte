@@ -46,7 +46,7 @@
             /**
              * goto
              */
-            goto(resolve('/admin/contacts'));
+            goto(resolve('/admin'));
         } catch (err) {
             logger.error({ err }, 'Login error');
             error = err instanceof Error ? err.message : "Une erreur est survenue lors de la connexion";

@@ -97,7 +97,7 @@ TRUSTED_ORIGINS=http://localhost:3000,http://localhost:3001,http://localhost:300
     ├── auth/             # JWT authentication (server)
     ├── auth-shared/      # Shared auth utilities
     ├── crypto/           # Encryption utilities
-    ├── database/         # Prisma schema + client
+    ├── database/         # Database client and types
     ├── env/              # Zod environment validation
     ├── i18n/             # Internationalization (universal)
     ├── storage/          # MinIO S3 service (server)
@@ -120,7 +120,6 @@ TRUSTED_ORIGINS=http://localhost:3000,http://localhost:3001,http://localhost:300
 **Backend**
 - Hono 4.11+ (web framework)
 - tRPC 11.0+ (type-safe API)
-- Prisma (ORM)
 - SQLite (database, easily swappable)
 
 **Frontend**
@@ -373,42 +372,7 @@ t('myFeature.title')
 
 **Adding new locales:** See `packages/i18n/README.md`
 
-### 7. Database (Prisma)
 
-**Multi-schema setup:**
-
-```
-packages/database/prisma/schema/
-├── base.prisma         # Database config
-├── user.prisma         # User model
-├── account.prisma      # OAuth accounts
-├── session.prisma      # Sessions
-├── contact.prisma      # Contact form
-├── stripe.prisma       # Stripe data
-└── media.prisma        # Uploaded files
-```
-
-All schemas are automatically merged by Prisma.
-
-**Commands:**
-```bash
-cd packages/database
-
-# Generate Prisma Client
-bun run db:generate
-
-# Push schema to DB (dev)
-bun run db:push
-
-# Create migration
-bun run db:migrate:dev
-
-# Apply migrations (production)
-bun run db:migrate:deploy
-
-# Open Prisma Studio
-bun run db:studio
-```
 
 ## Development
 
@@ -542,10 +506,10 @@ Defined in `turbo.json`:
 ```json
 {
   "build": {
-    "dependsOn": ["^build", "db:generate", "check-env"]
+    "dependsOn": ["^build", "check-env"]
   },
   "dev": {
-    "dependsOn": ["db:generate", "check-env"],
+    "dependsOn": ["check-env"],
     "cache": false
   }
 }
@@ -627,17 +591,6 @@ See `TODO.md` for planned features:
 - Logging/monitoring
 
 ## Common Issues
-
-**Prisma client not found:**
-```bash
-cd packages/database && bun run db:generate
-```
-
-**Type errors after changing schema:**
-```bash
-cd packages/database && bun run db:generate
-bun run type-check
-```
 
 **Environment variable errors:**
 ```bash

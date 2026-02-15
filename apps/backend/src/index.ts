@@ -5,7 +5,6 @@ import { JobHealthMonitor, validateRedisConfiguration } from '@repo/jobs';
 import { logger } from '@repo/logger';
 import corsHandler from './handlers/cors';
 import trpcHandler from './handlers/trpc';
-import { openApiHandler } from './handlers/openapi';
 import {
   createLivenessHandler,
   createReadinessHandler,
@@ -78,8 +77,6 @@ const app = new Hono();
 
 app.use('*', corsHandler(env.TRUSTED_ORIGINS));
 app.use('*', loggerMiddleware);
-
-app.get('/openapi.json', openApiHandler);
 
 app.get('/health/live', createLivenessHandler());
 app.get('/health/ready', createReadinessHandler());

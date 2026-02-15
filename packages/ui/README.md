@@ -31,7 +31,6 @@ Import the base Tailwind configuration in your app's CSS file:
 - **Button**: Primary, secondary, danger, ghost buttons
 - **Card**: Flexible card container with shadow/padding variants
 - **Input**: Styled text inputs
-- **LanguageSwitcher**: i18n language selector
 - **Spinner**: Loading spinners
 - **Tabs**: Tab navigation component
 

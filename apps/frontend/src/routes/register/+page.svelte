@@ -150,7 +150,7 @@
       >
         <span
           class="text-sm font-black uppercase tracking-widest text-neutral-500 mb-6 block"
-          >02 — Contact</span
+          >Email</span
         >
         <h2
           class="text-6xl md:text-[120px] font-black tracking-tighter leading-[0.85] mb-12"
