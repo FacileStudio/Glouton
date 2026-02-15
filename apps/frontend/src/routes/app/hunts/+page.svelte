@@ -80,9 +80,6 @@
 
   onDestroy(() => {
     clearInterval(timerInterval);
-    ws.off('hunt-update');
-    ws.off('hunt-completed');
-    ws.off('stats-changed');
   });
 
   async function loadData() {
