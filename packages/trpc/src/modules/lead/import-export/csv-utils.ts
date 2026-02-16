@@ -3,20 +3,11 @@ export function parseCSVLine(line: string): string[] {
   let current = '';
   let inQuotes = false;
 
-  /**
-   * for
-   */
   for (let j = 0; j < line.length; j++) {
     const char = line[j];
     const nextChar = line[j + 1];
 
-    /**
-     * if
-     */
     if (char === '"') {
-      /**
-       * if
-       */
       if (inQuotes && nextChar === '"') {
         current += '"';
         j++;
@@ -35,24 +26,12 @@ export function parseCSVLine(line: string): string[] {
   return values;
 }
 
-/**
- * parseCSVArray
- */
 export function parseCSVArray(str: string): string[] {
-  /**
-   * if
-   */
   if (!str) return [];
   return str.split(';').map((s) => s.trim()).filter((s) => s.length > 0);
 }
 
-/**
- * parseCSVJson
- */
 export function parseCSVJson(str: string): any {
-  /**
-   * if
-   */
   if (!str) return null;
   try {
     return JSON.parse(str);
@@ -61,43 +40,22 @@ export function parseCSVJson(str: string): any {
   }
 }
 
-/**
- * parseCSVBoolean
- */
 export function parseCSVBoolean(str: string): boolean {
   const normalized = str.toLowerCase();
   return normalized === 'oui' || normalized === 'true' || normalized === '1' || normalized === 'yes';
 }
 
-/**
- * escapeCSVField
- */
 export function escapeCSVField(str: string | null | undefined): string {
-  /**
-   * if
-   */
   if (!str) return '';
   return `"${String(str).replace(/"/g, '""')}"`;
 }
 
-/**
- * escapeCSVArray
- */
 export function escapeCSVArray(arr: string[] | null | undefined): string {
-  /**
-   * if
-   */
   if (!arr || arr.length === 0) return '';
   return `"${arr.join('; ').replace(/"/g, '""')}"`;
 }
 
-/**
- * escapeCSVJson
- */
 export function escapeCSVJson(obj: any): string {
-  /**
-   * if
-   */
   if (!obj) return '';
   return `"${JSON.stringify(obj).replace(/"/g, '""')}"`;
 }

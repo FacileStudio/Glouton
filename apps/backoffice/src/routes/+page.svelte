@@ -10,17 +10,11 @@
 
     let email = '', password = '', error = '', isLoggingIn = false;
 
-    /**
-     * handleLogin
-     */
     async function handleLogin() {
         isLoggingIn = true;
         error = '';
 
         const validation = loginSchema.safeParse({ email, password });
-        /**
-         * if
-         */
         if (!validation.success) {
             error = validation.error.issues[0].message;
             isLoggingIn = false;
@@ -30,9 +24,6 @@
         try {
             const { token, user } = await trpc.auth.login.mutate({ email, password });
 
-            /**
-             * if
-             */
             if (!isAdmin(user as SessionUser)) {
                 error = "Accès refusé : espace réservé aux administrateurs.";
                 isLoggingIn = false;
@@ -43,9 +34,6 @@
                 { token },
                 user as SessionUser
             );
-            /**
-             * goto
-             */
             goto(resolve('/admin'));
         } catch (err) {
             logger.error({ err }, 'Login error');

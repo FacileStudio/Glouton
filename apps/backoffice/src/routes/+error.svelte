@@ -7,13 +7,7 @@
   $: status = $page.status;
   $: message = $page.error?.message || 'Unauthorized Action';
 
-  /**
-   * goDashboard
-   */
   const goDashboard = () => goto(resolve('/admin'));
-  /**
-   * goBack
-   */
   const goBack = () => window.history.back();
 </script>
 

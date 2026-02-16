@@ -20,16 +20,10 @@
 		role: 'all' as 'all' | 'admin' | 'user',
 	});
 
-	/**
-	 * onMount
-	 */
 	onMount(async () => {
 		await Promise.all([fetchUsers(), fetchStats()]);
 	});
 
-	/**
-	 * fetchUsers
-	 */
 	async function fetchUsers() {
 		pageLoading = true;
 		try {
@@ -41,9 +35,6 @@
 		}
 	}
 
-	/**
-	 * fetchStats
-	 */
 	async function fetchStats() {
 		try {
 			stats = await trpc.user.getStats.query();
@@ -53,19 +44,10 @@
 	}
 
 	$effect(() => {
-		/**
-		 * fetchUsers
-		 */
 		fetchUsers();
 	});
 
-	/**
-	 * handleDelete
-	 */
 	const handleDelete = async (id: string, name: string) => {
-		/**
-		 * if
-		 */
 		if (!confirm(`Delete ${name}? This action cannot be undone.`)) return;
 		try {
 			await trpc.user.delete.mutate({ id });
@@ -73,32 +55,20 @@
 			await fetchStats();
 		} catch (err) {
 			logger.error({ err }, 'Failed to delete user');
-			/**
-			 * alert
-			 */
 			alert('Failed to delete user');
 		}
 	};
 
-	/**
-	 * handleTogglePremium
-	 */
 	const handleTogglePremium = async (id: string, current: boolean) => {
 		try {
 			await trpc.user.update.mutate({ id, isPremium: !current });
 			users = users.map(u => u.id === id ? { ...u, isPremium: !current } : u);
 		} catch (err) {
 			logger.error({ err }, 'Failed to update premium status');
-			/**
-			 * alert
-			 */
 			alert('Failed to update premium status');
 		}
 	};
 
-	/**
-	 * handleToggleRole
-	 */
 	const handleToggleRole = async (id: string, currentRole: string) => {
 		const newRole = currentRole === 'ADMIN' ? 'USER' : 'ADMIN';
 		try {
@@ -106,24 +76,12 @@
 			users = users.map(u => u.id === id ? { ...u, role: newRole } : u);
 		} catch (err) {
 			logger.error({ err }, 'Failed to update user role');
-			/**
-			 * alert
-			 */
 			alert('Failed to update role');
 		}
 	};
 
-	/**
-	 * handleBan
-	 */
 	const handleBan = async (userId: string) => {
-		/**
-		 * if
-		 */
 		if (!banReason.trim()) {
-			/**
-			 * alert
-			 */
 			alert('Please provide a ban reason');
 			return;
 		}
@@ -135,20 +93,11 @@
 			banReason = '';
 		} catch (err) {
 			logger.error({ err }, 'Failed to ban user');
-			/**
-			 * alert
-			 */
 			alert('Failed to ban user');
 		}
 	};
 
-	/**
-	 * handleUnban
-	 */
 	const handleUnban = async (id: string) => {
-		/**
-		 * if
-		 */
 		if (!confirm('Unban this user?')) return;
 		try {
 			await trpc.user.unban.mutate({ id });
@@ -156,36 +105,21 @@
 			await fetchStats();
 		} catch (err) {
 			logger.error({ err }, 'Failed to unban user');
-			/**
-			 * alert
-			 */
 			alert('Failed to unban user');
 		}
 	};
 
-	/**
-	 * handleVerifyEmail
-	 */
 	const handleVerifyEmail = async (id: string) => {
 		try {
 			await trpc.user.verifyEmail.mutate({ id });
 			users = users.map(u => u.id === id ? { ...u, emailVerified: true } : u);
 		} catch (err) {
 			logger.error({ err }, 'Failed to verify email');
-			/**
-			 * alert
-			 */
 			alert('Failed to verify email');
 		}
 	};
 
-	/**
-	 * getStatusColor
-	 */
 	function getStatusColor(status: string) {
-		/**
-		 * switch
-		 */
 		switch (status) {
 			case 'ACTIVE': return 'emerald';
 			case 'BANNED': return 'rose';
@@ -195,22 +129,13 @@
 		}
 	}
 
-	/**
-	 * formatDate
-	 */
 	function formatDate(date: Date | string | null) {
-		/**
-		 * if
-		 */
 		if (!date) return '-';
 		return new Date(date).toLocaleDateString();
 	}
 
 	let searchTerm = $derived(searchQuery.toLowerCase().trim());
 	let filteredUsers = $derived(users.filter(user => {
-		/**
-		 * if
-		 */
 		if (!searchTerm) return true;
 		const searchContent = `${user.firstName} ${user.lastName} ${user.email} ${user.id}`.toLowerCase();
 		return searchTerm.split(' ').every(word => searchContent.includes(word));

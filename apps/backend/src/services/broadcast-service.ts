@@ -11,9 +11,6 @@ export class BroadcastService {
   private broadcastToUserFn: BroadcastToUserFn | null = null;
   private broadcastToAllFn: BroadcastToAllFn | null = null;
 
-  /**
-   * initialize
-   */
   initialize(broadcastToUser: BroadcastToUserFn, broadcastToAll: BroadcastToAllFn): void {
     this.broadcastToUserFn = broadcastToUser;
     this.broadcastToAllFn = broadcastToAll;
@@ -26,13 +23,7 @@ export class BroadcastService {
     console.log('[BROADCAST] Broadcast service initialized');
   }
 
-  /**
-   * broadcastToUser
-   */
   broadcastToUser(userId: string, message: BroadcastMessage): void {
-    /**
-     * if
-     */
     if (!this.broadcastToUserFn) {
       console.warn('[BROADCAST] broadcastToUser not initialized');
       return;
@@ -40,13 +31,7 @@ export class BroadcastService {
     this.broadcastToUserFn(userId, message);
   }
 
-  /**
-   * broadcastToAll
-   */
   broadcastToAll(message: BroadcastMessage): void {
-    /**
-     * if
-     */
     if (!this.broadcastToAllFn) {
       console.warn('[BROADCAST] broadcastToAll not initialized');
       return;
@@ -54,9 +39,6 @@ export class BroadcastService {
     this.broadcastToAllFn(message);
   }
 
-  /**
-   * broadcastNewOpportunities
-   */
   broadcastNewOpportunities(opportunities: any[]): void {
     this.broadcastToAll({
       type: 'new-opportunities',
@@ -65,9 +47,6 @@ export class BroadcastService {
     });
   }
 
-  /**
-   * broadcastHuntProgress
-   */
   broadcastHuntProgress(userId: string, data: any): void {
     this.broadcastToUser(userId, {
       type: 'hunt-progress',
@@ -76,9 +55,6 @@ export class BroadcastService {
     });
   }
 
-  /**
-   * broadcastAuditProgress
-   */
   broadcastAuditProgress(userId: string, data: any): void {
     this.broadcastToUser(userId, {
       type: 'audit-progress',
@@ -87,9 +63,6 @@ export class BroadcastService {
     });
   }
 
-  /**
-   * broadcastStatsChanged
-   */
   broadcastStatsChanged(userId: string): void {
     this.broadcastToUser(userId, {
       type: 'stats-changed',

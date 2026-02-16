@@ -10,38 +10,20 @@
 
   let { children } = $props();
 
-  /**
-   * onMount
-   */
   onMount(async () => {
     await authStore.init();
     logger.info('Auth store initialized');
   });
 
   $effect(() => {
-    /**
-     * if
-     */
     if (!$authStore.loading) {
       const path = page.url.pathname;
       const user = $authStore.user;
 
-      /**
-       * if
-       */
       if (path.startsWith('/admin') && !user)
-        /**
-         * goto
-         */
         goto(resolve('/'));
 
-      /**
-       * if
-       */
       if (path === '/' && user)
-        /**
-         * goto
-         */
         goto(resolve('/admin'));
     }
   });

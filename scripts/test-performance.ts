@@ -2,9 +2,6 @@ import { getPerformanceMetrics } from '../packages/jobs/src/utils/performance-me
 
 const metrics = getPerformanceMetrics();
 
-/**
- * testDatabaseOperations
- */
 async function testDatabaseOperations() {
   console.log('\n🔍 Testing Database Operations Performance...\n');
 
@@ -32,9 +29,6 @@ async function testDatabaseOperations() {
   console.log(`  Speedup (1000): ${((singleInsertStats?.avgDuration ?? 0) / (bulkInsert1000Stats?.avgDuration ?? 1) * 1000).toFixed(0)}x`);
 }
 
-/**
- * testScrapingPerformance
- */
 async function testScrapingPerformance() {
   console.log('\n🌐 Testing Scraping Performance...\n');
 
@@ -55,18 +49,12 @@ async function testScrapingPerformance() {
   console.log(`\n  Speedup: ${((browserStats?.avgDuration ?? 0) / (fetchStats?.avgDuration ?? 1)).toFixed(0)}x`);
 }
 
-/**
- * testParallelProcessing
- */
 async function testParallelProcessing() {
   console.log('\n⚡ Testing Parallel Processing...\n');
 
   const tasks = Array.from({ length: 100 }, (_, i) => i);
 
   await metrics.track('sequential-processing', async () => {
-    /**
-     * for
-     */
     for (const task of tasks.slice(0, 10)) {
       await new Promise(resolve => setTimeout(resolve, 50));
     }
@@ -80,16 +68,10 @@ async function testParallelProcessing() {
 
   await metrics.track('parallel-processing-20', async () => {
     const chunks: number[][] = [];
-    /**
-     * for
-     */
     for (let i = 0; i < 10; i += 5) {
       chunks.push(tasks.slice(i, i + 5));
     }
 
-    /**
-     * for
-     */
     for (const chunk of chunks) {
       await Promise.all(
         chunk.map(() => new Promise(resolve => setTimeout(resolve, 50)))
@@ -108,9 +90,6 @@ async function testParallelProcessing() {
   console.log(`\n  Speedup (Parallel):  ${((sequentialStats?.avgDuration ?? 0) / (parallel10Stats?.avgDuration ?? 1)).toFixed(1)}x`);
 }
 
-/**
- * main
- */
 async function main() {
   console.log('🚀 Glouton Performance Optimization Test Suite\n');
   console.log('='.repeat(60));
@@ -135,7 +114,4 @@ async function main() {
   console.log('   • Combined optimizations: 10-20x overall improvement\n');
 }
 
-/**
- * main
- */
 main().catch(console.error);
