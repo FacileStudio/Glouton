@@ -69,11 +69,21 @@
 
   interface EmailOutreach {
     id: string;
+    leadId: string;
+    userId: string;
     templateId: string;
     subject: string;
+    htmlBody: string;
+    textBody: string;
+    variables: Record<string, any>;
     status: string;
     sentAt: Date | null;
+    openedAt?: Date | null;
+    clickedAt?: Date | null;
+    repliedAt?: Date | null;
+    error?: string | null;
     createdAt: Date;
+    updatedAt?: Date;
   }
 
   let lead: Lead | null = null;
@@ -86,6 +96,8 @@
   let emailPreview = { subject: '', html: '', text: '' };
   let previewLoading = false;
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+  let showEmailForm = false;
+  let expandedEmails: Set<string> = new Set();
 
   const leadId = $page.params.id;
 
@@ -325,6 +337,18 @@
   }
 
   /**
+   * toggleEmailExpansion
+   */
+  function toggleEmailExpansion(emailId: string) {
+    expandedEmails = new Set(expandedEmails);
+    if (expandedEmails.has(emailId)) {
+      expandedEmails.delete(emailId);
+    } else {
+      expandedEmails.add(emailId);
+    }
+  }
+
+  /**
    * getSocialIcon
    */
   function getSocialIcon(platform: string): string {
@@ -392,7 +416,7 @@
     <iconify-icon icon="solar:close-circle-bold" width="64" class="text-red-400"></iconify-icon>
     <p class="text-lg font-black uppercase tracking-wide text-neutral-600">Lead not found</p>
     <button
-      on:click={() => goto('/app/leads')}
+      onclick={() => goto('/app/leads')}
       class="px-6 py-3 bg-black text-white rounded-xl font-bold hover:bg-neutral-800"
     >
       Back to Leads
@@ -402,7 +426,7 @@
   <div class="font-sans w-full" in:fade>
     <div class="flex items-center gap-4 p-6 border-b border-neutral-100">
       <button
-        on:click={() => goto('/app/leads')}
+        onclick={() => goto('/app/leads')}
         class="w-12 h-12 flex items-center justify-center bg-white border border-neutral-200 rounded-xl hover:bg-neutral-50"
       >
         <iconify-icon icon="solar:arrow-left-bold" width="20"></iconify-icon>
@@ -704,7 +728,7 @@
                   </label>
                   <select
                     bind:value={selectedTemplate}
-                    on:change={handleTemplateChange}
+                    onchange={handleTemplateChange}
                     class="w-full px-4 py-3 bg-white border border-neutral-300 rounded-xl font-medium outline-none focus:border-black transition"
                   >
                     {#each templates as template}
@@ -737,7 +761,7 @@
 
                     <div class="pt-4">
                       <button
-                        on:click={sendEmail}
+                        onclick={sendEmail}
                         disabled={sending}
                         class="w-full bg-black text-white px-6 py-4 rounded-xl font-bold hover:bg-neutral-800 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                       >
@@ -823,18 +847,101 @@
           {:else}
             <div class="space-y-4">
               {#each outreachHistory as email}
-                <div class="border border-neutral-200 rounded-2xl p-6 hover:border-neutral-300 transition" in:fade>
-                  <div class="flex items-start justify-between mb-3">
-                    <div class="flex-1">
-                      <p class="font-bold text-neutral-900">{email.subject}</p>
-                      <p class="text-xs text-neutral-500 mt-1">
-                        {formatDate(email.sentAt || email.createdAt)}
-                      </p>
+                <div class="border border-neutral-200 rounded-2xl overflow-hidden hover:border-neutral-300 transition" in:fade>
+                  <button
+                    onclick={() => toggleEmailExpansion(email.id)}
+                    class="w-full p-6 text-left hover:bg-neutral-50 transition-colors"
+                  >
+                    <div class="flex items-start justify-between mb-3">
+                      <div class="flex-1">
+                        <p class="font-bold text-neutral-900">{email.subject}</p>
+                        <div class="flex items-center gap-3 mt-2 text-xs text-neutral-600">
+                          <span class="flex items-center gap-1">
+                            <iconify-icon icon="solar:calendar-bold" width="14"></iconify-icon>
+                            {formatDate(email.sentAt || email.createdAt)}
+                          </span>
+                          <span class="flex items-center gap-1">
+                            <iconify-icon icon="solar:document-text-bold" width="14"></iconify-icon>
+                            Template: {email.templateId}
+                          </span>
+                        </div>
+                        {#if email.error}
+                          <p class="text-xs text-red-600 mt-2 flex items-center gap-1">
+                            <iconify-icon icon="solar:danger-triangle-bold" width="14"></iconify-icon>
+                            {email.error}
+                          </p>
+                        {/if}
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <span class="px-3 py-1 rounded-lg text-xs font-bold {getStatusColor(email.status)}">
+                          {email.status}
+                        </span>
+                        <iconify-icon
+                          icon={expandedEmails.has(email.id) ? "solar:alt-arrow-up-bold" : "solar:alt-arrow-down-bold"}
+                          width="16"
+                          class="text-neutral-500"
+                        ></iconify-icon>
+                      </div>
                     </div>
-                    <span class="px-3 py-1 rounded-lg text-xs font-bold {getStatusColor(email.status)}">
-                      {email.status}
-                    </span>
-                  </div>
+                  </button>
+
+                  {#if expandedEmails.has(email.id)}
+                    <div class="border-t border-neutral-200 p-6 bg-neutral-50" in:fly={{ y: -10, duration: 200 }}>
+                      <div class="space-y-4">
+                        <div>
+                          <h4 class="font-bold text-sm text-neutral-700 mb-2 flex items-center gap-2">
+                            <iconify-icon icon="solar:text-field-bold" width="16"></iconify-icon>
+                            Email Content
+                          </h4>
+                          <div class="bg-white rounded-lg border border-neutral-200 p-4">
+                            <div class="prose prose-sm max-w-none">
+                              <p class="text-sm text-neutral-800 whitespace-pre-wrap">{email.textBody || 'No text content'}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {#if email.variables && Object.keys(email.variables).length > 0}
+                          <div>
+                            <h4 class="font-bold text-sm text-neutral-700 mb-2 flex items-center gap-2">
+                              <iconify-icon icon="solar:code-square-bold" width="16"></iconify-icon>
+                              Template Variables
+                            </h4>
+                            <div class="grid grid-cols-2 gap-2">
+                              {#each Object.entries(email.variables) as [key, value]}
+                                <div class="bg-white rounded-lg border border-neutral-200 p-3">
+                                  <p class="text-xs font-semibold text-neutral-600">{key}</p>
+                                  <p class="text-sm text-neutral-900">{value}</p>
+                                </div>
+                              {/each}
+                            </div>
+                          </div>
+                        {/if}
+
+                        {#if email.sentAt}
+                          <div class="flex flex-wrap gap-4 text-xs text-neutral-600">
+                            {#if email.openedAt}
+                              <span class="flex items-center gap-1">
+                                <iconify-icon icon="solar:eye-bold" width="14"></iconify-icon>
+                                Opened: {formatDate(email.openedAt)}
+                              </span>
+                            {/if}
+                            {#if email.clickedAt}
+                              <span class="flex items-center gap-1">
+                                <iconify-icon icon="solar:cursor-bold" width="14"></iconify-icon>
+                                Clicked: {formatDate(email.clickedAt)}
+                              </span>
+                            {/if}
+                            {#if email.repliedAt}
+                              <span class="flex items-center gap-1">
+                                <iconify-icon icon="solar:chat-round-dots-bold" width="14"></iconify-icon>
+                                Replied: {formatDate(email.repliedAt)}
+                              </span>
+                            {/if}
+                          </div>
+                        {/if}
+                      </div>
+                    </div>
+                  {/if}
                 </div>
               {/each}
             </div>
