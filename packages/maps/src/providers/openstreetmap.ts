@@ -51,38 +51,23 @@ interface OverpassResponse {
 export class OpenStreetMapScraper {
   private options: OverpassOptions;
 
-  /**
-   * constructor
-   */
   constructor(options: Partial<OverpassOptions> = {}) {
     this.options = { ...DEFAULT_OPTIONS, ...options };
   }
 
-  /**
-   * search
-   */
   async search(searchOptions: SearchOptions): Promise<LocalBusiness[]> {
     const bbox = await this.getBoundingBox(searchOptions);
 
-    /**
-     * if
-     */
     if (!bbox) {
       throw new Error('Location must be provided for OpenStreetMap search');
     }
 
-    /**
-     * if
-     */
     if (!searchOptions.category) {
       throw new Error('Category must be provided for OpenStreetMap search');
     }
 
     const query = getOverpassQuery(searchOptions.category, bbox);
 
-    /**
-     * if
-     */
     if (!query) {
       return [];
     }
@@ -101,25 +86,16 @@ export class OpenStreetMapScraper {
 
       const businesses = this.parseResponse(response.data);
 
-      /**
-       * if
-       */
       if (searchOptions.hasWebsite !== undefined) {
         return businesses.filter((b) => b.hasWebsite === searchOptions.hasWebsite);
       }
 
-      /**
-       * if
-       */
       if (searchOptions.limit) {
         return businesses.slice(0, searchOptions.limit);
       }
 
       return businesses.slice(0, this.options.maxResults);
     } catch (error) {
-      /**
-       * if
-       */
       if (axios.isAxiosError(error)) {
         throw new Error(`Overpass API error: ${error.message}`);
       }
@@ -127,34 +103,19 @@ export class OpenStreetMapScraper {
     }
   }
 
-  /**
-   * getBoundingBox
-   */
   private async getBoundingBox(options: SearchOptions): Promise<BoundingBox | null> {
-    /**
-     * if
-     */
     if (!options.location) {
       return null;
     }
 
-    /**
-     * if
-     */
     if (typeof options.location === 'string') {
       return await cityToBoundingBox(options.location);
     }
 
-    /**
-     * if
-     */
     if ('south' in options.location) {
       return options.location;
     }
 
-    /**
-     * if
-     */
     if ('lat' in options.location) {
       return coordinatesToBoundingBox(options.location);
     }
@@ -162,27 +123,15 @@ export class OpenStreetMapScraper {
     return null;
   }
 
-  /**
-   * parseResponse
-   */
   private parseResponse(response: OverpassResponse): LocalBusiness[] {
     const businesses: LocalBusiness[] = [];
 
-    /**
-     * for
-     */
     for (const element of response.elements) {
-      /**
-       * if
-       */
       if (!element.tags?.name) {
         continue;
       }
 
       const business = this.parseElement(element);
-      /**
-       * if
-       */
       if (business) {
         businesses.push(business);
       }
@@ -191,15 +140,9 @@ export class OpenStreetMapScraper {
     return businesses;
   }
 
-  /**
-   * parseElement
-   */
   private parseElement(element: OverpassElement): LocalBusiness | null {
     const tags = element.tags;
 
-    /**
-     * if
-     */
     if (!tags || !tags.name) {
       return null;
     }
@@ -211,9 +154,6 @@ export class OpenStreetMapScraper {
     const housenumber = tags['addr:housenumber'];
     let address: string | undefined;
 
-    /**
-     * if
-     */
     if (street && housenumber) {
       address = `${housenumber} ${street}`;
     } else if (street) {
@@ -224,9 +164,6 @@ export class OpenStreetMapScraper {
 
     let coordinates: { lat: number; lng: number } | undefined;
 
-    /**
-     * if
-     */
     if (element.lat !== undefined && element.lon !== undefined) {
       coordinates = { lat: element.lat, lng: element.lon };
     } else if (element.center) {
@@ -257,19 +194,10 @@ export class OpenStreetMapScraper {
     };
   }
 
-  /**
-   * extractCategory
-   */
   private extractCategory(tags: Record<string, string | undefined>): string | undefined {
     const categoryKeys = ['amenity', 'shop', 'office', 'tourism', 'leisure', 'craft'];
 
-    /**
-     * for
-     */
     for (const key of categoryKeys) {
-      /**
-       * if
-       */
       if (tags[key]) {
         return `${key}:${tags[key]}`;
       }
@@ -278,9 +206,6 @@ export class OpenStreetMapScraper {
     return undefined;
   }
 
-  /**
-   * searchByTags
-   */
   async searchByTags(
     tags: Record<string, string>,
     bbox: BoundingBox,
@@ -317,9 +242,6 @@ out skel qt;`;
 
       return this.parseResponse(response.data);
     } catch (error) {
-      /**
-       * if
-       */
       if (axios.isAxiosError(error)) {
         throw new Error(`Overpass API error: ${error.message}`);
       }
@@ -328,9 +250,6 @@ out skel qt;`;
   }
 }
 
-/**
- * searchOpenStreetMap
- */
 export async function searchOpenStreetMap(
   options: SearchOptions,
   scraperOptions?: Partial<OverpassOptions>
@@ -339,9 +258,6 @@ export async function searchOpenStreetMap(
   return await scraper.search(options);
 }
 
-/**
- * searchByOverpassTags
- */
 export async function searchByOverpassTags(
   tags: Record<string, string>,
   bbox: BoundingBox,

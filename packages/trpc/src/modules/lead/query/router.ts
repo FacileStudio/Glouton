@@ -17,7 +17,7 @@ export const queryRouter = router({
   }),
 
   delete: protectedProcedure.input(deleteLeadSchema).mutation(async ({ ctx, input }) => {
-    return await LeadQueryService.deleteLead(input.id, ctx);
+    return await LeadQueryService.deleteLead(input.id, ctx.user.id, ctx.db);
   }),
 
   getStats: protectedProcedure.query(async ({ ctx }) => {
@@ -25,6 +25,6 @@ export const queryRouter = router({
   }),
 
   getActiveSessions: protectedProcedure.query(async ({ ctx }) => {
-    LeadQueryService.getActiveSessions(ctx);
+    return await LeadQueryService.getActiveSessions(ctx);
   }),
 });

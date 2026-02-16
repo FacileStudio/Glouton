@@ -21,9 +21,6 @@ export class MapsOrchestrator {
   private openStreetMap: OpenStreetMapService;
   private config: Required<MapsConfig>;
 
-  /**
-   * constructor
-   */
   constructor(config: MapsConfig = {}) {
     this.config = {
       googleMapsApiKey: config.googleMapsApiKey || '',
@@ -31,9 +28,6 @@ export class MapsOrchestrator {
       useOpenStreetMap: config.useOpenStreetMap !== false,
     };
 
-    /**
-     * if
-     */
     if (this.config.useGoogleMaps && this.config.googleMapsApiKey) {
       this.googleMaps = new GoogleMapsService(this.config.googleMapsApiKey);
     }
@@ -41,18 +35,12 @@ export class MapsOrchestrator {
     this.openStreetMap = new OpenStreetMapService();
   }
 
-  /**
-   * search
-   */
   async search(options: SearchOptions): Promise<LocalBusiness[]> {
     const results: LocalBusiness[] = [];
     const errors: Error[] = [];
 
     const promises: Promise<void>[] = [];
 
-    /**
-     * if
-     */
     if (this.config.useGoogleMaps && this.googleMaps) {
       promises.push(
         this.googleMaps
@@ -67,9 +55,6 @@ export class MapsOrchestrator {
       );
     }
 
-    /**
-     * if
-     */
     if (this.config.useOpenStreetMap) {
       promises.push(
         this.openStreetMap
@@ -86,9 +71,6 @@ export class MapsOrchestrator {
 
     await Promise.all(promises);
 
-    /**
-     * if
-     */
     if (results.length === 0 && errors.length > 0) {
       throw new Error(`All map services failed: ${errors.map(e => e.message).join('; ')}`);
     }
@@ -98,32 +80,17 @@ export class MapsOrchestrator {
     return deduplicated.slice(0, options.maxResults || 100);
   }
 
-  /**
-   * deduplicateBusinesses
-   */
   private deduplicateBusinesses(businesses: LocalBusiness[]): LocalBusiness[] {
     const seen = new Map<string, LocalBusiness>();
     const DISTANCE_THRESHOLD = 50;
 
-    /**
-     * for
-     */
     for (const business of businesses) {
-      /**
-       * if
-       */
       if (!business.coordinates) continue;
 
       let isDuplicate = false;
       const seenArray = [...seen.values()];
 
-      /**
-       * for
-       */
       for (const existing of seenArray) {
-        /**
-         * if
-         */
         if (!existing.coordinates) continue;
 
         const distance = this.calculateDistance(
@@ -133,21 +100,12 @@ export class MapsOrchestrator {
 
         const namesSimilar = this.areNamesSimilar(business.name, existing.name);
 
-        /**
-         * if
-         */
         if (distance < DISTANCE_THRESHOLD && namesSimilar) {
           isDuplicate = true;
 
-          /**
-           * if
-           */
           if (business.source === 'google-maps' && !existing.website && business.website) {
             existing.website = business.website;
           }
-          /**
-           * if
-           */
           if (!existing.phone && business.phone) {
             existing.phone = business.phone;
           }
@@ -155,9 +113,6 @@ export class MapsOrchestrator {
         }
       }
 
-      /**
-       * if
-       */
       if (!isDuplicate) {
         seen.set(business.name, business);
       }
@@ -166,9 +121,6 @@ export class MapsOrchestrator {
     return [...seen.values()];
   }
 
-  /**
-   * calculateDistance
-   */
   private calculateDistance(coord1: Coordinates, coord2: Coordinates): number {
     const R = 6371e3;
     const φ1 = (coord1.lat * Math.PI) / 180;
@@ -184,13 +136,7 @@ export class MapsOrchestrator {
     return R * c;
   }
 
-  /**
-   * areNamesSimilar
-   */
   private areNamesSimilar(name1: string, name2: string): boolean {
-    /**
-     * normalize
-     */
     const normalize = (s: string) =>
       s
         .toLowerCase()
@@ -200,47 +146,23 @@ export class MapsOrchestrator {
     const n1 = normalize(name1);
     const n2 = normalize(name2);
 
-    /**
-     * if
-     */
     if (n1 === n2) return true;
 
-    /**
-     * if
-     */
     if (n1.includes(n2) || n2.includes(n1)) return true;
 
-    /**
-     * levenshtein
-     */
     const levenshtein = (a: string, b: string): number => {
       const matrix: number[][] = [];
 
-      /**
-       * for
-       */
       for (let i = 0; i <= b.length; i++) {
         matrix[i] = [i];
       }
 
-      /**
-       * for
-       */
       for (let j = 0; j <= a.length; j++) {
         matrix[0][j] = j;
       }
 
-      /**
-       * for
-       */
       for (let i = 1; i <= b.length; i++) {
-        /**
-         * for
-         */
         for (let j = 1; j <= a.length; j++) {
-          /**
-           * if
-           */
           if (b.charAt(i - 1) === a.charAt(j - 1)) {
             matrix[i][j] = matrix[i - 1][j - 1];
           } else {
@@ -263,13 +185,7 @@ export class MapsOrchestrator {
     return similarity > 0.85;
   }
 
-  /**
-   * geocode
-   */
   async geocode(location: string): Promise<Coordinates> {
-    /**
-     * if
-     */
     if (this.googleMaps) {
       try {
         return await this.googleMaps.geocode(location);

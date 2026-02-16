@@ -9,13 +9,7 @@ interface SearchOptions {
 }
 
 class OverpassApi {
-  /**
-   * constructor
-   */
   constructor(_config: any) {}
-  /**
-   * exec
-   */
   async exec(query: string): Promise<any> {
     const response = await fetch('https://overpass-api.de/api/interpreter', {
       method: 'POST',
@@ -29,9 +23,6 @@ class OverpassApi {
 export class OpenStreetMapService {
   private api: OverpassApi;
 
-  /**
-   * constructor
-   */
   constructor() {
     this.api = new OverpassApi({
       endpoint: 'https://overpass-api.de/api',
@@ -39,27 +30,18 @@ export class OpenStreetMapService {
     });
   }
 
-  /**
-   * geocode
-   */
   async geocode(location: string): Promise<Coordinates> {
     try {
       const response = await fetch(
         `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(location)}&format=json&limit=1`
       );
 
-      /**
-       * if
-       */
       if (!response.ok) {
         throw new Error(`Nominatim API error: ${response.statusText}`);
       }
 
       const data = await response.json();
 
-      /**
-       * if
-       */
       if (!Array.isArray(data) || data.length === 0) {
         throw new Error(`Could not geocode location: ${location}`);
       }
@@ -73,9 +55,6 @@ export class OpenStreetMapService {
     }
   }
 
-  /**
-   * getCategoryQuery
-   */
   private getCategoryQuery(category: string): string {
     const categoryMap: Record<string, string> = {
       restaurant: 'amenity=restaurant',
@@ -94,9 +73,6 @@ export class OpenStreetMapService {
     return categoryMap[normalized] || `amenity=${normalized}`;
   }
 
-  /**
-   * searchNearby
-   */
   async searchNearby(options: SearchOptions): Promise<SearchResult> {
     try {
       const coordinates = await this.geocode(options.location);
@@ -129,9 +105,6 @@ export class OpenStreetMapService {
 
           const hasWebsite = !!tags.website || !!tags['contact:website'];
 
-          /**
-           * if
-           */
           if (options.hasWebsite !== undefined && hasWebsite !== options.hasWebsite) {
             return null;
           }
@@ -171,18 +144,12 @@ export class OpenStreetMapService {
     }
   }
 
-  /**
-   * reverseGeocode
-   */
   async reverseGeocode(coordinates: Coordinates): Promise<string> {
     try {
       const response = await fetch(
         `https://nominatim.openstreetmap.org/reverse?lat=${coordinates.lat}&lon=${coordinates.lng}&format=json`
       );
 
-      /**
-       * if
-       */
       if (!response.ok) {
         throw new Error(`Nominatim API error: ${response.statusText}`);
       }

@@ -13,17 +13,11 @@ export class GoogleMapsService {
   private client: Client;
   private apiKey: string;
 
-  /**
-   * constructor
-   */
   constructor(apiKey: string) {
     this.apiKey = apiKey;
     this.client = new Client({});
   }
 
-  /**
-   * geocode
-   */
   async geocode(location: string): Promise<Coordinates> {
     try {
       const response = await this.client.geocode({
@@ -33,9 +27,6 @@ export class GoogleMapsService {
         },
       });
 
-      /**
-       * if
-       */
       if (response.data.results.length === 0) {
         throw new Error(`Could not geocode location: ${location}`);
       }
@@ -47,9 +38,6 @@ export class GoogleMapsService {
     }
   }
 
-  /**
-   * searchNearby
-   */
   async searchNearby(options: SearchOptions): Promise<SearchResult> {
     try {
       const coordinates = await this.geocode(options.location);
@@ -67,9 +55,6 @@ export class GoogleMapsService {
 
       let results = response.data.results || [];
 
-      /**
-       * if
-       */
       if (options.hasWebsite !== undefined) {
         results = results.filter(place => {
           const hasWebsite = !!place.website;
@@ -85,9 +70,6 @@ export class GoogleMapsService {
           let phone: string | undefined;
           let openingHours: string | undefined;
 
-          /**
-           * if
-           */
           if (place.place_id) {
             try {
               const detailsResponse = await this.client.placeDetails({
@@ -102,9 +84,6 @@ export class GoogleMapsService {
               website = details.website;
               phone = details.formatted_phone_number;
 
-              /**
-               * if
-               */
               if (details.opening_hours?.weekday_text) {
                 openingHours = details.opening_hours.weekday_text.join('; ');
               }
@@ -143,9 +122,6 @@ export class GoogleMapsService {
     }
   }
 
-  /**
-   * searchByText
-   */
   async searchByText(query: string, location?: string): Promise<SearchResult> {
     try {
       const params: any = {
@@ -153,9 +129,6 @@ export class GoogleMapsService {
         key: this.apiKey,
       };
 
-      /**
-       * if
-       */
       if (location) {
         const coordinates = await this.geocode(location);
         params.location = coordinates;
@@ -172,9 +145,6 @@ export class GoogleMapsService {
           let phone: string | undefined;
           let openingHours: string | undefined;
 
-          /**
-           * if
-           */
           if (place.place_id) {
             try {
               const detailsResponse = await this.client.placeDetails({
@@ -189,9 +159,6 @@ export class GoogleMapsService {
               website = details.website;
               phone = details.formatted_phone_number;
 
-              /**
-               * if
-               */
               if (details.opening_hours?.weekday_text) {
                 openingHours = details.opening_hours.weekday_text.join('; ');
               }

@@ -1,5 +1,59 @@
+import { SQL, sql } from 'bun';
+import type { LeadStatus } from '@repo/database';
+import { TRPCError } from '@trpc/server';
+
+export interface GetLeadsParams {
+  userId: string;
+  db: SQL;
+  filters?: {
+    status?: LeadStatus;
+    search?: string;
+    country?: string;
+    city?: string;
+    page?: number;
+    limit?: number;
+  };
+}
+
+export interface LeadStats {
+  totalLeads: number;
+  hotLeads: number;
+  warmLeads: number;
+  coldLeads: number;
+  contactableLeads: number;
+  contactedLeads: number;
+  totalEmails: number;
+  totalPhoneNumbers: number;
+  pendingHunts: number;
+  processingHunts: number;
+  completedHunts: number;
+  failedHunts: number;
+  successRate: number;
+  averageScore: number;
+}
+
+export interface DuplicateCheckParams {
+  userId: string;
+  leads: Array<{
+    email?: string | null;
+    domain?: string | null;
+    firstName?: string | null;
+    lastName?: string | null;
+  }>;
+  db: SQL;
+}
+
+export interface Context {
+  user: { id: string };
+  db: SQL;
+  log: {
+    info: (data: any) => void;
+    error: (data: any) => void;
+  };
+}
+
 export default {
-  getLeads: async ({ userId, db, filters }: GetLeadsParams) => {
+  async getLeads({ userId, db, filters }: GetLeadsParams) {
     const conditions = [db`"userId" = ${userId}`];
 
     if (filters?.status) conditions.push(db`status = ${filters.status}`);
@@ -11,9 +65,9 @@ export default {
     if (filters?.search) {
       const s = `%${filters.search}%`;
       conditions.push(db`(
-      domain ILIKE ${s} OR 
-      email ILIKE ${s} OR 
-      "firstName" ILIKE ${s} OR 
+      domain ILIKE ${s} OR
+      email ILIKE ${s} OR
+      "firstName" ILIKE ${s} OR
       "lastName" ILIKE ${s}
     )`);
     }
@@ -37,8 +91,8 @@ export default {
       OFFSET ${offset}
     ` as Promise<any[]>,
       db`
-      SELECT COUNT(*) as count 
-      FROM "Lead" 
+      SELECT COUNT(*) as count
+      FROM "Lead"
       WHERE ${whereClause}
     ` as Promise<[{ count: string | number }]>,
     ]);
@@ -55,11 +109,12 @@ export default {
       },
     };
   },
-  getStats: async (userId: string, db: SQL): Promise<LeadStats> => {
+
+  async getStats(userId: string, db: SQL): Promise<LeadStats> {
     try {
       const [leadStats, huntStats] = await Promise.all([
         db`
-        SELECT 
+        SELECT
           COUNT(*)::INT as total,
           COUNT(*) FILTER (WHERE status = 'HOT')::INT as hot,
           COUNT(*) FILTER (WHERE status = 'WARM')::INT as warm,
@@ -67,20 +122,19 @@ export default {
           COUNT(*) FILTER (WHERE contacted = FALSE AND email IS NOT NULL)::INT as contactable,
           COUNT(*) FILTER (WHERE contacted = TRUE)::INT as contacted,
           COUNT(*) FILTER (WHERE email IS NOT NULL)::INT as emails,
-          -- Correction ici : on utilise cardinality() pour les colonnes text[]
           COUNT(*) FILTER (WHERE "phoneNumbers" IS NOT NULL AND cardinality("phoneNumbers") > 0)::INT as phones,
           COALESCE(AVG(score), 0)::FLOAT as avg_score
-        FROM "Lead" 
+        FROM "Lead"
         WHERE "userId" = ${userId}
       ` as Promise<any[]>,
 
         db`
-        SELECT 
+        SELECT
           COUNT(*) FILTER (WHERE status = 'PENDING')::INT as pending,
           COUNT(*) FILTER (WHERE status = 'PROCESSING')::INT as processing,
           COUNT(*) FILTER (WHERE status = 'COMPLETED')::INT as completed,
           COUNT(*) FILTER (WHERE status = 'FAILED')::INT as failed
-        FROM "HuntSession" 
+        FROM "HuntSession"
         WHERE "userId" = ${userId}
       ` as Promise<any[]>,
       ]);
@@ -114,20 +168,21 @@ export default {
       throw error;
     }
   },
-  getActiveSessions: async (ctx) => {
+
+  async getActiveSessions(ctx: Context) {
     try {
       const [activeAudits, activeHunts] = await Promise.all([
         ctx.db`
-          SELECT 
-            id, status, progress, "totalLeads", "processedLeads", 
+          SELECT
+            id, status, progress, "totalLeads", "processedLeads",
             "updatedLeads", "failedLeads", "currentDomain", "startedAt", "createdAt"
           FROM "AuditSession"
           WHERE "userId" = ${ctx.user.id} AND status IN ('PENDING', 'PROCESSING')
           ORDER BY "createdAt" DESC
         ` as Promise<any[]>,
         ctx.db`
-          SELECT 
-            id, "targetUrl", status, progress, "totalLeads", 
+          SELECT
+            id, "targetUrl", status, progress, "totalLeads",
             "successfulLeads", "failedLeads", "startedAt", "createdAt"
           FROM "HuntSession"
           WHERE "userId" = ${ctx.user.id} AND status IN ('PENDING', 'PROCESSING')
@@ -151,43 +206,42 @@ export default {
       });
     }
   },
-  deleteLead: async (leadId: string, ctx: Context) => {
+
+  async deleteLead(leadId: string, userId: string, db: SQL) {
     try {
-      const result = await leadService.deleteLead(input.leadId, ctx.user.id, ctx.db);
+      const [existingLead] = (await db`
+        SELECT id, "userId"
+        FROM "Lead"
+        WHERE id = ${leadId}
+      `) as any[];
 
-      ctx.log.info({
-        action: 'delete-lead',
-        leadId: input.leadId,
-      });
+      if (!existingLead) {
+        throw new Error('Lead not found');
+      }
 
-      return result;
+      if (existingLead.userId !== userId) {
+        throw new Error('Unauthorized to delete this lead');
+      }
+
+      await db`
+        DELETE FROM "Lead"
+        WHERE id = ${leadId}
+      `;
+
+      return {
+        success: true,
+        message: 'Lead deleted successfully',
+      };
     } catch (error) {
-      const msg = error instanceof Error ? error.message : '';
-
-      if (msg === 'Unauthorized to delete this lead') {
-        throw new TRPCError({ code: 'FORBIDDEN', message: 'Unauthorized access' });
-      }
-      if (msg === 'Lead not found') {
-        throw new TRPCError({ code: 'NOT_FOUND', message: 'Lead not found' });
-      }
-
-      ctx.log.error({
-        action: 'delete-lead-failed',
-        leadId: input.leadId,
-        error: msg,
-      });
-
-      throw new TRPCError({
-        code: 'INTERNAL_SERVER_ERROR',
-        message: 'Failed to delete lead',
-      });
+      throw error;
     }
   },
-  getLeadById: async (leadId: string, ctx: Context) => {
+
+  async getLeadById(leadId: string, ctx: Context) {
     try {
       const [lead] = (await ctx.db`
-        SELECT * FROM "Lead" 
-        WHERE id = ${leadId} 
+        SELECT * FROM "Lead"
+        WHERE id = ${leadId}
         LIMIT 1
       `) as any[];
 
@@ -220,5 +274,77 @@ export default {
         message: 'Failed to retrieve lead',
       });
     }
+  },
+
+  async checkForDuplicates({ userId, leads, db }: DuplicateCheckParams) {
+    const emailsToCheck = leads.filter((l) => l.email).map((l) => l.email!);
+    const domainsToCheck = leads.filter((l) => l.domain).map((l) => l.domain!);
+
+    const existingLeads = await (async () => {
+      const conditions = [sql`"userId" = ${userId}`];
+
+      const emailConditions =
+        emailsToCheck.length > 0
+          ? sql`email IN (${sql.join(emailsToCheck.map((e) => sql`${e}`))})`
+          : null;
+
+      const nameDomainConditions = leads
+        .filter((l) => l.domain && l.firstName && l.lastName)
+        .map(
+          (l) =>
+            sql`(domain = ${l.domain!} AND "firstName" = ${l.firstName!} AND "lastName" = ${l.lastName!})`
+        );
+      const nameDomainCombinedConditions =
+        nameDomainConditions.length > 0 ? sql.join(nameDomainConditions, sql` OR `) : null;
+
+      const orConditions = [];
+      if (emailConditions) {
+        orConditions.push(emailConditions);
+      }
+      if (nameDomainCombinedConditions) {
+        orConditions.push(nameDomainCombinedConditions);
+      }
+
+      if (orConditions.length > 0) {
+        conditions.push(sql`(${sql.join(orConditions, sql` OR `)})`);
+      }
+
+      const whereClause =
+        conditions.length > 0 ? sql`WHERE ${sql.join(conditions, sql` AND `)}` : sql``;
+
+      return db`
+        SELECT email, domain, "firstName", "lastName"
+        FROM "Lead"
+        ${whereClause}
+      ` as Promise<any[]>;
+    })();
+
+    const duplicateKeys = new Set<string>();
+    existingLeads.forEach((existing) => {
+      if (existing.email) {
+        duplicateKeys.add(`email:${existing.email}`);
+      }
+      if (existing.domain && existing.firstName && existing.lastName) {
+        duplicateKeys.add(`person:${existing.domain}:${existing.firstName}:${existing.lastName}`);
+      }
+    });
+
+    const newLeads = leads.filter((lead) => {
+      if (lead.email && duplicateKeys.has(`email:${lead.email}`)) {
+        return false;
+      }
+      if (lead.domain && lead.firstName && lead.lastName) {
+        const personKey = `person:${lead.domain}:${lead.firstName}:${lead.lastName}`;
+        if (duplicateKeys.has(personKey)) {
+          return false;
+        }
+      }
+      return true;
+    });
+
+    return {
+      newLeads,
+      duplicatesFiltered: leads.length - newLeads.length,
+    };
   },
 };

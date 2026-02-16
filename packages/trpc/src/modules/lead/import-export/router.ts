@@ -1,6 +1,7 @@
 import { TRPCError } from '@trpc/server';
 import { router, protectedProcedure } from '../../../trpc';
-import leadService from '../service';
+import importExportService from './service';
+import queryService from '../query/service';
 import { exportToCsvSchema, importFromCsvSchema } from '../schemas';
 import {
   parseCSVLine,
@@ -332,7 +333,7 @@ export const importExportRouter = router({
         });
       }
 
-      const dedupResult = await leadService.checkForDuplicates({
+      const dedupResult = await queryService.checkForDuplicates({
         userId: ctx.user.id,
         leads,
         db: ctx.db,

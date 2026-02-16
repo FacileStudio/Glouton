@@ -58,45 +58,27 @@ export const OVERPASS_CATEGORIES: Record<BusinessCategory, string[]> = {
   other: ['*=*'],
 };
 
-/**
- * getGoogleMapsSearchQuery
- */
 export function getGoogleMapsSearchQuery(category: BusinessCategory): string {
   const queries = GOOGLE_MAPS_CATEGORIES[category];
   return queries[0] || 'business';
 }
 
-/**
- * getOverpassQuery
- */
 export function getOverpassQuery(
   category: BusinessCategory,
   bbox: { south: number; west: number; north: number; east: number }
 ): string {
   const tags = OVERPASS_CATEGORIES[category];
 
-  /**
-   * if
-   */
   if (tags.length === 0) {
     return '';
   }
 
   const bboxStr = `${bbox.south},${bbox.west},${bbox.north},${bbox.east}`;
 
-  /**
-   * formatTag
-   */
   const formatTag = (tag: string): string => {
-    /**
-     * if
-     */
     if (tag === '*=*') {
       return '';
     }
-    /**
-     * if
-     */
     if (tag.endsWith('=*')) {
       const key = tag.slice(0, -2);
       return `["${key}"]`;
@@ -118,16 +100,10 @@ out body;
 out skel qt;`;
 }
 
-/**
- * categoryToOverpassTags
- */
 export function categoryToOverpassTags(category: BusinessCategory): string[] {
   return OVERPASS_CATEGORIES[category];
 }
 
-/**
- * normalizeCategory
- */
 export function normalizeCategory(category: string): BusinessCategory {
   const normalized = category.toLowerCase().trim();
 

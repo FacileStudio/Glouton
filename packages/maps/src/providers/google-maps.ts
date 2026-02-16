@@ -21,9 +21,6 @@ export class GoogleMapsScraper {
   private browser: StealthBrowser;
   private options: GoogleMapsScraperOptions;
 
-  /**
-   * constructor
-   */
   constructor(options: Partial<GoogleMapsScraperOptions> = {}) {
     this.options = { ...DEFAULT_OPTIONS, ...options };
     this.browser = new StealthBrowser({
@@ -32,23 +29,14 @@ export class GoogleMapsScraper {
     });
   }
 
-  /**
-   * initialize
-   */
   async initialize(): Promise<void> {
     await this.browser.initialize();
   }
 
-  /**
-   * close
-   */
   async close(): Promise<void> {
     await this.browser.close();
   }
 
-  /**
-   * search
-   */
   async search(searchOptions: SearchOptions): Promise<LocalBusiness[]> {
     const page = await this.browser.newPage();
 
@@ -60,9 +48,6 @@ export class GoogleMapsScraper {
         `https://www.google.com/maps/search/${encodeURIComponent(searchQuery)}`
       );
 
-      /**
-       * if
-       */
       if (!success) {
         throw new Error('Failed to load Google Maps search results');
       }
@@ -71,9 +56,6 @@ export class GoogleMapsScraper {
 
       const businesses = await this.extractBusinesses(page);
 
-      /**
-       * if
-       */
       if (searchOptions.hasWebsite !== undefined) {
         return businesses.filter((b) => b.hasWebsite === searchOptions.hasWebsite);
       }
@@ -84,15 +66,9 @@ export class GoogleMapsScraper {
     }
   }
 
-  /**
-   * buildSearchQuery
-   */
   private buildSearchQuery(options: SearchOptions): string {
     let query = '';
 
-    /**
-     * if
-     */
     if (options.query) {
       query = options.query;
     } else if (options.category) {
@@ -101,13 +77,7 @@ export class GoogleMapsScraper {
       query = 'business';
     }
 
-    /**
-     * if
-     */
     if (options.location) {
-      /**
-       * if
-       */
       if (typeof options.location === 'string') {
         query += ` in ${options.location}`;
       } else if ('lat' in options.location) {
@@ -118,9 +88,6 @@ export class GoogleMapsScraper {
     return query;
   }
 
-  /**
-   * waitForSearchResults
-   */
   private async waitForSearchResults(page: Page): Promise<void> {
     await page.waitForTimeout(this.options.delayAfterSearch || 3000);
 
@@ -131,9 +98,6 @@ export class GoogleMapsScraper {
       '[aria-label*="Results"]',
     ];
 
-    /**
-     * for
-     */
     for (const selector of selectors) {
       try {
         await page.waitForSelector(selector, { timeout: 5000 });
@@ -144,9 +108,6 @@ export class GoogleMapsScraper {
     }
   }
 
-  /**
-   * scrollResults
-   */
   private async scrollResults(page: Page): Promise<void> {
     const feedSelector = 'div[role="feed"]';
 
@@ -160,15 +121,9 @@ export class GoogleMapsScraper {
     let unchangedCount = 0;
     const maxUnchanged = 3;
 
-    /**
-     * while
-     */
     while (unchangedCount < maxUnchanged) {
       const currentHeight = await page.evaluate((selector) => {
         const feed = document.querySelector(selector);
-        /**
-         * if
-         */
         if (feed) {
           feed.scrollTop = feed.scrollHeight;
           return feed.scrollHeight;
@@ -178,9 +133,6 @@ export class GoogleMapsScraper {
 
       await page.waitForTimeout(this.options.delayBetweenScrolls || 2000);
 
-      /**
-       * if
-       */
       if (currentHeight === previousHeight) {
         unchangedCount++;
       } else {
@@ -190,18 +142,12 @@ export class GoogleMapsScraper {
       previousHeight = currentHeight;
 
       const itemCount = await page.locator('div[role="feed"] > div').count();
-      /**
-       * if
-       */
       if (itemCount >= (this.options.maxResults || 100)) {
         break;
       }
     }
   }
 
-  /**
-   * extractBusinesses
-   */
   private async extractBusinesses(page: Page): Promise<LocalBusiness[]> {
     await this.scrollResults(page);
 
@@ -209,24 +155,15 @@ export class GoogleMapsScraper {
       const results: LocalBusiness[] = [];
       const items = document.querySelectorAll('div[role="feed"] > div > div > a');
 
-      /**
-       * for
-       */
       for (let i = 0; i < Math.min(items.length, maxResults); i++) {
         const item = items[i];
         const parent = item.closest('div[role="feed"] > div > div');
 
-        /**
-         * if
-         */
         if (!parent) continue;
 
         const nameElement = parent.querySelector('div.fontHeadlineSmall');
         const name = nameElement?.textContent?.trim();
 
-        /**
-         * if
-         */
         if (!name) continue;
 
         const ratingElement = parent.querySelector('span[role="img"]');
@@ -255,14 +192,8 @@ export class GoogleMapsScraper {
         let website: string | undefined;
         let hasWebsite = false;
 
-        /**
-         * if
-         */
         if (websiteElement) {
           const href = websiteElement.getAttribute('href') || '';
-          /**
-           * if
-           */
           if (!href.includes('google.com') && !href.includes('gstatic.com')) {
             website = href;
             hasWebsite = true;
@@ -288,9 +219,6 @@ export class GoogleMapsScraper {
     return businesses;
   }
 
-  /**
-   * searchDetailed
-   */
   async searchDetailed(searchOptions: SearchOptions): Promise<LocalBusiness[]> {
     const businesses = await this.search(searchOptions);
     const detailedBusinesses: LocalBusiness[] = [];
@@ -298,9 +226,6 @@ export class GoogleMapsScraper {
     const page = await this.browser.newPage();
 
     try {
-      /**
-       * for
-       */
       for (const business of businesses.slice(0, this.options.maxResults || 100)) {
         try {
           const detailed = await this.extractDetailedBusiness(page, business);
@@ -318,16 +243,10 @@ export class GoogleMapsScraper {
     return detailedBusinesses;
   }
 
-  /**
-   * extractDetailedBusiness
-   */
   private async extractDetailedBusiness(
     page: Page,
     business: LocalBusiness
   ): Promise<LocalBusiness> {
-    /**
-     * if
-     */
     if (!business.coordinates) {
       return business;
     }
@@ -336,9 +255,6 @@ export class GoogleMapsScraper {
 
     const success = await this.browser.navigateWithRetry(page, url);
 
-    /**
-     * if
-     */
     if (!success) {
       return business;
     }
@@ -372,9 +288,6 @@ export class GoogleMapsScraper {
   }
 }
 
-/**
- * searchGoogleMaps
- */
 export async function searchGoogleMaps(
   options: SearchOptions,
   scraperOptions?: Partial<GoogleMapsScraperOptions>
@@ -389,9 +302,6 @@ export async function searchGoogleMaps(
   }
 }
 
-/**
- * searchGoogleMapsDetailed
- */
 export async function searchGoogleMapsDetailed(
   options: SearchOptions,
   scraperOptions?: Partial<GoogleMapsScraperOptions>

@@ -1,6 +1,7 @@
 import { TRPCError } from '@trpc/server';
+import { z } from 'zod';
 import { router, protectedProcedure } from '../../../trpc';
-import leadService from '../service';
+import huntService from './service';
 import {
   startHuntSchema,
   startLocalBusinessHuntSchema,
@@ -8,6 +9,18 @@ import {
   cancelHuntSchema,
   deleteHuntSchema,
 } from '../schemas';
+
+const getRunDetailsSchema = z.object({
+  huntSessionId: z.string().uuid('Invalid hunt session ID'),
+});
+
+const getRunEventsSchema = z.object({
+  huntSessionId: z.string().uuid('Invalid hunt session ID'),
+  level: z.enum(['info', 'warning', 'error', 'success']).optional(),
+  category: z.enum(['system', 'source', 'lead', 'enrichment']).optional(),
+  page: z.number().int().min(1).default(1),
+  limit: z.number().int().min(1).max(100).default(50),
+});
 
 export const huntRouter = router({
   start: protectedProcedure.input(startHuntSchema).mutation(async ({ ctx, input }) => {
@@ -36,7 +49,7 @@ export const huntRouter = router({
         });
       }
 
-      return await leadService.startHunt({
+      return await huntService.startHunt({
         userId: ctx.user.id,
         source: selectedSource,
         ...input,
@@ -58,7 +71,7 @@ export const huntRouter = router({
           await ctx.db`SELECT "googleMapsApiKey" FROM "User" WHERE id = ${ctx.user.id}`;
         if (!user) throw new TRPCError({ code: 'UNAUTHORIZED' });
 
-        return await leadService.startLocalBusinessHunt({
+        return await huntService.startLocalBusinessHunt({
           userId: ctx.user.id,
           ...input,
           googleMapsApiKey: user.googleMapsApiKey,
@@ -72,7 +85,7 @@ export const huntRouter = router({
     }),
 
   list: protectedProcedure.query(async ({ ctx }) => {
-    return await leadService.getHuntSessions(ctx.user.id, ctx.db, ctx.jobs);
+    return await huntService.getHuntSessions(ctx.user.id, ctx.db, ctx.jobs);
   }),
 
   getStatus: protectedProcedure.input(huntStatusSchema).query(async ({ ctx, input }) => {
@@ -116,4 +129,83 @@ export const huntRouter = router({
 
     return { success: true };
   }),
+
+  getRunDetails: protectedProcedure
+    .input(getRunDetailsSchema)
+    .query(async ({ ctx, input }) => {
+      try {
+        const details = await huntService.getRunDetails(
+          input.huntSessionId,
+          ctx.user.id,
+          ctx.db
+        );
+
+        ctx.log.info({
+          action: 'get-hunt-run-details',
+          huntSessionId: input.huntSessionId,
+        });
+
+        return details;
+      } catch (error) {
+        if (error instanceof TRPCError) {
+          throw error;
+        }
+
+        ctx.log.error({
+          action: 'get-hunt-run-details-failed',
+          huntSessionId: input.huntSessionId,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to retrieve hunt run details',
+          cause: error,
+        });
+      }
+    }),
+
+  getRunEvents: protectedProcedure
+    .input(getRunEventsSchema)
+    .query(async ({ ctx, input }) => {
+      try {
+        const result = await huntService.getRunEvents(
+          input.huntSessionId,
+          ctx.user.id,
+          ctx.db,
+          {
+            level: input.level,
+            category: input.category,
+            page: input.page,
+            limit: input.limit,
+          }
+        );
+
+        ctx.log.info({
+          action: 'get-hunt-run-events',
+          huntSessionId: input.huntSessionId,
+          level: input.level,
+          category: input.category,
+          page: input.page,
+        });
+
+        return result;
+      } catch (error) {
+        if (error instanceof TRPCError) {
+          throw error;
+        }
+
+        ctx.log.error({
+          action: 'get-hunt-run-events-failed',
+          huntSessionId: input.huntSessionId,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Failed to retrieve hunt run events',
+          cause: error,
+        });
+      }
+    }),
 });

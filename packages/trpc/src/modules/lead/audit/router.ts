@@ -18,7 +18,7 @@ export const auditRouter = router({
   cancel: protectedProcedure
     .input(z.object({ auditSessionId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      return LeadAuditService.cancel(input, ctx);
+      return LeadAuditService.cancel(input.auditSessionId, ctx);
     }),
   start: protectedProcedure.mutation(async ({ ctx, input }) => {
     return LeadAuditService.start(ctx);
