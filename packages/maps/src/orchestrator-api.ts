@@ -35,47 +35,82 @@ export class MapsOrchestrator {
     this.openStreetMap = new OpenStreetMapService();
   }
 
+  private async delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
   async search(options: SearchOptions): Promise<LocalBusiness[]> {
     const results: LocalBusiness[] = [];
     const errors: Error[] = [];
+    const successfulProviders: string[] = [];
 
     const promises: Promise<void>[] = [];
 
+    // Add staggered delays to avoid hitting rate limits when multiple services run in parallel
+    let delayOffset = 0;
+    const STAGGER_DELAY = 500; // 500ms between starting each service
+
     if (this.config.useGoogleMaps && this.googleMaps) {
+      const googleMapsDelay = delayOffset;
+      delayOffset += STAGGER_DELAY;
+
       promises.push(
-        this.googleMaps
-          .searchNearby(options)
-          .then((result: any) => {
-            results.push(...result.businesses);
-          })
-          .catch((error: any) => {
-            console.error('[GoogleMaps] Search failed:', error);
-            errors.push(error);
-          })
+        this.delay(googleMapsDelay).then(() =>
+          this.googleMaps!
+            .searchNearby(options)
+            .then((result: any) => {
+              results.push(...result.businesses);
+              successfulProviders.push('google-maps');
+              console.log(`[GoogleMaps] Successfully found ${result.businesses.length} businesses`);
+            })
+            .catch((error: any) => {
+              console.error('[GoogleMaps] Search failed:', error);
+              errors.push(new Error(`GoogleMaps: ${error.message}`));
+            })
+        )
       );
     }
 
     if (this.config.useOpenStreetMap) {
+      const osmDelay = delayOffset;
+      delayOffset += STAGGER_DELAY;
+
       promises.push(
-        this.openStreetMap
-          .searchNearby(options)
-          .then((result: any) => {
-            results.push(...result.businesses);
-          })
-          .catch((error: any) => {
-            console.error('[OpenStreetMap] Search failed:', error);
-            errors.push(error);
-          })
+        this.delay(osmDelay).then(() =>
+          this.openStreetMap
+            .searchNearby(options)
+            .then((result: any) => {
+              results.push(...result.businesses);
+              successfulProviders.push('openstreetmap');
+              console.log(`[OpenStreetMap] Successfully found ${result.businesses.length} businesses`);
+            })
+            .catch((error: any) => {
+              console.error('[OpenStreetMap] Search failed:', error);
+              errors.push(new Error(`OpenStreetMap: ${error.message}`));
+            })
+        )
       );
     }
 
     await Promise.all(promises);
 
+    // Log summary
+    if (successfulProviders.length > 0) {
+      console.log(`[MapsOrchestrator] Search completed. Successful providers: ${successfulProviders.join(', ')}`);
+    }
+
+    if (errors.length > 0) {
+      console.log(`[MapsOrchestrator] Some providers failed: ${errors.map(e => e.message).join('; ')}`);
+    }
+
+    // Only throw if ALL services failed and we have no results
     if (results.length === 0 && errors.length > 0) {
       throw new Error(`All map services failed: ${errors.map(e => e.message).join('; ')}`);
     }
 
     const deduplicated = this.deduplicateBusinesses(results);
+
+    console.log(`[MapsOrchestrator] After deduplication: ${deduplicated.length} unique businesses`);
 
     return deduplicated.slice(0, options.maxResults || 100);
   }

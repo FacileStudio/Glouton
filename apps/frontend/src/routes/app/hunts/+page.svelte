@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
+  import { fade } from 'svelte/transition';
   import { goto } from '$app/navigation';
   import { trpc } from '$lib/trpc';
   import { toast } from '@repo/utils';
