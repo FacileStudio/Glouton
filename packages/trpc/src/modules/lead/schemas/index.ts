@@ -123,6 +123,11 @@ export const deleteAuditSchema = z.object({
 
 export const exportToCsvSchema = z.object({
   huntSessionId: z.string().optional(),
+  leadIds: z.array(z.string()).optional(),
+  status: z.enum(['HOT', 'WARM', 'COLD']).optional(),
+  search: z.string().optional(),
+  country: z.string().optional(),
+  city: z.string().optional(),
 });
 
 export const importFromCsvSchema = z.object({

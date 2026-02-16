@@ -18,120 +18,26 @@ import {
 export const importExportRouter = router({
   exportToCsv: protectedProcedure.input(exportToCsvSchema).query(async ({ ctx, input }) => {
     try {
-      const leads = await ctx.db.lead.findMany({
-        where: {
-          userId: ctx.user.id,
-          ...(input.huntSessionId ? { huntSessionId: input.huntSessionId } : {}),
+      // Use the service's exportToCsv method which properly uses raw SQL
+      const csv = await importExportService.exportToCsv({
+        userId: ctx.user.id,
+        leadIds: input.leadIds,
+        filters: {
+          status: input.status,
+          search: input.search,
+          country: input.country,
+          city: input.city,
         },
-        orderBy: { createdAt: 'desc' },
+        db: ctx.db,
       });
 
-      const rows = leads.map((lead) => {
-        return [
-          /**
-           * escapeCSVField
-           */
-          escapeCSVField(lead.businessName || lead.domain),
-          /**
-           * escapeCSVField
-           */
-          escapeCSVField(lead.businessType),
-          /**
-           * escapeCSVField
-           */
-          escapeCSVField(lead.domain),
-          /**
-           * escapeCSVField
-           */
-          escapeCSVField(lead.email),
-          /**
-           * escapeCSVArray
-           */
-          escapeCSVArray(lead.additionalEmails),
-          /**
-           * escapeCSVField
-           */
-          escapeCSVField(lead.firstName),
-          /**
-           * escapeCSVField
-           */
-          escapeCSVField(lead.lastName),
-          /**
-           * escapeCSVField
-           */
-          escapeCSVField(lead.position),
-          /**
-           * escapeCSVField
-           */
-          escapeCSVField(lead.department),
-          /**
-           * escapeCSVArray
-           */
-          escapeCSVArray(lead.phoneNumbers),
-          /**
-           * escapeCSVArray
-           */
-          escapeCSVArray(lead.physicalAddresses),
-          /**
-           * escapeCSVField
-           */
-          escapeCSVField(lead.category),
-          /**
-           * escapeCSVJson
-           */
-          escapeCSVJson(lead.coordinates),
-          /**
-           * escapeCSVField
-           */
-          escapeCSVField(lead.openingHours),
-          /**
-           * escapeCSVField
-           */
-          escapeCSVField(lead.hasWebsite ? 'Oui' : 'Non'),
-          /**
-           * escapeCSVField
-           */
-          escapeCSVField(lead.city),
-          /**
-           * escapeCSVField
-           */
-          escapeCSVField(lead.country),
-          lead.score.toString(),
-          lead.status,
-          lead.source,
-          /**
-           * escapeCSVArray
-           */
-          escapeCSVArray(lead.technologies),
-          /**
-           * escapeCSVJson
-           */
-          escapeCSVJson(lead.socialProfiles),
-          /**
-           * escapeCSVJson
-           */
-          escapeCSVJson(lead.companyInfo),
-          /**
-           * escapeCSVJson
-           */
-          escapeCSVJson(lead.websiteAudit),
-          /**
-           * escapeCSVField
-           */
-          escapeCSVField(lead.contacted ? 'Oui' : 'Non'),
-          /**
-           * escapeCSVField
-           */
-          escapeCSVField(lead.lastContactedAt?.toISOString()),
-          lead.emailsSentCount.toString(),
-        ].join(',');
-      });
-
-      const csv = [CSV_HEADERS.join(','), ...rows].join('\n');
+      // Count the number of leads (excluding the header)
+      const lines = csv.split('\n');
+      const count = lines.length - 1; // Subtract 1 for header
 
       return {
         csv,
-        count: leads.length,
+        count,
       };
     } catch (error) {
       ctx.log.error({

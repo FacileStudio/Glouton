@@ -42,8 +42,9 @@ export class EmailService {
 
     const [outreach] = await this.db`
       INSERT INTO "EmailOutreach" (
-        "leadId", "userId", "templateId", subject, "htmlBody", "textBody", variables, status, "createdAt"
+        id, "leadId", "userId", "templateId", subject, "htmlBody", "textBody", variables, status, "createdAt", "updatedAt"
       ) VALUES (
+        gen_random_uuid(),
         ${params.leadId},
         ${params.userId},
         ${params.templateId},
@@ -52,6 +53,7 @@ export class EmailService {
         ${rendered.text},
         ${JSON.stringify(params.variables)}::jsonb,
         'PENDING',
+        ${new Date()},
         ${new Date()}
       )
       RETURNING id
