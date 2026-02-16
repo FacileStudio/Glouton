@@ -1,6 +1,9 @@
 import type { JobDefinition } from '../types';
 import type { SQL } from 'bun';
 import { Job as BullJob } from 'bullmq';
+import { MapsOrchestrator } from '@repo/maps';
+import type { LocalBusiness } from '@repo/maps';
+import type { EventEmitter } from './index';
 
 export interface LocalBusinessHuntData {
   huntSessionId: string;
@@ -13,7 +16,7 @@ export interface LocalBusinessHuntData {
   googleMapsApiKey?: string;
 }
 
-export function createLocalBusinessHuntWorker(db: SQL): JobDefinition<LocalBusinessHuntData, void> {
+export function createLocalBusinessHuntWorker(db: SQL, events: EventEmitter): JobDefinition<LocalBusinessHuntData, void> {
   return {
     name: 'local-business-hunt',
     processor: async (job: BullJob<LocalBusinessHuntData>) => {
@@ -27,6 +30,14 @@ export function createLocalBusinessHuntWorker(db: SQL): JobDefinition<LocalBusin
         maxResults = 20,
         googleMapsApiKey,
       } = job.data;
+
+      // Set up cancellation checking
+      const checkCancellation = async () => {
+        if (await job.isFailed() || await job.isCompleted()) {
+          return true;
+        }
+        return false;
+      };
 
       try {
         console.log(`[LocalBusinessHunt] Starting hunt for ${category} in ${location}`);
@@ -52,44 +63,99 @@ export function createLocalBusinessHuntWorker(db: SQL): JobDefinition<LocalBusin
 
         await job.updateProgress(10);
 
-        // 2. Data Sourcing (Google Maps / OSM Fallback)
-        let businessesFound: any[] = [];
-        let successCount = 0;
+        // Check for cancellation before starting expensive operations
+        if (await checkCancellation()) {
+          console.log(`[LocalBusinessHunt] Hunt cancelled for session ${huntSessionId} before search`);
 
-        if (googleMapsApiKey) {
-          // Placeholder for real Google Places logic
-          businessesFound = generateMockLocalBusinesses(category, location, Math.min(10, maxResults));
+          await db`
+            UPDATE "HuntSession"
+            SET status = 'CANCELLED',
+                "completedAt" = ${new Date()},
+                "updatedAt" = ${new Date()}
+            WHERE id = ${huntSessionId}
+          `;
+
+          if (events) {
+            events.emit(userId, 'hunt-cancelled', {
+              huntSessionId,
+              totalLeads: currentSession.totalLeads || 0,
+              successfulLeads: currentSession.successfulLeads || 0
+            });
+          }
+
+          return { cancelled: true };
         }
 
-        if (businessesFound.length < maxResults) {
-          const additional = generateMockLocalBusinesses(
-            category,
+        // 2. Initialize Maps Orchestrator and search for businesses
+        const mapsOrchestrator = new MapsOrchestrator({
+          googleMapsApiKey,
+          useGoogleMaps: !!googleMapsApiKey,
+          useOpenStreetMap: true,
+        });
+
+        let businessesFound: LocalBusiness[] = [];
+        let successCount = 0;
+
+        try {
+          console.log(`[LocalBusinessHunt] Searching for ${category} businesses in ${location}`);
+
+          businessesFound = await mapsOrchestrator.search({
             location,
-            Math.min(10, maxResults - businessesFound.length),
-            'OSM'
-          );
-          businessesFound = [...businessesFound, ...additional];
+            category,
+            radius,
+            maxResults,
+            hasWebsite,
+          });
+
+          console.log(`[LocalBusinessHunt] Found ${businessesFound.length} businesses from map services`);
+        } catch (error) {
+          console.error('[LocalBusinessHunt] Maps search failed:', error);
+          throw new Error(`Failed to search for businesses: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+
+        // Check for cancellation after search completes
+        if (await checkCancellation()) {
+          console.log(`[LocalBusinessHunt] Hunt cancelled for session ${huntSessionId} after search`);
+
+          await db`
+            UPDATE "HuntSession"
+            SET status = 'CANCELLED',
+                "completedAt" = ${new Date()},
+                "updatedAt" = ${new Date()}
+            WHERE id = ${huntSessionId}
+          `;
+
+          if (events) {
+            events.emit(userId, 'hunt-cancelled', {
+              huntSessionId,
+              totalLeads: currentSession.totalLeads || 0,
+              successfulLeads: currentSession.successfulLeads || 0
+            });
+          }
+
+          return { cancelled: true };
         }
 
         await job.updateProgress(50);
 
-        // 3. Filter and Deduplicate
-        if (hasWebsite !== undefined) {
-          businessesFound = businessesFound.filter(b => b.hasWebsite === hasWebsite);
-        }
+        // 3. Filter out businesses already processed (deduplication handled by MapsOrchestrator)
 
         if (businessesFound.length > 0) {
-          const domains = businessesFound.map(b => b.domain).filter(Boolean);
-          const names = businessesFound.map(b => b.businessName).filter(Boolean);
+          const domains = businessesFound.map(b => b.website).filter(Boolean);
+          const names = businessesFound.map(b => b.name).filter(Boolean);
 
           // Check for existing leads for this user
+          // Format arrays as PostgreSQL array literals
+          const pgDomains = `{${domains.join(',')}}`;
+          const pgNames = `{${names.map(n => `"${n.replace(/"/g, '\\"')}"`).join(',')}}`;
+
           const existingLeads = await db`
             SELECT domain, "businessName"
             FROM "Lead"
             WHERE "userId" = ${userId}
               AND (
-                domain = ANY(${domains})
-                OR "businessName" = ANY(${names})
+                domain = ANY(${pgDomains}::text[])
+                OR "businessName" = ANY(${pgNames}::text[])
               )
           `;
 
@@ -98,34 +164,64 @@ export function createLocalBusinessHuntWorker(db: SQL): JobDefinition<LocalBusin
           );
 
           const newBusinesses = businessesFound.filter(b =>
-            !existingKeys.has(b.domain || b.businessName)
+            !existingKeys.has(b.website || b.name)
           );
+
+          // Check for cancellation before inserting leads
+          if (await checkCancellation()) {
+            console.log(`[LocalBusinessHunt] Hunt cancelled for session ${huntSessionId} before inserting leads`);
+
+            await db`
+              UPDATE "HuntSession"
+              SET status = 'CANCELLED',
+                  "completedAt" = ${new Date()},
+                  "updatedAt" = ${new Date()}
+              WHERE id = ${huntSessionId}
+            `;
+
+            if ((global as any).events) {
+              (global as any).events.emit(userId, 'hunt-cancelled', {
+                huntSessionId,
+                totalLeads: currentSession.totalLeads || 0,
+                successfulLeads: currentSession.successfulLeads || 0
+              });
+            }
+
+            return { cancelled: true };
+          }
 
           // 4. Batch Insert Leads
           if (newBusinesses.length > 0) {
-            const leadsToInsert = newBusinesses.map(business => ({
-              id: crypto.randomUUID(), // Use JS generation or gen_random_uuid() in SQL
-              userId,
-              huntSessionId,
-              source: business.source || 'GOOGLE_MAPS',
-              domain: business.domain,
-              email: business.email || (business.domain ? `contact@${business.domain}` : null), // Corrected to singular "email"
-              businessName: business.businessName,
-              company: business.businessName,
-              businessType: 'LOCAL_BUSINESS',
-              category,
-              city: business.city || location.split(',')[0],
-              country: business.country || location.split(',').pop()?.trim(),
-              status: 'COLD',
-              score: business.hasWebsite ? 60 : 40,
-              phoneNumbers: business.phoneNumbers || [],
-              physicalAddresses: business.addresses || [],
-              coordinates: business.coordinates,
-              hasWebsite: business.hasWebsite,
-              socialProfiles: business.socialProfiles,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            }));
+            const leadsToInsert = newBusinesses.map(business => {
+              // Extract domain from website URL if available
+              const domain = business.website ?
+                business.website.replace(/^https?:\/\//, '').replace(/\/$/, '').split('/')[0] : null;
+
+              return {
+                id: crypto.randomUUID(),
+                userId,
+                huntSessionId,
+                source: business.source === 'google-maps' ? 'GOOGLE_MAPS' :
+                        business.source === 'openstreetmap' ? 'OPENSTREETMAP' : 'GOOGLE_MAPS',
+                domain: domain,
+                email: business.email || (domain ? `contact@${domain}` : null),
+                businessName: business.name,
+                company: business.name,
+                businessType: 'LOCAL_BUSINESS',
+                category,
+                city: business.city || business.address?.split(',')[0] || location.split(',')[0],
+                country: business.country || location.split(',').pop()?.trim(),
+                status: 'COLD',
+                score: business.hasWebsite ? 60 : 40,
+                phoneNumbers: business.phone ? [business.phone] : [],
+                physicalAddresses: business.address ? [business.address] : [],
+                coordinates: business.coordinates,
+                hasWebsite: business.hasWebsite,
+                socialProfiles: business.socialProfiles || {},
+                createdAt: new Date(),
+                updatedAt: new Date(),
+              };
+            });
 
             const insertedLeads = await db`
               INSERT INTO "Lead" ${db(leadsToInsert)}
@@ -179,29 +275,4 @@ export function createLocalBusinessHuntWorker(db: SQL): JobDefinition<LocalBusin
       },
     },
   };
-}
-
-// Mock generator for testing
-function generateMockLocalBusinesses(category: string, location: string, count: number, source = 'GOOGLE_MAPS') {
-  const businesses = [];
-  for (let i = 0; i < count; i++) {
-    const id = Math.floor(Math.random() * 1000);
-    const name = `${category.charAt(0).toUpperCase() + category.slice(1)} ${location} #${id}`;
-    const hasWeb = Math.random() > 0.3;
-    const domain = hasWeb ? `${name.toLowerCase().replace(/\s+/g, '-')}.com` : null;
-
-    businesses.push({
-      source,
-      businessName: name,
-      domain,
-      email: domain ? `info@${domain}` : null,
-      hasWebsite: hasWeb,
-      city: location.split(',')[0],
-      phoneNumbers: [`+1 555-010${i}`],
-      addresses: [`${100 + i} Main St, ${location}`],
-      coordinates: { lat: 40.7128, lng: -74.0060 },
-      socialProfiles: { facebook: domain ? `fb.com/${domain}` : null }
-    });
-  }
-  return businesses;
 }

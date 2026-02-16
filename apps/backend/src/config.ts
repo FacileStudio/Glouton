@@ -3,6 +3,7 @@ import { db } from '@repo/database';
 import { QueueManager, createJobConfig } from '@repo/jobs';
 import { SMTPService } from '@repo/smtp';
 import env from './env';
+import { events } from './services/events';
 
 const authManager = new AuthManager({
   encryptionSecret: env.ENCRYPTION_SECRET,
@@ -40,4 +41,5 @@ export default {
   jobs,
   smtp,
   db,
+  events,
 };

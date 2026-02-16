@@ -115,16 +115,27 @@ export function createLeadExtractionWorker(db: SQL): JobDefinition<LeadExtractio
           extractedLeads = generateMockLeads(source, targetUrl || 'example.com', 5);
 
           // Check for duplicates
+          // Format arrays as PostgreSQL array literals
+          const emails = extractedLeads.map(l => l.email).filter(e => e);
+          const domains = extractedLeads.map(l => l.domain).filter(d => d);
+          const firstNames = extractedLeads.map(l => l.firstName).filter(f => f);
+          const lastNames = extractedLeads.map(l => l.lastName).filter(l => l);
+
+          const pgEmails = emails.length > 0 ? `{${emails.map(e => `"${e.replace(/"/g, '\\"')}"`).join(',')}}` : '{}';
+          const pgDomains = domains.length > 0 ? `{${domains.join(',')}}` : '{}';
+          const pgFirstNames = firstNames.length > 0 ? `{${firstNames.map(n => `"${n.replace(/"/g, '\\"')}"`).join(',')}}` : '{}';
+          const pgLastNames = lastNames.length > 0 ? `{${lastNames.map(n => `"${n.replace(/"/g, '\\"')}"`).join(',')}}` : '{}';
+
           const existingLeads = await db`
             SELECT email, domain, "firstName", "lastName"
             FROM "Lead"
             WHERE "userId" = ${userId}
               AND (
-                email = ANY(${extractedLeads.map(l => l.email).filter(e => e)})
+                email = ANY(${pgEmails}::text[])
                 OR (
-                  domain = ANY(${extractedLeads.map(l => l.domain).filter(d => d)})
-                  AND "firstName" = ANY(${extractedLeads.map(l => l.firstName).filter(f => f)})
-                  AND "lastName" = ANY(${extractedLeads.map(l => l.lastName).filter(l => l)})
+                  domain = ANY(${pgDomains}::text[])
+                  AND "firstName" = ANY(${pgFirstNames}::text[])
+                  AND "lastName" = ANY(${pgLastNames}::text[])
                 )
               )
           ` as any[];

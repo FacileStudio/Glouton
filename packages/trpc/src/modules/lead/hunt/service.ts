@@ -308,7 +308,7 @@ export default {
     };
   },
 
-  async cancelHunt(huntSessionId: string, userId: string, db: SQL, jobs: QueueManager) {
+  async cancelHunt(huntSessionId: string, userId: string, db: SQL, jobs: QueueManager, events?: { emit: (userId: string, type: string, data?: any) => void }) {
     const [session] = (await db`
       SELECT id, "jobId", status
       FROM "HuntSession"
@@ -343,6 +343,13 @@ export default {
           "updatedAt" = ${new Date()}
       WHERE id = ${huntSessionId}
     `;
+
+    // Emit WebSocket event for cancellation
+    if (events) {
+      events.emit(userId, 'hunt-cancelled', {
+        huntSessionId
+      });
+    }
 
     return { success: true, huntSessionId };
   },

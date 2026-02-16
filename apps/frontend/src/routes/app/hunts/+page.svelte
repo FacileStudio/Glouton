@@ -3,8 +3,8 @@
   import { goto } from '$app/navigation';
   import { trpc } from '$lib/trpc';
   import { toast } from '@repo/utils';
-  import { ws } from '$lib/websocket';
   import { Spinner } from '@repo/ui';
+  import { setupHuntListeners, type HuntSession } from '$lib/websocket-events.svelte.js';
   import 'iconify-icon';
 
   interface Stats {
@@ -20,21 +20,6 @@
     averageScore: number;
   }
 
-  interface HuntSession {
-    id: string;
-    targetUrl: string;
-    speed: number;
-    progress: number;
-    status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
-    totalLeads: number;
-    successfulLeads: number;
-    failedLeads: number;
-    error: string | null;
-    startedAt: Date | null;
-    completedAt: Date | null;
-    createdAt: Date;
-  }
-
   // --- Reactive State ---
   let stats = $state<Stats | null>(null);
   let huntSessions = $state<HuntSession[]>([]);
@@ -48,48 +33,46 @@
   let lastFailedHunts = new Set<string>();
   let lastCompletedHunts = new Set<string>();
   let timerInterval: any;
+  let wsUnsubscribers: (() => void)[] = [];
 
-  // --- WebSocket Subscriptions ---
+  // --- WebSocket Helpers ---
+  const updateHuntSession = (id: string, updates: Partial<HuntSession>) => {
+    const index = huntSessions.findIndex(s => s.id === id);
+    if (index !== -1) {
+      huntSessions[index] = { ...huntSessions[index], ...updates };
+      return true;
+    }
+    return false;
+  };
+
+  const addHuntSession = (session: HuntSession) => {
+    huntSessions = [session, ...huntSessions];
+  };
+
+  // --- Lifecycle ---
   onMount(async () => {
     timerInterval = setInterval(() => (now = new Date()), 1000);
+
+    // Setup WebSocket listeners
+    wsUnsubscribers = setupHuntListeners(
+      updateHuntSession,
+      addHuntSession,
+      loadData,
+      loadStats
+    );
+
     await loadData();
-
-    ws.on('hunt-update', (data) => {
-      const session = huntSessions.find((s) => s.id === data.huntSessionId);
-      if (session) {
-        Object.assign(session, {
-          progress: data.progress,
-          totalLeads: data.totalLeads,
-          successfulLeads: data.successfulLeads,
-          status: data.status,
-        });
-      }
-    });
-
-    ws.on('hunt-completed', async (data) => {
-      const session = huntSessions.find((s) => s.id === data.huntSessionId);
-      if (session) {
-        Object.assign(session, { status: 'COMPLETED', progress: 100 });
-        toast.push(`Hunt completed! Found ${data.successfulLeads} leads`, 'success');
-        await loadData();
-      }
-    });
-
-    ws.on('stats-changed', loadData);
+    await loadStats();
   });
 
   onDestroy(() => {
     clearInterval(timerInterval);
+    wsUnsubscribers.forEach(unsub => unsub());
   });
 
   async function loadData() {
     try {
-      const [statsData, sessionsData] = await Promise.all([
-        trpc.lead.query.getStats.query(),
-        trpc.lead.hunt.list.query(),
-      ]);
-
-      stats = statsData || null;
+      const sessionsData = await trpc.lead.hunt.list.query();
       huntSessions = Array.isArray(sessionsData) ? sessionsData : [];
 
       huntSessions.forEach((s) => {
@@ -104,12 +87,21 @@
     }
   }
 
+  async function loadStats() {
+    try {
+      const statsData = await trpc.lead.query.getStats.query();
+      stats = statsData || null;
+    } catch (error: any) {
+      console.error('Error loading stats:', error);
+    }
+  }
+
   async function cancelHunt(huntSessionId: string) {
     cancellingHuntId = huntSessionId;
     try {
       await trpc.lead.hunt.cancel.mutate({ huntSessionId });
-      toast.push('Hunt cancelled', 'success');
-      await loadData();
+      // The WebSocket event will update the session status to 'CANCELLED'
+      // which will remove it from the active hunts section
     } finally {
       cancellingHuntId = null;
     }
@@ -142,6 +134,21 @@
     if (mins < 60) return `${mins}m`;
     if (mins < 1440) return `${Math.floor(mins / 60)}h`;
     return `${Math.floor(mins / 1440)}d`;
+  };
+
+  const formatElapsedTime = (startDate: Date) => {
+    const elapsed = Date.now() - new Date(startDate).getTime();
+    const secs = Math.floor(elapsed / 1000);
+    const mins = Math.floor(secs / 60);
+    const hours = Math.floor(mins / 60);
+
+    if (hours > 0) {
+      return `${hours}h ${mins % 60}m`;
+    }
+    if (mins > 0) {
+      return `${mins}m ${secs % 60}s`;
+    }
+    return `${secs}s`;
   };
 
   const calculateETA = (session: HuntSession) => {
