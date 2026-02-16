@@ -12,21 +12,13 @@ import {
 export const huntRouter = router({
   start: protectedProcedure.input(startHuntSchema).mutation(async ({ ctx, input }) => {
     try {
-      const user = await ctx.db.user.findUnique({
-        where: { id: ctx.user.id },
-      });
+      const [user] = await ctx.db`SELECT * FROM "User" WHERE id = ${ctx.user.id}`;
 
-      /**
-       * if
-       */
       if (!user) {
-        throw new TRPCError({
-          code: 'UNAUTHORIZED',
-          message: 'User not found. Please log in again.',
-        });
+        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'User not found.' });
       }
 
-      const apiKeyMap: Record<string, string | null | undefined> = {
+      const apiKeyMap: Record<string, string | null> = {
         HUNTER: user.hunterApiKey,
         APOLLO: user.apolloApiKey,
         SNOV: user.snovApiKey,
@@ -37,298 +29,91 @@ export const huntRouter = router({
       const selectedSource = input.source || 'HUNTER';
       const apiKey = apiKeyMap[selectedSource];
 
-      /**
-       * if
-       */
       if (!apiKey) {
         throw new TRPCError({
           code: 'BAD_REQUEST',
-          message: `${selectedSource} API key not configured. Please add your API key in settings.`,
+          message: `${selectedSource} API key not configured.`,
         });
       }
 
-      const result = await leadService.startHunt({
+      return await leadService.startHunt({
         userId: ctx.user.id,
         source: selectedSource,
-        targetUrl: input.targetUrl,
-        companyName: input.companyName,
-        speed: input.speed,
-        filters: input.filters,
+        ...input,
         jobs: ctx.jobs,
         db: ctx.db,
       });
-
-      ctx.log.info({
-        action: 'start-hunt',
-        huntSessionId: result.huntSessionId,
-        source: selectedSource,
-        targetUrl: input.targetUrl,
-        speed: input.speed,
-      });
-
-      return result;
     } catch (error) {
-      /**
-       * if
-       */
-      if (error instanceof TRPCError) {
-        throw error;
-      }
-
-      ctx.log.error({
-        action: 'start-hunt-failed',
-        error: error instanceof Error ? error.message : 'Unknown error',
-        targetUrl: input.targetUrl,
-      });
-
-      throw new TRPCError({
-        code: 'INTERNAL_SERVER_ERROR',
-        message: error instanceof Error ? error.message : 'Failed to start hunt session',
-        cause: error,
-      });
+      if (error instanceof TRPCError) throw error;
+      ctx.log.error({ action: 'start-hunt-failed', error });
+      throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to start hunt' });
     }
   }),
 
-  startLocalBusiness: protectedProcedure.input(startLocalBusinessHuntSchema).mutation(async ({ ctx, input }) => {
-    try {
-      const user = await ctx.db.user.findUnique({
-        where: { id: ctx.user.id },
-      });
+  startLocalBusiness: protectedProcedure
+    .input(startLocalBusinessHuntSchema)
+    .mutation(async ({ ctx, input }) => {
+      try {
+        const [user] =
+          await ctx.db`SELECT "googleMapsApiKey" FROM "User" WHERE id = ${ctx.user.id}`;
+        if (!user) throw new TRPCError({ code: 'UNAUTHORIZED' });
 
-      /**
-       * if
-       */
-      if (!user) {
-        throw new TRPCError({
-          code: 'UNAUTHORIZED',
-          message: 'User not found. Please log in again.',
+        return await leadService.startLocalBusinessHunt({
+          userId: ctx.user.id,
+          ...input,
+          googleMapsApiKey: user.googleMapsApiKey,
+          jobs: ctx.jobs,
+          db: ctx.db,
         });
+      } catch (error) {
+        if (error instanceof TRPCError) throw error;
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Local hunt failed' });
       }
-
-      const result = await leadService.startLocalBusinessHunt({
-        userId: ctx.user.id,
-        location: input.location,
-        categories: input.categories,
-        hasWebsite: input.hasWebsite,
-        radius: input.radius,
-        maxResults: input.maxResults,
-        googleMapsApiKey: user.googleMapsApiKey || undefined,
-        jobs: ctx.jobs,
-        db: ctx.db,
-      });
-
-      ctx.log.info({
-        action: 'start-local-business-hunt',
-        huntSessionId: result.huntSessionId,
-        location: input.location,
-        categories: input.categories,
-      });
-
-      return result;
-    } catch (error) {
-      /**
-       * if
-       */
-      if (error instanceof TRPCError) {
-        throw error;
-      }
-
-      ctx.log.error({
-        action: 'start-local-business-hunt-failed',
-        error: error instanceof Error ? error.message : 'Unknown error',
-        location: input.location,
-      });
-
-      throw new TRPCError({
-        code: 'INTERNAL_SERVER_ERROR',
-        message: error instanceof Error ? error.message : 'Failed to start local business hunt',
-        cause: error,
-      });
-    }
-  }),
+    }),
 
   list: protectedProcedure.query(async ({ ctx }) => {
-    try {
-      const sessions = await leadService.getHuntSessions(ctx.user.id, ctx.db, ctx.jobs);
-      return sessions;
-    } catch (error) {
-      ctx.log.error({
-        action: 'get-hunt-sessions-failed',
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
-
-      throw new TRPCError({
-        code: 'INTERNAL_SERVER_ERROR',
-        message: 'Failed to retrieve hunt sessions',
-        cause: error,
-      });
-    }
+    return await leadService.getHuntSessions(ctx.user.id, ctx.db, ctx.jobs);
   }),
 
   getStatus: protectedProcedure.input(huntStatusSchema).query(async ({ ctx, input }) => {
-    try {
-      const session = await leadService.getHuntSessionStatus(input.huntSessionId, ctx.db);
+    const [session] = await ctx.db`SELECT * FROM "HuntSession" WHERE id = ${input.huntSessionId}`;
 
-      /**
-       * if
-       */
-      if (session.userId !== ctx.user.id) {
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'You do not have access to this hunt session',
-        });
-      }
+    if (!session) throw new TRPCError({ code: 'NOT_FOUND' });
+    if (session.userId !== ctx.user.id) throw new TRPCError({ code: 'FORBIDDEN' });
 
-      return session;
-    } catch (error) {
-      /**
-       * if
-       */
-      if (error instanceof TRPCError) {
-        throw error;
-      }
-
-      ctx.log.error({
-        action: 'get-hunt-status-failed',
-        huntSessionId: input.huntSessionId,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
-
-      throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: error instanceof Error ? error.message : 'Hunt session not found',
-        cause: error,
-      });
-    }
+    return session;
   }),
 
   cancel: protectedProcedure.input(cancelHuntSchema).mutation(async ({ ctx, input }) => {
-    try {
-      const session = await ctx.db.huntSession.findUnique({
-        where: { id: input.huntSessionId },
-      });
+    const [session] =
+      await ctx.db`SELECT status, "userId" FROM "HuntSession" WHERE id = ${input.huntSessionId}`;
 
-      /**
-       * if
-       */
-      if (!session) {
-        throw new TRPCError({
-          code: 'NOT_FOUND',
-          message: 'Hunt session not found',
-        });
-      }
+    if (!session) throw new TRPCError({ code: 'NOT_FOUND' });
+    if (session.userId !== ctx.user.id) throw new TRPCError({ code: 'FORBIDDEN' });
 
-      /**
-       * if
-       */
-      if (session.userId !== ctx.user.id) {
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'You do not have access to this hunt session',
-        });
-      }
-
-      /**
-       * if
-       */
-      if (session.status === 'COMPLETED' || session.status === 'FAILED' || session.status === 'CANCELLED') {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: `Cannot cancel a hunt that is already ${session.status.toLowerCase()}`,
-        });
-      }
-
-      const updatedSession = await ctx.db.huntSession.update({
-        where: { id: input.huntSessionId },
-        data: {
-          status: 'CANCELLED',
-          completedAt: new Date(),
-        },
-      });
-
-      ctx.log.info({
-        action: 'cancel-hunt',
-        huntSessionId: input.huntSessionId,
-      });
-
-      return updatedSession;
-    } catch (error) {
-      /**
-       * if
-       */
-      if (error instanceof TRPCError) {
-        throw error;
-      }
-
-      ctx.log.error({
-        action: 'cancel-hunt-failed',
-        huntSessionId: input.huntSessionId,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
-
-      throw new TRPCError({
-        code: 'INTERNAL_SERVER_ERROR',
-        message: 'Failed to cancel hunt session',
-        cause: error,
-      });
+    if (['COMPLETED', 'FAILED', 'CANCELLED'].includes(session.status)) {
+      throw new TRPCError({ code: 'BAD_REQUEST', message: 'Hunt already finished' });
     }
+
+    const [updated] = await ctx.db`
+      UPDATE "HuntSession" 
+      SET status = 'CANCELLED', "completedAt" = ${new Date()} 
+      WHERE id = ${input.huntSessionId}
+      RETURNING *
+    `;
+
+    return updated;
   }),
 
   delete: protectedProcedure.input(deleteHuntSchema).mutation(async ({ ctx, input }) => {
-    try {
-      const session = await ctx.db.huntSession.findUnique({
-        where: { id: input.huntSessionId },
-      });
+    const [session] =
+      await ctx.db`SELECT "userId" FROM "HuntSession" WHERE id = ${input.huntSessionId}`;
 
-      /**
-       * if
-       */
-      if (!session) {
-        throw new TRPCError({
-          code: 'NOT_FOUND',
-          message: 'Hunt session not found',
-        });
-      }
+    if (!session) throw new TRPCError({ code: 'NOT_FOUND' });
+    if (session.userId !== ctx.user.id) throw new TRPCError({ code: 'FORBIDDEN' });
 
-      /**
-       * if
-       */
-      if (session.userId !== ctx.user.id) {
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'You do not have access to this hunt session',
-        });
-      }
+    await ctx.db`DELETE FROM "HuntSession" WHERE id = ${input.huntSessionId}`;
 
-      await ctx.db.huntSession.delete({
-        where: { id: input.huntSessionId },
-      });
-
-      ctx.log.info({
-        action: 'delete-hunt',
-        huntSessionId: input.huntSessionId,
-      });
-
-      return { success: true };
-    } catch (error) {
-      /**
-       * if
-       */
-      if (error instanceof TRPCError) {
-        throw error;
-      }
-
-      ctx.log.error({
-        action: 'delete-hunt-failed',
-        huntSessionId: input.huntSessionId,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
-
-      throw new TRPCError({
-        code: 'INTERNAL_SERVER_ERROR',
-        message: 'Failed to delete hunt session',
-        cause: error,
-      });
-    }
+    return { success: true };
   }),
 });

@@ -22,9 +22,6 @@ declare global {
   var broadcastToUser: (userId: string, message: any) => void;
 }
 
-console.log('[BACKEND] Workers are running in a separate Rust process (packages/rust-workers)');
-console.log('[BACKEND] This backend process manages job queues and API requests');
-
 broadcastService.initialize(broadcastToUser, broadcastToAll);
 
 const healthMonitor = new JobHealthMonitor(jobs, db, {
