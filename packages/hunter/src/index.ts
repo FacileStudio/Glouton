@@ -1,16 +1,10 @@
 export class RateLimitError extends Error {
-  /**
-   * constructor
-   */
   constructor(
     message: string,
     public readonly retryAfter: number,
     public readonly attemptsLeft: number,
     public readonly endpoint: string,
   ) {
-    /**
-     * super
-     */
     super(message);
     this.name = 'RateLimitError';
   }
@@ -155,17 +149,11 @@ class HunterRateLimiter {
     emailVerifier: { perSecond: 8, perMinute: 280 },
   };
 
-  /**
-   * updateRateLimitInfo
-   */
   updateRateLimitInfo(endpoint: keyof typeof this.limits, headers: Headers): void {
     const remaining = headers.get('x-ratelimit-remaining');
     const limit = headers.get('x-ratelimit-limit');
     const reset = headers.get('x-ratelimit-reset');
 
-    /**
-     * if
-     */
     if (remaining && limit) {
       const remainingNum = parseInt(remaining, 10);
       const limitNum = parseInt(limit, 10);
@@ -178,35 +166,20 @@ class HunterRateLimiter {
         endpoint,
       };
 
-      /**
-       * usagePercent
-       */
       const usagePercent = ((limitNum - remainingNum) / limitNum) * 100;
-      /**
-       * if
-       */
       if (usagePercent >= 80) {
         console.warn(`[Hunter API] Rate limit warning for ${endpoint}: ${remainingNum}/${limitNum} requests remaining (${usagePercent.toFixed(1)}% used). Resets at ${resetAt.toISOString()}`);
       }
     }
   }
 
-  /**
-   * getRateLimitInfo
-   */
   getRateLimitInfo(endpoint: keyof typeof this.limits): RateLimitInfo | null {
     return this.rateLimitInfo[endpoint] || null;
   }
 
-  /**
-   * throttle
-   */
   async throttle(endpoint: keyof typeof this.limits): Promise<void> {
     const limit = this.limits[endpoint];
 
-    /**
-     * if
-     */
     if (!this.requestTimestamps[endpoint]) {
       this.requestTimestamps[endpoint] = [];
     }
@@ -214,24 +187,15 @@ class HunterRateLimiter {
     const timestamps = this.requestTimestamps[endpoint];
     const info = this.rateLimitInfo[endpoint];
 
-    /**
-     * if
-     */
     if (info && info.remaining <= 5) {
       const now = Date.now();
       const resetTime = info.resetAt.getTime();
-      /**
-       * if
-       */
       if (resetTime > now) {
         const waitTime = Math.min(resetTime - now, 60000);
         await new Promise(resolve => setTimeout(resolve, waitTime));
       }
     }
 
-    /**
-     * while
-     */
     while (true) {
       const now = Date.now();
       const oneSecondAgo = now - 1000;
@@ -242,9 +206,6 @@ class HunterRateLimiter {
       const requestsLastSecond = timestamps.filter(t => t > oneSecondAgo).length;
       const requestsLastMinute = timestamps.filter(t => t > oneMinuteAgo).length;
 
-      /**
-       * if
-       */
       if (requestsLastSecond >= limit.perSecond) {
         const oldestInWindow = timestamps.filter(t => t > oneSecondAgo)[0];
         const waitTime = 1000 - (now - oldestInWindow) + 100;
@@ -252,9 +213,6 @@ class HunterRateLimiter {
         continue;
       }
 
-      /**
-       * if
-       */
       if (requestsLastMinute >= limit.perMinute) {
         const oldestInWindow = timestamps.filter(t => t > oneMinuteAgo)[0];
         const waitTime = 60000 - (now - oldestInWindow) + 100;
@@ -276,22 +234,13 @@ export class HunterService {
   private readonly INITIAL_BACKOFF_MS = 5000;
   private readonly MAX_BACKOFF_MS = 60000;
 
-  /**
-   * constructor
-   */
   constructor(apiKey: string) {
-    /**
-     * if
-     */
     if (!apiKey) {
       throw new Error('Hunter.io API key is required');
     }
     this.apiKey = apiKey;
   }
 
-  /**
-   * calculateBackoff
-   */
   private calculateBackoff(attempt: number): number {
     const backoff = Math.min(
       this.INITIAL_BACKOFF_MS * Math.pow(2, attempt),
@@ -300,9 +249,6 @@ export class HunterService {
     return backoff;
   }
 
-  /**
-   * fetchWithRetry
-   */
   private async fetchWithRetry(
     url: string,
     options: RequestInit,
@@ -311,9 +257,6 @@ export class HunterService {
     const timeoutMs = 30000;
     let lastError: Error | null = null;
 
-    /**
-     * for
-     */
     for (let attempt = 0; attempt < this.MAX_RETRIES; attempt++) {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -324,22 +267,13 @@ export class HunterService {
           signal: controller.signal
         });
 
-        /**
-         * clearTimeout
-         */
         clearTimeout(timeout);
         this.rateLimiter.updateRateLimitInfo(endpoint, response.headers);
 
-        /**
-         * if
-         */
         if (response.status === 429) {
           const retryAfter = this.calculateBackoff(attempt);
           const attemptsLeft = this.MAX_RETRIES - attempt - 1;
 
-          /**
-           * if
-           */
           if (attemptsLeft === 0) {
             throw new RateLimitError(
               `Rate limit exceeded for ${endpoint} after ${this.MAX_RETRIES} attempts`,
@@ -355,21 +289,12 @@ export class HunterService {
 
         return response;
       } catch (error) {
-        /**
-         * clearTimeout
-         */
         clearTimeout(timeout);
 
-        /**
-         * if
-         */
         if (error instanceof RateLimitError) {
           throw error;
         }
 
-        /**
-         * if
-         */
         if (error instanceof Error && error.name === 'AbortError') {
           lastError = new Error(`Request timeout after ${timeoutMs}ms`);
           continue;
@@ -382,27 +307,15 @@ export class HunterService {
     throw lastError || new Error(`Failed to fetch ${endpoint} after ${this.MAX_RETRIES} retries`);
   }
 
-  /**
-   * getRateLimitInfo
-   */
   getRateLimitInfo(endpoint: keyof typeof this.rateLimiter['limits']): RateLimitInfo | null {
     return this.rateLimiter.getRateLimitInfo(endpoint);
   }
 
-  /**
-   * checkRateLimit
-   */
   private checkRateLimit(endpoint: keyof typeof this.rateLimiter['limits']): void {
     const rateInfo = this.rateLimiter.getRateLimitInfo(endpoint);
-    /**
-     * if
-     */
     if (rateInfo && rateInfo.remaining <= 0) {
       const now = Date.now();
       const resetTime = rateInfo.resetAt.getTime();
-      /**
-       * if
-       */
       if (resetTime > now) {
         throw new RateLimitError(
           `Rate limit exhausted for ${endpoint}. ${rateInfo.remaining}/${rateInfo.total} requests remaining.`,
@@ -414,24 +327,15 @@ export class HunterService {
     }
   }
 
-  /**
-   * domainSearch
-   */
   async domainSearch(filters: HunterDomainSearchFilters): Promise<HunterDomainSearchResult | null> {
     this.checkRateLimit('domainSearch');
     await this.rateLimiter.throttle('domainSearch');
 
     try {
-      /**
-       * if
-       */
       if (!filters.domain && !filters.company) {
         return null;
       }
 
-      /**
-       * if
-       */
       if (filters.location) {
         const requestBody: any = {
           api_key: this.apiKey,
@@ -439,39 +343,15 @@ export class HunterService {
           offset: filters.offset || 0,
         };
 
-        /**
-         * if
-         */
         if (filters.domain) requestBody.domain = filters.domain;
         else if (filters.company) requestBody.company = filters.company;
 
-        /**
-         * if
-         */
         if (filters.location) requestBody.location = filters.location;
-        /**
-         * if
-         */
         if (filters.type) requestBody.type = filters.type;
-        /**
-         * if
-         */
         if (filters.seniority) requestBody.seniority = filters.seniority.join(',');
-        /**
-         * if
-         */
         if (filters.department) requestBody.department = filters.department.join(',');
-        /**
-         * if
-         */
         if (filters.required_field) requestBody.required_field = filters.required_field.join(',');
-        /**
-         * if
-         */
         if (filters.verification_status) requestBody.verification_status = filters.verification_status.join(',');
-        /**
-         * if
-         */
         if (filters.job_titles) requestBody.job_titles = filters.job_titles.join(',');
 
         const response = await this.fetchWithRetry(
@@ -484,9 +364,6 @@ export class HunterService {
           'domainSearch'
         );
 
-        /**
-         * if
-         */
         if (!response.ok) {
           const errorBody = await response.text();
           let errorDetails = '';
@@ -502,57 +379,24 @@ export class HunterService {
       }
 
       const params = new URLSearchParams();
-      /**
-       * if
-       */
       if (filters.domain) params.append('domain', filters.domain);
-      /**
-       * if
-       */
       if (filters.company) params.append('company', filters.company);
       params.append('api_key', this.apiKey);
 
-      /**
-       * if
-       */
       if (filters.limit) params.append('limit', filters.limit.toString());
-      /**
-       * if
-       */
       if (filters.offset) params.append('offset', filters.offset.toString());
-      /**
-       * if
-       */
       if (filters.type) params.append('type', filters.type);
-      /**
-       * if
-       */
       if (filters.seniority) params.append('seniority', filters.seniority.join(','));
-      /**
-       * if
-       */
       if (filters.department) params.append('department', filters.department.join(','));
-      /**
-       * if
-       */
       if (filters.required_field) params.append('required_field', filters.required_field.join(','));
-      /**
-       * if
-       */
       if (filters.verification_status) {
         params.append('verification_status', filters.verification_status.join(','));
       }
-      /**
-       * if
-       */
       if (filters.job_titles) params.append('job_titles', filters.job_titles.join(','));
 
       const url = `${this.baseUrl}/domain-search?${params.toString()}`;
       const response = await this.fetchWithRetry(url, {}, 'domainSearch');
 
-      /**
-       * if
-       */
       if (!response.ok) {
         const errorBody = await response.text();
         let errorDetails = '';
@@ -567,9 +411,6 @@ export class HunterService {
 
       return await response.json();
     } catch (error) {
-      /**
-       * if
-       */
       if (error instanceof RateLimitError) {
         throw error;
       }
@@ -577,9 +418,6 @@ export class HunterService {
     }
   }
 
-  /**
-   * emailFinder
-   */
   async emailFinder(domain: string, firstName: string, lastName: string): Promise<{
     email: string;
     score: number;
@@ -592,9 +430,6 @@ export class HunterService {
 
       const response = await this.fetchWithRetry(url, {}, 'emailFinder');
 
-      /**
-       * if
-       */
       if (!response.ok) {
         return null;
       }
@@ -605,9 +440,6 @@ export class HunterService {
         score: data.data?.score || 0,
       };
     } catch (error) {
-      /**
-       * if
-       */
       if (error instanceof RateLimitError) {
         throw error;
       }
@@ -615,9 +447,6 @@ export class HunterService {
     }
   }
 
-  /**
-   * emailVerifier
-   */
   async emailVerifier(email: string): Promise<{
     status: string;
     score: number;
@@ -630,9 +459,6 @@ export class HunterService {
 
       const response = await this.fetchWithRetry(url, {}, 'emailVerifier');
 
-      /**
-       * if
-       */
       if (!response.ok) {
         return null;
       }
@@ -643,9 +469,6 @@ export class HunterService {
         score: data.data?.score || 0,
       };
     } catch (error) {
-      /**
-       * if
-       */
       if (error instanceof RateLimitError) {
         throw error;
       }
@@ -653,9 +476,6 @@ export class HunterService {
     }
   }
 
-  /**
-   * discover
-   */
   async discover(filters: HunterDiscoverFilters): Promise<HunterDiscoverResult | null> {
     await this.rateLimiter.throttle('discover');
 
@@ -665,32 +485,14 @@ export class HunterService {
         limit: Math.min(filters.limit || 10, 100),
       };
 
-      /**
-       * if
-       */
       if (filters.offset !== undefined && filters.offset > 0) {
         requestBody.offset = filters.offset;
       }
 
-      /**
-       * if
-       */
       if (filters.query) requestBody.query = filters.query;
-      /**
-       * if
-       */
       if (filters.headquarters_location) requestBody.headquarters_location = filters.headquarters_location;
-      /**
-       * if
-       */
       if (filters.industry) requestBody.industry = filters.industry;
-      /**
-       * if
-       */
       if (filters.headcount) requestBody.headcount = filters.headcount;
-      /**
-       * if
-       */
       if (filters.year_founded) requestBody.year_founded = filters.year_founded;
 
       const response = await this.fetchWithRetry(
@@ -703,9 +505,6 @@ export class HunterService {
         'discover'
       );
 
-      /**
-       * if
-       */
       if (!response.ok) {
         const errorBody = await response.text();
         let errorDetails = '';
@@ -713,9 +512,6 @@ export class HunterService {
           const errorJson = JSON.parse(errorBody);
           errorDetails = errorJson.errors?.[0]?.details || errorJson.message || errorBody;
 
-          /**
-           * if
-           */
           if (response.status === 400 && errorDetails.includes('limited to 100')) {
             return null;
           }
@@ -727,9 +523,6 @@ export class HunterService {
 
       return await response.json();
     } catch (error) {
-      /**
-       * if
-       */
       if (error instanceof RateLimitError) {
         throw error;
       }

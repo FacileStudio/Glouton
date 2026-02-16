@@ -12,9 +12,6 @@ interface Lead {
   coordinates?: { lat: number; lng: number };
 }
 
-/**
- * generateLeads
- */
 async function generateLeads(
   city: string,
   category: string,
@@ -50,9 +47,6 @@ async function generateLeads(
   return leads;
 }
 
-/**
- * exportLeadsToCSV
- */
 async function exportLeadsToCSV(leads: Lead[], filename: string): Promise<void> {
   const csv = [
     'Name,Phone,Address,Category,Rating,Reviews,Source,Latitude,Longitude',
@@ -71,16 +65,10 @@ async function exportLeadsToCSV(leads: Lead[], filename: string): Promise<void> 
     ),
   ].join('\n');
 
-  /**
-   * writeFileSync
-   */
   writeFileSync(filename, csv);
   console.log(`Exported ${leads.length} leads to ${filename}`);
 }
 
-/**
- * batchLeadGeneration
- */
 async function batchLeadGeneration() {
   const campaigns = [
     { city: 'Brooklyn', category: 'restaurant', minRating: 4.0 },
@@ -90,9 +78,6 @@ async function batchLeadGeneration() {
 
   const allLeads: (Lead & { city: string })[] = [];
 
-  /**
-   * for
-   */
   for (const campaign of campaigns) {
     console.log(`\n=== Campaign: ${campaign.category} in ${campaign.city} ===`);
 
@@ -129,7 +114,4 @@ async function batchLeadGeneration() {
   await exportLeadsToCSV(allLeads, 'leads.csv');
 }
 
-/**
- * batchLeadGeneration
- */
 batchLeadGeneration().catch(console.error);

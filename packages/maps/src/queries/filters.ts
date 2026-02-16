@@ -1,15 +1,9 @@
 import type { LocalBusiness } from '../types';
 
-/**
- * filterByWebsite
- */
 export function filterByWebsite(
   businesses: LocalBusiness[],
   hasWebsite?: boolean
 ): LocalBusiness[] {
-  /**
-   * if
-   */
   if (hasWebsite === undefined) {
     return businesses;
   }
@@ -40,16 +34,10 @@ const CATEGORY_TO_OSM_PREFIX: Record<string, string[]> = {
   'professional-services': ['office:lawyer', 'office:accountant', 'office:consulting'],
 };
 
-/**
- * filterByCategory
- */
 export function filterByCategory(
   businesses: LocalBusiness[],
   category?: string
 ): LocalBusiness[] {
-  /**
-   * if
-   */
   if (!category) {
     return businesses;
   }
@@ -57,22 +45,13 @@ export function filterByCategory(
   const normalizedCategory = category.toLowerCase().trim();
 
   return businesses.filter((business) => {
-    /**
-     * if
-     */
     if (!business.category) return false;
 
     const businessCategory = business.category.toLowerCase();
 
     const osmPrefixes = CATEGORY_TO_OSM_PREFIX[normalizedCategory];
-    /**
-     * if
-     */
     if (osmPrefixes) {
       return osmPrefixes.some(prefix => {
-        /**
-         * if
-         */
         if (prefix.endsWith(':')) {
           return businessCategory.startsWith(prefix);
         } else {
@@ -85,24 +64,15 @@ export function filterByCategory(
   });
 }
 
-/**
- * filterByLocation
- */
 export function filterByLocation(
   businesses: LocalBusiness[],
   bbox?: { south: number; west: number; north: number; east: number }
 ): LocalBusiness[] {
-  /**
-   * if
-   */
   if (!bbox) {
     return businesses;
   }
 
   return businesses.filter((business) => {
-    /**
-     * if
-     */
     if (!business.coordinates) return false;
 
     const { lat, lng } = business.coordinates;
@@ -110,13 +80,7 @@ export function filterByLocation(
   });
 }
 
-/**
- * limitResults
- */
 export function limitResults(businesses: LocalBusiness[], limit?: number): LocalBusiness[] {
-  /**
-   * if
-   */
   if (!limit) {
     return businesses;
   }
@@ -124,9 +88,6 @@ export function limitResults(businesses: LocalBusiness[], limit?: number): Local
   return businesses.slice(0, limit);
 }
 
-/**
- * applyFilters
- */
 export function applyFilters(
   businesses: LocalBusiness[],
   filters: {

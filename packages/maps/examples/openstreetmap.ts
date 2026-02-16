@@ -1,8 +1,5 @@
 import { searchOpenStreetMap } from '@repo/maps';
 
-/**
- * osmExample
- */
 async function osmExample() {
   console.log('=== OpenStreetMap Example ===\n');
 
@@ -27,9 +24,6 @@ async function osmExample() {
   });
 }
 
-/**
- * osmByTagsExample
- */
 async function osmByTagsExample() {
   console.log('\n=== OpenStreetMap Custom Tags Example ===\n');
 
@@ -57,9 +51,6 @@ async function osmByTagsExample() {
   });
 }
 
-/**
- * osmExample
- */
 osmExample()
   .then(() => osmByTagsExample())
   .catch(console.error);

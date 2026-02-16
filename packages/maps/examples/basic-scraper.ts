@@ -1,8 +1,5 @@
 import { searchBusinesses, searchBusinessesDetailed } from '@repo/maps';
 
-/**
- * basicExample
- */
 async function basicExample() {
   console.log('=== Basic Google Maps Scraper Example ===\n');
 
@@ -25,9 +22,6 @@ async function basicExample() {
   });
 }
 
-/**
- * detailedExample
- */
 async function detailedExample() {
   console.log('\n=== Detailed Google Maps Scraper Example ===\n');
 
@@ -50,7 +44,4 @@ async function detailedExample() {
   });
 }
 
-/**
- * basicExample
- */
 basicExample().catch(console.error);

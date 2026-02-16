@@ -1,5 +1,24 @@
+import { SQL } from 'bun';
+import type { QueueManager } from '@repo/jobs';
+
+export interface ListAuditParams {
+  leadId?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export interface AuditContext {
+  user: { id: string };
+  jobs: QueueManager;
+  db: SQL;
+  log: {
+    info: (data: any) => void;
+    error: (data: any) => void;
+  };
+}
+
 export default {
-  list: async (input, ctx) => {
+  async list(input: ListAuditParams, ctx: AuditContext) {
     try {
       const { leadId, limit = 10, offset = 0 } = input;
       const userId = ctx.user.id;
@@ -25,7 +44,6 @@ export default {
           LIMIT ${limit} OFFSET ${offset}
         `) as any[];
 
-      // 3. Compte total
       const [countResult] = (await ctx.db`
           SELECT COUNT(*) as count
           FROM "AuditSession"
@@ -35,8 +53,22 @@ export default {
 
       const totalAuditSessions = Number(countResult.count);
 
-      const formattedSessions = auditSessions.map((row) => ({
-        ...row,
+      const formattedSessions = auditSessions.map((row: any) => ({
+        id: row.id,
+        userId: row.userId,
+        status: row.status,
+        progress: row.progress,
+        totalLeads: row.totalLeads,
+        processedLeads: row.processedLeads,
+        updatedLeads: row.updatedLeads,
+        failedLeads: row.failedLeads,
+        currentDomain: row.currentDomain,
+        lastProcessedIndex: row.lastProcessedIndex,
+        error: row.error,
+        startedAt: row.startedAt,
+        completedAt: row.completedAt,
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt,
         lead: row.lead_id
           ? {
               id: row.lead_id,
@@ -58,26 +90,50 @@ export default {
     }
   },
 
-  cancel: async (input, ctx) => {
+  async cancel(auditSessionId: string, ctx: AuditContext) {
     try {
-      const [result] = (await ctx.db`
-          UPDATE "AuditSession"
-          SET status = 'CANCELLED', "updatedAt" = NOW()
-          WHERE id = ${input.auditSessionId} AND "userId" = ${ctx.user.id}
-          RETURNING id;
-        `) as any[];
+      const [session] = (await ctx.db`
+      SELECT id, "jobId" 
+      FROM "AuditSession" 
+      WHERE id = ${auditSessionId} AND "userId" = ${ctx.user.id}
+    `) as any[];
 
-      if (!result) {
+      if (!session) {
         throw new Error('Audit session not found or unauthorized');
       }
+
+      if (session.jobId) {
+        const queue = ctx.jobs['queues'].get('leads');
+        if (queue) {
+          const job = await queue.getJob(session.jobId);
+          if (job) {
+            const state = await job.getState();
+            if (state !== 'completed' && state !== 'failed') {
+              await job.remove();
+              ctx.log.info({ action: 'cancel-job-removed', jobId: session.jobId });
+            }
+          }
+        }
+      }
+
+      const [result] = (await ctx.db`
+      UPDATE "AuditSession"
+      SET 
+        status = 'CANCELLED', 
+        "updatedAt" = NOW(),
+        "completedAt" = NOW()
+      WHERE id = ${auditSessionId}
+      RETURNING id;
+    `) as any[];
 
       return { success: true, auditSessionId: result.id };
     } catch (error) {
       ctx.log.error({ action: 'cancel-audit-session-failed', error });
-      throw new Error('Failed to cancel audit session');
+      throw error instanceof Error ? error : new Error('Failed to cancel audit session');
     }
   },
-  start: async (ctx: { user: any; jobs: any; db: any }) => {
+
+  async start(ctx: AuditContext) {
     const userId = ctx.user.id;
     const jobs = ctx.jobs;
     const db = ctx.db;
@@ -97,8 +153,7 @@ export default {
       try {
         await db`
         UPDATE "AuditSession"
-        SET status = 'CANCELLED',
-            "completedAt" = ${new Date()}
+        SET status = 'CANCELLED', "completedAt" = ${new Date()}
         WHERE id = ${session.id}
       `;
 
@@ -106,34 +161,19 @@ export default {
           const queue = jobs['queues'].get('leads');
           if (queue) {
             const job = await queue.getJob(session.jobId);
-            if (job) {
-              const state = await job.getState();
-              if (state === 'waiting' || state === 'delayed') {
-                await job.remove();
-              }
-            }
+            if (job) await job.remove().catch(() => {});
           }
         }
       } catch (error) {
-        console.warn(`Failed to cancel existing audit session ${session.id}:`, error);
+        console.warn(`[Audit] Failed cleanup for session ${session.id}:`, error);
       }
     }
 
     const [auditSession] = await db`
     INSERT INTO "AuditSession" (
-      id,
-      "userId", 
-      status, 
-      progress, 
-      "createdAt", 
-      "updatedAt"
+      id, "userId", status, progress, "createdAt", "updatedAt"
     ) VALUES (
-      gen_random_uuid(),
-      ${userId},
-      'PENDING',
-      0,
-      ${new Date()},
-      ${new Date()}
+      gen_random_uuid(), ${userId}, 'PENDING', 0, ${new Date()}, ${new Date()}
     )
     RETURNING id, status, "createdAt"
   `;
@@ -142,14 +182,15 @@ export default {
       const job = await jobs.addJob(
         'leads',
         'lead-audit',
-        {
-          auditSessionId: auditSession.id,
-          userId,
-        },
-        {
-          timeout: 21600000,
-        }
+        { auditSessionId: auditSession.id, userId },
+        { timeout: 21600000 }
       );
+
+      await db`
+      UPDATE "AuditSession"
+      SET "jobId" = NULL
+      WHERE "jobId" = ${job.id} AND id != ${auditSession.id}
+    `;
 
       await db`
       UPDATE "AuditSession"
@@ -157,13 +198,24 @@ export default {
       WHERE id = ${auditSession.id}
     `;
 
+      if ((global as any).events) {
+        (global as any).events.emit(userId, 'audit-started', {
+          auditSessionId: auditSession.id,
+          status: 'PENDING',
+          progress: 0,
+          totalLeads: 0,
+          processedLeads: 0,
+          updatedLeads: 0,
+          failedLeads: 0,
+        });
+      }
+
       return {
         auditSessionId: auditSession.id,
         status: auditSession.status,
         createdAt: auditSession.createdAt,
       };
     } catch (error) {
-      // 6. Rollback status to FAILED if the job queue fails
       await db`
       UPDATE "AuditSession"
       SET status = 'FAILED',
@@ -171,8 +223,61 @@ export default {
           "completedAt" = ${new Date()}
       WHERE id = ${auditSession.id}
     `;
-
       throw error;
     }
   },
+
+  async getAuditSession(auditSessionId: string, userId: string, db: SQL) {
+    const [session] = (await db`
+      SELECT *
+      FROM "AuditSession"
+      WHERE id = ${auditSessionId} AND "userId" = ${userId}
+    `) as any[];
+
+    if (!session) {
+      throw new Error('Audit session not found or unauthorized');
+    }
+
+    return session;
+  },
+
+  async updateAuditProgress(
+    auditSessionId: string,
+    progress: number,
+    processedLeads: number,
+    updatedLeads: number,
+    failedLeads: number,
+    currentDomain: string | null,
+    db: SQL
+  ) {
+    await db`
+      UPDATE "AuditSession"
+      SET
+        progress = ${progress},
+        "processedLeads" = ${processedLeads},
+        "updatedLeads" = ${updatedLeads},
+        "failedLeads" = ${failedLeads},
+        "currentDomain" = ${currentDomain},
+        "updatedAt" = ${new Date()}
+      WHERE id = ${auditSessionId}
+    `;
+  },
+
+  async completeAudit(
+    auditSessionId: string,
+    status: 'COMPLETED' | 'FAILED',
+    error: string | null,
+    db: SQL
+  ) {
+    await db`
+      UPDATE "AuditSession"
+      SET
+        status = ${status},
+        error = ${error},
+        "completedAt" = ${new Date()},
+        "updatedAt" = ${new Date()}
+      WHERE id = ${auditSessionId}
+    `;
+  },
 };
+

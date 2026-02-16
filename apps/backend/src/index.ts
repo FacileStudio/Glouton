@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { loggerMiddleware } from './middleware/logger';
 import { db } from '@repo/database';
-import { JobHealthMonitor, validateRedisConfiguration } from '@repo/jobs';
+import { validateRedisConfiguration } from '@repo/jobs';
 import { logger } from '@repo/logger';
 import corsHandler from './handlers/cors';
 import trpcHandler from './handlers/trpc';
@@ -9,30 +9,24 @@ import {
   createLivenessHandler,
   createReadinessHandler,
 } from './handlers/health';
-import { wsHandler, websocket, broadcastToAll, broadcastToUser } from './handlers/websocket';
-import { JobSyncService } from './services/job-sync-service';
-import { broadcastService } from './services/broadcast-service';
+import { wsHandler, websocket, broadcastToUser, broadcastToAll } from './handlers/websocket';
+import { events } from './services/events';
+import { checkOrphanedSessions, cleanupStalled } from './services/job-monitor';
+import { registerWorkers } from './services/register-workers';
 import env from './env';
 import config from './config';
 
 const { jobs } = config;
 
-declare global {
-  var broadcastNewOpportunities: (opportunities: any[]) => void;
-  var broadcastToUser: (userId: string, message: any) => void;
-}
+// Register workers with database
+registerWorkers(jobs, db);
 
-broadcastService.initialize(broadcastToUser, broadcastToAll);
+// Initialize event system with websocket broadcaster
+events.init({ broadcastToUser, broadcastToAll });
 
-const healthMonitor = new JobHealthMonitor(jobs, db, {
-  checkIntervalMs: 60000,
-  sessionTimeout: 3600000,
-  enableAutoRecovery: true,
-});
-
-const jobSyncService = new JobSyncService(db, jobs);
-
-async function validateRedis() {
+// Simple startup tasks
+async function startup() {
+  // Validate Redis
   try {
     const validation = await validateRedisConfiguration({
       host: env.REDIS_HOST,
@@ -43,20 +37,30 @@ async function validateRedis() {
     });
 
     if (!validation.valid) {
-      console.warn('[REDIS] Configuration warnings:');
-      validation.warnings.forEach(w => console.warn(`  - ${w}`));
+      console.warn('[REDIS] Configuration warnings:', validation.warnings);
     } else {
-      console.log('[REDIS] Configuration is valid');
+      console.log('[REDIS] Configuration valid');
     }
   } catch (error) {
     console.error('[REDIS] Validation failed:', error);
   }
+
+  // Clean up orphaned sessions
+  const orphaned = await checkOrphanedSessions(db, jobs);
+  if (orphaned.audits > 0 || orphaned.hunts > 0) {
+    console.log(`[CLEANUP] Orphaned sessions: ${orphaned.audits} audits, ${orphaned.hunts} hunts`);
+  }
+
+  // Schedule periodic cleanup (every 30 minutes)
+  setInterval(async () => {
+    const stalled = await cleanupStalled(db);
+    if (stalled.audits > 0 || stalled.hunts > 0) {
+      console.log(`[CLEANUP] Stalled sessions: ${stalled.audits} audits, ${stalled.hunts} hunts`);
+    }
+  }, 30 * 60 * 1000);
 }
 
-// Lancement des vérifications au démarrage
-validateRedis();
-jobSyncService.syncJobStates();
-healthMonitor.start();
+startup();
 
 const app = new Hono();
 
@@ -89,11 +93,9 @@ app.post('/internal/broadcast', async (c) => {
     if (!message) return c.json({ error: 'Missing message' }, 400);
 
     if (broadcastAll) {
-      logger.debug('[INTERNAL] Broadcasting to all users', { type: message.type });
-      broadcastToAll(message);
+      events.broadcast(message.type, message.data);
     } else if (userId) {
-      logger.debug('[INTERNAL] Broadcasting to user', { userId: userId.slice(0, 8), type: message.type });
-      broadcastToUser(userId, message);
+      events.emit(userId, message.type, message.data);
     } else {
       return c.json({ error: 'Missing userId or broadcastAll flag' }, 400);
     }
@@ -114,7 +116,6 @@ const port = Number(env.PORT);
 async function gracefulShutdown(signal: string) {
   console.log(`\n[SHUTDOWN] Received ${signal}, closing...`);
   try {
-    healthMonitor.stop();
     await jobs.close();
     console.log('[SHUTDOWN] Success');
     process.exit(0);

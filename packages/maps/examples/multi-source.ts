@@ -1,8 +1,5 @@
 import { searchBusinesses } from '@repo/maps';
 
-/**
- * multiSourceExample
- */
 async function multiSourceExample() {
   console.log('=== Multi-Source Search with Deduplication ===\n');
 
@@ -37,9 +34,6 @@ async function multiSourceExample() {
   });
 }
 
-/**
- * findBusinessesWithoutWebsites
- */
 async function findBusinessesWithoutWebsites() {
   console.log('\n=== Finding Businesses Without Websites ===\n');
 
@@ -66,9 +60,6 @@ async function findBusinessesWithoutWebsites() {
   });
 }
 
-/**
- * multiSourceExample
- */
 multiSourceExample()
   .then(() => findBusinessesWithoutWebsites())
   .catch(console.error);
