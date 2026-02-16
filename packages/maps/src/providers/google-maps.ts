@@ -1,4 +1,4 @@
-import { StealthBrowser } from '@repo/scraper';
+import { StealthBrowser } from '../stealth-browser';
 import type { Page } from 'playwright';
 import type {
   LocalBusiness,

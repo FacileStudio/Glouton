@@ -13,6 +13,10 @@ export interface CreateContextOptions extends FetchCreateContextFnOptions {
   logger: Logger;
   jobs: QueueManager;
   smtp?: SMTPService;
+  events?: {
+    emit: (userId: string, type: string, data?: any) => void;
+    broadcast: (type: string, data?: any) => void;
+  };
 }
 
 export const createContext = async (options: CreateContextOptions) => {
@@ -46,6 +50,7 @@ export const createContext = async (options: CreateContextOptions) => {
     log,
     jobs: options.jobs,
     smtp: options.smtp,
+    events: options.events,
   };
 };
 

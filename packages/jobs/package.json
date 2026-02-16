@@ -18,7 +18,6 @@
   },
   "dependencies": {
     "@repo/audit": "workspace:*",
-    "@repo/scraper": "workspace:*",
     "@repo/maps": "workspace:*",
     "@repo/hunter": "workspace:*",
     "@repo/lead-sources": "workspace:*",

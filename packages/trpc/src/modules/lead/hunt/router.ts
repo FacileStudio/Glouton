@@ -98,24 +98,38 @@ export const huntRouter = router({
   }),
 
   cancel: protectedProcedure.input(cancelHuntSchema).mutation(async ({ ctx, input }) => {
-    const [session] =
-      await ctx.db`SELECT status, "userId" FROM "HuntSession" WHERE id = ${input.huntSessionId}`;
+    try {
+      const result = await huntService.cancelHunt(
+        input.huntSessionId,
+        ctx.user.id,
+        ctx.db,
+        ctx.jobs,
+        ctx.events
+      );
 
-    if (!session) throw new TRPCError({ code: 'NOT_FOUND' });
-    if (session.userId !== ctx.user.id) throw new TRPCError({ code: 'FORBIDDEN' });
+      ctx.log.info({
+        action: 'cancel-hunt',
+        huntSessionId: input.huntSessionId,
+      });
 
-    if (['COMPLETED', 'FAILED', 'CANCELLED'].includes(session.status)) {
-      throw new TRPCError({ code: 'BAD_REQUEST', message: 'Hunt already finished' });
+      return result;
+    } catch (error) {
+      if (error instanceof TRPCError) {
+        throw error;
+      }
+
+      ctx.log.error({
+        action: 'cancel-hunt-failed',
+        huntSessionId: input.huntSessionId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: error instanceof Error ? error.message : 'Failed to cancel hunt',
+        cause: error,
+      });
     }
-
-    const [updated] = await ctx.db`
-      UPDATE "HuntSession" 
-      SET status = 'CANCELLED', "completedAt" = ${new Date()} 
-      WHERE id = ${input.huntSessionId}
-      RETURNING *
-    `;
-
-    return updated;
   }),
 
   delete: protectedProcedure.input(deleteHuntSchema).mutation(async ({ ctx, input }) => {

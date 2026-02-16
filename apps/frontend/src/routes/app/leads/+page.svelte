@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { trpc } from '$lib/trpc';
   import { toast } from '@repo/utils';
   import { Spinner } from '@repo/ui';
@@ -9,13 +9,13 @@
   import LeadsTable from '$lib/components/leads/LeadsTable.svelte';
   import LeadsGrid from '$lib/components/leads/LeadsGrid.svelte';
   import PaginationControls from '$lib/components/leads/PaginationControls.svelte';
-  import { useAuditWebSocket } from '$lib/components/leads/useAuditWebSocket.svelte.js';
+  import { setupAuditListeners, type AuditSession } from '$lib/websocket-events.svelte.js';
   import 'iconify-icon';
 
   // State
   let leads = $state<any[]>([]);
   let stats = $state<any>(null);
-  let auditSessions = $state<any[]>([]);
+  let auditSessions = $state<AuditSession[]>([]);
   let initialLoading = $state(true);
   let loadingData = $state(false);
 
@@ -47,16 +47,42 @@
   let importing = $state(false);
   let fileInput: HTMLInputElement;
 
-  // WebSocket setup
-  useAuditWebSocket(
-      () => auditSessions,
-      (val) => (auditSessions = val),
-      loadStats,
-      loadData
-  );
+  // WebSocket event listeners
+  let wsUnsubscribers: (() => void)[] = [];
+
+  const updateAuditSession = (id: string, updates: Partial<AuditSession>) => {
+    const index = auditSessions.findIndex(s => s.id === id);
+    if (index !== -1) {
+      auditSessions[index] = { ...auditSessions[index], ...updates };
+      return true;
+    }
+    return false;
+  };
+
+  const addAuditSession = (session: AuditSession) => {
+    auditSessions = [session, ...auditSessions];
+  };
+
+  const removeAuditSession = (id: string) => {
+    auditSessions = auditSessions.filter(s => s.id !== id);
+  };
+
   onMount(async () => {
+    // Setup WebSocket listeners
+    wsUnsubscribers = setupAuditListeners(
+      updateAuditSession,
+      addAuditSession,
+      removeAuditSession,
+      loadData,
+      loadStats
+    );
+
     await loadData();
     await loadStats();
+  });
+
+  onDestroy(() => {
+    wsUnsubscribers.forEach(unsub => unsub());
   });
 
   async function loadData() {
@@ -147,8 +173,8 @@
     cancellingAuditId = auditSessionId;
     try {
       await trpc.lead.audit.cancel.mutate({ auditSessionId });
-      toast.push('Audit cancelled successfully', 'success');
-      auditSessions = auditSessions.filter((s) => s.id !== auditSessionId);
+      // The WebSocket event will update the session status to 'CANCELLED'
+      // which will make activeAudit become undefined (since it only looks for PENDING/PROCESSING)
     } catch (error) {
       toast.push('Failed to cancel audit', 'error');
       console.error('Error cancelling audit:', error);

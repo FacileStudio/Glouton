@@ -4,9 +4,7 @@ import { createWorkers } from '@repo/jobs/workers';
 import { events } from './events';
 
 export function registerWorkers(queueManager: QueueManager, db: SQL) {
-  (global as any).events = events;
-
-  const workers = createWorkers(db);
+  const workers = createWorkers(db, events);
 
   Object.entries(workers).forEach(([name, worker]) => {
     queueManager.registerWorker('leads', worker);

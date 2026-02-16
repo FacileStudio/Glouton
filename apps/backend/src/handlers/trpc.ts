@@ -8,7 +8,8 @@ export const trpcHandler =
     env,
     jobs,
     smtp,
-    db
+    db,
+    events
   }: Omit<CreateContextOptions, 'req' | 'resHeaders' | 'info' | 'logger'>) =>
   (c: Context, next: Next) =>
     trpcServer({
@@ -24,6 +25,7 @@ export const trpcHandler =
           jobs,
           smtp,
           logger,
+          events,
         });
       },
     })(c, next);

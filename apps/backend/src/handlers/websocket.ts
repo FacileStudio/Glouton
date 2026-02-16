@@ -18,12 +18,7 @@ export const { upgradeWebSocket, websocket } = createBunWebSocket<WebSocketData>
 export function broadcastToUser(userId: string, message: any) {
   const userClients = clients.get(userId);
 
-  console.log(`[WS-BROADCAST] Attempting to broadcast to user ${userId.slice(0, 8)}`, {
-    hasClients: !!userClients,
-    clientCount: userClients?.size || 0,
-    messageType: message.type,
-    totalUsers: clients.size,
-  });
+  console.log(`[WS-BROADCAST] Attempting to broadcast to user ${userId.slice(0, 8)}`);
 
   if (!userClients) {
     logger.debug(`[WebSocket] No clients connected for user ${userId.slice(0, 8)}`);
