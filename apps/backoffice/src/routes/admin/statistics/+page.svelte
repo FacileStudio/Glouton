@@ -9,17 +9,11 @@
 	let userStats: UserStats | null = $state(null);
 	let leadStats: any | null = $state(null);
 
-	/**
-	 * onMount
-	 */
 	onMount(async () => {
 		await Promise.all([fetchUserStats(), fetchLeadStats()]);
 		loading = false;
 	});
 
-	/**
-	 * fetchUserStats
-	 */
 	async function fetchUserStats() {
 		try {
 			userStats = await trpc.user.getStats.query();
@@ -28,9 +22,6 @@
 		}
 	}
 
-	/**
-	 * fetchLeadStats
-	 */
 	async function fetchLeadStats() {
 		try {
 			leadStats = await trpc.lead.query.getStats.query();
@@ -42,9 +33,6 @@
 	const stats = $derived(() => {
 		const statsList = [];
 
-		/**
-		 * if
-		 */
 		if (userStats) {
 			statsList.push(
 				{
@@ -62,9 +50,6 @@
 			);
 		}
 
-		/**
-		 * if
-		 */
 		if (leadStats) {
 			statsList.push(
 				{
@@ -110,9 +95,6 @@
 	});
 
 	const leadStatusDistribution = $derived(() => {
-		/**
-		 * if
-		 */
 		if (!leadStats) return [];
 		return [
 			{ label: 'Hot', value: leadStats.hotLeads || 0 },
@@ -122,9 +104,6 @@
 	});
 
 	const userStatusDistribution = $derived(() => {
-		/**
-		 * if
-		 */
 		if (!userStats) return [];
 		return [
 			{ label: 'Active', value: userStats.activeUsers || 0 },
@@ -136,9 +115,6 @@
 	const charts = $derived(() => {
 		const chartList = [];
 
-		/**
-		 * if
-		 */
 		if (leadStatusDistribution().some((d) => d.value > 0)) {
 			chartList.push({
 				title: 'Lead Quality Distribution',
@@ -152,9 +128,6 @@
 			});
 		}
 
-		/**
-		 * if
-		 */
 		if (userStatusDistribution().some((d) => d.value > 0)) {
 			chartList.push({
 				title: 'User Status Distribution',

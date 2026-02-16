@@ -12,9 +12,6 @@
   let email = '';
   let password = '';
 
-  /**
-   * handleLogin
-   */
   async function handleLogin() {
     loading = true;
     error = '';
@@ -29,13 +26,7 @@
     }
   }
 
-  /**
-   * focusInput
-   */
   function focusInput(node: HTMLElement) {
-    /**
-     * setTimeout
-     */
     setTimeout(() => node.focus(), 100);
   }
 
