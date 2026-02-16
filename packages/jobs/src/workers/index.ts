@@ -17,3 +17,4 @@ export const workers = {
   'local-business-hunt': createLocalBusinessHuntWorker,
   'lead-audit': createLeadAuditWorker,
 };
+
