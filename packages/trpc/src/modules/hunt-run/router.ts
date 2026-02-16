@@ -33,9 +33,6 @@ export const huntRunRouter = router({
 
         return details;
       } catch (error) {
-        /**
-         * if
-         */
         if (error instanceof TRPCError) {
           throw error;
         }
@@ -80,9 +77,6 @@ export const huntRunRouter = router({
 
         return result;
       } catch (error) {
-        /**
-         * if
-         */
         if (error instanceof TRPCError) {
           throw error;
         }

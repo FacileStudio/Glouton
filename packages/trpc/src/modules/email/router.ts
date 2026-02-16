@@ -17,9 +17,6 @@ export const emailRouter = router({
     )
     .query(async ({ input }) => {
       const rendered = renderTemplate(input.templateId, input.variables);
-      /**
-       * if
-       */
       if (!rendered) {
         throw new Error('Template not found');
       }
@@ -35,9 +32,6 @@ export const emailRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      /**
-       * if
-       */
       if (!ctx.smtp) {
         throw new Error('SMTP service not configured');
       }
@@ -54,9 +48,6 @@ export const emailRouter = router({
   getLeadOutreach: protectedProcedure
     .input(z.object({ leadId: z.string() }))
     .query(async ({ ctx, input }) => {
-      /**
-       * if
-       */
       if (!ctx.smtp) {
         throw new Error('SMTP service not configured');
       }
@@ -66,9 +57,6 @@ export const emailRouter = router({
     }),
 
   getStats: protectedProcedure.query(async ({ ctx }) => {
-    /**
-     * if
-     */
     if (!ctx.smtp) {
       throw new Error('SMTP service not configured');
     }

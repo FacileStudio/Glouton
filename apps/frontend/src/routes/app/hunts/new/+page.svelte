@@ -350,9 +350,6 @@
         'success',
       );
 
-      /**
-       * goto
-       */
       goto('/app/hunts');
     } catch (error: any) {
       const errorMessage = error?.message || 'Failed to start hunt';
@@ -363,21 +360,12 @@
     }
   }
 
-  /**
-   * startLocalBusinessHunt
-   */
   async function startLocalBusinessHunt() {
-    /**
-     * if
-     */
     if (localBusinessFilters.categories.length === 0) {
       toast.push('Please select at least one business category', 'error');
       return;
     }
 
-    /**
-     * if
-     */
     if (!localBusinessFilters.location.city && !localBusinessFilters.location.coordinates) {
       toast.push('Please provide a location (city or use GPS)', 'error');
       return;
