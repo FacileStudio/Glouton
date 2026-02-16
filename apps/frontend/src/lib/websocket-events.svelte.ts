@@ -36,6 +36,10 @@ class WebSocketEventManager {
       'hunt-completed',
       'hunt-failed',
       'hunt-cancelled',
+      'hunt-error',
+      'businesses-discovered',
+      'leads-created',
+      'leads-updated',
       'local-business-hunt-progress',
       'leads-added',
       'stats-changed'
@@ -356,6 +360,45 @@ export function setupHuntListeners(
           successfulLeads: data.newSuccessfulLeads,
           totalLeads: data.newTotalLeads,
         });
+      }
+    })
+  );
+
+  // Handle new events for local business hunts
+  unsubscribers.push(
+    wsEvents.on('businesses-discovered', (data) => {
+      if (data.huntSessionId) {
+        const message = `Found ${data.count} businesses in ${data.location}`;
+        toast.push(message, 'info');
+      }
+    })
+  );
+
+  unsubscribers.push(
+    wsEvents.on('leads-created', (data) => {
+      if (data.huntSessionId) {
+        // Don't override the counts here as they're cumulative in the hunt-progress event
+        // Just show a notification for the new leads
+        toast.push(data.message || `${data.count} new leads created`, 'success');
+      }
+    })
+  );
+
+  unsubscribers.push(
+    wsEvents.on('leads-updated', (data) => {
+      if (data.huntSessionId) {
+        toast.push(data.message || `${data.count} leads updated`, 'info');
+      }
+    })
+  );
+
+  unsubscribers.push(
+    wsEvents.on('hunt-error', (data) => {
+      if (data.huntSessionId) {
+        updateSession(data.huntSessionId, {
+          error: data.error,
+        });
+        toast.push(`Hunt error: ${data.error}`, 'error');
       }
     })
   );
