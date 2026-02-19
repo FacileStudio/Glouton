@@ -1,14 +1,12 @@
 import { router } from './trpc';
 import { userRouter } from './modules/user/router';
 import { authRouter } from './modules/auth/router';
-import { adminRouter } from './modules/admin/router';
 import { leadRouter } from './modules/lead/router';
 import { emailRouter } from './modules/email/router';
 
 export const appRouter = router({
   auth: authRouter,
   user: userRouter,
-  admin: adminRouter,
   lead: leadRouter,
   email: emailRouter,
 });

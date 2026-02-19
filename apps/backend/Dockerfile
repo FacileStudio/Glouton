@@ -5,14 +5,23 @@ WORKDIR /app
 
 COPY package.json bun.lock ./
 COPY apps/backend/package.json ./apps/backend/
+COPY packages/audit/package.json ./packages/audit/
 COPY packages/auth/package.json ./packages/auth/
 COPY packages/auth-shared/package.json ./packages/auth-shared/
 COPY packages/crypto/package.json ./packages/crypto/
 COPY packages/database/package.json ./packages/database/
 COPY packages/env/package.json ./packages/env/
+COPY packages/eslint-config/package.json ./packages/eslint-config/
+COPY packages/hunter/package.json ./packages/hunter/
+COPY packages/jobs/package.json ./packages/jobs/
+COPY packages/lead-sources/package.json ./packages/lead-sources/
 COPY packages/logger/package.json ./packages/logger/
+COPY packages/maps/package.json ./packages/maps/
+COPY packages/smtp/package.json ./packages/smtp/
 COPY packages/trpc/package.json ./packages/trpc/
+COPY packages/tsconfig/package.json ./packages/tsconfig/
 COPY packages/types/package.json ./packages/types/
+COPY packages/utils/package.json ./packages/utils/
 
 RUN bun install --frozen-lockfile
 
