@@ -7,6 +7,7 @@
   import { toast } from '@repo/utils';
   import { Spinner } from '@repo/ui';
   import { ws } from '$lib/websocket';
+  import HuntBanner from '$lib/components/leads/HuntBanner.svelte';
   import 'iconify-icon';
 
   const huntSessionId = $page.params.id;
@@ -17,8 +18,8 @@
     status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
     progress: number;
     sources: string[];
-    targetUrl: string | null;
     domain: string | null;
+    huntType?: 'DOMAIN' | 'LOCAL_BUSINESS';
     filters: any;
     totalLeads: number;
     successfulLeads: number;
@@ -53,428 +54,461 @@
     }>;
   }
 
-  interface RunEvent {
+  interface LiveEvent {
     id: string;
-    timestamp: Date;
-    level: 'INFO' | 'WARN' | 'ERROR' | 'SUCCESS';
-    category: string;
+    type: string;
+    level: 'success' | 'info' | 'warning' | 'error';
     message: string;
+    timestamp: Date;
     metadata?: any;
   }
 
-  let details: RunDetails | null = null;
-  let events: RunEvent[] = [];
-  let loading = true;
-  let eventsLoading = false;
-  let selectedLevel: 'INFO' | 'WARN' | 'ERROR' | 'SUCCESS' | null = null;
-  let selectedCategory: string | null = null;
-  let currentPage = 1;
-  let totalEvents = 0;
-  let autoScroll = true;
-  let eventsContainer: HTMLDivElement;
+  interface DiscoveredItem {
+    domain: string;
+    organization: string | null;
+    industry: string | null;
+    index: number;
+  }
 
-  let unsubscribeHuntUpdate: (() => void) | null = null;
-  let unsubscribeHuntCompleted: (() => void) | null = null;
+  let details = $state<RunDetails | null>(null);
+  let loading = $state(true);
+  let cancelling = $state(false);
+  let liveEvents = $state<LiveEvent[]>([]);
+  let discoveredItems = $state<DiscoveredItem[]>([]);
+  let eventsContainer = $state<HTMLDivElement | undefined>(undefined);
+  let autoScroll = $state(true);
+  let eventIdCounter = 0;
 
-  /**
-   * onMount
-   */
+  const unsubscribers: (() => void)[] = [];
+
+  function pushEvent(type: string, level: LiveEvent['level'], message: string, metadata?: any) {
+    const event: LiveEvent = {
+      id: `live-${eventIdCounter++}`,
+      type,
+      level,
+      message,
+      timestamp: new Date(),
+      metadata,
+    };
+    liveEvents = [event, ...liveEvents].slice(0, 200);
+  }
+
+  function updateDetails(updates: Partial<RunDetails>) {
+    if (details) {
+      details = { ...details, ...updates };
+    }
+  }
+
   onMount(async () => {
     await loadData();
 
-    unsubscribeHuntUpdate = ws.on('hunt-update', async (data: any) => {
-      /**
-       * if
-       */
-      if (data.huntSessionId === huntSessionId) {
-        await loadData();
-      }
-    });
+    unsubscribers.push(
+      ws.on('hunt-started', (data: any) => {
+        if (data.huntSessionId !== huntSessionId) return;
+        updateDetails({ status: 'PROCESSING', startedAt: new Date() });
+        pushEvent('hunt-started', 'info', data.message || 'Chasse démarrée');
+      })
+    );
 
-    unsubscribeHuntCompleted = ws.on('hunt-completed', async (data: any) => {
-      /**
-       * if
-       */
-      if (data.huntSessionId === huntSessionId) {
+    unsubscribers.push(
+      ws.on('hunt-progress', (data: any) => {
+        if (data.huntSessionId !== huntSessionId) return;
+        updateDetails({
+          progress: data.progress ?? details?.progress ?? 0,
+          successfulLeads: data.successfulLeads ?? details?.successfulLeads ?? 0,
+          totalLeads: data.totalLeads ?? details?.totalLeads ?? 0,
+          status: 'PROCESSING',
+        });
+      })
+    );
+
+    unsubscribers.push(
+      ws.on('domain-discovered', (data: any) => {
+        if (data.huntSessionId !== huntSessionId) return;
+        discoveredItems = [
+          { domain: data.domain, organization: data.organization, industry: data.industry, index: data.totalDiscovered },
+          ...discoveredItems,
+        ].slice(0, 500);
+        updateDetails({
+          successfulLeads: data.totalDiscovered,
+          progress: data.progress ?? details?.progress ?? 0,
+        });
+        pushEvent('domain-discovered', 'success', `Découvert : ${data.organization || data.domain}`, { domain: data.domain, industry: data.industry });
+      })
+    );
+
+    unsubscribers.push(
+      ws.on('leads-created', (data: any) => {
+        if (data.huntSessionId !== huntSessionId) return;
+        updateDetails({ successfulLeads: (details?.successfulLeads ?? 0) + data.count });
+        pushEvent('leads-created', 'success', `${data.count} nouveau${data.count > 1 ? 'x' : ''} lead${data.count > 1 ? 's' : ''} ajouté${data.count > 1 ? 's' : ''}${data.source ? ` depuis ${data.source}` : ''}`, { count: data.count });
+      })
+    );
+
+    unsubscribers.push(
+      ws.on('businesses-discovered', (data: any) => {
+        if (data.huntSessionId !== huntSessionId) return;
+        pushEvent('businesses-discovered', 'info', `${data.count} entreprise${data.count > 1 ? 's' : ''} trouvée${data.count > 1 ? 's' : ''} sur la carte`, { count: data.count });
+      })
+    );
+
+    unsubscribers.push(
+      ws.on('extraction-progress', (data: any) => {
+        if (data.huntSessionId !== huntSessionId) return;
+        updateDetails({ progress: data.progress ?? details?.progress ?? 0, successfulLeads: data.leadsFound });
+        pushEvent('extraction-progress', 'info', data.message || `Source ${data.currentSource}: ${data.sourcesCompleted}/${data.totalSources}`);
+      })
+    );
+
+    unsubscribers.push(
+      ws.on('source-started', (data: any) => {
+        if (data.huntSessionId !== huntSessionId) return;
+        pushEvent('source-started', 'info', data.message || `Starting source ${data.source}`);
+      })
+    );
+
+    unsubscribers.push(
+      ws.on('leads-discovered', (data: any) => {
+        if (data.huntSessionId !== huntSessionId) return;
+        pushEvent('leads-discovered', 'info', data.message || `Found ${data.count} leads from ${data.source}`);
+      })
+    );
+
+    unsubscribers.push(
+      ws.on('rate-limit-reached', (data: any) => {
+        if (data.huntSessionId !== huntSessionId) return;
+        pushEvent('rate-limit-reached', 'warning', `Limite de taux atteinte pour ${data.source}`);
+      })
+    );
+
+    unsubscribers.push(
+      ws.on('hunt-completed', async (data: any) => {
+        if (data.huntSessionId !== huntSessionId) return;
+        updateDetails({ status: 'COMPLETED', progress: 100, completedAt: new Date() });
+        pushEvent('hunt-completed', 'success', data.message || `Chasse terminée ! ${data.successfulLeads} leads trouvés`);
+        toast.push(data.message || `Chasse terminée ! ${data.successfulLeads} leads trouvés`, 'success');
         await loadData();
-        toast.push(`Hunt completed! Found ${data.successfulLeads} leads`, 'success');
-      }
-    });
+      })
+    );
+
+    unsubscribers.push(
+      ws.on('extraction-completed', async (data: any) => {
+        if (data.huntSessionId !== huntSessionId) return;
+        updateDetails({ status: 'COMPLETED', progress: 100, completedAt: new Date() });
+        pushEvent('extraction-completed', 'success', data.message || `Extraction terminée ! ${data.successfulLeads} leads trouvés`);
+        toast.push(data.message || 'Extraction terminée !', 'success');
+        await loadData();
+      })
+    );
+
+    unsubscribers.push(
+      ws.on('hunt-cancelled', (data: any) => {
+        if (data.huntSessionId !== huntSessionId) return;
+        updateDetails({ status: 'CANCELLED', completedAt: new Date() });
+        pushEvent('hunt-cancelled', 'warning', 'Chasse annulée par l\'utilisateur');
+      })
+    );
+
+    unsubscribers.push(
+      ws.on('hunt-failed', (data: any) => {
+        if (data.huntSessionId !== huntSessionId) return;
+        updateDetails({ status: 'FAILED', completedAt: new Date(), error: data.error });
+        pushEvent('hunt-failed', 'error', data.message || `Chasse échouée : ${data.error}`);
+        toast.push(data.message || 'Chasse échouée', 'error');
+      })
+    );
+
+    unsubscribers.push(
+      ws.on('extraction-failed', (data: any) => {
+        if (data.huntSessionId !== huntSessionId) return;
+        updateDetails({ status: 'FAILED', completedAt: new Date(), error: data.error });
+        pushEvent('extraction-failed', 'error', data.message || `Extraction échouée : ${data.error}`);
+      })
+    );
   });
 
-  /**
-   * onDestroy
-   */
   onDestroy(() => {
-    /**
-     * if
-     */
-    if (unsubscribeHuntUpdate) unsubscribeHuntUpdate();
-    /**
-     * if
-     */
-    if (unsubscribeHuntCompleted) unsubscribeHuntCompleted();
+    unsubscribers.forEach(u => u());
   });
 
-  /**
-   * loadData
-   */
   async function loadData() {
     try {
-      const [detailsData, eventsData] = await Promise.all([
-        trpc.huntRun.getRunDetails.query({ huntSessionId }),
-        trpc.huntRun.getRunEvents.query({
-          huntSessionId,
-          level: selectedLevel || undefined,
-          category: selectedCategory || undefined,
-          page: currentPage,
-          limit: 50,
-        }),
-      ]);
-
+      const detailsData = await trpc.lead.hunt.getRunDetails.query({ huntSessionId });
       details = detailsData;
-      events = eventsData.events;
-      totalEvents = eventsData.total;
-
-      /**
-       * if
-       */
-      if (autoScroll && eventsContainer) {
-        /**
-         * setTimeout
-         */
-        setTimeout(() => {
-          eventsContainer.scrollTop = eventsContainer.scrollHeight;
-        }, 100);
-      }
     } catch (error: any) {
-      toast.push('Failed to load hunt run details', 'error');
-      console.error('Error loading run details:', error);
-      /**
-       * if
-       */
-      if (error?.message?.includes('not found')) {
-        /**
-         * goto
-         */
-        goto('/app/hunts');
-      }
+      toast.push('Échec du chargement des détails', 'error');
+      if (error?.message?.includes('not found')) goto('/app/hunts');
     } finally {
       loading = false;
-      eventsLoading = false;
     }
   }
 
-  /**
-   * filterEvents
-   */
-  async function filterEvents() {
-    eventsLoading = true;
-    currentPage = 1;
-    await loadData();
-  }
-
-  /**
-   * getLevelColor
-   */
-  function getLevelColor(level: string): string {
-    /**
-     * switch
-     */
-    switch (level) {
-      case 'SUCCESS': return 'text-green-600 bg-green-100';
-      case 'INFO': return 'text-blue-600 bg-blue-100';
-      case 'WARN': return 'text-orange-600 bg-orange-100';
-      case 'ERROR': return 'text-red-600 bg-red-100';
-      default: return 'text-neutral-600 bg-neutral-100';
+  async function cancelHunt(id: string) {
+    cancelling = true;
+    try {
+      await trpc.lead.hunt.cancel.mutate({ huntSessionId: id });
+      toast.push('Chasse annulée', 'info');
+    } catch (err: any) {
+      toast.push(err?.message || "Échec de l'annulation", 'error');
+    } finally {
+      cancelling = false;
     }
   }
 
-  /**
-   * getLevelIcon
-   */
-  function getLevelIcon(level: string): string {
-    /**
-     * switch
-     */
-    switch (level) {
-      case 'SUCCESS': return 'solar:verified-check-bold';
-      case 'INFO': return 'solar:info-circle-bold';
-      case 'WARN': return 'solar:danger-triangle-bold';
-      case 'ERROR': return 'solar:close-circle-bold';
-      default: return 'solar:question-circle-bold';
-    }
-  }
-
-  /**
-   * getStatusColor
-   */
-  function getStatusColor(status: string): string {
-    /**
-     * switch
-     */
-    switch (status) {
-      case 'COMPLETED': return 'bg-green-500';
-      case 'PROCESSING': return 'bg-yellow-500';
-      case 'PENDING': return 'bg-blue-500';
-      case 'FAILED': return 'bg-red-500';
-      case 'CANCELLED': return 'bg-neutral-500';
-      default: return 'bg-neutral-400';
-    }
-  }
-
-  /**
-   * formatDuration
-   */
   function formatDuration(seconds: number | null): string {
-    /**
-     * if
-     */
     if (!seconds) return 'N/A';
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    /**
-     * if
-     */
     if (mins > 0) return `${mins}m ${secs}s`;
     return `${secs}s`;
   }
 
-  /**
-   * formatTimestamp
-   */
-  function formatTimestamp(date: Date): string {
-    return new Date(date).toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    });
+  function getStatusColor(status: string): string {
+    switch (status) {
+      case 'COMPLETED': return 'bg-green-500 text-white';
+      case 'PROCESSING': return 'bg-yellow-500 text-black';
+      case 'PENDING': return 'bg-blue-500 text-white';
+      case 'FAILED': return 'bg-red-500 text-white';
+      case 'CANCELLED': return 'bg-neutral-500 text-white';
+      default: return 'bg-neutral-400 text-white';
+    }
   }
 
-  $: categories = events.reduce((acc, event) => {
-    /**
-     * if
-     */
-    if (!acc.includes(event.category)) acc.push(event.category);
-    return acc;
-  }, [] as string[]);
+  function getLevelStyle(level: string) {
+    switch (level) {
+      case 'success': return { dot: 'bg-green-400', text: 'text-green-700', bg: 'bg-green-50' };
+      case 'warning': return { dot: 'bg-yellow-400', text: 'text-yellow-700', bg: 'bg-yellow-50' };
+      case 'error': return { dot: 'bg-red-400', text: 'text-red-700', bg: 'bg-red-50' };
+      default: return { dot: 'bg-blue-400', text: 'text-blue-700', bg: 'bg-blue-50' };
+    }
+  }
+
+  function formatTs(date: Date): string {
+    return new Date(date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
+
+  const isProcessing = $derived(details?.status === 'PENDING' || details?.status === 'PROCESSING');
+
+  const asBannerSession = $derived(details ? {
+    id: details.id,
+    huntType: details.huntType as 'DOMAIN' | 'LOCAL_BUSINESS' | undefined,
+    speed: 1,
+    status: details.status,
+    progress: details.progress,
+    totalLeads: details.totalLeads,
+    successfulLeads: details.successfulLeads,
+    failedLeads: details.failedLeads,
+    error: details.error,
+    startedAt: details.startedAt,
+    completedAt: details.completedAt,
+    createdAt: details.createdAt,
+    filters: details.filters,
+  } : null);
 </script>
 
 {#if loading}
-  <div class="flex flex-col items-center justify-center h-screen space-y-6" in:fade>
+  <div class="flex flex-col items-center justify-center h-full space-y-6 selection:text-black font-sans" style="background-color: #FAF7F5;" in:fade>
     <Spinner size="xl" color="accent" />
     <p class="text-[10px] font-black uppercase tracking-[0.5em] text-neutral-400">
-      Loading hunt details...
+      Chargement des détails...
     </p>
   </div>
-{:else if details}
-  <div class="p-6 lg:p-12 max-w-[1800px] mx-auto space-y-8 selection:bg-yellow-400 selection:text-black font-sans">
+{:else if !details}
+  <div class="flex flex-col items-center justify-center h-full space-y-6 selection:text-black font-sans" style="background-color: #FAF7F5;" in:fade>
+    <p class="text-[10px] font-black uppercase tracking-[0.5em] text-neutral-400">Chasse introuvable</p>
+    <button onclick={() => goto('/app/hunts')} class="px-6 py-3 bg-black text-white rounded-xl font-bold hover:bg-neutral-800 transition-colors">
+      Retour aux chasses
+    </button>
+  </div>
+{:else}
+  <div class="p-6 lg:p-12 max-w-[1800px] mx-auto space-y-8 selection:text-black font-sans" style="background-color: #FAF7F5;" in:fade>
 
-    <div class="flex items-start justify-between gap-6">
-      <div class="flex items-center gap-4">
-        <button
-          on:click={() => goto('/app/hunts')}
-          class="w-12 h-12 flex items-center justify-center bg-neutral-100 rounded-xl hover:bg-neutral-200 transition-colors"
-        >
-          <iconify-icon icon="solar:alt-arrow-left-bold" width="24" class="text-neutral-700"></iconify-icon>
-        </button>
-        <div class="space-y-1">
-          <div class="flex items-center gap-3">
-            <h1 class="text-4xl font-black tracking-tight leading-none">
-              Hunt Details<span class="text-yellow-400">.</span>
-            </h1>
-            <div class="flex items-center gap-2 px-4 py-2 rounded-xl {getStatusColor(details.status)} text-white">
-              <span class="text-xs font-black uppercase">{details.status}</span>
-              {#if details.status === 'PROCESSING'}
-                <div class="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-              {/if}
-            </div>
-          </div>
-          <p class="text-neutral-400 font-medium text-sm">
-            {details.targetUrl || details.domain || 'Broad search'}
-          </p>
+    <div class="flex items-center gap-4">
+      <button
+        onclick={() => goto('/app/hunts')}
+        class="w-12 h-12 flex items-center justify-center bg-neutral-100 rounded-xl hover:bg-neutral-200 transition-colors"
+      >
+        <iconify-icon icon="solar:alt-arrow-left-bold" width="24" class="text-neutral-700"></iconify-icon>
+      </button>
+      <div>
+        <div class="flex items-center gap-3">
+          <h1 class="text-4xl font-black tracking-tight leading-none">
+            Détails de la chasse<span class="text-yellow-400">.</span>
+          </h1>
+          <span class="px-3 py-1.5 rounded-xl text-xs font-black uppercase {getStatusColor(details.status)}">
+            {details.status}
+            {#if details.status === 'PROCESSING'}
+              <span class="inline-block w-1.5 h-1.5 rounded-full bg-current ml-1 animate-pulse"></span>
+            {/if}
+          </span>
         </div>
+        <p class="text-neutral-400 font-medium text-sm mt-1">
+          {#if details.huntType === 'LOCAL_BUSINESS'}
+            {details.filters?.location || 'Local'} · {details.filters?.categories?.join(', ') || ''}
+          {:else}
+            {details.domain || 'Recherche large'} · {details.sources?.join(', ')}
+          {/if}
+        </p>
       </div>
     </div>
 
+    {#if isProcessing && asBannerSession}
+      <div in:fly={{ y: -10, duration: 300 }}>
+        <HuntBanner session={asBannerSession} onCancel={cancelHunt} {cancelling} />
+      </div>
+    {/if}
+
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div class="lg:col-span-2 space-y-6">
-        <section class="bg-white rounded-[32px] border-2 border-neutral-200 p-8 space-y-6">
-          <div class="flex items-center gap-3 mb-6">
-            <div class="w-10 h-10 bg-neutral-900 rounded-xl flex items-center justify-center">
-              <iconify-icon icon="solar:chart-bold" width="20" class="text-white"></iconify-icon>
-            </div>
-            <h2 class="text-2xl font-black tracking-tight">Statistics</h2>
-          </div>
 
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {#each [
-              { label: 'Total Leads', value: details.stats.totalLeads, icon: 'solar:users-group-rounded-bold', color: 'text-blue-600' },
-              { label: 'Hot Leads', value: details.stats.hotLeads, icon: 'solar:fire-bold', color: 'text-red-600' },
-              { label: 'Warm Leads', value: details.stats.warmLeads, icon: 'solar:sun-2-bold', color: 'text-orange-600' },
-              { label: 'Cold Leads', value: details.stats.coldLeads, icon: 'solar:snowflake-bold', color: 'text-blue-400' }
-            ] as stat}
-              <div class="bg-neutral-50 rounded-2xl p-6">
-                <div class="flex items-center gap-2 mb-3">
-                  <iconify-icon icon={stat.icon} class={stat.color} width="20"></iconify-icon>
-                  <p class="text-xs font-bold text-neutral-600 uppercase">{stat.label}</p>
+        {#if isProcessing || liveEvents.length > 0}
+          <section class="bg-white rounded-[32px] border-2 border-neutral-200 overflow-hidden">
+            <div class="p-8 pb-4 flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-neutral-900 rounded-xl flex items-center justify-center">
+                  <iconify-icon icon="solar:pulse-bold" width="20" class="text-white"></iconify-icon>
                 </div>
-                <p class="text-3xl font-black">{stat.value}</p>
+                <h2 class="text-2xl font-black tracking-tight">Flux en direct</h2>
+                {#if isProcessing}
+                  <span class="px-3 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-black animate-pulse">EN DIRECT</span>
+                {/if}
               </div>
-            {/each}
-          </div>
+              <button
+                onclick={() => { autoScroll = !autoScroll; }}
+                class="px-4 py-2 rounded-xl text-xs font-bold {autoScroll ? 'bg-yellow-100 text-yellow-700' : 'bg-neutral-100 text-neutral-600'} hover:opacity-80 transition-opacity"
+              >
+                {autoScroll ? 'Défilement auto' : 'En pause'}
+              </button>
+            </div>
 
-          <div class="grid grid-cols-2 md:grid-cols-3 gap-4 pt-4 border-t border-neutral-200">
-            <div>
-              <p class="text-xs font-bold text-neutral-500 uppercase mb-1">Success Rate</p>
-              <p class="text-2xl font-black text-green-600">{details.stats.successRate.toFixed(1)}%</p>
-            </div>
-            <div>
-              <p class="text-xs font-bold text-neutral-500 uppercase mb-1">Avg Score</p>
-              <p class="text-2xl font-black text-yellow-600">{details.stats.averageScore.toFixed(0)}/100</p>
-            </div>
-            <div>
-              <p class="text-xs font-bold text-neutral-500 uppercase mb-1">Duration</p>
-              <p class="text-2xl font-black text-neutral-900">{formatDuration(details.stats.duration)}</p>
-            </div>
-          </div>
-
-          {#if details.status === 'PROCESSING'}
-            <div class="pt-4">
-              <div class="flex items-center justify-between mb-2">
-                <span class="text-sm font-bold text-neutral-700">Progress</span>
-                <span class="text-sm font-black text-yellow-600">{details.progress}%</span>
-              </div>
-              <div class="w-full h-4 bg-neutral-100 rounded-full overflow-hidden relative">
-                <div
-                  class="h-full bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full transition-all duration-500"
-                  style="width: {details.progress}%"
-                ></div>
-                <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer"></div>
-              </div>
-            </div>
-          {/if}
-
-          {#if details.error}
-            <div class="bg-red-50 border-2 border-red-200 rounded-2xl p-6">
-              <div class="flex items-start gap-3">
-                <iconify-icon icon="solar:danger-bold" width="24" class="text-red-600 flex-shrink-0 mt-0.5"></iconify-icon>
-                <div class="flex-1">
-                  <p class="text-sm font-black text-red-800 mb-2">Error Details</p>
-                  <p class="text-sm text-red-700 font-medium">{details.error}</p>
+            <div bind:this={eventsContainer} class="px-8 pb-8 space-y-2 max-h-[400px] overflow-y-auto">
+              {#if liveEvents.length === 0}
+                <div class="flex flex-col items-center justify-center py-12 space-y-3">
+                  <iconify-icon icon="solar:hourglass-bold" width="36" class="text-neutral-300"></iconify-icon>
+                  <p class="text-sm font-bold text-neutral-400">En attente d'événements...</p>
                 </div>
-              </div>
-            </div>
-          {/if}
-        </section>
-
-        <section class="bg-white rounded-[32px] border-2 border-neutral-200 p-8">
-          <div class="flex items-center justify-between mb-6">
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 bg-neutral-900 rounded-xl flex items-center justify-center">
-                <iconify-icon icon="solar:document-text-bold" width="20" class="text-white"></iconify-icon>
-              </div>
-              <h2 class="text-2xl font-black tracking-tight">Live Events</h2>
-              {#if details.status === 'PROCESSING'}
-                <span class="px-3 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-black animate-pulse">
-                  LIVE
-                </span>
+              {:else}
+                {#each liveEvents as event (event.id)}
+                  {@const style = getLevelStyle(event.level)}
+                  <div class="flex items-start gap-3 py-2 border-b border-neutral-100 last:border-0" in:fly={{ y: -8, duration: 200 }}>
+                    <div class="flex-shrink-0 mt-1.5 w-2 h-2 rounded-full {style.dot}"></div>
+                    <div class="flex-1 min-w-0">
+                      <p class="text-sm font-medium text-neutral-900 leading-snug">{event.message}</p>
+                    </div>
+                    <span class="flex-shrink-0 text-xs font-mono text-neutral-400">{formatTs(event.timestamp)}</span>
+                  </div>
+                {/each}
               {/if}
             </div>
-            <button
-              on:click={() => { autoScroll = !autoScroll; }}
-              class="px-4 py-2 rounded-xl text-xs font-bold {autoScroll ? 'bg-yellow-100 text-yellow-700' : 'bg-neutral-100 text-neutral-600'} hover:opacity-80 transition-opacity"
-            >
-              <iconify-icon icon={autoScroll ? "solar:arrow-down-bold" : "solar:pause-bold"} width="14"></iconify-icon>
-              {autoScroll ? 'Auto-scroll' : 'Paused'}
-            </button>
-          </div>
+          </section>
+        {/if}
 
-          <div class="flex flex-wrap gap-2 mb-4">
-            <button
-              on:click={() => { selectedLevel = null; filterEvents(); }}
-              class="px-3 py-2 rounded-lg text-xs font-bold transition-all {selectedLevel === null ? 'bg-neutral-900 text-white' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'}"
-            >
-              All Levels
-            </button>
-            {#each ['INFO', 'SUCCESS', 'WARN', 'ERROR'] as level}
-              <button
-                on:click={() => { selectedLevel = level; filterEvents(); }}
-                class="px-3 py-2 rounded-lg text-xs font-bold transition-all {selectedLevel === level ? getLevelColor(level) : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'}"
-              >
-                {level}
-              </button>
-            {/each}
-          </div>
+        {#if discoveredItems.length > 0}
+          <section class="bg-white rounded-[32px] border-2 border-neutral-200 overflow-hidden">
+            <div class="p-8 pb-4 flex items-center gap-3">
+              <div class="w-10 h-10 bg-neutral-900 rounded-xl flex items-center justify-center">
+                <iconify-icon icon="solar:target-bold" width="20" class="text-white"></iconify-icon>
+              </div>
+              <h2 class="text-2xl font-black tracking-tight">Domaines découverts</h2>
+              <span class="px-3 py-1 bg-neutral-100 text-neutral-700 rounded-lg text-xs font-black">{discoveredItems.length}</span>
+            </div>
+            <div class="px-8 pb-8 space-y-2 max-h-[400px] overflow-y-auto">
+              {#each discoveredItems as item (item.index)}
+                <div class="flex items-center gap-4 py-2.5 border-b border-neutral-100 last:border-0" in:fly={{ y: -6, duration: 150 }}>
+                  <span class="text-xs font-mono text-neutral-400 w-8 flex-shrink-0">#{item.index}</span>
+                  <div class="flex-1 min-w-0">
+                    <p class="font-bold text-neutral-900 truncate text-sm">{item.organization || item.domain}</p>
+                    {#if item.organization}
+                      <p class="text-xs text-neutral-500 truncate">{item.domain}</p>
+                    {/if}
+                  </div>
+                  {#if item.industry}
+                    <span class="text-xs px-2 py-1 bg-neutral-100 text-neutral-600 rounded-lg font-medium flex-shrink-0 truncate max-w-[120px]">{item.industry}</span>
+                  {/if}
+                </div>
+              {/each}
+            </div>
+          </section>
+        {/if}
 
-          <div
-            bind:this={eventsContainer}
-            class="space-y-2 max-h-[600px] overflow-y-auto"
-          >
-            {#if eventsLoading}
-              <div class="flex items-center justify-center py-12">
-                <Spinner size="md" color="accent" />
+        {#if details.leads.length > 0}
+          <section class="bg-white rounded-[32px] border-2 border-neutral-200 overflow-hidden">
+            <div class="p-8 pb-4 flex items-center gap-3">
+              <div class="w-10 h-10 bg-neutral-900 rounded-xl flex items-center justify-center">
+                <iconify-icon icon="solar:users-group-rounded-bold" width="20" class="text-white"></iconify-icon>
               </div>
-            {:else if events.length === 0}
-              <div class="flex flex-col items-center justify-center py-12 space-y-3">
-                <iconify-icon icon="solar:ghost-bold" width="48" class="text-neutral-300"></iconify-icon>
-                <p class="text-sm font-bold text-neutral-400">No events found</p>
-              </div>
-            {:else}
-              {#each events as event (event.id)}
-                <div
-                  class="bg-neutral-50 rounded-xl p-4"
-                  in:fly={{ y: 10, duration: 200 }}
-                >
-                  <div class="flex items-start gap-3">
-                    <div class="flex-shrink-0 w-8 h-8 rounded-lg {getLevelColor(event.level)} flex items-center justify-center">
-                      <iconify-icon icon={getLevelIcon(event.level)} width="16"></iconify-icon>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                      <div class="flex items-center gap-2 mb-1">
-                        <span class="text-xs font-black uppercase {getLevelColor(event.level).split(' ')[0]}">{event.level}</span>
-                        <span class="text-xs font-bold text-neutral-400">{event.category}</span>
-                        <span class="text-xs text-neutral-400">{formatTimestamp(event.timestamp)}</span>
-                      </div>
-                      <p class="text-sm font-medium text-neutral-900">{event.message}</p>
-                      {#if event.metadata}
-                        <details class="mt-2">
-                          <summary class="text-xs font-bold text-neutral-500 cursor-pointer hover:text-neutral-700">
-                            View metadata
-                          </summary>
-                          <pre class="mt-2 text-xs bg-neutral-100 rounded-lg p-3 overflow-x-auto">{JSON.stringify(event.metadata, null, 2)}</pre>
-                        </details>
-                      {/if}
-                    </div>
+              <h2 class="text-2xl font-black tracking-tight">Leads</h2>
+              <span class="px-3 py-1 bg-neutral-100 text-neutral-700 rounded-lg text-xs font-black">{details.leads.length}</span>
+            </div>
+            <div class="px-8 pb-8 space-y-2 max-h-[500px] overflow-y-auto">
+              {#each details.leads as lead}
+                <div class="flex items-center gap-4 py-2.5 border-b border-neutral-100 last:border-0 hover:bg-neutral-50 transition-colors rounded-xl px-2 -mx-2">
+                  <div class="w-9 h-9 rounded-xl bg-neutral-100 flex items-center justify-center flex-shrink-0">
+                    <iconify-icon icon="solar:user-bold" width="18" class="text-neutral-500"></iconify-icon>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <p class="font-bold text-neutral-900 text-sm truncate">
+                      {[lead.firstName, lead.lastName].filter(Boolean).join(' ') || lead.domain}
+                    </p>
+                    <p class="text-xs text-neutral-500 truncate">{lead.email || lead.domain}</p>
+                  </div>
+                  <div class="flex items-center gap-2 flex-shrink-0">
+                    <span class="text-xs px-2 py-1 rounded-lg font-black {
+                      lead.status === 'HOT' ? 'bg-red-100 text-red-700' :
+                      lead.status === 'WARM' ? 'bg-orange-100 text-orange-700' :
+                      'bg-blue-100 text-blue-700'
+                    }">{lead.status}</span>
+                    <span class="text-xs font-bold text-neutral-400">{lead.score}/100</span>
                   </div>
                 </div>
               {/each}
-            {/if}
-          </div>
-
-          {#if totalEvents > 50}
-            <div class="flex items-center justify-center gap-2 mt-4">
-              <button
-                on:click={() => { if (currentPage > 1) { currentPage--; loadData(); } }}
-                disabled={currentPage === 1}
-                class="px-4 py-2 bg-neutral-100 text-neutral-700 rounded-xl text-xs font-bold hover:bg-neutral-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Previous
-              </button>
-              <span class="text-xs font-bold text-neutral-500">Page {currentPage}</span>
-              <button
-                on:click={() => { if (currentPage * 50 < totalEvents) { currentPage++; loadData(); } }}
-                disabled={currentPage * 50 >= totalEvents}
-                class="px-4 py-2 bg-neutral-100 text-neutral-700 rounded-xl text-xs font-bold hover:bg-neutral-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Next
-              </button>
             </div>
-          {/if}
-        </section>
+          </section>
+        {/if}
+
       </div>
 
       <div class="space-y-6">
+
+        <section class="bg-white rounded-[32px] border-2 border-neutral-200 p-8">
+          <div class="flex items-center gap-3 mb-6">
+            <div class="w-10 h-10 bg-neutral-900 rounded-xl flex items-center justify-center">
+              <iconify-icon icon="solar:chart-2-bold" width="20" class="text-white"></iconify-icon>
+            </div>
+            <h2 class="text-xl font-black tracking-tight">Stats</h2>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            {#each [
+              { label: 'Total', value: details.stats.totalLeads, icon: 'solar:users-group-rounded-bold', color: 'text-neutral-800' },
+              { label: 'Chaud', value: details.stats.hotLeads, icon: 'solar:fire-bold', color: 'text-red-600' },
+              { label: 'Tiède', value: details.stats.warmLeads, icon: 'solar:sun-2-bold', color: 'text-orange-500' },
+              { label: 'Froid', value: details.stats.coldLeads, icon: 'solar:snowflake-bold', color: 'text-blue-400' },
+            ] as stat}
+              <div class="bg-neutral-50 rounded-2xl p-4">
+                <div class="flex items-center gap-1.5 mb-2">
+                  <iconify-icon icon={stat.icon} class={stat.color} width="16"></iconify-icon>
+                  <p class="text-xs font-bold text-neutral-500 uppercase">{stat.label}</p>
+                </div>
+                <p class="text-2xl font-black">{stat.value}</p>
+              </div>
+            {/each}
+          </div>
+          <div class="grid grid-cols-3 gap-3 mt-4 pt-4 border-t border-neutral-100">
+            <div>
+              <p class="text-xs font-bold text-neutral-500 uppercase mb-1">Taux</p>
+              <p class="text-lg font-black text-green-600">{details.stats.successRate.toFixed(0)}%</p>
+            </div>
+            <div>
+              <p class="text-xs font-bold text-neutral-500 uppercase mb-1">Score</p>
+              <p class="text-lg font-black text-yellow-600">{details.stats.averageScore.toFixed(0)}</p>
+            </div>
+            <div>
+              <p class="text-xs font-bold text-neutral-500 uppercase mb-1">Durée</p>
+              <p class="text-lg font-black">{formatDuration(details.stats.duration)}</p>
+            </div>
+          </div>
+        </section>
+
         <section class="bg-white rounded-[32px] border-2 border-neutral-200 p-8">
           <div class="flex items-center gap-3 mb-6">
             <div class="w-10 h-10 bg-neutral-900 rounded-xl flex items-center justify-center">
@@ -482,67 +516,206 @@
             </div>
             <h2 class="text-xl font-black tracking-tight">Configuration</h2>
           </div>
-
           <div class="space-y-4 text-sm">
+
             <div>
-              <p class="text-xs font-bold text-neutral-500 uppercase mb-1">Sources</p>
-              <div class="flex flex-wrap gap-2">
-                {#each details.sources as source}
-                  <span class="px-3 py-1 bg-neutral-100 text-neutral-800 rounded-lg font-bold">{source}</span>
-                {/each}
+              <p class="text-xs font-bold text-neutral-500 uppercase mb-2">Type de chasse</p>
+              <div class="flex items-center gap-2">
+                {#if details.huntType === 'LOCAL_BUSINESS'}
+                  <div class="flex items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-xl">
+                    <iconify-icon icon="solar:map-point-bold" width="16" class="text-emerald-600"></iconify-icon>
+                    <span class="text-xs font-black text-emerald-700 uppercase">Commerce local</span>
+                  </div>
+                {:else}
+                  <div class="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-xl">
+                    <iconify-icon icon="solar:global-bold" width="16" class="text-blue-600"></iconify-icon>
+                    <span class="text-xs font-black text-blue-700 uppercase">Domaine</span>
+                  </div>
+                {/if}
               </div>
             </div>
 
-            {#if details.filters}
+            {#if details.huntType === 'LOCAL_BUSINESS' && details.filters}
               <div>
-                <p class="text-xs font-bold text-neutral-500 uppercase mb-2">Filters</p>
-                <div class="bg-neutral-50 rounded-xl p-4 space-y-2">
-                  {#if details.filters.jobTitles && details.filters.jobTitles.length > 0}
+                <p class="text-xs font-bold text-neutral-500 uppercase mb-2">Paramètres</p>
+                <div class="bg-neutral-50 rounded-xl p-4 space-y-3 text-xs">
+                  {#if details.filters.location}
+                    <div class="flex justify-between items-start gap-2">
+                      <span class="text-neutral-500 font-medium flex-shrink-0">Localisation</span>
+                      <span class="font-bold text-right">{details.filters.location}</span>
+                    </div>
+                  {/if}
+                  {#if details.filters.categories?.length}
                     <div>
-                      <p class="text-xs font-bold text-neutral-600 mb-1">Job Titles</p>
-                      <div class="flex flex-wrap gap-1">
-                        {#each details.filters.jobTitles as title}
-                          <span class="text-xs px-2 py-1 bg-white rounded-md font-medium">{title}</span>
+                      <p class="text-neutral-500 font-medium mb-2">Catégories</p>
+                      <div class="flex flex-wrap gap-1.5">
+                        {#each details.filters.categories as cat}
+                          <span class="px-2 py-1 bg-white border border-neutral-200 rounded-lg font-medium capitalize">{cat.replace(/-/g, ' ')}</span>
                         {/each}
                       </div>
                     </div>
                   {/if}
-                  {#if details.filters.departments && details.filters.departments.length > 0}
-                    <div>
-                      <p class="text-xs font-bold text-neutral-600 mb-1">Departments</p>
-                      <div class="flex flex-wrap gap-1">
-                        {#each details.filters.departments as dept}
-                          <span class="text-xs px-2 py-1 bg-white rounded-md font-medium">{dept}</span>
-                        {/each}
-                      </div>
+                  {#if details.filters.radius}
+                    <div class="flex justify-between items-center">
+                      <span class="text-neutral-500 font-medium">Rayon</span>
+                      <span class="font-bold">{details.filters.radius >= 1000 ? `${(details.filters.radius / 1000).toFixed(1)} km` : `${details.filters.radius} m`}</span>
+                    </div>
+                  {/if}
+                  {#if details.filters.maxResults}
+                    <div class="flex justify-between items-center">
+                      <span class="text-neutral-500 font-medium">Max résultats</span>
+                      <span class="font-bold">{details.filters.maxResults}</span>
+                    </div>
+                  {/if}
+                  {#if details.filters.hasWebsite !== undefined}
+                    <div class="flex justify-between items-center">
+                      <span class="text-neutral-500 font-medium">Avec site web</span>
+                      <span class="font-bold {details.filters.hasWebsite ? 'text-green-600' : 'text-red-500'}">{details.filters.hasWebsite ? 'Oui' : 'Non'}</span>
                     </div>
                   {/if}
                 </div>
               </div>
             {/if}
 
-            {#if details.sourceStats && typeof details.sourceStats === 'object'}
+            {#if details.huntType !== 'LOCAL_BUSINESS'}
+              {#if details.sources?.length > 0}
+                <div>
+                  <p class="text-xs font-bold text-neutral-500 uppercase mb-2">Sources</p>
+                  <div class="flex flex-wrap gap-2">
+                    {#each details.sources as source}
+                      <span class="px-3 py-1 bg-neutral-100 text-neutral-800 rounded-lg font-bold text-xs">{source}</span>
+                    {/each}
+                  </div>
+                </div>
+              {/if}
+
+              {#if details.filters && Object.keys(details.filters).some(k => details.filters[k] !== undefined && details.filters[k] !== null)}
+                <div>
+                  <p class="text-xs font-bold text-neutral-500 uppercase mb-2">Filtres</p>
+                  <div class="bg-neutral-50 rounded-xl p-4 space-y-3 text-xs">
+                    {#if details.filters.type}
+                      <div class="flex justify-between items-center">
+                        <span class="text-neutral-500 font-medium">Type d'email</span>
+                        <span class="px-2 py-0.5 bg-white border border-neutral-200 rounded-lg font-bold capitalize">{details.filters.type === 'personal' ? 'Personnel' : 'Générique'}</span>
+                      </div>
+                    {/if}
+                    {#if details.filters.seniority?.length}
+                      <div>
+                        <p class="text-neutral-500 font-medium mb-1.5">Séniorité</p>
+                        <div class="flex flex-wrap gap-1.5">
+                          {#each details.filters.seniority as s}
+                            <span class="px-2 py-1 bg-white border border-neutral-200 rounded-lg font-medium capitalize">{s === 'junior' ? 'Junior' : s === 'senior' ? 'Senior' : 'Exécutif'}</span>
+                          {/each}
+                        </div>
+                      </div>
+                    {/if}
+                    {#if details.filters.department?.length}
+                      <div>
+                        <p class="text-neutral-500 font-medium mb-1.5">Département</p>
+                        <div class="flex flex-wrap gap-1.5">
+                          {#each details.filters.department as d}
+                            <span class="px-2 py-1 bg-white border border-neutral-200 rounded-lg font-medium capitalize">{d}</span>
+                          {/each}
+                        </div>
+                      </div>
+                    {/if}
+                    {#if details.filters.jobTitles?.length}
+                      <div>
+                        <p class="text-neutral-500 font-medium mb-1.5">Postes</p>
+                        <div class="flex flex-wrap gap-1.5">
+                          {#each details.filters.jobTitles as t}
+                            <span class="px-2 py-1 bg-white border border-neutral-200 rounded-lg font-medium">{t}</span>
+                          {/each}
+                        </div>
+                      </div>
+                    {/if}
+                    {#if details.filters.verificationStatus?.length}
+                      <div>
+                        <p class="text-neutral-500 font-medium mb-1.5">Statut de vérification</p>
+                        <div class="flex flex-wrap gap-1.5">
+                          {#each details.filters.verificationStatus as v}
+                            <span class="px-2 py-1 bg-white border border-neutral-200 rounded-lg font-medium capitalize">{v === 'valid' ? 'Valide' : v === 'accept_all' ? 'Accepte tout' : 'Inconnu'}</span>
+                          {/each}
+                        </div>
+                      </div>
+                    {/if}
+                    {#if details.filters.requiredFields?.length}
+                      <div>
+                        <p class="text-neutral-500 font-medium mb-1.5">Champs requis</p>
+                        <div class="flex flex-wrap gap-1.5">
+                          {#each details.filters.requiredFields as f}
+                            <span class="px-2 py-1 bg-white border border-neutral-200 rounded-lg font-medium">{f === 'full_name' ? 'Nom complet' : f === 'position' ? 'Poste' : 'Téléphone'}</span>
+                          {/each}
+                        </div>
+                      </div>
+                    {/if}
+                    {#if details.filters.location && typeof details.filters.location === 'object'}
+                      {@const loc = details.filters.location}
+                      {#if loc.country || loc.city || loc.state || loc.continent || loc.businessRegion}
+                        <div>
+                          <p class="text-neutral-500 font-medium mb-1.5">Localisation</p>
+                          <div class="space-y-1">
+                            {#if loc.continent}
+                              <div class="flex justify-between">
+                                <span class="text-neutral-400">Continent</span>
+                                <span class="font-bold">{loc.continent}</span>
+                              </div>
+                            {/if}
+                            {#if loc.businessRegion}
+                              <div class="flex justify-between">
+                                <span class="text-neutral-400">Région</span>
+                                <span class="font-bold">{loc.businessRegion}</span>
+                              </div>
+                            {/if}
+                            {#if loc.country}
+                              <div class="flex justify-between">
+                                <span class="text-neutral-400">Pays</span>
+                                <span class="font-bold">{loc.country}</span>
+                              </div>
+                            {/if}
+                            {#if loc.state}
+                              <div class="flex justify-between">
+                                <span class="text-neutral-400">État / Région</span>
+                                <span class="font-bold">{loc.state}</span>
+                              </div>
+                            {/if}
+                            {#if loc.city}
+                              <div class="flex justify-between">
+                                <span class="text-neutral-400">Ville</span>
+                                <span class="font-bold">{loc.city}</span>
+                              </div>
+                            {/if}
+                          </div>
+                        </div>
+                      {/if}
+                    {/if}
+                  </div>
+                </div>
+              {/if}
+            {/if}
+
+            {#if details.sourceStats && typeof details.sourceStats === 'object' && Object.keys(details.sourceStats).length > 0}
               <div>
-                <p class="text-xs font-bold text-neutral-500 uppercase mb-2">Source Performance</p>
+                <p class="text-xs font-bold text-neutral-500 uppercase mb-2">Performance des sources</p>
                 <div class="space-y-2">
                   {#each Object.entries(details.sourceStats) as [source, stats]}
                     <div class="bg-neutral-50 rounded-xl p-4">
-                      <p class="font-black text-neutral-800 mb-2">{source}</p>
+                      <p class="font-black text-neutral-800 mb-2 text-xs uppercase">{source}</p>
                       <div class="space-y-1 text-xs">
                         <div class="flex justify-between">
                           <span class="text-neutral-600">Leads</span>
-                          <span class="font-bold text-green-600">{stats.leads || 0}</span>
+                          <span class="font-bold text-green-600">{(stats as any).leads || 0}</span>
                         </div>
-                        {#if stats.errors > 0}
+                        {#if (stats as any).errors > 0}
                           <div class="flex justify-between">
-                            <span class="text-neutral-600">Errors</span>
-                            <span class="font-bold text-red-600">{stats.errors}</span>
+                            <span class="text-neutral-600">Erreurs</span>
+                            <span class="font-bold text-red-600">{(stats as any).errors}</span>
                           </div>
                         {/if}
-                        {#if stats.rateLimited}
+                        {#if (stats as any).rateLimited}
                           <div class="flex justify-between">
-                            <span class="text-neutral-600">Status</span>
-                            <span class="font-bold text-orange-600">Rate Limited</span>
+                            <span class="text-neutral-600">Limite dépassée</span>
+                            <span class="font-bold text-orange-600">Oui</span>
                           </div>
                         {/if}
                       </div>
@@ -551,64 +724,20 @@
                 </div>
               </div>
             {/if}
+
+            {#if details.error}
+              <div class="bg-red-50 border-2 border-red-200 rounded-xl p-4">
+                <div class="flex items-start gap-2">
+                  <iconify-icon icon="solar:danger-bold" width="18" class="text-red-600 flex-shrink-0 mt-0.5"></iconify-icon>
+                  <p class="text-xs font-medium text-red-700">{details.error}</p>
+                </div>
+              </div>
+            {/if}
           </div>
         </section>
 
-        {#if details.leads.length > 0}
-          <section class="bg-white rounded-[32px] border-2 border-neutral-200 p-8">
-            <div class="flex items-center gap-3 mb-6">
-              <div class="w-10 h-10 bg-neutral-900 rounded-xl flex items-center justify-center">
-                <iconify-icon icon="solar:users-group-rounded-bold" width="20" class="text-white"></iconify-icon>
-              </div>
-              <h2 class="text-xl font-black tracking-tight">Leads ({details.leads.length})</h2>
-            </div>
-
-            <div class="space-y-3 max-h-[600px] overflow-y-auto">
-              {#each details.leads as lead}
-                <div class="bg-neutral-50 rounded-xl p-4 hover:bg-neutral-100 transition-colors">
-                  <div class="flex items-start justify-between gap-3 mb-2">
-                    <div class="flex-1 min-w-0">
-                      <p class="font-bold text-neutral-900 truncate">
-                        {lead.firstName || ''} {lead.lastName || 'Unknown'}
-                      </p>
-                      {#if lead.email}
-                        <p class="text-xs text-neutral-600 truncate">{lead.email}</p>
-                      {/if}
-                    </div>
-                    <div class="flex flex-col items-end gap-1">
-                      <span class="text-xs px-2 py-1 rounded font-black {
-                        lead.status === 'HOT' ? 'bg-red-100 text-red-700' :
-                        lead.status === 'WARM' ? 'bg-orange-100 text-orange-700' :
-                        'bg-blue-100 text-blue-700'
-                      }">
-                        {lead.status}
-                      </span>
-                      <span class="text-xs text-neutral-400 font-bold">{lead.score}/100</span>
-                    </div>
-                  </div>
-                  {#if lead.position}
-                    <p class="text-xs text-neutral-500 truncate">{lead.position}</p>
-                  {/if}
-                  <div class="flex items-center gap-2 mt-2">
-                    <span class="text-xs px-2 py-1 bg-white rounded-md text-neutral-600 font-medium">{lead.source}</span>
-                    <span class="text-xs text-neutral-400">{lead.domain}</span>
-                  </div>
-                </div>
-              {/each}
-            </div>
-          </section>
-        {/if}
       </div>
     </div>
+
   </div>
 {/if}
-
-<style>
-  @keyframes shimmer {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
-  }
-  .animate-shimmer {
-    animation: shimmer 2s infinite;
-  }
-</style>

@@ -4,7 +4,7 @@ dockerfilePath = "apps/backend/Dockerfile"
 
 [deploy]
 startCommand = "bun run apps/backend/src/index.ts"
-healthcheckPath = "/"
+healthcheckPath = "/health/ready"
 healthcheckTimeout = 100
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 10

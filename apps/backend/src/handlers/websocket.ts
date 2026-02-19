@@ -6,6 +6,7 @@ import { AuthManager } from '@repo/auth';
 interface WebSocketData {
   userId?: string;
   createdAt: number;
+  connectionId?: string;
 }
 
 const clients = new Map<string, Set<ServerWebSocket<WebSocketData>>>();
@@ -17,8 +18,6 @@ export const { upgradeWebSocket, websocket } = createBunWebSocket<WebSocketData>
  */
 export function broadcastToUser(userId: string, message: any) {
   const userClients = clients.get(userId);
-
-  console.log(`[WS-BROADCAST] Attempting to broadcast to user ${userId.slice(0, 8)}`);
 
   if (!userClients) {
     logger.debug(`[WebSocket] No clients connected for user ${userId.slice(0, 8)}`);
@@ -40,13 +39,11 @@ export function broadcastToUser(userId: string, message: any) {
       if (ws.readyState === 1) {
         ws.send(messageStr);
         sentCount++;
-        console.log(`[WS-BROADCAST] ✓ Sent ${message.type} to client`);
       } else {
-        console.log(`[WS-BROADCAST] ✗ Client not ready (readyState: ${ws.readyState})`);
         staleConnections.push(ws);
       }
     } catch (error) {
-      console.log(`[WS-BROADCAST] ✗ Error sending:`, error);
+      logger.error(`[WebSocket] Error sending to client:`, error);
       staleConnections.push(ws);
     }
   });
@@ -120,20 +117,32 @@ export const wsHandler = upgradeWebSocket(async (c) => {
 
   return {
     onOpen(_event, ws) {
+      const connectionId = Math.random().toString(36).substring(2, 15);
       ws.data = {
         userId,
         createdAt: Date.now(),
+        connectionId,
       };
 
       if (userId) {
         if (!clients.has(userId)) {
           clients.set(userId, new Set());
         }
-        clients.get(userId)!.add(ws);
-        logger.debug(`[WebSocket] User connected: ${userId}`);
+        const userClients = clients.get(userId)!;
+        const prevCount = userClients.size;
+        userClients.add(ws);
+        logger.debug(`[WebSocket] User connected: ${userId} (connection: ${connectionId}, total connections: ${userClients.size})`);
+
+        if (prevCount > 0) {
+          logger.warn(`[WebSocket] User ${userId.slice(0, 8)} has multiple connections: ${userClients.size}`);
+        }
       }
 
-      const connectedMsg = { type: 'connected', timestamp: new Date() };
+      const connectedMsg = {
+        type: 'connected',
+        connectionId,
+        timestamp: new Date()
+      };
       ws.send(JSON.stringify(connectedMsg));
     },
 
@@ -151,18 +160,19 @@ export const wsHandler = upgradeWebSocket(async (c) => {
 
     onClose(_event, ws) {
       const userId = ws.data?.userId;
-
+      const connectionId = ws.data?.connectionId;
 
       if (userId) {
         const userClients = clients.get(userId);
 
         if (userClients) {
           userClients.delete(ws);
-          
-          if (userClients.size === 0) {
+          const remaining = userClients.size;
+
+          if (remaining === 0) {
             clients.delete(userId);
           }
-          logger.debug(`[WebSocket] User disconnected: ${userId}`);
+          logger.debug(`[WebSocket] User disconnected: ${userId.slice(0, 8)} (connection: ${connectionId}, remaining connections: ${remaining})`);
         }
       }
     },
