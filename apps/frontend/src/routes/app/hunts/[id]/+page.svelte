@@ -326,6 +326,7 @@
     <div class="flex items-center gap-4">
       <button
         onclick={() => goto('/app/hunts')}
+        aria-label="Retour aux chasses"
         class="w-12 h-12 flex items-center justify-center bg-neutral-100 rounded-xl hover:bg-neutral-200 transition-colors"
       >
         <iconify-icon icon="solar:alt-arrow-left-bold" width="24" class="text-neutral-700"></iconify-icon>

@@ -375,6 +375,7 @@
       {#if search}
         <button
           onclick={() => (search = '')}
+          aria-label="Effacer la recherche"
           class="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-black transition-colors"
         >
           <iconify-icon icon="solar:close-circle-bold" width="18"></iconify-icon>
@@ -586,7 +587,7 @@
                       {/if}
                     </div>
 
-                    <div class="p-6 space-y-4" onclick={(e) => e.stopPropagation()}>
+                    <div class="p-6 space-y-4" role="presentation" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
                       <h3 class="text-[9px] font-black uppercase tracking-widest text-neutral-400 flex items-center gap-2">
                         <iconify-icon icon="solar:rocket-2-bold" width="14"></iconify-icon>
                         {lead.emailsSentCount > 0 ? 'Envoyer une relance' : 'Envoyer un e-mail'}
@@ -603,10 +604,11 @@
                       {:else}
                         <div class="space-y-3">
                           <div>
-                            <label class="block text-[9px] font-black uppercase tracking-widest text-neutral-500 mb-1.5">
+                            <label for="template-select-{lead.id}" class="block text-[9px] font-black uppercase tracking-widest text-neutral-500 mb-1.5">
                               Modèle
                             </label>
                             <select
+                              id="template-select-{lead.id}"
                               bind:value={selectedTemplate}
                               onchange={() => handleTemplateChange(lead)}
                               class="w-full px-3 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl font-semibold text-sm outline-none focus:border-black transition"
@@ -625,10 +627,11 @@
 
                                 {#each tpl.variables as variable}
                                   <div>
-                                    <label class="block text-[10px] font-bold text-neutral-500 mb-1 capitalize">
+                                    <label for="var-{lead.id}-{variable}" class="block text-[10px] font-bold text-neutral-500 mb-1 capitalize">
                                       {variable.replace(/([A-Z])/g, ' $1').trim()}
                                     </label>
                                     <input
+                                      id="var-{lead.id}-{variable}"
                                       type="text"
                                       bind:value={composeVariables[variable]}
                                       placeholder={variable.replace(/([A-Z])/g, ' $1').trim().toLowerCase()}
