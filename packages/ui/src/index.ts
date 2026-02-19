@@ -29,10 +29,6 @@ export { default as LineChart } from './components/charts/LineChart.svelte';
 export { default as AreaChart } from './components/charts/AreaChart.svelte';
 export { default as PieChart } from './components/charts/PieChart.svelte';
 
-export { default as AdminAutoForm } from './lib/admin/AutoForm.svelte';
-export { default as AdminAutoTable } from './lib/admin/AutoTable.svelte';
-export { default as AdminAutoStats } from './lib/admin/AutoStats.svelte';
-
 export { default as CommandPalette } from './lib/command-palette/CommandPalette.svelte';
 export { commandRegistry } from './lib/command-palette/registry';
 export type { Command } from './lib/command-palette/registry';
