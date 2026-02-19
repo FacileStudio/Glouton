@@ -9,6 +9,8 @@ COPY packages/auth-shared/package.json ./packages/auth-shared/
 COPY packages/database/package.json ./packages/database/
 COPY packages/env/package.json ./packages/env/
 COPY packages/eslint-config/package.json ./packages/eslint-config/
+COPY packages/hunter/package.json ./packages/hunter/
+COPY packages/lead-sources/package.json ./packages/lead-sources/
 COPY packages/logger/package.json ./packages/logger/
 COPY packages/trpc/package.json ./packages/trpc/
 COPY packages/trpc-client/package.json ./packages/trpc-client/
