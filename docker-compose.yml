@@ -50,8 +50,8 @@ services:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
       MINIO_BUCKET_NAME: uploads
-      FRONTEND_URL: http://localhost:5173
-      TRUSTED_ORIGINS: http://localhost:5173,http://localhost:3002
+      FRONTEND_URL: http://localhost:3000
+      TRUSTED_ORIGINS: http://localhost:3000
       LOG_LEVEL: info
       LOGTAIL_TOKEN: ${LOGTAIL_TOKEN:-}
     ports:
@@ -72,27 +72,10 @@ services:
     container_name: monorepo-frontend
     environment:
       NODE_ENV: production
-      PORT: 5173
+      PORT: 3000
       PUBLIC_BACKEND_URL: http://localhost:3001
     ports:
-      - "5173:5173"
-    depends_on:
-      - backend
-    restart: unless-stopped
-
-  backoffice:
-    build:
-      context: .
-      dockerfile: apps/backoffice/Dockerfile
-      args:
-        PUBLIC_BACKEND_URL: http://localhost:3001
-    container_name: monorepo-backoffice
-    environment:
-      NODE_ENV: production
-      PORT: 3002
-      PUBLIC_BACKEND_URL: http://localhost:3001
-    ports:
-      - "3002:3002"
+      - "3000:3000"
     depends_on:
       - backend
     restart: unless-stopped

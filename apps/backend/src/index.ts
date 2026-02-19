@@ -9,7 +9,7 @@ import {
   createLivenessHandler,
   createReadinessHandler,
 } from './handlers/health';
-import { wsHandler, websocket, broadcastToUser, broadcastToAll } from './handlers/websocket';
+import { wsHandler, websocket, broadcastToUser, broadcastToAll, clients } from './handlers/websocket';
 import { events } from './services/events';
 import { checkOrphanedSessions, cleanupStalled } from './services/job-monitor';
 import { registerWorkers } from './services/register-workers';
@@ -37,25 +37,29 @@ async function startup() {
     });
 
     if (!validation.valid) {
-      console.warn('[REDIS] Configuration warnings:', validation.warnings);
+      logger.warn('[REDIS] Configuration warnings:', validation.warnings);
     } else {
-      console.log('[REDIS] Configuration valid');
+      logger.info('[REDIS] Configuration valid');
     }
   } catch (error) {
-    console.error('[REDIS] Validation failed:', error);
+    logger.error('[REDIS] Validation failed:', error);
   }
 
   // Clean up orphaned sessions
   const orphaned = await checkOrphanedSessions(db, jobs);
   if (orphaned.audits > 0 || orphaned.hunts > 0) {
-    console.log(`[CLEANUP] Orphaned sessions: ${orphaned.audits} audits, ${orphaned.hunts} hunts`);
+    logger.info(`[CLEANUP] Orphaned sessions: ${orphaned.audits} audits, ${orphaned.hunts} hunts`);
   }
 
   // Schedule periodic cleanup (every 30 minutes)
   setInterval(async () => {
-    const stalled = await cleanupStalled(db);
-    if (stalled.audits > 0 || stalled.hunts > 0) {
-      console.log(`[CLEANUP] Stalled sessions: ${stalled.audits} audits, ${stalled.hunts} hunts`);
+    try {
+      const stalled = await cleanupStalled(db);
+      if (stalled.audits > 0 || stalled.hunts > 0) {
+        logger.info(`[CLEANUP] Stalled sessions: ${stalled.audits} audits, ${stalled.hunts} hunts`);
+      }
+    } catch (err) {
+      logger.error('[CLEANUP] Cleanup failed:', err);
     }
   }, 30 * 60 * 1000);
 }
@@ -74,7 +78,6 @@ app.get('/health/ready', createReadinessHandler({ db }));
 app.get('/ws', wsHandler);
 
 app.get('/internal/ws-status', (c) => {
-  const { clients } = require('./handlers/websocket');
   const status = {
     totalUsers: clients.size,
     users: Array.from(clients.entries()).map(([userId, connections]) => ({
@@ -114,18 +117,26 @@ app.get('/', (c) => c.json({ message: "Welcome to the Glouton's API !" }));
 const port = Number(env.PORT);
 
 async function gracefulShutdown(signal: string) {
-  console.log(`\n[SHUTDOWN] Received ${signal}, closing...`);
+  logger.info(`[SHUTDOWN] Received ${signal}, closing...`);
   try {
     await jobs.close();
-    console.log('[SHUTDOWN] Success');
+    logger.info('[SHUTDOWN] Success');
     process.exit(0);
   } catch (error) {
-    console.error('[SHUTDOWN] Error:', error);
+    logger.error('[SHUTDOWN] Error:', error);
     process.exit(1);
   }
 }
 
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+process.on('uncaughtException', (err) => {
+  logger.error('[PROCESS] Uncaught exception:', err);
+});
+
+process.on('unhandledRejection', (reason) => {
+  logger.error('[PROCESS] Unhandled rejection:', reason);
+});
 
 export default { port, fetch: app.fetch, websocket };

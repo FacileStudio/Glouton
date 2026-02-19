@@ -14,7 +14,7 @@ COPY packages/logger/package.json ./packages/logger/
 COPY packages/trpc/package.json ./packages/trpc/
 COPY packages/types/package.json ./packages/types/
 
-RUN bun install --frozen-lockfile --production
+RUN bun install --frozen-lockfile
 
 FROM base AS builder
 WORKDIR /app
