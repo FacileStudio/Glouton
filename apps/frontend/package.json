@@ -16,6 +16,7 @@
   "dependencies": {
     "@fontsource-variable/inter": "^5.2.8",
     "@fontsource/poppins": "^5.2.7",
+    "@repo/lead-sources": "workspace:*",
     "@repo/logger": "workspace:*",
     "@repo/trpc-client": "workspace:*",
     "@repo/types": "workspace:*",
