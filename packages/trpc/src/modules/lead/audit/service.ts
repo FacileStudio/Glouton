@@ -208,7 +208,7 @@ export default {
 
     try {
       const job = await jobs.addJob(
-        'leads',
+        'lead-audit',
         'lead-audit',
         { auditSessionId: auditSession.id, userId },
         { timeout: 21600000 }

@@ -4,7 +4,6 @@ import { toast } from '@repo/utils';
 
 interface HuntSession {
   id: string;
-  targetUrl: string;
   huntType?: 'DOMAIN' | 'LOCAL_BUSINESS';
   speed: number;
   progress: number;
@@ -49,7 +48,6 @@ export function useHuntWebSocket(
         if (existingIndex === -1) {
           const newSession: HuntSession = {
             id: data.huntSessionId,
-            targetUrl: data.targetUrl || data.location || 'Hunt',
             huntType: data.huntType,
             speed: data.speed || 1,
             status: 'PENDING',

@@ -1,6 +1,12 @@
 import { SQL, sql } from 'bun';
 import type { AuditLogEntry } from './types';
 
+function sqlJoin(fragments: any[], separator: any): any {
+  return fragments.reduce((acc: any, item: any, i: number) =>
+    i === 0 ? item : sql`${acc}${separator}${item}`
+  );
+}
+
 export class AuditService {
   /**
    * constructor
@@ -89,7 +95,7 @@ export class AuditService {
       conditions.push(sql`"AuditLog".action = ${action}`);
     }
 
-    const whereClause = conditions.length > 0 ? sql`WHERE ${sql.join(conditions, sql` AND `)}` : sql``;
+    const whereClause = conditions.length > 0 ? sql`WHERE ${sqlJoin(conditions, sql` AND `)}` : sql``;
 
     return this.db`
       SELECT
@@ -136,7 +142,7 @@ export class AuditService {
       conditions.push(sql`action = ${action}`);
     }
 
-    const whereClause = conditions.length > 0 ? sql`WHERE ${sql.join(conditions, sql` AND `)}` : sql``;
+    const whereClause = conditions.length > 0 ? sql`WHERE ${sqlJoin(conditions, sql` AND `)}` : sql``;
 
     const result = await this.db`
       SELECT COUNT(*) as count

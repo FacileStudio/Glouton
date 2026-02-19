@@ -8,17 +8,11 @@ import {
   parseCSVArray,
   parseCSVJson,
   parseCSVBoolean,
-  escapeCSVField,
-  escapeCSVArray,
-  escapeCSVJson,
-  CSV_HEADERS,
-  KIRBY_HEADERS,
 } from './csv-utils';
 
 export const importExportRouter = router({
   exportToCsv: protectedProcedure.input(exportToCsvSchema).query(async ({ ctx, input }) => {
     try {
-      // Use the service's exportToCsv method which properly uses raw SQL
       const csv = await importExportService.exportToCsv({
         userId: ctx.user.id,
         leadIds: input.leadIds,
@@ -31,9 +25,8 @@ export const importExportRouter = router({
         db: ctx.db,
       });
 
-      // Count the number of leads (excluding the header)
       const lines = csv.split('\n');
-      const count = lines.length - 1; // Subtract 1 for header
+      const count = lines.length - 1;
 
       return {
         csv,
@@ -55,11 +48,8 @@ export const importExportRouter = router({
 
   importFromCsv: protectedProcedure.input(importFromCsvSchema).mutation(async ({ ctx, input }) => {
     try {
-      const lines = input.csvContent.split('\n').filter((line) => line.trim());
+      const lines = input.csvContent.split(/\r?\n/).filter((line) => line.trim());
 
-      /**
-       * if
-       */
       if (lines.length < 2) {
         throw new TRPCError({
           code: 'BAD_REQUEST',
@@ -67,18 +57,13 @@ export const importExportRouter = router({
         });
       }
 
-      const headers = lines[0].split(',').map((h) => h.trim().replace(/^"|"$/g, ''));
-
-      const isKirbyFormat = KIRBY_HEADERS.every((h) => headers.includes(h));
-
+      const headers = parseCSVLine(lines[0]);
       const dataLines = lines.slice(1);
       const leads: any[] = [];
       const errors: string[] = [];
 
       let huntSessionId = input.huntSessionId;
-      /**
-       * if
-       */
+
       if (!huntSessionId) {
         const huntSession = await ctx.db.huntSession.create({
           data: {
@@ -96,66 +81,33 @@ export const importExportRouter = router({
         huntSessionId = huntSession.id;
       }
 
-      /**
-       * for
-       */
       for (let i = 0; i < dataLines.length; i++) {
         const line = dataLines[i].trim();
-        /**
-         * if
-         */
         if (!line) continue;
 
         try {
           const values = parseCSVLine(line);
 
-          /**
-           * getHeaderValue
-           */
           const getHeaderValue = (headerName: string) => {
             const index = headers.indexOf(headerName);
             return index !== -1 ? values[index] : '';
           };
 
-          let domain = '';
-          let organization = '';
-          let city = '';
-          let country = '';
-          let email = '';
-          let firstName = '';
-          let lastName = '';
-          let position: string | null = null;
-          let department: string | null = null;
+          const domain = getHeaderValue('Domaine');
 
-          /**
-           * if
-           */
-          if (isKirbyFormat) {
-            domain = getHeaderValue('Domaine');
-            organization = getHeaderValue('Nom Organisation');
-            city = getHeaderValue('Ville');
-            email = `contact@${domain}`;
-            firstName = organization.split(' ')[0] || '';
-            lastName = organization.split(' ').slice(1).join(' ') || '';
-          } else {
-            domain = getHeaderValue('Domaine');
-            organization = getHeaderValue('Nom Organisation') || domain;
-            city = getHeaderValue('Ville');
-            country = getHeaderValue('Pays');
-            email = getHeaderValue('Email') || `contact@${domain}`;
-            firstName = getHeaderValue('Prenom') || organization.split(' ')[0] || '';
-            lastName = getHeaderValue('Nom') || organization.split(' ').slice(1).join(' ') || '';
-            position = getHeaderValue('Position') || null;
-            department = getHeaderValue('Departement') || null;
-          }
-
-          /**
-           * if
-           */
           if (!domain) {
             errors.push(`Row ${i + 2}: Missing domain`);
             continue;
           }
+
+          const organization = getHeaderValue('Nom Organisation') || domain;
+          const city = getHeaderValue('Ville');
+          const country = getHeaderValue('Pays');
+          const email = getHeaderValue('Email') || `contact@${domain}`;
+          const firstName = getHeaderValue('Prenom') || organization.split(' ')[0] || '';
+          const lastName = getHeaderValue('Nom') || organization.split(' ').slice(1).join(' ') || '';
+          const position = getHeaderValue('Position') || null;
+          const department = getHeaderValue('Departement') || null;
 
           const businessTypeStr = getHeaderValue('Type Business');
           const businessType = businessTypeStr === 'LOCAL_BUSINESS' ? 'LOCAL_BUSINESS' : 'DOMAIN';
@@ -192,11 +144,21 @@ export const importExportRouter = router({
           const emailsSentCountStr = getHeaderValue('Nombre Emails Envoyes');
           const emailsSentCount = emailsSentCountStr ? parseInt(emailsSentCountStr, 10) : 0;
 
+          const rawEmailVerified = getHeaderValue('Email Verifie');
+          const emailVerified = rawEmailVerified === ''
+            ? null
+            : parseCSVBoolean(rawEmailVerified);
+
+          const rawEmailVerifiedAt = getHeaderValue('Email Verifie Le');
+          const emailVerifiedAt = rawEmailVerifiedAt ? new Date(rawEmailVerifiedAt) : null;
+
+          const emailVerificationMethod = getHeaderValue('Methode Verification Email') || null;
+
           leads.push({
             userId: ctx.user.id,
             huntSessionId,
             source,
-            sourceId: `manual:${domain}:${Date.now()}:${i}`,
+            sourceId: `manual:${domain}:${i}`,
             businessType,
             domain,
             email,
@@ -223,15 +185,15 @@ export const importExportRouter = router({
             contacted,
             lastContactedAt,
             emailsSentCount: isNaN(emailsSentCount) ? 0 : emailsSentCount,
+            emailVerified,
+            emailVerifiedAt,
+            emailVerificationMethod,
           });
         } catch (error) {
           errors.push(`Row ${i + 2}: ${error instanceof Error ? error.message : 'Parse error'}`);
         }
       }
 
-      /**
-       * if
-       */
       if (leads.length === 0) {
         throw new TRPCError({
           code: 'BAD_REQUEST',
@@ -280,9 +242,6 @@ export const importExportRouter = router({
         totalRows: dataLines.length,
       };
     } catch (error) {
-      /**
-       * if
-       */
       if (error instanceof TRPCError) {
         throw error;
       }

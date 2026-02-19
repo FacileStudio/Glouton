@@ -28,32 +28,22 @@ export function calculateLeadScore(
 ): number {
   let score = weights.baseScore;
 
-  if (audit.hasSsl) {
-    score += weights.sslScore;
-  }
+  if (audit.hasSsl) score += weights.sslScore;
 
   if (audit.emails.length > 0) {
     score += weights.emailScore;
-    if (audit.emails.length > 2) {
-      score += weights.multiEmailBonus;
-    }
+    if (audit.emails.length > 2) score += weights.multiEmailBonus;
   }
 
-  if (audit.phones.length > 0) {
-    score += weights.phoneScore;
-  }
+  if (audit.phones.length > 0) score += weights.phoneScore;
 
   const socialCount = Object.keys(audit.socials).length;
   if (socialCount > 0) {
     score += weights.socialScore;
-    if (socialCount >= 3) {
-      score += weights.multiSocialBonus;
-    }
+    if (socialCount >= 3) score += weights.multiSocialBonus;
   }
 
-  if (audit.technologies.length > 3) {
-    score += weights.technologyScore;
-  }
+  if (audit.technologies.length > 3) score += weights.technologyScore;
 
   return Math.min(100, Math.max(0, Math.round(score)));
 }

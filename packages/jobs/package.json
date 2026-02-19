@@ -19,7 +19,6 @@
   "dependencies": {
     "@repo/audit": "workspace:*",
     "@repo/maps": "workspace:*",
-    "@repo/hunter": "workspace:*",
     "@repo/lead-sources": "workspace:*",
     "@repo/logger": "workspace:*",
     "bullmq": "^5.31.3",
