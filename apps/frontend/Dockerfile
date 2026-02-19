@@ -25,8 +25,8 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-ARG PUBLIC_BACKEND_URL
-ENV PUBLIC_BACKEND_URL=$PUBLIC_BACKEND_URL
+ARG VITE_API_URL
+ENV VITE_API_URL=$VITE_API_URL
 
 RUN bun run build --filter=@repo/frontend
 
