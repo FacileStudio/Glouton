@@ -5,10 +5,11 @@
 
   interface Lead {
     id: string;
-    domain: string;
+    domain: string | null;
     email: string | null;
     firstName: string | null;
     lastName: string | null;
+    businessName: string | null;
     city: string | null;
     country: string | null;
     status: 'HOT' | 'WARM' | 'COLD';
@@ -16,6 +17,7 @@
     technologies: string[];
     contacted: boolean;
     createdAt: string;
+    companyInfo: { name?: string } | null;
   }
 
   let {
@@ -38,39 +40,41 @@
     const diffHours = Math.floor(diffMins / 60);
     const diffDays = Math.floor(diffHours / 24);
 
-    if (diffDays > 0) return `${diffDays}d ago`;
-    if (diffHours > 0) return `${diffHours}h ago`;
-    if (diffMins > 0) return `${diffMins}m ago`;
-    return 'Just now';
+    if (diffDays > 0) return `Il y a ${diffDays}j`;
+    if (diffHours > 0) return `Il y a ${diffHours}h`;
+    if (diffMins > 0) return `Il y a ${diffMins}min`;
+    return "À l'instant";
   }
 
-  function getStatusColor(status: Lead['status']): string {
-    const colors = {
-      HOT: 'bg-orange-100 text-orange-700',
-      WARM: 'bg-yellow-100 text-yellow-700',
-      COLD: 'bg-blue-100 text-blue-700',
+  function getScoreCircleColor(score: number): string {
+    if (score >= 70) return 'bg-green-500';
+    if (score >= 40) return 'bg-yellow-400';
+    return 'bg-orange-500';
+  }
+
+  function getStatusIcon(status: Lead['status']): { icon: string; class: string } {
+    const icons = {
+      HOT: { icon: 'solar:fire-bold', class: 'text-orange-500' },
+      WARM: { icon: 'solar:sun-2-bold', class: 'text-yellow-500' },
+      COLD: { icon: 'solar:snowflake-bold', class: 'text-blue-400' },
     };
-    return colors[status];
+    return icons[status];
   }
 
   function navigateToLead(leadId: string) {
     goto(`/app/leads/${leadId}`);
   }
+
+  function getLeadTitle(lead: Lead): string {
+    if (lead.businessName) return lead.businessName;
+    if (lead.companyInfo?.name) return lead.companyInfo.name;
+    if (lead.firstName || lead.lastName) return [lead.firstName, lead.lastName].filter(Boolean).join(' ');
+    if (lead.domain) return lead.domain;
+    return '-';
+  }
 </script>
 
 <div class="overflow-x-auto">
-  <div class="px-10 py-8 border-b border-neutral-100 flex items-center gap-4 bg-neutral-50/50">
-    <div class="w-12 h-12 bg-black text-white rounded-2xl flex items-center justify-center">
-      <iconify-icon icon="solar:list-bold" width="24"></iconify-icon>
-    </div>
-    <div>
-      <h3 class="font-black tracking-tight text-xl">All Leads</h3>
-      <p class="text-sm font-medium text-neutral-400">
-        {leads.length} Lead{leads.length !== 1 ? 's' : ''} in database
-      </p>
-    </div>
-  </div>
-
   <table class="w-full text-left border-collapse">
     <thead>
       <tr class="bg-white border-b-2 border-neutral-200">
@@ -79,7 +83,7 @@
           class="px-8 py-4 text-xs font-bold uppercase tracking-wide text-neutral-500 cursor-pointer hover:text-black transition"
         >
           <div class="flex items-center gap-2">
-            <span>Target</span>
+            <span>Cible</span>
             {#if sortBy === 'domain'}
               <iconify-icon icon="solar:sort-{sortOrder === 'asc' ? 'from-bottom' : 'from-top'}-bold" width="14"></iconify-icon>
             {/if}
@@ -91,6 +95,7 @@
         >
           <div class="flex items-center gap-2">
             <span>Contact</span>
+
             {#if sortBy === 'email'}
               <iconify-icon icon="solar:sort-{sortOrder === 'asc' ? 'from-bottom' : 'from-top'}-bold" width="14"></iconify-icon>
             {/if}
@@ -101,28 +106,14 @@
           class="px-8 py-4 text-xs font-bold uppercase tracking-wide text-neutral-500 cursor-pointer hover:text-black transition"
         >
           <div class="flex items-center gap-2">
-            <span>Location</span>
+            <span>Localisation</span>
             {#if sortBy === 'city' || sortBy === 'country'}
               <iconify-icon icon="solar:sort-{sortOrder === 'asc' ? 'from-bottom' : 'from-top'}-bold" width="14"></iconify-icon>
             {/if}
           </div>
         </th>
         <th class="px-8 py-4 text-xs font-bold uppercase tracking-wide text-neutral-500">
-          Status
-        </th>
-        <th
-          onclick={() => onSort('status')}
-          class="px-8 py-4 text-xs font-bold uppercase tracking-wide text-neutral-500 cursor-pointer hover:text-black transition"
-        >
-          <div class="flex items-center gap-2">
-            <span>Priority</span>
-            {#if sortBy === 'status'}
-              <iconify-icon icon="solar:sort-{sortOrder === 'asc' ? 'from-bottom' : 'from-top'}-bold" width="14"></iconify-icon>
-            {/if}
-          </div>
-        </th>
-        <th class="px-8 py-4 text-xs font-bold uppercase tracking-wide text-neutral-500">
-          Technologies
+          Statut
         </th>
         <th
           onclick={() => onSort('score')}
@@ -140,7 +131,7 @@
           class="px-8 py-4 text-xs font-bold uppercase tracking-wide text-neutral-500 cursor-pointer hover:text-black transition"
         >
           <div class="flex items-center gap-2">
-            <span>Added</span>
+            <span>Ajouté</span>
             {#if sortBy === 'createdAt'}
               <iconify-icon icon="solar:sort-{sortOrder === 'asc' ? 'from-bottom' : 'from-top'}-bold" width="14"></iconify-icon>
             {/if}
@@ -155,29 +146,34 @@
           class="hover:bg-neutral-50/80 transition-all cursor-pointer"
         >
           <!-- Target (Domain) -->
-          <td class="px-8 py-5">
+          <td class="px-8 py-4">
             <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-lg border border-neutral-200 bg-white flex items-center justify-center overflow-hidden flex-shrink-0 shadow-sm">
+              <div class="w-9 h-9 rounded-lg border border-neutral-200 bg-white flex items-center justify-center overflow-hidden flex-shrink-0 shadow-sm">
                 <img
                   src={getFaviconUrl(lead.domain, 64)}
                   alt="{lead.domain} favicon"
-                  class="w-6 h-6"
+                  class="w-5 h-5"
                   loading="lazy"
                   onerror={(e) => handleFaviconError(e.currentTarget)}
                 />
               </div>
-              <span class="text-neutral-900 font-bold text-sm">{lead.domain}</span>
+              <div class="min-w-0 flex items-center gap-2">
+                <iconify-icon icon={getStatusIcon(lead.status).icon} width="16" class="{getStatusIcon(lead.status).class} flex-shrink-0"></iconify-icon>
+                <span class="text-neutral-900 font-bold text-sm truncate max-w-[160px] block" title={getLeadTitle(lead)}>
+                  {getLeadTitle(lead)}
+                </span>
+              </div>
             </div>
           </td>
 
           <!-- Contact -->
-          <td class="px-8 py-5">
-            <div class="text-sm">
+          <td class="px-8 py-4">
+            <div class="text-sm min-w-0">
               {#if lead.email}
-                <div class="text-neutral-900 font-medium">{lead.email}</div>
+                <div class="text-neutral-900 font-medium truncate max-w-[180px]" title={lead.email}>{lead.email}</div>
               {/if}
               {#if lead.firstName || lead.lastName}
-                <div class="text-neutral-500 text-xs">
+                <div class="text-neutral-500 text-xs truncate max-w-[180px]">
                   {lead.firstName || ''} {lead.lastName || ''}
                 </div>
               {/if}
@@ -185,8 +181,8 @@
           </td>
 
           <!-- Location -->
-          <td class="px-8 py-5">
-            <div class="text-sm text-neutral-700 font-medium">
+          <td class="px-8 py-4">
+            <div class="text-sm text-neutral-700 font-medium truncate max-w-[140px]">
               {#if lead.city && lead.country}
                 {lead.city}, {lead.country}
               {:else if lead.city}
@@ -194,63 +190,37 @@
               {:else if lead.country}
                 {lead.country}
               {:else}
-                <span class="text-neutral-400">-</span>
+                <span class="text-neutral-400">—</span>
               {/if}
             </div>
           </td>
 
           <!-- Status (Contacted) -->
-          <td class="px-8 py-5">
+          <td class="px-8 py-4">
             {#if lead.contacted}
               <span class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-bold bg-green-100 text-green-700">
                 <iconify-icon icon="solar:check-circle-bold" width="14" class="mr-1"></iconify-icon>
-                Contacted
+                Contacté
               </span>
             {:else}
               <span class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-bold bg-neutral-100 text-neutral-600">
-                Not contacted
+                Non contacté
               </span>
             {/if}
           </td>
 
-          <!-- Priority -->
-          <td class="px-8 py-5">
-            <span class="inline-flex items-center px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-wide {getStatusColor(lead.status)}">
-              {lead.status}
-            </span>
-          </td>
-
-          <!-- Technologies -->
-          <td class="px-8 py-5">
-            <div class="flex flex-wrap gap-1">
-              {#each lead.technologies.slice(0, 2) as tech}
-                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-100 text-blue-800">
-                  {tech}
-                </span>
-              {/each}
-              {#if lead.technologies.length > 2}
-                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-neutral-100 text-neutral-600">
-                  +{lead.technologies.length - 2}
-                </span>
-              {/if}
-            </div>
-          </td>
-
-          <!-- Score -->
-          <td class="px-8 py-5">
-            <div class="flex items-center gap-3">
-              <div class="w-16 h-2 bg-neutral-200 rounded-full overflow-hidden">
-                <div
-                  class="h-full transition-all {lead.score >= 70 ? 'bg-green-500' : lead.score >= 40 ? 'bg-yellow-500' : 'bg-orange-500'}"
-                  style="width: {Math.min(lead.score, 100)}%"
-                ></div>
-              </div>
-              <span class="text-sm font-bold text-neutral-600">{lead.score}</span>
+          <!-- Score Circle -->
+          <td class="px-8 py-4">
+            <div
+              class="w-10 h-10 rounded-full flex items-center justify-center text-xs font-black text-white {getScoreCircleColor(lead.score)}"
+              title="Score: {lead.score}"
+            >
+              {lead.score}
             </div>
           </td>
 
           <!-- Time -->
-          <td class="px-8 py-5 text-sm text-neutral-500 font-medium">
+          <td class="px-8 py-4 text-sm text-neutral-500 font-medium whitespace-nowrap">
             {getRelativeTime(lead.createdAt)}
           </td>
         </tr>

@@ -25,27 +25,18 @@ const getRunEventsSchema = z.object({
 export const huntRouter = router({
   start: protectedProcedure.input(startHuntSchema).mutation(async ({ ctx, input }) => {
     try {
-      const [user] = await ctx.db`SELECT * FROM "User" WHERE id = ${ctx.user.id}`;
+      const [user] = await ctx.db`SELECT "hunterApiKey" FROM "User" WHERE id = ${ctx.user.id}`;
 
       if (!user) {
         throw new TRPCError({ code: 'UNAUTHORIZED', message: 'User not found.' });
       }
 
-      const apiKeyMap: Record<string, string | null> = {
-        HUNTER: user.hunterApiKey,
-        APOLLO: user.apolloApiKey,
-        SNOV: user.snovApiKey,
-        HASDATA: user.hasdataApiKey,
-        CONTACTOUT: user.contactoutApiKey,
-      };
-
       const selectedSource = input.source || 'HUNTER';
-      const apiKey = apiKeyMap[selectedSource];
 
-      if (!apiKey) {
+      if (!user.hunterApiKey) {
         throw new TRPCError({
           code: 'BAD_REQUEST',
-          message: `${selectedSource} API key not configured.`,
+          message: `Hunter.io API key not configured.`,
         });
       }
 

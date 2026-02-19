@@ -31,7 +31,7 @@
         href={resolvePath(item.href)}
         data-sveltekit-reload
         class="group relative flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-200
-        {activeHref === item.href
+        {activeHref.startsWith(item.href)
           ? 'bg-neutral-900 text-white shadow-lg shadow-neutral-200'
           : 'text-neutral-600 hover:bg-neutral-50 hover:text-black'}"
       >
@@ -70,7 +70,7 @@
         href={resolvePath(settingsHref)}
         data-sveltekit-reload
         class="group flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-200
-        {activeHref === settingsHref
+        {settingsHref && activeHref.startsWith(settingsHref)
           ? 'bg-neutral-900 text-white shadow-lg shadow-neutral-200'
           : 'text-neutral-600 hover:bg-neutral-50 hover:text-black'}"
       >

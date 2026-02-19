@@ -29,7 +29,7 @@
   <div class="flex h-screen flex-col items-center justify-center gap-6">
     <iconify-icon icon="svg-spinners:blocks-shuffle-3" width="48" class="text-brand-purple"
     ></iconify-icon>
-    <p class="text-xs font-black uppercase tracking-[0.3em] text-brand-purple/40">Loading...</p>
+    <p class="text-xs font-black uppercase tracking-[0.3em] text-brand-purple/40">Chargement...</p>
   </div>
 {:else}
   {@render children()}

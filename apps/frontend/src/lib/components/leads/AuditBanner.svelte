@@ -60,21 +60,21 @@
 
   function calculateETA(audit: AuditSession, current: Date = new Date()): string {
     if (!audit.startedAt || audit.progress === 0) {
-      return 'Calculating...';
+      return 'Calcul en cours...';
     }
 
     const elapsedMs = current.getTime() - new Date(audit.startedAt).getTime();
     const progressPercentage = audit.progress / 100;
 
     if (progressPercentage === 0) {
-      return 'Calculating...';
+      return 'Calcul en cours...';
     }
 
     const estimatedTotalMs = elapsedMs / progressPercentage;
     const remainingMs = estimatedTotalMs - elapsedMs;
 
     if (remainingMs <= 0) {
-      return 'Almost done';
+      return 'Presque terminé';
     }
 
     const remainingSeconds = Math.floor(remainingMs / 1000);
@@ -86,7 +86,7 @@
     } else if (remainingMinutes > 0) {
       return `~${remainingMinutes}m`;
     } else {
-      return 'Less than 1m';
+      return 'Moins d\'1 min';
     }
   }
 
@@ -102,26 +102,26 @@
           <iconify-icon icon="solar:shield-check-bold" width="28"></iconify-icon>
         </div>
         <div>
-          <h3 class="text-2xl font-black tracking-tight">Audit in Progress</h3>
+          <h3 class="text-2xl font-black tracking-tight">Audit en cours</h3>
           <div class="flex items-center gap-4 mt-1">
             <span class="bg-white/20 px-3 py-1 rounded-lg text-xs font-bold uppercase">
               {session.status}
             </span>
             {#if session.processedLeads > 0}
               <span class="text-sm font-medium">
-                Processing {session.processedLeads} / {session.totalLeads} leads
+                Traitement {session.processedLeads} / {session.totalLeads} leads
               </span>
             {/if}
             {#if session.updatedLeads > 0}
               <span class="text-sm font-medium">
                 <iconify-icon icon="solar:check-circle-bold" width="14" class="mr-1"></iconify-icon>
-                {session.updatedLeads} updated
+                {session.updatedLeads} mis à jour
               </span>
             {/if}
             {#if session.failedLeads > 0}
               <span class="text-sm font-medium text-yellow-200">
                 <iconify-icon icon="solar:danger-bold" width="14" class="mr-1"></iconify-icon>
-                {session.failedLeads} failed
+                {session.failedLeads} échoués
               </span>
             {/if}
           </div>
@@ -130,8 +130,8 @@
 
       <div class="flex items-center gap-6">
         <div class="text-right">
-          <div class="text-sm font-medium opacity-90">Running: {elapsedTime}</div>
-          <div class="text-sm font-medium opacity-90">ETA: {eta}</div>
+          <div class="text-sm font-medium opacity-90">En cours : {elapsedTime}</div>
+          <div class="text-sm font-medium opacity-90">ETA : {eta}</div>
         </div>
         <button
           onclick={() => session && onCancel(session.id)}
@@ -140,10 +140,10 @@
         >
           {#if cancelling}
             <iconify-icon icon="solar:close-circle-bold" width="20" class="animate-spin mr-2"></iconify-icon>
-            Cancelling...
+            Annulation...
           {:else}
             <iconify-icon icon="solar:close-circle-bold" width="20" class="mr-2"></iconify-icon>
-            Cancel
+            Annuler
           {/if}
         </button>
       </div>
@@ -151,7 +151,7 @@
 
     <div class="space-y-3">
       <div class="flex justify-between text-sm font-medium">
-        <span>Progress</span>
+        <span>Progression</span>
         <span class="font-black">{session.progress}%</span>
       </div>
       <div class="bg-white/20 rounded-full h-3 overflow-hidden">

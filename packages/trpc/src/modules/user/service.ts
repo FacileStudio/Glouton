@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server';
-import { SQL, sql } from 'bun';
+import { SQL } from 'bun';
 import { type AuthManager } from '@repo/auth';
 
 export const userService = {
@@ -22,7 +22,7 @@ export const userService = {
 
   getConfiguredSources: async (db: SQL, userId: string) => {
     const [user] = await db`
-      SELECT "hunterApiKey", "apolloApiKey", "snovApiKey", "hasdataApiKey", "contactoutApiKey"
+      SELECT "hunterApiKey"
       FROM "User"
       WHERE id = ${userId}
     ` as Promise<any[]>;
@@ -34,17 +34,9 @@ export const userService = {
       });
     }
 
-    const sourcesMap: Record<string, string> = {
-      hunterApiKey: 'HUNTER',
-      apolloApiKey: 'APOLLO',
-      snovApiKey: 'SNOV',
-      hasdataApiKey: 'HASDATA',
-      contactoutApiKey: 'CONTACTOUT',
-    };
-
-    return Object.entries(sourcesMap)
-      .filter(([key]) => !!user[key])
-      .map(([_, label]) => label);
+    const sources: string[] = [];
+    if (user.hunterApiKey) sources.push('HUNTER');
+    return sources;
   },
 
   getAllUsers: async (
@@ -56,27 +48,19 @@ export const userService = {
       isPremium?: boolean;
     }
   ) => {
-    const conditions = [];
-
-    if (filters?.status && filters.status !== 'all') {
-      conditions.push(sql`status = ${filters.status.toUpperCase()}`);
-    }
-    if (filters?.role && filters.role !== 'all') {
-      conditions.push(sql`role = ${filters.role.toUpperCase()}`);
-    }
-    if (filters?.emailVerified !== undefined) {
-      conditions.push(sql`"emailVerified" = ${filters.emailVerified}`);
-    }
-    if (filters?.isPremium !== undefined) {
-      conditions.push(sql`"isPremium" = ${filters.isPremium}`);
-    }
-
-    const whereClause = conditions.length > 0 ? sql`WHERE ${sql.join(conditions, sql` AND `)}` : sql``;
+    const statusFilter = filters?.status && filters.status !== 'all' ? filters.status.toUpperCase() : null;
+    const roleFilter = filters?.role && filters.role !== 'all' ? filters.role.toUpperCase() : null;
+    const emailVerified = filters?.emailVerified !== undefined ? filters.emailVerified : null;
+    const isPremiumFilter = filters?.isPremium !== undefined ? filters.isPremium : null;
 
     return await db`
       SELECT *
       FROM "User"
-      ${whereClause}
+      WHERE
+        (${statusFilter}::text IS NULL OR status::text = ${statusFilter}::text)
+        AND (${roleFilter}::text IS NULL OR role::text = ${roleFilter}::text)
+        AND (${emailVerified}::boolean IS NULL OR "emailVerified" = ${emailVerified})
+        AND (${isPremiumFilter}::boolean IS NULL OR "isPremium" = ${isPremiumFilter})
       ORDER BY "createdAt" DESC
     ` as Promise<any[]>;
   },
@@ -127,15 +111,19 @@ export const userService = {
     userId: string,
     data: { isPremium?: boolean; role?: 'USER' | 'ADMIN' }
   ) => {
-    const updates = [];
-    if (data.isPremium !== undefined) updates.push(sql`"isPremium" = ${data.isPremium}`);
-    if (data.role !== undefined) updates.push(sql`role = ${data.role}`);
+    if (data.isPremium === undefined && data.role === undefined) {
+      return userService.getUserById(db, userId);
+    }
 
-    if (updates.length === 0) return this.getUserById(db, userId);
+    const isPremium = data.isPremium !== undefined ? data.isPremium : null;
+    const role = data.role !== undefined ? data.role : null;
 
     const [updatedUser] = await db`
       UPDATE "User"
-      SET ${sql.join(updates, sql`, `)}, "updatedAt" = NOW()
+      SET
+        "isPremium" = CASE WHEN ${isPremium}::boolean IS NOT NULL THEN ${isPremium} ELSE "isPremium" END,
+        role = CASE WHEN ${role}::text IS NOT NULL THEN ${role}::"UserRole" ELSE role END,
+        "updatedAt" = NOW()
       WHERE id = ${userId}
       RETURNING *
     ` as Promise<any[]>;
@@ -225,7 +213,7 @@ export const userService = {
     if (userIds.length === 0) return { count: 0 };
     const deletedUsers = await db`
       DELETE FROM "User"
-      WHERE id IN (${sql.join(userIds.map(id => sql`${id}`), sql`, `)})
+      WHERE id = ANY(${userIds}::text[])
       RETURNING id
     ` as Promise<any[]>;
     return { count: deletedUsers.length };
@@ -236,15 +224,19 @@ export const userService = {
     userId: string,
     data: { firstName?: string; lastName?: string }
   ) => {
-    const updates = [];
-    if (data.firstName !== undefined) updates.push(sql`"firstName" = ${data.firstName}`);
-    if (data.lastName !== undefined) updates.push(sql`"lastName" = ${data.lastName}`);
+    if (data.firstName === undefined && data.lastName === undefined) {
+      return userService.getUserById(db, userId);
+    }
 
-    if (updates.length === 0) return this.getUserById(db, userId);
+    const firstName = data.firstName !== undefined ? data.firstName : null;
+    const lastName = data.lastName !== undefined ? data.lastName : null;
 
     const [updatedUser] = await db`
       UPDATE "User"
-      SET ${sql.join(updates, sql`, `)}, "updatedAt" = NOW()
+      SET
+        "firstName" = CASE WHEN ${firstName}::text IS NOT NULL THEN ${firstName} ELSE "firstName" END,
+        "lastName" = CASE WHEN ${lastName}::text IS NOT NULL THEN ${lastName} ELSE "lastName" END,
+        "updatedAt" = NOW()
       WHERE id = ${userId}
       RETURNING *
     ` as Promise<any[]>;
@@ -301,26 +293,15 @@ export const userService = {
     userId: string,
     apiKeys: {
       hunterApiKey?: string;
-      apolloApiKey?: string;
-      snovApiKey?: string;
-      hasdataApiKey?: string;
-      contactoutApiKey?: string;
     }
   ) => {
-    const updates = [];
-    const fields = ['hunterApiKey', 'apolloApiKey', 'snovApiKey', 'hasdataApiKey', 'contactoutApiKey'];
-
-    for (const field of fields) {
-      if (apiKeys[field as keyof typeof apiKeys] !== undefined) {
-        updates.push(sql`"${sql.raw(field)}" = ${apiKeys[field as keyof typeof apiKeys] || null}`);
-      }
+    if (apiKeys.hunterApiKey === undefined) {
+      return userService.getUserById(db, userId);
     }
-
-    if (updates.length === 0) return this.getUserById(db, userId);
 
     const [updatedUser] = await db`
       UPDATE "User"
-      SET ${sql.join(updates, sql`, `)}, "updatedAt" = NOW()
+      SET "hunterApiKey" = ${apiKeys.hunterApiKey || null}, "updatedAt" = NOW()
       WHERE id = ${userId}
       RETURNING *
     ` as Promise<any[]>;

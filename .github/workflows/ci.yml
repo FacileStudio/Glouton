@@ -51,7 +51,7 @@ jobs:
     needs: [lint, typecheck]
     strategy:
       matrix:
-        app: [backend, frontend, backoffice]
+        app: [backend, frontend]
     steps:
       - uses: actions/checkout@v4
 
@@ -77,6 +77,5 @@ jobs:
           MINIO_ROOT_PASSWORD: minioadmin
           MINIO_BUCKET_NAME: test-bucket
           FRONTEND_URL: http://localhost:3000
-          BACKOFFICE_URL: http://localhost:3002
-          TRUSTED_ORIGINS: http://localhost:3000,http://localhost:3002
+          TRUSTED_ORIGINS: http://localhost:3000
           PUBLIC_BACKEND_URL: http://localhost:3001

@@ -41,7 +41,7 @@
      * if
      */
     if (password !== confirmPassword) {
-      error = 'Passwords do not match.';
+      error = 'Les mots de passe ne correspondent pas.';
       return;
     }
     loading = true;
@@ -99,7 +99,7 @@
         icon="solar:arrow-left-bold"
         width="18"
       ></iconify-icon>
-      {step === 1 ? 'Back to Login' : 'Previous'}
+      {step === 1 ? 'Retour à la connexion' : 'Précédent'}
     </button>
     <div class="flex items-center gap-3">
       <img src="/logo.png" alt="Glouton Logo" class="w-10 h-10 rounded-xl" />
@@ -119,26 +119,26 @@
       >
         <span
           class="text-sm font-black uppercase tracking-widest text-neutral-500 mb-6 block"
-          >01 — Identity</span
+          >01 — Identité</span
         >
         <h2
           class="text-6xl md:text-[120px] font-black tracking-tighter leading-[0.85] mb-12"
           style="color: #291334;"
         >
-          Personal <br /> <span style="color: #FEC129;">Information.</span>
+          Informations <br /> <span style="color: #FEC129;">Personnelles.</span>
         </h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
           <input
             bind:value={firstName}
-            placeholder="First Name"
+            placeholder="Prénom"
             class="register-input {inputClass}"
             required
             use:focusInput
           />
-          <input bind:value={lastName} placeholder="Last Name" class="register-input {inputClass}" required />
+          <input bind:value={lastName} placeholder="Nom de famille" class="register-input {inputClass}" required />
         </div>
         <button type="submit" disabled={!firstName || !lastName} class="register-btn {btnClass}" style="border: 2px solid #291334;">
-          Continue
+          Continuer
         </button>
       </form>
     {:else if step === 2}
@@ -150,23 +150,23 @@
       >
         <span
           class="text-sm font-black uppercase tracking-widest text-neutral-500 mb-6 block"
-          >Email</span
+          >E-mail</span
         >
         <h2
           class="text-6xl md:text-[120px] font-black tracking-tighter leading-[0.85] mb-12"
           style="color: #291334;"
         >
-          Email <br /> <span style="color: #FEC129;">Address.</span>
+          Adresse <br /> <span style="color: #FEC129;">E-mail.</span>
         </h2>
         <input
           type="email"
           bind:value={email}
-          placeholder="name@company.com"
+          placeholder="nom@entreprise.com"
           class="register-input {inputClass}"
           required
           use:focusInput
         />
-        <button type="submit" disabled={!email} class="register-btn {btnClass}" style="border: 2px solid #291334;"> Continue </button>
+        <button type="submit" disabled={!email} class="register-btn {btnClass}" style="border: 2px solid #291334;"> Continuer </button>
       </form>
     {:else if step === 3}
       <form
@@ -177,19 +177,19 @@
       >
         <span
           class="text-sm font-black uppercase tracking-widest text-neutral-500 mb-6 block"
-          >03 — Security</span
+          >03 — Sécurité</span
         >
         <h2
           class="text-6xl md:text-[120px] font-black tracking-tighter leading-[0.85] mb-12"
           style="color: #291334;"
         >
-          Secure <br /> <span style="color: #FEC129;">Password.</span>
+          Mot de <br /> <span style="color: #FEC129;">Passe.</span>
         </h2>
         <div class="space-y-8">
           <input
             type="password"
             bind:value={password}
-            placeholder="Password"
+            placeholder="Mot de passe"
             class="register-input {inputClass}"
             required
             use:focusInput
@@ -197,7 +197,7 @@
           <input
             type="password"
             bind:value={confirmPassword}
-            placeholder="Confirm Password"
+            placeholder="Confirmer le mot de passe"
             class="register-input {inputClass}"
             required
           />
@@ -222,9 +222,9 @@
         >
           {#if loading}
             <iconify-icon icon="svg-spinners:18-dots-revolve" width="24"></iconify-icon>
-            Processing...
+            Traitement...
           {:else}
-            Create Account
+            Créer un compte
           {/if}
         </button>
       </form>
@@ -235,7 +235,7 @@
     class="fixed bottom-0 right-0 p-12 pointer-events-none opacity-[0.03] select-none hidden md:block"
   >
     <div class="text-[25vh] font-black uppercase tracking-tighter leading-none translate-y-1/3">
-      JOIN.
+      REJOINDRE.
     </div>
   </div>
 </main>

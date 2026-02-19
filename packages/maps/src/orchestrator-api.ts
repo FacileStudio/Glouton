@@ -112,7 +112,7 @@ export class MapsOrchestrator {
 
     console.log(`[MapsOrchestrator] After deduplication: ${deduplicated.length} unique businesses`);
 
-    return deduplicated.slice(0, options.maxResults || 100);
+    return deduplicated;
   }
 
   private deduplicateBusinesses(businesses: LocalBusiness[]): LocalBusiness[] {

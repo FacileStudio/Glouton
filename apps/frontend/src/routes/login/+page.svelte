@@ -49,7 +49,7 @@
         icon="solar:arrow-left-bold"
         width="18"
       ></iconify-icon>
-      Home
+      Accueil
     </a>
     <div class="flex items-center gap-3">
       <img src="/logo.png" alt="Glouton Logo" class="w-10 h-10 rounded-xl" />
@@ -68,18 +68,18 @@
       <span
         class="text-[10px] font-black uppercase tracking-[0.3em] text-neutral-400 mb-4 block underline underline-offset-8 decoration-2"
         style="text-decoration-color: #FEC129;"
-        >Access Portal</span
+        >Portail d'accès</span
       >
 
       <h2 class="text-6xl md:text-8xl font-black tracking-tighter leading-none mb-12" style="color: #291334;">
-        Welcome <br /> <span style="color: #FEC129;">Back.</span>
+        Bon <br /> <span style="color: #FEC129;">Retour.</span>
       </h2>
 
       <div class="space-y-8">
         <input
           type="email"
           bind:value={email}
-          placeholder="Email Address"
+          placeholder="Adresse e-mail"
           class="login-input {inputClass}"
           required
           use:focusInput
@@ -87,7 +87,7 @@
         <input
           type="password"
           bind:value={password}
-          placeholder="Password"
+          placeholder="Mot de passe"
           class="login-input {inputClass}"
           required
         />
@@ -104,10 +104,10 @@
         <button type="submit" disabled={loading || !email || !password} class="login-btn {btnClass}" style="border: 2px solid #291334;">
           {#if loading}
             <iconify-icon icon="svg-spinners:18-dots-revolve" width="24"></iconify-icon>
-            Verifying...
+            Vérification...
           {:else}
             <iconify-icon icon="solar:login-3-bold" width="22"></iconify-icon>
-            Sign In
+            Se connecter
           {/if}
         </button>
 
@@ -115,7 +115,7 @@
           href={resolve('/register')}
           class="login-link text-xs font-black uppercase tracking-[0.2em] transition-all"
         >
-          Create Account
+          Créer un compte
         </a>
       </div>
     </form>
@@ -125,7 +125,7 @@
     <div
       class="text-[20vh] font-black uppercase tracking-tighter leading-none opacity-[0.03] select-none translate-y-1/4"
     >
-      Login.
+      Connexion.
     </div>
   </div>
 </main>

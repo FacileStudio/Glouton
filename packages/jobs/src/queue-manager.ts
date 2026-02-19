@@ -55,7 +55,7 @@ export class QueueManager {
   /**
    * getOrCreateWorker
    */
-  private getOrCreateWorker(queueName: string): Worker {
+  private getOrCreateWorker(queueName: string, definitionConcurrency?: number): Worker {
     /**
      * if
      */
@@ -87,7 +87,7 @@ export class QueueManager {
         },
         {
           connection: this.config.connection,
-          concurrency: this.config.workerOptions?.concurrency ?? 10,
+          concurrency: definitionConcurrency ?? this.config.workerOptions?.concurrency ?? 10,
           lockDuration: this.config.workerOptions?.lockDuration,
           lockRenewTime: this.config.workerOptions?.lockRenewTime,
           stalledInterval: this.config.workerOptions?.stalledInterval,
@@ -143,7 +143,7 @@ export class QueueManager {
     definitions.set(definition.name, definition);
     logger.debug(`[BullMQ] Registered: ${definition.name}`);
 
-    return this.getOrCreateWorker(queueName);
+    return this.getOrCreateWorker(queueName, definition.options?.concurrency);
   }
 
   /**

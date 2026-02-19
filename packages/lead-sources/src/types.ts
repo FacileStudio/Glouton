@@ -1,4 +1,4 @@
-export type LeadSource = 'HUNTER' | 'APOLLO' | 'SNOV' | 'HASDATA' | 'CONTACTOUT' | 'MANUAL';
+export type LeadSource = 'HUNTER' | 'MANUAL';
 
 export interface LeadSourceFilters {
   domain?: string;
@@ -25,6 +25,7 @@ export interface LeadSourceFilters {
 
 export interface LeadData {
   sourceId: string;
+  domain?: string;
   email?: string;
   firstName?: string;
   lastName?: string;

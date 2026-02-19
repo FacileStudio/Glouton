@@ -90,7 +90,6 @@ TRUSTED_ORIGINS=http://localhost:3000,http://localhost:3001,http://localhost:300
 ├── apps/
 │   ├── backend/          # Hono server (port 3001)
 │   ├── frontend/         # SvelteKit landing page (port 5173)
-│   ├── backoffice/       # SvelteKit admin panel (port 3002)
 │   └── mobile/           # Expo React Native app
 │
 └── packages/
@@ -123,7 +122,7 @@ TRUSTED_ORIGINS=http://localhost:3000,http://localhost:3001,http://localhost:300
 - SQLite (database, easily swappable)
 
 **Frontend**
-- SvelteKit 2.50+ (landing + backoffice)
+- SvelteKit 2.50+ (landing)
 - Svelte 5+ (with runes)
 - Tailwind CSS 4+
 
@@ -385,7 +384,6 @@ bun run dev
 # Individual apps
 cd apps/backend && bun run dev        # Backend (port 3001)
 cd apps/frontend && bun run dev       # Frontend (port 5173)
-cd apps/backoffice && bun run dev     # Backoffice (port 3002)
 cd apps/mobile && bun run dev         # Expo dev server
 
 # Mobile specific
