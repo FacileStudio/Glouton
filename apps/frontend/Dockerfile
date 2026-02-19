@@ -17,7 +17,7 @@ COPY packages/ui/package.json ./packages/ui/
 COPY packages/utils/package.json ./packages/utils/
 COPY packages/tsconfig/package.json ./packages/tsconfig/
 
-RUN bun install --frozen-lockfile
+RUN bun install --no-save
 
 FROM base AS builder
 WORKDIR /app
