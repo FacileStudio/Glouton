@@ -19,7 +19,6 @@
     "sveltekit-superforms": "^2.29.1"
   },
   "dependencies": {
-    "@repo/admin": "workspace:*",
     "@repo/logger": "workspace:*",
     "@repo/utils": "workspace:*",
     "class-variance-authority": "^0.7.1",
