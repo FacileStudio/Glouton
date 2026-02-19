@@ -40,13 +40,13 @@
         onchange={(e) => changePageSize(Number(e.currentTarget.value))}
         class="px-4 py-2 bg-white border border-neutral-200 rounded-xl text-xs font-bold outline-none focus:border-black transition"
       >
-        <option value={10}>10 per page</option>
-        <option value={25}>25 per page</option>
-        <option value={50}>50 per page</option>
-        <option value={100}>100 per page</option>
+        <option value={10}>10 par page</option>
+        <option value={25}>25 par page</option>
+        <option value={50}>50 par page</option>
+        <option value={100}>100 par page</option>
       </select>
       <p class="text-sm font-medium text-neutral-600">
-        Showing {startItem} to {endItem} of {totalItems} leads
+        Affichage {startItem} - {endItem} sur {totalItems} leads
       </p>
     </div>
 
@@ -56,31 +56,31 @@
         disabled={currentPage === 1}
         class="px-4 py-2 bg-white border border-neutral-200 rounded-xl text-xs font-bold outline-none disabled:opacity-30 disabled:cursor-not-allowed hover:bg-neutral-50 transition"
       >
-        First
+        Première
       </button>
       <button
         onclick={() => goToPage(currentPage - 1)}
         disabled={currentPage === 1}
         class="px-4 py-2 bg-white border border-neutral-200 rounded-xl text-xs font-bold outline-none disabled:opacity-30 disabled:cursor-not-allowed hover:bg-neutral-50 transition"
       >
-        Previous
+        Précédente
       </button>
       <div class="flex items-center gap-2 px-4">
-        <span class="text-xs font-bold text-neutral-600">Page {currentPage} of {totalPages}</span>
+        <span class="text-xs font-bold text-neutral-600">Page {currentPage} sur {totalPages}</span>
       </div>
       <button
         onclick={() => goToPage(currentPage + 1)}
         disabled={currentPage === totalPages}
         class="px-4 py-2 bg-white border border-neutral-200 rounded-xl text-xs font-bold outline-none disabled:opacity-30 disabled:cursor-not-allowed hover:bg-neutral-50 transition"
       >
-        Next
+        Suivante
       </button>
       <button
         onclick={() => goToPage(totalPages)}
         disabled={currentPage === totalPages}
         class="px-4 py-2 bg-white border border-neutral-200 rounded-xl text-xs font-bold outline-none disabled:opacity-30 disabled:cursor-not-allowed hover:bg-neutral-50 transition"
       >
-        Last
+        Dernière
       </button>
     </div>
   </div>

@@ -10,13 +10,27 @@
   let { children } = $props();
 
   const menuItems = [
-    { label: 'Hunts', icon: 'solar:lightning-bold', href: '/app/hunts' },
+    { label: 'Chasses', icon: 'solar:lightning-bold', href: '/app/hunts' },
     { label: 'Leads', icon: 'solar:chart-square-bold', href: '/app/leads' },
-    { label: 'Outreach', icon: 'solar:letter-bold', href: '/app/outreach' },
+    { label: 'Prospection', icon: 'solar:letter-bold', href: '/app/outreach' },
   ];
 
   let userInitials = $derived($authStore.user?.firstName?.[0] || 'U');
   let userName = $derived($authStore.user?.firstName || 'Utilisateur');
+
+  function getPageTitle(path: string): string {
+    if (path.startsWith('/app/hunts/new')) return 'Nouvelle Chasse — Glouton';
+    if (path.match(/^\/app\/hunts\/.+/)) return 'Chasse — Glouton';
+    if (path === '/app/hunts') return 'Chasses — Glouton';
+    if (path.match(/^\/app\/leads\/.+/)) return 'Lead — Glouton';
+    if (path === '/app/leads') return 'Leads — Glouton';
+    if (path === '/app/outreach') return 'Prospection — Glouton';
+    if (path === '/app/settings') return 'Paramètres — Glouton';
+    if (path === '/app/premium') return 'Premium — Glouton';
+    return 'Glouton';
+  }
+
+  let pageTitle = $derived(getPageTitle($page.url.pathname));
 
   let connectionState = ws.connectionState;
 
@@ -40,6 +54,10 @@
     }
   });
 </script>
+
+<svelte:head>
+  <title>{pageTitle}</title>
+</svelte:head>
 
 <div class="fixed inset-0 flex h-screen w-screen overflow-hidden bg-white">
   <Sidebar

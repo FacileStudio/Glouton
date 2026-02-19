@@ -5,10 +5,11 @@
 
   interface Lead {
     id: string;
-    domain: string;
+    domain: string | null;
     email: string | null;
     firstName: string | null;
     lastName: string | null;
+    businessName: string | null;
     city: string | null;
     country: string | null;
     status: 'HOT' | 'WARM' | 'COLD';
@@ -16,6 +17,7 @@
     technologies: string[];
     contacted: boolean;
     createdAt: string;
+    companyInfo: { name?: string } | null;
   }
 
   let {
@@ -32,25 +34,39 @@
     const diffHours = Math.floor(diffMins / 60);
     const diffDays = Math.floor(diffHours / 24);
 
-    if (diffDays > 0) return `${diffDays}d ago`;
-    if (diffHours > 0) return `${diffHours}h ago`;
-    if (diffMins > 0) return `${diffMins}m ago`;
-    return 'Just now';
+    if (diffDays > 0) return `Il y a ${diffDays}j`;
+    if (diffHours > 0) return `Il y a ${diffHours}h`;
+    if (diffMins > 0) return `Il y a ${diffMins}min`;
+    return "À l'instant";
   }
 
-  function getStatusColor(status: string): string {
+  function getScoreCircleColor(score: number): string {
+    if (score >= 70) return 'bg-green-500';
+    if (score >= 40) return 'bg-yellow-400';
+    return 'bg-orange-500';
+  }
+
+  function getStatusIcon(status: string): { icon: string; class: string } {
     switch (status) {
       case 'HOT':
-        return 'bg-orange-100 text-orange-700';
+        return { icon: 'solar:fire-bold', class: 'text-orange-500' };
       case 'WARM':
-        return 'bg-yellow-100 text-yellow-700';
+        return { icon: 'solar:sun-2-bold', class: 'text-yellow-500' };
       default:
-        return 'bg-blue-100 text-blue-700';
+        return { icon: 'solar:snowflake-bold', class: 'text-blue-400' };
     }
   }
 
   function navigateToLead(leadId: string) {
     goto(`/app/leads/${leadId}`);
+  }
+
+  function getLeadTitle(lead: Lead): string {
+    if (lead.businessName) return lead.businessName;
+    if (lead.companyInfo?.name) return lead.companyInfo.name;
+    if (lead.firstName || lead.lastName) return [lead.firstName, lead.lastName].filter(Boolean).join(' ');
+    if (lead.domain) return lead.domain;
+    return '-';
   }
 </script>
 
@@ -76,9 +92,20 @@
                 onerror={(e) => handleFaviconError(e.currentTarget)}
               />
             </div>
-            <h3 class="font-black text-neutral-900 truncate text-lg" title={lead.domain}>
-              {lead.domain}
-            </h3>
+            <div class="flex items-center gap-2 min-w-0">
+              <iconify-icon icon={getStatusIcon(lead.status).icon} width="18" class="{getStatusIcon(lead.status).class} flex-shrink-0"></iconify-icon>
+              <h3 class="font-black text-neutral-900 truncate text-lg" title={getLeadTitle(lead)}>
+                {getLeadTitle(lead)}
+              </h3>
+            </div>
+          </div>
+
+          <!-- Score Circle -->
+          <div
+            class="w-10 h-10 rounded-full flex items-center justify-center text-xs font-black text-white flex-shrink-0 ml-2 {getScoreCircleColor(lead.score)}"
+            title="Score: {lead.score}"
+          >
+            {lead.score}
           </div>
         </div>
 
@@ -86,11 +113,12 @@
         <div class="mb-4">
           {#if lead.contacted}
             <span class="inline-flex items-center px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-xs font-black uppercase">
-              ✅ Contacted
+              <iconify-icon icon="solar:check-circle-bold" width="14" class="mr-1"></iconify-icon>
+              Contacté
             </span>
           {:else}
             <span class="inline-flex items-center px-3 py-1.5 bg-neutral-100 text-neutral-600 rounded-lg text-xs font-bold uppercase">
-              Not contacted
+              Non contacté
             </span>
           {/if}
         </div>
@@ -98,21 +126,21 @@
         <!-- Contact Info -->
         <div class="space-y-2 mb-4">
           {#if lead.email}
-            <div class="flex items-center gap-2 text-sm text-neutral-700">
-              <iconify-icon icon="solar:letter-bold" width="16" class="text-neutral-400"></iconify-icon>
-              <span class="truncate font-medium">{lead.email}</span>
+            <div class="flex items-center gap-2 text-sm text-neutral-700 min-w-0">
+              <iconify-icon icon="solar:letter-bold" width="16" class="text-neutral-400 flex-shrink-0"></iconify-icon>
+              <span class="truncate font-medium" title={lead.email}>{lead.email}</span>
             </div>
           {/if}
           {#if lead.firstName || lead.lastName}
-            <div class="flex items-center gap-2 text-sm text-neutral-700">
-              <iconify-icon icon="solar:user-bold" width="16" class="text-neutral-400"></iconify-icon>
-              <span class="font-medium">{lead.firstName || ''} {lead.lastName || ''}</span>
+            <div class="flex items-center gap-2 text-sm text-neutral-700 min-w-0">
+              <iconify-icon icon="solar:user-bold" width="16" class="text-neutral-400 flex-shrink-0"></iconify-icon>
+              <span class="font-medium truncate">{lead.firstName || ''} {lead.lastName || ''}</span>
             </div>
           {/if}
           {#if lead.city || lead.country}
-            <div class="flex items-center gap-2 text-sm text-neutral-700">
-              <iconify-icon icon="solar:map-point-bold" width="16" class="text-neutral-400"></iconify-icon>
-              <span class="font-medium">
+            <div class="flex items-center gap-2 text-sm text-neutral-700 min-w-0">
+              <iconify-icon icon="solar:map-point-bold" width="16" class="text-neutral-400 flex-shrink-0"></iconify-icon>
+              <span class="font-medium truncate">
                 {#if lead.city}{lead.city}{#if lead.country}, {/if}{/if}
                 {#if lead.country}{lead.country}{/if}
               </span>
@@ -120,44 +148,11 @@
           {/if}
         </div>
 
-        <!-- Status and Score -->
-        <div class="flex items-center justify-between mb-4">
-          <span class="inline-flex items-center px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-wide {getStatusColor(lead.status)}">
-            {lead.status}
-          </span>
-
-          <div class="flex items-center gap-2">
-            <div class="w-16 h-2 bg-neutral-200 rounded-full overflow-hidden">
-              <div
-                class="h-full {lead.score >= 70 ? 'bg-green-500' : lead.score >= 40 ? 'bg-yellow-500' : 'bg-orange-500'}"
-                style="width: {lead.score}%"
-              ></div>
-            </div>
-            <span class="text-xs font-bold text-neutral-600">{lead.score}</span>
-          </div>
-        </div>
-
-        <!-- Technologies -->
-        {#if lead.technologies.length > 0}
-          <div class="flex flex-wrap gap-1 mb-4">
-            {#each lead.technologies.slice(0, 3) as tech}
-              <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-100 text-blue-800">
-                {tech}
-              </span>
-            {/each}
-            {#if lead.technologies.length > 3}
-              <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-neutral-100 text-neutral-600">
-                +{lead.technologies.length - 3}
-              </span>
-            {/if}
-          </div>
-        {/if}
-
         <!-- Footer with time -->
         <div class="pt-4 border-t border-neutral-100">
           <div class="flex items-center justify-between">
             <span class="text-xs text-neutral-500 font-medium">
-              Added {getRelativeTime(lead.createdAt)}
+              Ajouté {getRelativeTime(lead.createdAt)}
             </span>
             <iconify-icon icon="solar:arrow-right-bold" width="16" class="text-neutral-400"></iconify-icon>
           </div>

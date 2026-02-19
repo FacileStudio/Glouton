@@ -2,6 +2,12 @@ import { SQL, sql } from 'bun';
 import type { LeadStatus } from '@repo/database';
 import { TRPCError } from '@trpc/server';
 
+function sqlJoin(fragments: any[], separator: any): any {
+  return fragments.reduce((acc: any, item: any, i: number) =>
+    i === 0 ? item : sql`${acc}${separator}${item}`
+  );
+}
+
 export interface GetLeadsParams {
   userId: string;
   db: SQL;
@@ -10,6 +16,16 @@ export interface GetLeadsParams {
     search?: string;
     country?: string;
     city?: string;
+    category?: string;
+    businessType?: string;
+    contacted?: boolean;
+    hasWebsite?: boolean;
+    hasSocial?: boolean;
+    hasPhone?: boolean;
+    hasGps?: boolean;
+    hasEmail?: boolean;
+    sortBy?: string;
+    sortOrder?: string;
     page?: number;
     limit?: number;
   };
@@ -24,6 +40,8 @@ export interface LeadStats {
   contactedLeads: number;
   totalEmails: number;
   totalPhoneNumbers: number;
+  totalDomains: number;
+  totalSocials: number;
   pendingHunts: number;
   processingHunts: number;
   completedHunts: number;
@@ -62,13 +80,35 @@ export default {
 
     if (filters?.city) conditions.push(db`city ILIKE ${`%${filters.city}%`}`);
 
+    if (filters?.category) conditions.push(db`category = ${filters.category}`);
+
+    if (filters?.businessType) conditions.push(db`"businessType" = ${filters.businessType}`);
+
+    if (filters?.contacted !== undefined) conditions.push(db`contacted = ${filters.contacted}`);
+
+    if (filters?.hasWebsite === true) conditions.push(db`"hasWebsite" = true`);
+    if (filters?.hasWebsite === false) conditions.push(db`("hasWebsite" IS NULL OR "hasWebsite" = false)`);
+
+    if (filters?.hasSocial === true) conditions.push(db`("socialProfiles" IS NOT NULL AND jsonb_typeof("socialProfiles") = 'array' AND jsonb_array_length("socialProfiles") > 0)`);
+    if (filters?.hasSocial === false) conditions.push(db`("socialProfiles" IS NULL OR jsonb_typeof("socialProfiles") != 'array' OR jsonb_array_length("socialProfiles") = 0)`);
+
+    if (filters?.hasPhone === true) conditions.push(db`("phoneNumbers" IS NOT NULL AND "phoneNumbers"::text != '{}')`);
+    if (filters?.hasPhone === false) conditions.push(db`("phoneNumbers" IS NULL OR "phoneNumbers"::text = '{}')`);
+
+    if (filters?.hasGps === true) conditions.push(db`coordinates IS NOT NULL`);
+    if (filters?.hasGps === false) conditions.push(db`coordinates IS NULL`);
+
+    if (filters?.hasEmail === true) conditions.push(db`email IS NOT NULL`);
+    if (filters?.hasEmail === false) conditions.push(db`email IS NULL`);
+
     if (filters?.search) {
       const s = `%${filters.search}%`;
       conditions.push(db`(
       domain ILIKE ${s} OR
       email ILIKE ${s} OR
       "firstName" ILIKE ${s} OR
-      "lastName" ILIKE ${s}
+      "lastName" ILIKE ${s} OR
+      "businessName" ILIKE ${s}
     )`);
     }
 
@@ -77,16 +117,29 @@ export default {
     let limit = filters?.limit ?? 50;
     let offset = ((filters?.page ?? 1) - 1) * limit;
 
+    const sortDir = filters?.sortOrder === 'asc' ? sql`ASC` : sql`DESC`;
+    const orderBy = (() => {
+      switch (filters?.sortBy) {
+        case 'domain':    return sql`domain ${sortDir} NULLS LAST`;
+        case 'email':     return sql`email ${sortDir} NULLS LAST`;
+        case 'city':      return sql`city ${sortDir} NULLS LAST`;
+        case 'country':   return sql`country ${sortDir} NULLS LAST`;
+        case 'score':     return sql`score ${sortDir} NULLS LAST`;
+        case 'status':    return sql`status ${sortDir} NULLS LAST`;
+        default:          return sql`"createdAt" ${sortDir}`;
+      }
+    })();
+
     const [leads, totalResult] = await Promise.all([
       db`
       SELECT
-        id, domain, email, "firstName", "lastName", city, country, status, score, technologies,
+        id, domain, email, "firstName", "lastName", "businessName", city, country, status, score, technologies,
         "additionalEmails", "phoneNumbers", "physicalAddresses", "socialProfiles", "companyInfo",
         "websiteAudit", "scrapedAt", "auditedAt", "huntSessionId", contacted, "lastContactedAt",
-        "emailsSentCount", "createdAt"
+        "emailsSentCount", "createdAt", coordinates, "hasWebsite", "businessType", category
       FROM "Lead"
       WHERE ${whereClause}
-      ORDER BY "createdAt" DESC
+      ORDER BY ${orderBy}
       LIMIT ${limit}
       OFFSET ${offset}
     ` as Promise<any[]>,
@@ -122,7 +175,9 @@ export default {
           COUNT(*) FILTER (WHERE contacted = FALSE AND email IS NOT NULL)::INT as contactable,
           COUNT(*) FILTER (WHERE contacted = TRUE)::INT as contacted,
           COUNT(*) FILTER (WHERE email IS NOT NULL)::INT as emails,
-          COUNT(*) FILTER (WHERE "phoneNumbers" IS NOT NULL AND cardinality("phoneNumbers") > 0)::INT as phones,
+          COUNT(*) FILTER (WHERE "phoneNumbers" IS NOT NULL AND "phoneNumbers"::text <> '{}')::INT as phones,
+          COUNT(*) FILTER (WHERE domain IS NOT NULL)::INT as domains,
+          COUNT(*) FILTER (WHERE "socialProfiles" IS NOT NULL AND jsonb_typeof("socialProfiles") = 'array' AND jsonb_array_length("socialProfiles") > 0)::INT as socials,
           COALESCE(AVG(score), 0)::FLOAT as avg_score
         FROM "Lead"
         WHERE "userId" = ${userId}
@@ -156,6 +211,8 @@ export default {
         contactedLeads: ls.contacted || 0,
         totalEmails: ls.emails || 0,
         totalPhoneNumbers: ls.phones || 0,
+        totalDomains: ls.domains || 0,
+        totalSocials: ls.socials || 0,
         pendingHunts: hs.pending || 0,
         processingHunts: hs.processing || 0,
         completedHunts: completed,
@@ -182,7 +239,7 @@ export default {
         ` as Promise<any[]>,
         ctx.db`
           SELECT
-            id, "targetUrl", status, progress, "totalLeads",
+            id, status, progress, "totalLeads",
             "successfulLeads", "failedLeads", "startedAt", "createdAt"
           FROM "HuntSession"
           WHERE "userId" = ${ctx.user.id} AND status IN ('PENDING', 'PROCESSING')
@@ -285,7 +342,7 @@ export default {
 
       const emailConditions =
         emailsToCheck.length > 0
-          ? sql`email IN (${sql.join(emailsToCheck.map((e) => sql`${e}`))})`
+          ? sql`email IN (${sqlJoin(emailsToCheck.map((e) => sql`${e}`), sql`, `)})`
           : null;
 
       const nameDomainConditions = leads
@@ -295,7 +352,7 @@ export default {
             sql`(domain = ${l.domain!} AND "firstName" = ${l.firstName!} AND "lastName" = ${l.lastName!})`
         );
       const nameDomainCombinedConditions =
-        nameDomainConditions.length > 0 ? sql.join(nameDomainConditions, sql` OR `) : null;
+        nameDomainConditions.length > 0 ? sqlJoin(nameDomainConditions, sql` OR `) : null;
 
       const orConditions = [];
       if (emailConditions) {
@@ -306,11 +363,11 @@ export default {
       }
 
       if (orConditions.length > 0) {
-        conditions.push(sql`(${sql.join(orConditions, sql` OR `)})`);
+        conditions.push(sql`(${sqlJoin(orConditions, sql` OR `)})`);
       }
 
       const whereClause =
-        conditions.length > 0 ? sql`WHERE ${sql.join(conditions, sql` AND `)}` : sql``;
+        conditions.length > 0 ? sql`WHERE ${sqlJoin(conditions, sql` AND `)}` : sql``;
 
       return db`
         SELECT email, domain, "firstName", "lastName"

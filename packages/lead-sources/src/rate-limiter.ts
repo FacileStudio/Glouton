@@ -27,31 +27,8 @@ interface UsageRecord {
 
 const FREE_TIER_LIMITS: Record<LeadSource, SourceLimits> = {
   HUNTER: {
-    requestsPerMonth: 25,
-    requestsPerMinute: 15,
-    creditsPerRequest: 1,
-    totalCredits: 25,
-  },
-  APOLLO: {
-    requestsPerMonth: 100,
-    creditsPerRequest: 1,
-    totalCredits: 100,
-  },
-  SNOV: {
-    requestsPerMonth: 50,
-    requestsPerMinute: 60,
-    creditsPerRequest: 1,
-    totalCredits: 50,
-  },
-  HASDATA: {
-    requestsPerMonth: 50,
-    creditsPerRequest: 1,
-    totalCredits: 50,
-  },
-  CONTACTOUT: {
-    requestsPerMonth: 100,
-    creditsPerRequest: 1,
-    totalCredits: 100,
+    requestsPerMonth: Number.MAX_SAFE_INTEGER,
+    requestsPerMinute: 45,
   },
   MANUAL: {
     requestsPerMonth: Number.MAX_SAFE_INTEGER,
@@ -210,7 +187,7 @@ export class RateLimiter {
    * getAllStatuses
    */
   getAllStatuses(): RateLimitStatus[] {
-    const sources: LeadSource[] = ['HUNTER', 'APOLLO', 'SNOV', 'HASDATA', 'CONTACTOUT'];
+    const sources: LeadSource[] = ['HUNTER'];
     return sources.map((source) => this.getStatus(source));
   }
 

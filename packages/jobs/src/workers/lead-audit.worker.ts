@@ -3,6 +3,7 @@ import { calculateLeadScore } from '../services/scoring.utils';
 import type { Job } from 'bullmq';
 import type { AuditResult } from '../services/scraper.service';
 import type { EventEmitter } from './index';
+import { JobEventEmitter } from '../lib/job-event-emitter';
 
 interface LeadAuditJobData {
   auditSessionId: string;
@@ -60,15 +61,15 @@ export function createLeadAuditWorker(db: any, events: EventEmitter) {
       return {
         success: false,
         lead,
-        error: error instanceof Error ? error : new Error(String(error))
+        error: error instanceof Error ? error : new Error(String(error)),
       };
     }
   };
 
   const updateProgress = async (
     job: Job,
+    emitter: JobEventEmitter,
     auditSessionId: string,
-    userId: string,
     processedCount: number,
     totalCount: number,
     updatedLeads: number,
@@ -88,27 +89,24 @@ export function createLeadAuditWorker(db: any, events: EventEmitter) {
       WHERE id = ${auditSessionId}
     `;
 
-    if (events) {
-      events.emit(userId, 'audit-progress', {
-        auditSessionId,
-        progress,
-        processedLeads: processedCount,
-        updatedLeads,
-        failedLeads,
-        totalLeads: totalCount,
-      });
-    }
+    emitter.emit('audit-progress', {
+      auditSessionId,
+      progress,
+      processedLeads: processedCount,
+      updatedLeads,
+      failedLeads,
+      totalLeads: totalCount,
+    });
   };
 
   return {
     name: 'lead-audit',
     processor: async (job: Job<LeadAuditJobData>) => {
       const { auditSessionId, userId } = job.data;
+      const emitter = new JobEventEmitter(events, userId);
       let isCancelled = false;
 
-      // Set up cancellation checker - checks database for session status
       const checkCancellation = async () => {
-        // Check if the session has been marked as CANCELLED in the database
         const [session] = await db`
           SELECT status
           FROM "AuditSession"
@@ -120,8 +118,7 @@ export function createLeadAuditWorker(db: any, events: EventEmitter) {
           return true;
         }
 
-        // Also check job status as a fallback
-        if (await job.isFailed() || await job.isCompleted()) {
+        if ((await job.isFailed()) || (await job.isCompleted())) {
           isCancelled = true;
           return true;
         }
@@ -135,9 +132,10 @@ export function createLeadAuditWorker(db: any, events: EventEmitter) {
           WHERE "userId" = ${userId} AND domain IS NOT NULL
         `;
 
-        console.log(`[WORKER] Starting audit for ${leads.length} leads in parallel batches of ${BATCH_SIZE}`);
+        console.log(
+          `[WORKER] Starting audit for ${leads.length} leads in parallel batches of ${BATCH_SIZE}`
+        );
 
-        // Update session with totalLeads count and set status to PROCESSING
         await db`
           UPDATE "AuditSession" SET
             status = 'PROCESSING',
@@ -152,12 +150,11 @@ export function createLeadAuditWorker(db: any, events: EventEmitter) {
         let failedLeads = 0;
 
         for (let batchStart = 0; batchStart < leads.length; batchStart += BATCH_SIZE) {
-          // Check for cancellation before processing each batch
           if (await checkCancellation()) {
-            console.log(`[WORKER] Audit cancelled for session ${auditSessionId} at ${processedCount}/${leads.length} leads`);
+            console.log(
+              `[WORKER] Audit cancelled for session ${auditSessionId} at ${processedCount}/${leads.length} leads`
+            );
 
-            // Only update progress stats if not already cancelled
-            // The status might already be CANCELLED if cancel() was called
             await db`
               UPDATE "AuditSession" SET
                 progress = ${Math.floor((processedCount / leads.length) * 100)},
@@ -170,27 +167,25 @@ export function createLeadAuditWorker(db: any, events: EventEmitter) {
                 AND status != 'COMPLETED'
             `;
 
-            if (events) {
-              events.emit(userId, 'audit-cancelled', {
-                auditSessionId,
-                processedLeads: processedCount,
-                updatedLeads,
-                failedLeads,
-                totalLeads: leads.length
-              });
-            }
+            emitter.emit('audit-cancelled', {
+              auditSessionId,
+              processedLeads: processedCount,
+              updatedLeads,
+              failedLeads,
+              totalLeads: leads.length,
+            });
 
             return {
               cancelled: true,
               updatedLeads,
               failedLeads,
               processedLeads: processedCount,
-              totalLeads: leads.length
+              totalLeads: leads.length,
             };
           }
 
           const batch = leads.slice(batchStart, batchStart + BATCH_SIZE);
-          const batchPromises = batch.map(lead => processLead(lead));
+          const batchPromises = batch.map((lead) => processLead(lead));
 
           const results = await Promise.allSettled(batchPromises);
 
@@ -213,14 +208,13 @@ export function createLeadAuditWorker(db: any, events: EventEmitter) {
           }
 
           const shouldUpdateProgress =
-            processedCount % PROGRESS_UPDATE_INTERVAL === 0 ||
-            processedCount === leads.length;
+            processedCount % PROGRESS_UPDATE_INTERVAL === 0 || processedCount === leads.length;
 
           if (shouldUpdateProgress) {
             await updateProgress(
               job,
+              emitter,
               auditSessionId,
-              userId,
               processedCount,
               leads.length,
               updatedLeads,
@@ -228,15 +222,14 @@ export function createLeadAuditWorker(db: any, events: EventEmitter) {
             );
           }
 
-          if (batchStart + BATCH_SIZE < leads.length) {
-            await new Promise(resolve => setTimeout(resolve, BATCH_DELAY_MS));
-          }
+          if (batchStart + BATCH_SIZE < leads.length)
+            await new Promise((resolve) => setTimeout(resolve, BATCH_DELAY_MS));
         }
 
         await updateProgress(
           job,
+          emitter,
           auditSessionId,
-          userId,
           processedCount,
           leads.length,
           updatedLeads,
@@ -252,16 +245,16 @@ export function createLeadAuditWorker(db: any, events: EventEmitter) {
           WHERE id = ${auditSessionId}
         `;
 
-        console.log(`[WORKER] Audit completed: ${updatedLeads}/${leads.length} leads updated, ${failedLeads} failed`);
+        console.log(
+          `[WORKER] Audit completed: ${updatedLeads}/${leads.length} leads updated, ${failedLeads} failed`
+        );
 
-        if (events) {
-          events.emit(userId, 'audit-completed', {
-            auditSessionId,
-            updatedLeads,
-            failedLeads,
-            totalLeads: leads.length
-          });
-        }
+        emitter.emit('audit-completed', {
+          auditSessionId,
+          updatedLeads,
+          failedLeads,
+          totalLeads: leads.length,
+        });
 
         return { updatedLeads, failedLeads, totalLeads: leads.length };
       } catch (fatalError: any) {

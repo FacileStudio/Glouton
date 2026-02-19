@@ -52,7 +52,7 @@ export function escapeCSVField(str: string | null | undefined): string {
 
 export function escapeCSVArray(arr: string[] | null | undefined): string {
   if (!arr || arr.length === 0) return '';
-  return `"${arr.join('; ').replace(/"/g, '""')}"`;
+  return `"${arr.join(';').replace(/"/g, '""')}"`;
 }
 
 export function escapeCSVJson(obj: any): string {
@@ -88,6 +88,8 @@ export const CSV_HEADERS = [
   'Contacte',
   'Derniere Date Contact',
   'Nombre Emails Envoyes',
+  'Email Verifie',
+  'Email Verifie Le',
+  'Methode Verification Email',
 ];
 
-export const KIRBY_HEADERS = ['Nom Organisation', 'Domaine', 'Secteur', 'Taille', 'Annee', 'Ville'];

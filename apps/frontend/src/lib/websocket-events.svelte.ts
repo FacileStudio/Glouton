@@ -37,12 +37,17 @@ class WebSocketEventManager {
       'hunt-failed',
       'hunt-cancelled',
       'hunt-error',
+      'domain-discovered',
       'businesses-discovered',
       'leads-created',
       'leads-updated',
       'local-business-hunt-progress',
       'leads-added',
-      'stats-changed'
+      'stats-changed',
+      'extraction-progress',
+      'extraction-completed',
+      'extraction-failed',
+      'extraction-cancelled',
     ];
 
     events.forEach(event => {
@@ -111,8 +116,7 @@ export interface AuditSession {
 
 export interface HuntSession {
   id: string;
-  targetUrl: string;
-  huntType?: 'DOMAIN' | 'LOCAL_BUSINESS';
+  huntType: 'DOMAIN' | 'LOCAL_BUSINESS' | undefined;
   speed: number;
   progress: number;
   status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
@@ -124,6 +128,7 @@ export interface HuntSession {
   completedAt: Date | null;
   createdAt: Date;
   filters?: any;
+  lastDiscoveredDomain?: string | null;
 }
 
 export function setupAuditListeners(
@@ -237,7 +242,6 @@ export function setupHuntListeners(
     wsEvents.on('hunt-started', (data) => {
       const newSession: HuntSession = {
         id: data.huntSessionId,
-        targetUrl: data.targetUrl || data.location || 'Hunt',
         huntType: data.huntType,
         speed: data.speed || 1,
         status: 'PENDING',
@@ -364,10 +368,24 @@ export function setupHuntListeners(
     })
   );
 
-  // Handle new events for local business hunts
+  unsubscribers.push(
+    wsEvents.on('domain-discovered', (data) => {
+      if (data.huntSessionId) {
+        updateSession(data.huntSessionId, {
+          successfulLeads: data.totalDiscovered,
+          progress: data.progress || 0,
+          lastDiscoveredDomain: data.domain,
+        });
+      }
+    })
+  );
+
   unsubscribers.push(
     wsEvents.on('businesses-discovered', (data) => {
       if (data.huntSessionId) {
+        updateSession(data.huntSessionId, {
+          totalLeads: data.count,
+        });
         const message = `Found ${data.count} businesses in ${data.location}`;
         toast.push(message, 'info');
       }
