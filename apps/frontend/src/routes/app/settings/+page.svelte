@@ -26,26 +26,14 @@
     newPassword: '',
     confirmPassword: '',
     hunterApiKey: '',
-    apolloApiKey: '',
-    snovApiKey: '',
-    hasdataApiKey: '',
-    contactoutApiKey: '',
   });
 
   let existingApiKeys = $state({
     hunterApiKey: '',
-    apolloApiKey: '',
-    snovApiKey: '',
-    hasdataApiKey: '',
-    contactoutApiKey: '',
   });
 
   let showApiKeys = $state({
     hunterApiKey: false,
-    apolloApiKey: false,
-    snovApiKey: false,
-    hasdataApiKey: false,
-    contactoutApiKey: false,
   });
 
   let originalFormData = $state({
@@ -59,16 +47,12 @@
   );
 
   let hasApiKeyChanges = $derived(
-    formData.hunterApiKey !== existingApiKeys.hunterApiKey ||
-      formData.apolloApiKey !== existingApiKeys.apolloApiKey ||
-      formData.snovApiKey !== existingApiKeys.snovApiKey ||
-      formData.hasdataApiKey !== existingApiKeys.hasdataApiKey ||
-      formData.contactoutApiKey !== existingApiKeys.contactoutApiKey
+    formData.hunterApiKey !== existingApiKeys.hunterApiKey
   );
 
   const tabs = [
-    { id: 'profile', name: 'Profile', icon: 'solar:user-bold' },
-    { id: 'account', name: 'Account', icon: 'solar:shield-user-bold' },
+    { id: 'profile', name: 'Profil', icon: 'solar:user-bold' },
+    { id: 'account', name: 'Compte', icon: 'solar:shield-user-bold' },
   ];
 
   let keywordsInput = $state('');
@@ -91,7 +75,7 @@
       originalFormData.firstName = formData.firstName;
       originalFormData.lastName = formData.lastName;
       showSavedMessage = true;
-      toast.push('Profile updated successfully!', 'success');
+      toast.push('Profil mis à jour avec succès !', 'success');
       /**
        * setTimeout
        */
@@ -99,7 +83,7 @@
         showSavedMessage = false;
       }, 3000);
     } catch (error: any) {
-      const errorMessage = error?.message || 'Failed to update profile';
+      const errorMessage = error?.message || 'Échec de la mise à jour du profil';
       console.error('Failed to update profile:', error);
       toast.push(errorMessage, 'error');
       message = { type: 'error', text: errorMessage };
@@ -116,16 +100,16 @@
      * if
      */
     if (formData.newPassword !== formData.confirmPassword) {
-      toast.push('Passwords do not match', 'error');
-      message = { type: 'error', text: 'Passwords do not match' };
+      toast.push('Les mots de passe ne correspondent pas', 'error');
+      message = { type: 'error', text: 'Les mots de passe ne correspondent pas' };
       return;
     }
     /**
      * if
      */
     if (formData.newPassword.length < 8) {
-      toast.push('Password must be at least 8 characters', 'error');
-      message = { type: 'error', text: 'Password must be at least 8 characters' };
+      toast.push('Le mot de passe doit contenir au moins 8 caractères', 'error');
+      message = { type: 'error', text: 'Le mot de passe doit contenir au moins 8 caractères' };
       return;
     }
     saving = true;
@@ -138,8 +122,8 @@
       formData.currentPassword = '';
       formData.newPassword = '';
       formData.confirmPassword = '';
-      toast.push('Password changed successfully!', 'success');
-      message = { type: 'success', text: 'Password changed successfully!' };
+      toast.push('Mot de passe modifié avec succès !', 'success');
+      message = { type: 'success', text: 'Mot de passe modifié avec succès !' };
     } catch (error: any) {
       const errorMessage = error?.message || 'Failed to change password';
       console.error('Failed to change password:', error);
@@ -154,80 +138,18 @@
    * handleUpdateApiKeys
    */
   async function handleUpdateApiKeys() {
-    console.log('Form data:', formData);
-
-    const hasAnyKey =
-      formData.hunterApiKey ||
-      formData.apolloApiKey ||
-      formData.snovApiKey ||
-      formData.hasdataApiKey ||
-      formData.contactoutApiKey;
-
-    const hasAnyExistingKey =
-      existingApiKeys.hunterApiKey ||
-      existingApiKeys.apolloApiKey ||
-      existingApiKeys.snovApiKey ||
-      existingApiKeys.hasdataApiKey ||
-      existingApiKeys.contactoutApiKey;
-
-    console.log('hasAnyKey:', hasAnyKey, 'hasAnyExistingKey:', hasAnyExistingKey);
-
-    /**
-     * if
-     */
-    if (!hasAnyKey && !hasAnyExistingKey) {
-      toast.push('Please enter at least one API key', 'error');
-      message = { type: 'error', text: 'Please enter at least one API key' };
-      return;
-    }
-
     saving = true;
     message = null;
     try {
       const updatePayload: any = {};
-
-      /**
-       * if
-       */
       if (formData.hunterApiKey && formData.hunterApiKey.trim())
         updatePayload.hunterApiKey = formData.hunterApiKey.trim();
-      /**
-       * if
-       */
-      if (formData.apolloApiKey && formData.apolloApiKey.trim())
-        updatePayload.apolloApiKey = formData.apolloApiKey.trim();
-      /**
-       * if
-       */
-      if (formData.snovApiKey && formData.snovApiKey.trim())
-        updatePayload.snovApiKey = formData.snovApiKey.trim();
-      /**
-       * if
-       */
-      if (formData.hasdataApiKey && formData.hasdataApiKey.trim())
-        updatePayload.hasdataApiKey = formData.hasdataApiKey.trim();
-      /**
-       * if
-       */
-      if (formData.contactoutApiKey && formData.contactoutApiKey.trim())
-        updatePayload.contactoutApiKey = formData.contactoutApiKey.trim();
 
-      console.log('Sending API key update:', updatePayload);
       await trpc.user.updateApiKeys.mutate(updatePayload);
-      console.log('API keys updated successfully');
 
       const user = await trpc.user.me.query();
       existingApiKeys.hunterApiKey = user.hunterApiKey || '';
-      existingApiKeys.apolloApiKey = user.apolloApiKey || '';
-      existingApiKeys.snovApiKey = user.snovApiKey || '';
-      existingApiKeys.hasdataApiKey = user.hasdataApiKey || '';
-      existingApiKeys.contactoutApiKey = user.contactoutApiKey || '';
-
       formData.hunterApiKey = user.hunterApiKey || '';
-      formData.apolloApiKey = user.apolloApiKey || '';
-      formData.snovApiKey = user.snovApiKey || '';
-      formData.hasdataApiKey = user.hasdataApiKey || '';
-      formData.contactoutApiKey = user.contactoutApiKey || '';
 
       toast.push('API keys updated successfully!', 'success');
       message = { type: 'success', text: 'API keys updated successfully!' };
@@ -286,16 +208,7 @@
     if (userResult.status === 'fulfilled') {
       const user = userResult.value;
       existingApiKeys.hunterApiKey = user.hunterApiKey || '';
-      existingApiKeys.apolloApiKey = user.apolloApiKey || '';
-      existingApiKeys.snovApiKey = user.snovApiKey || '';
-      existingApiKeys.hasdataApiKey = user.hasdataApiKey || '';
-      existingApiKeys.contactoutApiKey = user.contactoutApiKey || '';
-
       formData.hunterApiKey = user.hunterApiKey || '';
-      formData.apolloApiKey = user.apolloApiKey || '';
-      formData.snovApiKey = user.snovApiKey || '';
-      formData.hasdataApiKey = user.hasdataApiKey || '';
-      formData.contactoutApiKey = user.contactoutApiKey || '';
     } else {
       console.error('Failed to fetch API key status:', userResult.reason);
     }
@@ -313,10 +226,10 @@
       </div>
       <div>
         <h1 class="text-3xl md:text-4xl font-black tracking-tight" style="color: #291334;">
-          Settings
+          Paramètres
         </h1>
         <p class="text-neutral-500 font-medium text-base mt-1">
-          Manage your account preferences and security
+          Gérez vos préférences de compte et la sécurité
         </p>
       </div>
     </div>
@@ -352,9 +265,9 @@
       <div in:fade={{ duration: 300 }} class="space-y-6">
         <div class="p-8 md:p-10 rounded-2xl shadow-lg" style="background-color: #EFEAE6;">
           <div class="mb-8">
-            <h2 class="text-2xl font-black mb-2" style="color: #291334;">Personal Information</h2>
+            <h2 class="text-2xl font-black mb-2" style="color: #291334;">Informations personnelles</h2>
             <p class="text-neutral-500 text-sm">
-              Update your profile details and contact information
+              Mettez à jour vos informations de profil
             </p>
           </div>
 
@@ -362,7 +275,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div class="space-y-2">
                 <label for="firstName" class="text-sm font-bold text-neutral-700 block"
-                  >First Name</label
+                  >Prénom</label
                 >
                 <Input
                   id="firstName"
@@ -373,7 +286,7 @@
               </div>
               <div class="space-y-2">
                 <label for="lastName" class="text-sm font-bold text-neutral-700 block"
-                  >Last Name</label
+                  >Nom de famille</label
                 >
                 <Input
                   id="lastName"
@@ -386,8 +299,8 @@
 
             <div class="space-y-2">
               <label for="email" class="text-sm font-bold text-neutral-700 flex items-center gap-2">
-                Email Address
-                <span class="text-xs text-neutral-400 font-medium">(read-only)</span>
+                Adresse e-mail
+                <span class="text-xs text-neutral-400 font-medium">(lecture seule)</span>
               </label>
               <Input
                 id="email"
@@ -401,8 +314,7 @@
           <div class="pt-8 mt-8 flex items-center justify-between border-t border-neutral-100">
             {#if showSavedMessage}
               <span class="text-sm font-bold text-green-600 flex items-center gap-2" in:fade>
-                <iconify-icon icon="solar:check-circle-bold" width="18"></iconify-icon> Changes saved
-                successfully
+                <iconify-icon icon="solar:check-circle-bold" width="18"></iconify-icon> Modifications enregistrées
               </span>
             {:else}
               <div></div>
@@ -417,7 +329,7 @@
               {:else}
                 <iconify-icon icon="solar:diskette-bold" width="18"></iconify-icon>
               {/if}
-              {saving ? 'Saving...' : 'Save Changes'}
+              {saving ? 'Enregistrement...' : 'Enregistrer'}
             </Button>
           </div>
         </div>
@@ -431,15 +343,15 @@
                 <iconify-icon icon="solar:key-square-bold-duotone" width="20" class="text-white"
                 ></iconify-icon>
               </div>
-              <h2 class="text-2xl font-black" style="color: #291334;">Security</h2>
+              <h2 class="text-2xl font-black" style="color: #291334;">Sécurité</h2>
             </div>
-            <p class="text-neutral-500 text-sm">Update your password to keep your account secure</p>
+            <p class="text-neutral-500 text-sm">Mettez à jour votre mot de passe pour sécuriser votre compte</p>
           </div>
 
           <div class="space-y-6">
             <div class="space-y-2">
               <label for="currentPassword" class="text-sm font-bold text-neutral-700 block"
-                >Current Password</label
+                >Mot de passe actuel</label
               >
               <Input
                 id="currentPassword"
@@ -452,7 +364,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div class="space-y-2">
                 <label for="newPassword" class="text-sm font-bold text-neutral-700 block"
-                  >New Password</label
+                  >Nouveau mot de passe</label
                 >
                 <Input
                   id="newPassword"
@@ -464,7 +376,7 @@
               </div>
               <div class="space-y-2">
                 <label for="confirmPassword" class="text-sm font-bold text-neutral-700 block"
-                  >Confirm Password</label
+                  >Confirmer le mot de passe</label
                 >
                 <Input
                   id="confirmPassword"
@@ -488,7 +400,7 @@
               {:else}
                 <iconify-icon icon="solar:diskette-bold" width="18"></iconify-icon>
               {/if}
-              {saving ? 'Updating...' : 'Update Password'}
+              {saving ? 'Mise à jour...' : 'Modifier le mot de passe'}
             </Button>
           </div>
         </div>
@@ -500,29 +412,12 @@
                 <iconify-icon icon="solar:key-bold-duotone" width="20" class="text-white"
                 ></iconify-icon>
               </div>
-              <h2 class="text-2xl font-black" style="color: #291334;">Lead Source API Keys</h2>
+              <h2 class="text-2xl font-black" style="color: #291334;">Clés API sources</h2>
             </div>
-            <p class="text-neutral-500 text-sm">Configure API keys for lead extraction sources</p>
+            <p class="text-neutral-500 text-sm">Configurez les clés API pour les sources de leads</p>
           </div>
 
           <div class="space-y-6">
-            <div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
-              <div class="flex gap-3">
-                <iconify-icon
-                  icon="solar:info-circle-bold"
-                  width="20"
-                  class="text-blue-600 flex-shrink-0 mt-0.5"
-                ></iconify-icon>
-                <div class="text-sm text-blue-800">
-                  <p class="font-bold mb-1">Free tier available</p>
-                  <p>
-                    Most services offer free tiers. Enter the API keys you have and the system will
-                    automatically use the best available source for each hunt.
-                  </p>
-                </div>
-              </div>
-            </div>
-
             <div class="grid grid-cols-1 gap-6">
               <div class="space-y-2">
                 <label
@@ -535,7 +430,7 @@
                       class="text-xs font-bold text-green-600 flex items-center gap-1 px-2 py-0.5 bg-green-50 rounded-full"
                     >
                       <iconify-icon icon="solar:check-circle-bold" width="12"></iconify-icon>
-                      Active
+                      Actif
                     </span>
                   {/if}
                 </label>
@@ -544,7 +439,7 @@
                     id="hunterApiKey"
                     type={showApiKeys.hunterApiKey ? 'text' : 'password'}
                     bind:value={formData.hunterApiKey}
-                    placeholder="Enter your Hunter.io API key"
+                    placeholder="Entrez votre clé API Hunter.io"
                     class="rounded-xl font-mono pr-10"
                   />
                   {#if formData.hunterApiKey}
@@ -552,8 +447,8 @@
                       type="button"
                       onclick={() => (showApiKeys.hunterApiKey = !showApiKeys.hunterApiKey)}
                       aria-label={showApiKeys.hunterApiKey
-                        ? 'Hide Hunter.io API key'
-                        : 'Show Hunter.io API key'}
+                        ? 'Masquer la clé API Hunter.io'
+                        : 'Afficher la clé API Hunter.io'}
                       class="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors"
                     >
                       <iconify-icon
@@ -572,206 +467,6 @@
                   >
                 </p>
               </div>
-
-              <div class="space-y-2">
-                <label
-                  for="apolloApiKey"
-                  class="text-sm font-bold text-neutral-700 flex items-center gap-2"
-                >
-                  Apollo.io API Key
-                  {#if existingApiKeys.apolloApiKey}
-                    <span
-                      class="text-xs font-bold text-green-600 flex items-center gap-1 px-2 py-0.5 bg-green-50 rounded-full"
-                    >
-                      <iconify-icon icon="solar:check-circle-bold" width="12"></iconify-icon>
-                      Active
-                    </span>
-                  {/if}
-                </label>
-                <div class="relative">
-                  <Input
-                    id="apolloApiKey"
-                    type={showApiKeys.apolloApiKey ? 'text' : 'password'}
-                    bind:value={formData.apolloApiKey}
-                    placeholder="Enter your Apollo.io API key"
-                    class="rounded-xl font-mono pr-10"
-                  />
-                  {#if formData.apolloApiKey}
-                    <button
-                      type="button"
-                      onclick={() => (showApiKeys.apolloApiKey = !showApiKeys.apolloApiKey)}
-                      aria-label={showApiKeys.apolloApiKey
-                        ? 'Hide Apollo.io API key'
-                        : 'Show Apollo.io API key'}
-                      class="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors"
-                    >
-                      <iconify-icon
-                        icon={showApiKeys.apolloApiKey ? 'solar:eye-bold' : 'solar:eye-closed-bold'}
-                        width="20"
-                      ></iconify-icon>
-                    </button>
-                  {/if}
-                </div>
-                <p class="text-xs text-neutral-500">
-                  Get yours at <a
-                    href="https://apollo.io/api"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="underline hover:text-neutral-900">apollo.io/api</a
-                  >
-                </p>
-              </div>
-
-              <div class="space-y-2">
-                <label
-                  for="snovApiKey"
-                  class="text-sm font-bold text-neutral-700 flex items-center gap-2"
-                >
-                  Snov.io API Key
-                  {#if existingApiKeys.snovApiKey}
-                    <span
-                      class="text-xs font-bold text-green-600 flex items-center gap-1 px-2 py-0.5 bg-green-50 rounded-full"
-                    >
-                      <iconify-icon icon="solar:check-circle-bold" width="12"></iconify-icon>
-                      Active
-                    </span>
-                  {/if}
-                </label>
-                <div class="relative">
-                  <Input
-                    id="snovApiKey"
-                    type={showApiKeys.snovApiKey ? 'text' : 'password'}
-                    bind:value={formData.snovApiKey}
-                    placeholder="Enter your Snov.io API key"
-                    class="rounded-xl font-mono pr-10"
-                  />
-                  {#if formData.snovApiKey}
-                    <button
-                      type="button"
-                      onclick={() => (showApiKeys.snovApiKey = !showApiKeys.snovApiKey)}
-                      aria-label={showApiKeys.snovApiKey
-                        ? 'Hide Snov.io API key'
-                        : 'Show Snov.io API key'}
-                      class="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors"
-                    >
-                      <iconify-icon
-                        icon={showApiKeys.snovApiKey ? 'solar:eye-bold' : 'solar:eye-closed-bold'}
-                        width="20"
-                      ></iconify-icon>
-                    </button>
-                  {/if}
-                </div>
-                <p class="text-xs text-neutral-500">
-                  Get yours at <a
-                    href="https://snov.io/api"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="underline hover:text-neutral-900">snov.io/api</a
-                  >
-                </p>
-              </div>
-
-              <div class="space-y-2">
-                <label
-                  for="hasdataApiKey"
-                  class="text-sm font-bold text-neutral-700 flex items-center gap-2"
-                >
-                  HasData API Key
-                  {#if existingApiKeys.hasdataApiKey}
-                    <span
-                      class="text-xs font-bold text-green-600 flex items-center gap-1 px-2 py-0.5 bg-green-50 rounded-full"
-                    >
-                      <iconify-icon icon="solar:check-circle-bold" width="12"></iconify-icon>
-                      Active
-                    </span>
-                  {/if}
-                </label>
-                <div class="relative">
-                  <Input
-                    id="hasdataApiKey"
-                    type={showApiKeys.hasdataApiKey ? 'text' : 'password'}
-                    bind:value={formData.hasdataApiKey}
-                    placeholder="Enter your HasData API key"
-                    class="rounded-xl font-mono pr-10"
-                  />
-                  {#if formData.hasdataApiKey}
-                    <button
-                      type="button"
-                      onclick={() => (showApiKeys.hasdataApiKey = !showApiKeys.hasdataApiKey)}
-                      aria-label={showApiKeys.hasdataApiKey
-                        ? 'Hide HasData API key'
-                        : 'Show HasData API key'}
-                      class="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors"
-                    >
-                      <iconify-icon
-                        icon={showApiKeys.hasdataApiKey
-                          ? 'solar:eye-bold'
-                          : 'solar:eye-closed-bold'}
-                        width="20"
-                      ></iconify-icon>
-                    </button>
-                  {/if}
-                </div>
-                <p class="text-xs text-neutral-500">
-                  Get yours at <a
-                    href="https://hasdata.com/api"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="underline hover:text-neutral-900">hasdata.com/api</a
-                  >
-                </p>
-              </div>
-
-              <div class="space-y-2">
-                <label
-                  for="contactoutApiKey"
-                  class="text-sm font-bold text-neutral-700 flex items-center gap-2"
-                >
-                  ContactOut API Key
-                  {#if existingApiKeys.contactoutApiKey}
-                    <span
-                      class="text-xs font-bold text-green-600 flex items-center gap-1 px-2 py-0.5 bg-green-50 rounded-full"
-                    >
-                      <iconify-icon icon="solar:check-circle-bold" width="12"></iconify-icon>
-                      Active
-                    </span>
-                  {/if}
-                </label>
-                <div class="relative">
-                  <Input
-                    id="contactoutApiKey"
-                    type={showApiKeys.contactoutApiKey ? 'text' : 'password'}
-                    bind:value={formData.contactoutApiKey}
-                    placeholder="Enter your ContactOut API key"
-                    class="rounded-xl font-mono pr-10"
-                  />
-                  {#if formData.contactoutApiKey}
-                    <button
-                      type="button"
-                      onclick={() => (showApiKeys.contactoutApiKey = !showApiKeys.contactoutApiKey)}
-                      aria-label={showApiKeys.contactoutApiKey
-                        ? 'Hide ContactOut API key'
-                        : 'Show ContactOut API key'}
-                      class="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors"
-                    >
-                      <iconify-icon
-                        icon={showApiKeys.contactoutApiKey
-                          ? 'solar:eye-bold'
-                          : 'solar:eye-closed-bold'}
-                        width="20"
-                      ></iconify-icon>
-                    </button>
-                  {/if}
-                </div>
-                <p class="text-xs text-neutral-500">
-                  Get yours at <a
-                    href="https://contactout.com/api"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="underline hover:text-neutral-900">contactout.com/api</a
-                  >
-                </p>
-              </div>
             </div>
           </div>
 
@@ -786,7 +481,7 @@
               {:else}
                 <iconify-icon icon="solar:diskette-bold" width="18"></iconify-icon>
               {/if}
-              {saving ? 'Saving...' : 'Save API Keys'}
+              {saving ? 'Enregistrement...' : 'Enregistrer les clés API'}
             </Button>
           </div>
         </div>
@@ -795,14 +490,14 @@
           <div class="p-8 rounded-2xl shadow-lg" style="background-color: #EFEAE6;">
             <div class="mb-6">
               <h3 class="font-black text-lg mb-1" style="color: #291334;">Session</h3>
-              <p class="text-sm text-neutral-500">End your current session</p>
+              <p class="text-sm text-neutral-500">Terminer votre session en cours</p>
             </div>
             <Button
               onclick={() => authStore.logout()}
               class="bg-red-600 text-white hover:bg-red-700 w-full"
             >
               <iconify-icon icon="solar:logout-2-bold" width="20"></iconify-icon>
-              Log Out
+              Se déconnecter
             </Button>
           </div>
         </div>
@@ -815,11 +510,10 @@
             <div>
               <h3 class="text-red-600 font-black text-xl mb-2 flex items-center gap-2">
                 <iconify-icon icon="solar:danger-triangle-bold" width="24"></iconify-icon>
-                Danger Zone
+                Zone de danger
               </h3>
               <p class="text-neutral-600 text-sm leading-relaxed max-w-md">
-                Deleting your account is permanent. All your data will be wiped immediately and
-                cannot be recovered.
+                La suppression de votre compte est définitive. Toutes vos données seront effacées immédiatement et ne pourront pas être récupérées.
               </p>
             </div>
             <Button
@@ -828,7 +522,7 @@
               class="bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 flex-shrink-0"
             >
               <iconify-icon icon="solar:trash-bin-trash-bold" width="20"></iconify-icon>
-              {deleting ? 'Deleting...' : 'Delete Account'}
+              {deleting ? 'Suppression...' : 'Supprimer le compte'}
             </Button>
           </div>
         </div>
@@ -852,9 +546,9 @@
         >
           <iconify-icon icon="solar:bomb-bold-duotone" width="32"></iconify-icon>
         </div>
-        <h3 class="text-2xl font-black tracking-tight text-neutral-900">Delete Account?</h3>
+        <h3 class="text-2xl font-black tracking-tight text-neutral-900">Supprimer le compte ?</h3>
         <p class="text-neutral-500 font-medium">
-          This action is absolute. Your data will be permanently removed.
+          Cette action est définitive. Vos données seront supprimées de façon permanente.
         </p>
       </div>
 
@@ -879,7 +573,7 @@
           onclick={() => (deleteModalOpen = false)}
           class="px-4 py-3 rounded-xl font-bold bg-neutral-100 hover:bg-neutral-200 text-neutral-900 transition-colors"
         >
-          Cancel
+          Annuler
         </button>
         <button
           onclick={confirmDeleteAccount}

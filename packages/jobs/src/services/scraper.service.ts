@@ -37,18 +37,14 @@ export class ScraperService {
   };
 
   constructor(options?: ScraperOptions) {
-    if (options) {
-      this.options = { ...this.options, ...options };
-    }
+    if (options) this.options = { ...this.options, ...options };
   }
 
   async auditDomain(domain: string): Promise<AuditResult | null> {
     const normalizedDomain = this.normalizeDomain(domain);
 
     const cached = this.getCached(normalizedDomain);
-    if (cached !== undefined) {
-      return cached;
-    }
+    if (cached !== undefined) return cached;
 
     const result = await this.auditWithRetry(normalizedDomain);
     this.setCached(normalizedDomain, result);
@@ -68,9 +64,8 @@ export class ScraperService {
           `[SCRAPER] Attempt ${attempt + 1}/${this.options.maxRetries + 1} failed for ${domain}: ${lastError.message}`
         );
 
-        if (attempt < this.options.maxRetries) {
-          await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
-        }
+        if (attempt < this.options.maxRetries)
+          await new Promise((resolve) => setTimeout(resolve, Math.pow(2, attempt) * 1000));
       }
     }
 
@@ -91,8 +86,9 @@ export class ScraperService {
         try {
           const response = await fetch(url, {
             headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0',
-              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+              'User-Agent':
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0',
+              Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
               'Accept-Language': 'en-US,en;q=0.9',
               'Cache-Control': 'no-cache',
             },
@@ -109,9 +105,8 @@ export class ScraperService {
           }
         } catch (fetchError) {
           clearTimeout(timeout);
-          if ((fetchError as any)?.name === 'AbortError') {
+          if ((fetchError as any)?.name === 'AbortError')
             throw new Error(`Request timeout after ${this.options.timeoutMs}ms`);
-          }
           throw fetchError;
         }
       } catch (error) {
@@ -140,7 +135,10 @@ export class ScraperService {
   }
 
   private normalizeDomain(domain: string): string {
-    return domain.replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase();
+    return domain
+      .replace(/^https?:\/\//, '')
+      .replace(/\/$/, '')
+      .toLowerCase();
   }
 
   private getUrlVariants(domain: string): string[] {
@@ -167,8 +165,8 @@ export class ScraperService {
 
   private extractEmails(html: string): string[] {
     const matches = html.match(this.emailRegex) || [];
-    const emails = Array.from(new Set(matches.map(m => m.toLowerCase())))
-      .filter(email => !email.includes('@example.') && !email.includes('noreply'))
+    const emails = Array.from(new Set(matches.map((m) => m.toLowerCase())))
+      .filter((email) => !email.includes('@example.') && !email.includes('noreply'))
       .slice(0, this.options.maxEmailsPerDomain);
     return emails;
   }
@@ -176,7 +174,7 @@ export class ScraperService {
   private extractPhones(html: string): string[] {
     const matches = html.match(this.phoneRegex) || [];
     const phones = Array.from(new Set(matches))
-      .filter(phone => phone.replace(/\D/g, '').length >= 10)
+      .filter((phone) => phone.replace(/\D/g, '').length >= 10)
       .slice(0, this.options.maxPhonesPerDomain);
     return phones;
   }
@@ -191,18 +189,11 @@ export class ScraperService {
 
       processedUrls.add(href);
 
-      if (href.includes('facebook.com/') && !socials.facebook) {
-        socials.facebook = href;
-      }
-      if (href.includes('instagram.com/') && !socials.instagram) {
-        socials.instagram = href;
-      }
-      if (href.includes('linkedin.com/company/') && !socials.linkedin) {
-        socials.linkedin = href;
-      }
-      if ((href.includes('twitter.com/') || href.includes('x.com/')) && !socials.twitter) {
+      if (href.includes('facebook.com/') && !socials.facebook) socials.facebook = href;
+      if (href.includes('instagram.com/') && !socials.instagram) socials.instagram = href;
+      if (href.includes('linkedin.com/company/') && !socials.linkedin) socials.linkedin = href;
+      if ((href.includes('twitter.com/') || href.includes('x.com/')) && !socials.twitter)
         socials.twitter = href;
-      }
     });
 
     return socials;
@@ -220,14 +211,25 @@ export class ScraperService {
       ['Vue.js', () => html.includes('vue') || $('[v-if], [v-for], [v-model]').length > 0],
       ['Angular', () => html.includes('ng-') || html.includes('angular')],
       ['Google Tag Manager', 'googletagmanager.com'],
-      ['Google Analytics', () => htmlLower.includes('google-analytics.com') || htmlLower.includes('gtag(')],
+      [
+        'Google Analytics',
+        () => htmlLower.includes('google-analytics.com') || htmlLower.includes('gtag('),
+      ],
       ['HubSpot', 'hubspot.com'],
       ['Webflow', 'webflow.com'],
       ['Wix', 'wix.com'],
       ['Squarespace', 'squarespace.com'],
       ['jQuery', () => $('script[src*="jquery"]').length > 0 || html.includes('jQuery')],
-      ['Bootstrap', () => htmlLower.includes('bootstrap') || $('[class*="col-md"], [class*="btn-primary"]').length > 0],
-      ['Tailwind CSS', () => $('[class*="flex "], [class*="grid "], [class*="p-"], [class*="m-"]').length > 5],
+      [
+        'Bootstrap',
+        () =>
+          htmlLower.includes('bootstrap') ||
+          $('[class*="col-md"], [class*="btn-primary"]').length > 0,
+      ],
+      [
+        'Tailwind CSS',
+        () => $('[class*="flex "], [class*="grid "], [class*="p-"], [class*="m-"]').length > 5,
+      ],
     ];
 
     for (const [tech, pattern] of techPatterns) {
@@ -261,8 +263,9 @@ export class ScraperService {
     this.cacheTimestamps.set(domain, Date.now());
 
     if (this.domainCache.size > 1000) {
-      const oldestKey = Array.from(this.cacheTimestamps.entries())
-        .sort((a, b) => a[1] - b[1])[0][0];
+      const oldestKey = Array.from(this.cacheTimestamps.entries()).sort(
+        (a, b) => a[1] - b[1]
+      )[0][0];
       this.domainCache.delete(oldestKey);
       this.cacheTimestamps.delete(oldestKey);
     }

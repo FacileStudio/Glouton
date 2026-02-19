@@ -130,10 +130,6 @@ export const userRouter = router({
     .input(
       z.object({
         hunterApiKey: z.string().optional(),
-        apolloApiKey: z.string().optional(),
-        snovApiKey: z.string().optional(),
-        hasdataApiKey: z.string().optional(),
-        contactoutApiKey: z.string().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {

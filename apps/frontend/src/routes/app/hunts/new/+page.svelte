@@ -14,7 +14,6 @@
   let huntType: 'domain' | 'local' = 'domain';
   let loading = false;
   let loadingLocation = false;
-  let targetUrl = '';
   let selectedPresetId: string | null = null;
   let showPresets = true;
   let configuredSourcesCount = 0;
@@ -33,16 +32,16 @@
   };
 
   const businessCategories = [
-    { value: 'restaurant', label: 'Restaurants & Cafes', icon: 'solar:chef-hat-bold' },
-    { value: 'retail', label: 'Retail Stores', icon: 'solar:shop-bold' },
+    { value: 'restaurant', label: 'Restaurants & Cafés', icon: 'solar:chef-hat-bold' },
+    { value: 'retail', label: 'Commerces de détail', icon: 'solar:shop-bold' },
     { value: 'service', label: 'Services', icon: 'solar:case-round-bold' },
-    { value: 'healthcare', label: 'Healthcare', icon: 'solar:heart-bold' },
-    { value: 'fitness', label: 'Fitness & Wellness', icon: 'solar:dumbbell-bold' },
-    { value: 'beauty', label: 'Beauty & Spa', icon: 'solar:scissors-bold' },
-    { value: 'automotive', label: 'Automotive', icon: 'solar:wheel-bold' },
-    { value: 'professional-services', label: 'Professional Services', icon: 'solar:user-id-bold' },
-    { value: 'hotel', label: 'Hotels & Lodging', icon: 'solar:bed-bold' },
-    { value: 'education', label: 'Education', icon: 'solar:book-bold' },
+    { value: 'healthcare', label: 'Santé', icon: 'solar:heart-bold' },
+    { value: 'fitness', label: 'Fitness & Bien-être', icon: 'solar:dumbbell-bold' },
+    { value: 'beauty', label: 'Beauté & Spa', icon: 'solar:scissors-bold' },
+    { value: 'automotive', label: 'Automobile', icon: 'solar:wheel-bold' },
+    { value: 'professional-services', label: 'Services professionnels', icon: 'solar:user-id-bold' },
+    { value: 'hotel', label: 'Hôtels & Hébergement', icon: 'solar:bed-bold' },
+    { value: 'education', label: 'Éducation', icon: 'solar:book-bold' },
   ];
 
   let filters = {
@@ -225,14 +224,14 @@
       const cityName = location.city || 'Unknown city';
       const countryName = location.country || 'Unknown country';
 
-      toast.push(`Location detected: ${cityName}, ${countryName}`, 'success');
+      toast.push(`Localisation détectée : ${cityName}, ${countryName}`, 'success');
     } catch (error: any) {
       console.error('Error detecting location:', error);
 
       const errorMessage =
         error?.message === 'User denied Geolocation'
-          ? 'Location access denied. Click "Detect Location" to try again or enter manually.'
-          : 'Could not detect location. Please enter manually or try again.';
+          ? 'Accès à la localisation refusé. Cliquez sur "Détecter la localisation" pour réessayer ou saisissez-la manuellement.'
+          : 'Impossible de détecter la localisation. Veuillez la saisir manuellement ou réessayer.';
 
       toast.push(errorMessage, 'info');
     } finally {
@@ -267,7 +266,7 @@
       filters.location.city = preset.filters.location.city || '';
     }
 
-    toast.push(`Applied "${preset.name}" preset`, 'success');
+    toast.push(`Préréglage "${preset.name}" appliqué`, 'success');
     showPresets = false;
   }
 
@@ -299,26 +298,12 @@
      * if
      */
     if (configuredSourcesCount === 0) {
-      toast.push('Please configure at least one API key in Settings', 'error');
+      toast.push('Veuillez configurer au moins une clé API dans les paramètres', 'error');
       /**
        * goto
        */
       goto('/app/settings');
       return;
-    }
-
-    let normalizedUrl: string | undefined = undefined;
-    /**
-     * if
-     */
-    if (targetUrl && targetUrl.trim()) {
-      normalizedUrl = targetUrl.trim();
-      /**
-       * if
-       */
-      if (!normalizedUrl.startsWith('http://') && !normalizedUrl.startsWith('https://')) {
-        normalizedUrl = 'https://' + normalizedUrl;
-      }
     }
 
     loading = true;
@@ -340,19 +325,18 @@
             : undefined,
       };
 
-      await trpc.lead.hunt.start.mutate({
-        targetUrl: normalizedUrl,
+      const result = await trpc.lead.hunt.start.mutate({
         filters: huntFilters,
       });
 
+      const huntSessionId = result?.huntSessionId;
+      goto(huntSessionId ? `/app/hunts/${huntSessionId}` : '/app/hunts');
       toast.push(
-        `Hunt started across ${configuredSourcesCount} configured source(s)!`,
+        `Chasse lancée sur ${configuredSourcesCount} source${configuredSourcesCount > 1 ? 's' : ''} configurée${configuredSourcesCount > 1 ? 's' : ''} !`,
         'success',
       );
-
-      goto('/app/hunts');
     } catch (error: any) {
-      const errorMessage = error?.message || 'Failed to start hunt';
+      const errorMessage = error?.message || 'Échec du démarrage de la chasse';
       toast.push(errorMessage, 'error');
       console.error('Error starting hunt:', error);
     } finally {
@@ -362,12 +346,12 @@
 
   async function startLocalBusinessHunt() {
     if (localBusinessFilters.categories.length === 0) {
-      toast.push('Please select at least one business category', 'error');
+      toast.push('Veuillez sélectionner au moins une catégorie d\'activité', 'error');
       return;
     }
 
     if (!localBusinessFilters.location.city && !localBusinessFilters.location.coordinates) {
-      toast.push('Please provide a location (city or use GPS)', 'error');
+      toast.push('Veuillez indiquer une localisation (ville ou GPS)', 'error');
       return;
     }
 
@@ -377,7 +361,7 @@
         ? `${localBusinessFilters.location.city}${localBusinessFilters.location.country ? ', ' + localBusinessFilters.location.country : ''}`
         : `${localBusinessFilters.location.coordinates?.lat},${localBusinessFilters.location.coordinates?.lng}`;
 
-      await trpc.lead.hunt.startLocalBusiness.mutate({
+      const result = await trpc.lead.hunt.startLocalBusiness.mutate({
         location: locationString,
         categories: localBusinessFilters.categories,
         hasWebsite: localBusinessFilters.hasWebsite === 'with' ? true : localBusinessFilters.hasWebsite === 'without' ? false : undefined,
@@ -385,18 +369,15 @@
         maxResults: localBusinessFilters.maxResults,
       });
 
+      const huntSessionId = result?.huntSessionId;
+      goto(huntSessionId ? `/app/hunts/${huntSessionId}` : '/app/hunts');
       const categoryCount = localBusinessFilters.categories.length;
       toast.push(
-        `Local business hunt started for ${categoryCount} categor${categoryCount > 1 ? 'ies' : 'y'}!`,
+        `Chasse locale démarrée pour ${categoryCount} catégorie${categoryCount > 1 ? 's' : ''} !`,
         'success',
       );
-
-      /**
-       * goto
-       */
-      goto('/app/hunts');
     } catch (error: any) {
-      const errorMessage = error?.message || 'Failed to start local business hunt';
+      const errorMessage = error?.message || 'Échec du démarrage de la chasse locale';
       toast.push(errorMessage, 'error');
       console.error('Error starting local business hunt:', error);
     } finally {
@@ -432,7 +413,7 @@
        * if
        */
       if (configuredSourcesCount === 0) {
-        toast.push('No API keys configured. Please add them in Settings.', 'info');
+        toast.push('Aucune clé API configurée. Veuillez les ajouter dans les paramètres.', 'info');
       }
     } catch (error) {
       console.error('Error fetching configured sources:', error);
@@ -463,19 +444,19 @@
     <div class="flex items-center justify-between">
       <div>
         <h1 class="text-5xl font-black tracking-tight text-brand-purple">
-          New Hunt<span class="text-brand-gold">.</span>
+          Nouvelle Chasse<span class="text-brand-gold">.</span>
         </h1>
         <p class="text-slate-500 font-medium mt-2">
           {#if huntType === 'domain'}
             {#if configuredSourcesCount > 0}
-              Using {configuredSourcesCount} configured source{configuredSourcesCount > 1
+              Utilisation de {configuredSourcesCount} source{configuredSourcesCount > 1
                 ? 's'
-                : ''}
+                : ''} configurée{configuredSourcesCount > 1 ? 's' : ''}
             {:else}
-              Configure API keys in Settings to start hunting
+              Configurez des clés API dans les paramètres pour commencer
             {/if}
           {:else}
-            Search for local businesses near a location
+            Rechercher des entreprises locales près d'une localisation
           {/if}
         </p>
       </div>
@@ -484,14 +465,14 @@
         class="px-4 py-2 border-2 border-slate-200 rounded-xl font-bold hover:border-brand-purple hover:text-brand-purple transition-all flex items-center gap-2"
       >
         <iconify-icon icon="solar:close-circle-bold" width="20"></iconify-icon>
-        Cancel
+        Annuler
       </a>
     </div>
 
     <Tabs
       tabs={[
-        { label: 'Domain Hunt', value: 'domain', icon: 'solar:global-bold' },
-        { label: 'Local Business Hunt', value: 'local', icon: 'solar:map-point-bold' }
+        { label: 'Chasse par domaine', value: 'domain', icon: 'solar:global-bold' },
+        { label: 'Chasse locale', value: 'local', icon: 'solar:map-point-bold' }
       ]}
       bind:activeTab={huntType}
     />
@@ -501,7 +482,7 @@
       <div class="space-y-4">
         <div class="flex items-center justify-between mb-4">
           <span class="text-sm font-black uppercase tracking-wider text-slate-400"
-            >Smart Auto Filters</span
+            >Filtres intelligents</span
           >
           <button
             type="button"
@@ -512,7 +493,7 @@
               icon={showPresets ? 'solar:alt-arrow-up-bold' : 'solar:alt-arrow-down-bold'}
               width="16"
             ></iconify-icon>
-            {showPresets ? 'Hide' : 'Show'} Presets
+            {showPresets ? 'Masquer' : 'Afficher'} les préréglages
           </button>
         </div>
 
@@ -522,9 +503,9 @@
               <iconify-icon icon="solar:magic-stick-3-bold" width="24" class="text-brand-purple"
               ></iconify-icon>
               <div>
-                <h3 class="font-black text-lg text-brand-purple">Choose Your Business Type</h3>
+                <h3 class="font-black text-lg text-brand-purple">Choisissez votre secteur d'activité</h3>
                 <p class="text-sm text-slate-600">
-                  Pre-configured filters optimized for different industries
+                  Filtres préconfigurés optimisés pour différents secteurs
                 </p>
               </div>
             </div>
@@ -559,28 +540,11 @@
         {/if}
       </div>
 
-      <div class="space-y-4">
-        <label class="block">
-          <span class="text-sm font-black uppercase tracking-wider text-slate-400 mb-3 block"
-            >Target URL <span class="text-xs font-medium text-slate-500">(Optional)</span></span
-          >
-          <input
-            bind:value={targetUrl}
-            type="text"
-            placeholder="example.com (leave empty for broad search)"
-            class="w-full px-6 py-4 border-2 border-slate-200 rounded-2xl font-medium focus:border-brand-gold focus:outline-none transition-all duration-200 hover:bg-white bg-slate-50/50"
-          />
-          <p class="text-xs text-slate-500 mt-2">
-            Enter a company domain to target specific organizations, or leave empty to search broadly based on filters.
-          </p>
-        </label>
-      </div>
-
       <div class="pt-8 border-t-2 border-slate-100 space-y-6">
         <div class="flex items-center justify-between">
           <h2 class="text-2xl font-black flex items-center gap-3 text-brand-purple">
             <iconify-icon icon="solar:filter-bold" width="24"></iconify-icon>
-            Filters
+            Filtres
           </h2>
           {#if selectedPresetId}
             <button
@@ -600,7 +564,7 @@
               class="text-sm font-bold text-danger hover:text-danger-hover flex items-center gap-2 transition-colors"
             >
               <iconify-icon icon="solar:restart-bold" width="16"></iconify-icon>
-              Clear Filters
+              Effacer les filtres
             </button>
           {/if}
         </div>
@@ -608,21 +572,21 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <label class="block">
             <span class="text-sm font-black uppercase tracking-wider text-slate-400 mb-3 block"
-              >Email Type</span
+              >Type d'e-mail</span
             >
             <select
               bind:value={filters.type}
               class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl font-medium focus:border-brand-gold focus:outline-none transition-all duration-200 bg-slate-50/50 hover:bg-white"
             >
-              <option value={undefined}>All Types</option>
-              <option value="personal">Personal Only</option>
-              <option value="generic">Generic Only</option>
+              <option value={undefined}>Tous les types</option>
+              <option value="personal">Personnels uniquement</option>
+              <option value="generic">Génériques uniquement</option>
             </select>
           </label>
 
           <label class="block">
             <span class="text-sm font-black uppercase tracking-wider text-slate-400 mb-3 block"
-              >Seniority</span
+              >Ancienneté</span
             >
             <div class="space-y-2">
               {#each seniorityLevels as level}
@@ -637,7 +601,7 @@
 
         <div>
           <span class="text-sm font-black uppercase tracking-wider text-slate-400 mb-3 block"
-            >Departments</span
+            >Départements</span
           >
           <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
             {#each departments as dept}
@@ -653,14 +617,14 @@
 
         <div>
           <span class="text-sm font-black uppercase tracking-wider text-slate-400 mb-3 block"
-            >Job Titles</span
+            >Postes</span
           >
           <div class="flex gap-2 mb-3">
             <input
               bind:value={jobTitleInput}
               onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addJobTitle(); } }}
               type="text"
-              placeholder="e.g., CEO, CTO, Marketing Manager"
+              placeholder="ex. : PDG, DG, Responsable marketing"
               class="flex-1 px-4 py-2 border-2 border-slate-200 rounded-xl font-medium focus:border-brand-gold focus:outline-none transition-all duration-200 bg-slate-50/50 hover:bg-white"
             />
             <button
@@ -668,7 +632,7 @@
               onclick={addJobTitle}
               class="px-6 py-2 bg-brand-purple text-white rounded-xl font-bold hover:bg-brand-gold hover:text-brand-purple transition-all duration-200"
             >
-              Add
+              Ajouter
             </button>
           </div>
           <div class="flex flex-wrap gap-2">
@@ -692,7 +656,7 @@
 
         <div>
           <div class="flex items-center justify-between mb-3">
-            <span class="text-sm font-black uppercase tracking-wider text-slate-400">Location</span>
+            <span class="text-sm font-black uppercase tracking-wider text-slate-400">Localisation</span>
             <button
               type="button"
               onclick={() => detectLocation('auto')}
@@ -701,10 +665,10 @@
             >
               {#if loadingLocation}
                 <iconify-icon icon="svg-spinners:blocks-shuffle-3" width="16"></iconify-icon>
-                Detecting...
+                Détection...
               {:else}
                 <iconify-icon icon="solar:map-point-bold" width="16"></iconify-icon>
-                {userLocation ? 'Re-detect' : 'Detect'} Location
+                {userLocation ? 'Re-détecter' : 'Détecter'} la localisation
               {/if}
             </button>
           </div>
@@ -712,7 +676,7 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <label class="block">
               <div class="flex items-center gap-2 mb-2">
-                <span class="text-sm font-semibold text-slate-700">Country</span>
+                <span class="text-sm font-semibold text-slate-700">Pays</span>
                 {#if userLocation}
                   <span class="text-xs font-bold text-success flex items-center gap-1">
                     <iconify-icon icon="solar:check-circle-bold" width="12"></iconify-icon>
@@ -730,7 +694,7 @@
 
             <label class="block">
               <div class="flex items-center gap-2 mb-2">
-                <span class="text-sm font-semibold text-slate-700">City</span>
+                <span class="text-sm font-semibold text-slate-700">Ville</span>
                 {#if userLocation}
                   <span class="text-xs font-bold text-success flex items-center gap-1">
                     <iconify-icon icon="solar:check-circle-bold" width="12"></iconify-icon>
@@ -751,7 +715,7 @@
             <div class="bg-brand-purple/10 border border-brand-purple/20 rounded-xl p-4 flex items-center gap-3 mt-4">
               <iconify-icon icon="svg-spinners:blocks-shuffle-3" width="20" class="text-brand-purple"
               ></iconify-icon>
-              <span class="text-sm font-bold text-brand-purple">Detecting your location...</span>
+              <span class="text-sm font-bold text-brand-purple">Détection de votre localisation...</span>
             </div>
           {/if}
         </div>
@@ -764,17 +728,16 @@
               <iconify-icon icon="solar:danger-bold" width="24" class="text-warning"
               ></iconify-icon>
               <div>
-                <h3 class="font-black text-lg mb-1 text-brand-purple">No API Keys Configured</h3>
+                <h3 class="font-black text-lg mb-1 text-brand-purple">Aucune clé API configurée</h3>
                 <p class="text-sm text-slate-700 mb-4">
-                  To start hunting for leads, you need to configure at least one API key in your
-                  settings.
+                  Pour commencer à chercher des leads, vous devez configurer au moins une clé API dans vos paramètres.
                 </p>
                 <a
                   href="/app/settings"
                   class="inline-flex items-center gap-2 px-4 py-2 bg-brand-purple text-white rounded-xl font-bold hover:bg-brand-gold hover:text-brand-purple transition-all duration-200"
                 >
                   <iconify-icon icon="solar:settings-bold" width="18"></iconify-icon>
-                  Go to Settings
+                  Accéder aux paramètres
                 </a>
               </div>
             </div>
@@ -788,10 +751,10 @@
         >
           {#if loading}
             <iconify-icon icon="svg-spinners:blocks-shuffle-3" width="24"></iconify-icon>
-            <span>Starting Hunt...</span>
+            <span>Démarrage...</span>
           {:else}
             <iconify-icon icon="solar:rocket-2-bold" width="24"></iconify-icon>
-            <span>Start Domain Hunt</span>
+            <span>Lancer la chasse par domaine</span>
           {/if}
         </button>
       </div>
@@ -804,14 +767,14 @@
             <iconify-icon icon="solar:map-point-bold" width="24" class="text-yellow-600"></iconify-icon>
           </div>
           <div>
-            <h2 class="text-2xl font-black text-neutral-900">Local Business Search</h2>
-            <p class="text-sm text-neutral-500 font-medium">Find businesses near a specific location</p>
+            <h2 class="text-2xl font-black text-neutral-900">Recherche locale d'entreprises</h2>
+            <p class="text-sm text-neutral-500 font-medium">Trouvez des entreprises près d'une localisation</p>
           </div>
         </div>
 
         <div class="space-y-4">
           <label class="block">
-            <span class="text-sm font-black uppercase tracking-wider text-slate-400 mb-3 block">Business Categories (Select Multiple)</span>
+            <span class="text-sm font-black uppercase tracking-wider text-slate-400 mb-3 block">Catégories d'activité (sélection multiple)</span>
             <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
               {#each businessCategories as category}
                 <label
@@ -837,7 +800,7 @@
 
         <div class="space-y-4">
           <div class="flex items-center justify-between">
-            <span class="text-sm font-black uppercase tracking-wider text-slate-400">Location</span>
+            <span class="text-sm font-black uppercase tracking-wider text-slate-400">Localisation</span>
             <button
               type="button"
               onclick={() => detectLocation('auto')}
@@ -846,10 +809,10 @@
             >
               {#if loadingLocation}
                 <iconify-icon icon="svg-spinners:blocks-shuffle-3" width="16"></iconify-icon>
-                Detecting...
+                Détection...
               {:else}
                 <iconify-icon icon="solar:map-point-bold" width="16"></iconify-icon>
-                {userLocation ? 'Re-detect' : 'Use GPS'}
+                {userLocation ? 'Re-détecter' : 'Utiliser le GPS'}
               {/if}
             </button>
           </div>
@@ -858,13 +821,13 @@
             <input
               bind:value={localBusinessFilters.location.city}
               type="text"
-              placeholder="City (e.g., Paris, London)"
+              placeholder="Ville (ex. : Paris, Lyon)"
               class="px-4 py-3 border-2 border-neutral-200 rounded-xl font-medium focus:border-yellow-400 focus:outline-none transition-all bg-neutral-50 hover:bg-white"
             />
             <input
               bind:value={localBusinessFilters.location.country}
               type="text"
-              placeholder="Country (e.g., FR, UK)"
+              placeholder="Pays (ex. : FR, BE)"
               class="px-4 py-3 border-2 border-neutral-200 rounded-xl font-medium focus:border-yellow-400 focus:outline-none transition-all bg-neutral-50 hover:bg-white"
             />
           </div>
@@ -876,7 +839,7 @@
               class="text-sm font-bold text-yellow-600 hover:text-yellow-700 flex items-center gap-2 transition-colors"
             >
               <iconify-icon icon={showMap ? 'solar:map-arrow-down-bold' : 'solar:map-arrow-up-bold'} width="16"></iconify-icon>
-              {showMap ? 'Hide Map' : 'Pick Location on Map'}
+              {showMap ? 'Masquer la carte' : 'Choisir sur la carte'}
             </button>
 
             {#if showMap}
@@ -896,7 +859,7 @@
                 />
               </div>
               <p class="mt-2 text-xs text-neutral-500 italic">
-                Click on the map or drag the marker to select a location. The search radius is shown as a circle.
+                Cliquez sur la carte ou déplacez le marqueur pour sélectionner une localisation. Le rayon de recherche est affiché en cercle.
               </p>
             {/if}
           </div>
@@ -904,19 +867,19 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <label class="block">
-            <span class="text-sm font-black uppercase tracking-wider text-slate-400 mb-3 block">Website Filter</span>
+            <span class="text-sm font-black uppercase tracking-wider text-slate-400 mb-3 block">Filtre site web</span>
             <select
               bind:value={localBusinessFilters.hasWebsite}
               class="w-full px-4 py-3 border-2 border-neutral-200 rounded-xl font-medium focus:border-yellow-400 focus:outline-none transition-all bg-neutral-50 hover:bg-white"
             >
-              <option value="all">All Businesses</option>
-              <option value="with">With Website Only</option>
-              <option value="without">Without Website Only</option>
+              <option value="all">Toutes les entreprises</option>
+              <option value="with">Avec site web uniquement</option>
+              <option value="without">Sans site web uniquement</option>
             </select>
           </label>
 
           <label class="block">
-            <span class="text-sm font-black uppercase tracking-wider text-slate-400 mb-3 block">Search Radius</span>
+            <span class="text-sm font-black uppercase tracking-wider text-slate-400 mb-3 block">Rayon de recherche</span>
             <select
               bind:value={localBusinessFilters.radius}
               onchange={() => mapComponent?.setRadius(localBusinessFilters.radius * 1000)}
@@ -931,24 +894,6 @@
           </label>
         </div>
 
-        <div>
-          <label class="block">
-            <span class="text-sm font-black uppercase tracking-wider text-slate-400 mb-3 block">Max Results: {localBusinessFilters.maxResults}</span>
-            <input
-              type="range"
-              bind:value={localBusinessFilters.maxResults}
-              min="50"
-              max="500"
-              step="50"
-              class="w-full h-2 bg-neutral-200 rounded-lg appearance-none cursor-pointer accent-yellow-400"
-            />
-            <div class="flex justify-between text-xs font-bold text-neutral-400 mt-2">
-              <span>50</span>
-              <span>500</span>
-            </div>
-          </label>
-        </div>
-
         <div class="pt-6 border-t-2 border-neutral-100">
           <button
             onclick={startHunt}
@@ -957,10 +902,10 @@
           >
             {#if loading}
               <iconify-icon icon="svg-spinners:blocks-shuffle-3" width="24"></iconify-icon>
-              <span>Searching...</span>
+              <span>Recherche...</span>
             {:else}
               <iconify-icon icon="solar:map-point-bold" width="24"></iconify-icon>
-              <span>Start Local Hunt</span>
+              <span>Lancer la chasse locale</span>
             {/if}
           </button>
         </div>

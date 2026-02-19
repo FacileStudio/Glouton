@@ -5,7 +5,6 @@ import { TRPCError } from '@trpc/server';
 export interface StartHuntParams {
   userId: string;
   source: string;
-  targetUrl?: string;
   companyName?: string;
   speed: number;
   filters?: any;
@@ -31,7 +30,6 @@ export interface RunDetails {
   status: string;
   progress: number;
   sources: string[];
-  targetUrl: string | null;
   domain: string | null;
   filters: any;
   totalLeads: number;
@@ -80,7 +78,6 @@ export default {
   async startHunt({
     userId,
     source,
-    targetUrl,
     companyName,
     speed,
     filters,
@@ -97,42 +94,36 @@ export default {
 
     const [huntSession] = (await db`
       INSERT INTO "HuntSession" (
-        "userId", "huntType", sources, "targetUrl", filters, status, progress, "createdAt", "updatedAt"
+        id, "userId", "huntType", sources, filters, status, progress, "createdAt", "updatedAt"
       ) VALUES (
+        gen_random_uuid(),
         ${userId},
         'DOMAIN',
-        ${JSON.stringify([source])}::jsonb,
-        ${targetUrl ?? null},
+        ARRAY[${source}]::"LeadSource"[],
         ${JSON.stringify(filters || {})}::jsonb,
         'PENDING',
         0,
         ${new Date()},
         ${new Date()}
       )
-      RETURNING id, status, "targetUrl", "createdAt"
+      RETURNING id, status, "createdAt"
     `) as any[];
 
     await jobs.addJob(
-      'leads',
-      'lead-extraction',
+      'domain-finder',
+      'domain-finder',
       {
         huntSessionId: huntSession.id,
         userId,
-        sources: [source as any],
-        targetUrl,
-        companyName,
         filters,
       },
-      {
-        timeout: 7200000,
-      }
+      { timeout: 7200000 }
     );
 
     return {
       huntSessionId: huntSession.id,
       status: huntSession.status,
       source,
-      targetUrl: huntSession.targetUrl,
       createdAt: huntSession.createdAt,
     };
   },
@@ -167,7 +158,7 @@ export default {
       ${userId},
       'LOCAL_BUSINESS',
       ARRAY['GOOGLE_MAPS', 'OPENSTREETMAP']::"LeadSource"[],
-      ${JSON.stringify({ location, categories, hasWebsite, radius, maxResults })}::jsonb,
+      ${JSON.stringify({ location, categories, hasWebsite, radius, maxResults, totalJobs: categories.length })}::jsonb,
       'PENDING',
       0,
       ${new Date()},
@@ -178,7 +169,7 @@ export default {
 
     for (const category of categories) {
       await jobs.addJob(
-        'leads',
+        'local-business-hunt',
         'local-business-hunt',
         {
           huntSessionId: huntSession.id,
@@ -267,7 +258,7 @@ export default {
 
     return validatedSessions.map((session) => ({
       id: session.id,
-      targetUrl: session.targetUrl,
+      huntType: session.huntType,
       speed: session.speed,
       status: session.status,
       progress: session.progress,
@@ -278,6 +269,7 @@ export default {
       startedAt: session.startedAt,
       completedAt: session.completedAt,
       createdAt: session.createdAt,
+      filters: session.filters,
     }));
   },
 
@@ -295,7 +287,6 @@ export default {
     return {
       id: session.id,
       userId: session.userId,
-      targetUrl: session.targetUrl,
       status: session.status,
       progress: session.progress,
       totalLeads: session.totalLeads,
@@ -320,7 +311,10 @@ export default {
     }
 
     if (session.status !== 'PENDING' && session.status !== 'PROCESSING') {
-      throw new Error('Hunt session cannot be cancelled in its current state');
+      if (session.status === 'COMPLETED' || session.status === 'FAILED') {
+        throw new Error('Hunt session has already completed. Use delete to remove it from your history.');
+      }
+      throw new Error(`Hunt session cannot be cancelled in its current state (${session.status})`);
     }
 
     if (session.jobId) {
@@ -407,13 +401,18 @@ export default {
 
     const stats = this.calculateStats(session, leads);
 
+    const sources = Array.isArray(session.sources)
+      ? session.sources
+      : typeof session.sources === 'string'
+        ? session.sources.replace(/[{}]/g, '').split(',').filter(Boolean)
+        : [];
+
     return {
       id: session.id,
       userId: session.userId,
       status: session.status,
       progress: session.progress,
-      sources: session.sources,
-      targetUrl: session.targetUrl,
+      sources,
       domain: session.domain,
       filters: session.filters,
       totalLeads: session.totalLeads,
@@ -489,7 +488,6 @@ export default {
       metadata: {
         sources: session.sources,
         domain: session.domain,
-        targetUrl: session.targetUrl,
       },
     });
 

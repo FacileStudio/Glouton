@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const leadSourceSchema = z.enum(['HUNTER', 'APOLLO', 'SNOV', 'HASDATA', 'CONTACTOUT', 'MANUAL']);
+export const leadSourceSchema = z.enum(['HUNTER', 'MANUAL']);
 
 export const hunterFiltersSchema = z.object({
   type: z.enum(['personal', 'generic']).optional(),
@@ -20,17 +20,6 @@ export const hunterFiltersSchema = z.object({
 
 export const startHuntSchema = z.object({
   source: leadSourceSchema.default('HUNTER'),
-  targetUrl: z
-    .string()
-    .url('Please enter a valid URL')
-    .refine(
-      (url) => {
-        const parsedUrl = new URL(url);
-        return parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:';
-      },
-      { message: 'URL must use http or https protocol' }
-    )
-    .optional(),
   companyName: z.string().optional(),
   speed: z
     .number()
@@ -39,10 +28,7 @@ export const startHuntSchema = z.object({
     .max(10, 'Speed must not exceed 10')
     .default(5),
   filters: hunterFiltersSchema,
-}).refine(
-  (data) => data.targetUrl || data.companyName || data.filters?.location,
-  { message: 'Please provide either a target URL, company name, or location filters' }
-);
+});
 
 export const businessCategoryEnum = z.enum([
   'restaurant',
@@ -67,6 +53,10 @@ export const businessCategoryEnum = z.enum([
   'pet-services',
   'home-services',
   'professional-services',
+  'seo-agency',
+  'design-agency',
+  'web-dev-agency',
+  'marketing-agency',
   'other',
 ]);
 
@@ -84,6 +74,16 @@ export const listLeadsSchema = z
     search: z.string().optional(),
     country: z.string().optional(),
     city: z.string().optional(),
+    category: businessCategoryEnum.optional(),
+    businessType: z.enum(['DOMAIN', 'LOCAL_BUSINESS']).optional(),
+    contacted: z.boolean().optional(),
+    hasWebsite: z.boolean().optional(),
+    hasSocial: z.boolean().optional(),
+    hasPhone: z.boolean().optional(),
+    hasGps: z.boolean().optional(),
+    hasEmail: z.boolean().optional(),
+    sortBy: z.enum(['domain', 'email', 'city', 'country', 'score', 'status', 'createdAt']).optional(),
+    sortOrder: z.enum(['asc', 'desc']).optional(),
     page: z.number().int().min(1).optional(),
     limit: z.number().int().min(1).optional(),
   })
@@ -122,7 +122,6 @@ export const deleteAuditSchema = z.object({
 });
 
 export const exportToCsvSchema = z.object({
-  huntSessionId: z.string().optional(),
   leadIds: z.array(z.string()).optional(),
   status: z.enum(['HOT', 'WARM', 'COLD']).optional(),
   search: z.string().optional(),

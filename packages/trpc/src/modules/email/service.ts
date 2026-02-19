@@ -111,18 +111,37 @@ export class EmailService {
    * getOutreachStats
    */
   async getOutreachStats(userId: string) {
-    const [total, sent, opened, replied] = await Promise.all([
-      this.db`SELECT COUNT(*) FROM "EmailOutreach" WHERE "userId" = ${userId}` as Promise<[{count: number}]>,
-      this.db`SELECT COUNT(*) FROM "EmailOutreach" WHERE "userId" = ${userId} AND status = 'SENT'` as Promise<[{count: number}]>,
-      this.db`SELECT COUNT(*) FROM "EmailOutreach" WHERE "userId" = ${userId} AND status = 'OPENED'` as Promise<[{count: number}]>,
-      this.db`SELECT COUNT(*) FROM "EmailOutreach" WHERE "userId" = ${userId} AND status = 'REPLIED'` as Promise<[{count: number}]>,
+    const FOLLOW_UP_DAYS = 5;
+
+    const [totalRows, sentRows, openedRows, repliedRows] = await Promise.all([
+      this.db`SELECT COUNT(*)::int as count FROM "EmailOutreach" WHERE "userId" = ${userId}` as Promise<[{count: number}]>,
+      this.db`SELECT COUNT(*)::int as count FROM "EmailOutreach" WHERE "userId" = ${userId} AND status = 'SENT'` as Promise<[{count: number}]>,
+      this.db`SELECT COUNT(*)::int as count FROM "EmailOutreach" WHERE "userId" = ${userId} AND status = 'OPENED'` as Promise<[{count: number}]>,
+      this.db`SELECT COUNT(*)::int as count FROM "EmailOutreach" WHERE "userId" = ${userId} AND status = 'REPLIED'` as Promise<[{count: number}]>,
     ]);
 
-    const contactedLeads = (await this.db`
-      SELECT COUNT(*) as count
+    const total = Number(totalRows[0]?.count ?? 0);
+    const sent = Number(sentRows[0]?.count ?? 0);
+    const opened = Number(openedRows[0]?.count ?? 0);
+    const replied = Number(repliedRows[0]?.count ?? 0);
+
+    const contactedLeads = Number((await this.db`
+      SELECT COUNT(*)::int as count
       FROM "Lead"
       WHERE "userId" = ${userId} AND contacted = TRUE
-    ` as Promise<[{count: number}]>)[0].count;
+    ` as Promise<[{count: number}]>)[0]?.count ?? 0);
+
+    const needsFollowUp = Number((await this.db`
+      SELECT COUNT(DISTINCT latest."leadId")::int as count
+      FROM (
+        SELECT DISTINCT ON ("leadId") "leadId", status, "sentAt", "createdAt"
+        FROM "EmailOutreach"
+        WHERE "userId" = ${userId}
+        ORDER BY "leadId", "createdAt" DESC
+      ) latest
+      WHERE latest.status NOT IN ('REPLIED', 'BOUNCED', 'FAILED')
+        AND EXTRACT(EPOCH FROM (NOW() - COALESCE(latest."sentAt", latest."createdAt"))) / 86400 >= ${FOLLOW_UP_DAYS}
+    ` as Promise<[{count: number}]>)[0]?.count ?? 0);
 
     return {
       totalEmails: total,
@@ -130,8 +149,68 @@ export class EmailService {
       openedEmails: opened,
       repliedEmails: replied,
       contactedLeads,
-      openRate: sent > 0 ? (opened / sent) * 100 : 0,
-      replyRate: sent > 0 ? (replied / sent) * 100 : 0,
+      needsFollowUp,
+      openRate: sent > 0 ? Math.round((opened / sent) * 100) : 0,
+      replyRate: sent > 0 ? Math.round((replied / sent) * 100) : 0,
     };
+  }
+
+  /**
+   * getAllOutreach
+   */
+  async getAllOutreach(userId: string) {
+    const FOLLOW_UP_DAYS = 5;
+
+    const rows = await this.db`
+      SELECT
+        l.id as "leadId",
+        l."firstName",
+        l."lastName",
+        l.domain,
+        l."businessName",
+        l.email,
+        l.score,
+        l.status,
+        l."emailsSentCount",
+        l."lastContactedAt",
+        latest.id as "lastEmailId",
+        latest.subject as "lastEmailSubject",
+        latest.status as "lastEmailStatus",
+        latest."sentAt" as "lastEmailSentAt",
+        latest."createdAt" as "lastEmailCreatedAt",
+        EXTRACT(EPOCH FROM (NOW() - COALESCE(latest."sentAt", latest."createdAt"))) / 86400 as "daysSinceLastContact",
+        CASE
+          WHEN latest.status NOT IN ('REPLIED', 'BOUNCED', 'FAILED')
+            AND EXTRACT(EPOCH FROM (NOW() - COALESCE(latest."sentAt", latest."createdAt"))) / 86400 >= ${FOLLOW_UP_DAYS}
+          THEN true
+          ELSE false
+        END as "needsFollowUp"
+      FROM "Lead" l
+      INNER JOIN (
+        SELECT DISTINCT ON ("leadId") id, "leadId", subject, status, "sentAt", "createdAt"
+        FROM "EmailOutreach"
+        WHERE "userId" = ${userId}
+        ORDER BY "leadId", "createdAt" DESC
+      ) latest ON latest."leadId" = l.id
+      WHERE l."userId" = ${userId}
+      ORDER BY
+        CASE
+          WHEN latest.status NOT IN ('REPLIED', 'BOUNCED', 'FAILED')
+            AND EXTRACT(EPOCH FROM (NOW() - COALESCE(latest."sentAt", latest."createdAt"))) / 86400 >= ${FOLLOW_UP_DAYS}
+          THEN 0
+          WHEN latest.status = 'OPENED'
+            AND EXTRACT(EPOCH FROM (NOW() - COALESCE(latest."sentAt", latest."createdAt"))) / 86400 < ${FOLLOW_UP_DAYS}
+          THEN 1
+          WHEN latest.status = 'SENT'
+            AND EXTRACT(EPOCH FROM (NOW() - COALESCE(latest."sentAt", latest."createdAt"))) / 86400 < ${FOLLOW_UP_DAYS}
+          THEN 2
+          WHEN latest.status = 'REPLIED' THEN 3
+          ELSE 4
+        END ASC,
+        CASE l.status WHEN 'HOT' THEN 0 WHEN 'WARM' THEN 1 ELSE 2 END ASC,
+        l.score DESC
+    ` as Promise<any[]>;
+
+    return rows;
   }
 }

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
+  import { replaceState } from '$app/navigation';
   import { trpc } from '$lib/trpc';
   import { toast } from '@repo/utils';
   import { Spinner } from '@repo/ui';
@@ -8,6 +9,7 @@
   import AuditBanner from '$lib/components/leads/AuditBanner.svelte';
   import LeadsTable from '$lib/components/leads/LeadsTable.svelte';
   import LeadsGrid from '$lib/components/leads/LeadsGrid.svelte';
+  import LeadsMap from '$lib/components/leads/LeadsMap.svelte';
   import PaginationControls from '$lib/components/leads/PaginationControls.svelte';
   import { setupAuditListeners, type AuditSession } from '$lib/websocket-events.svelte.js';
   import 'iconify-icon';
@@ -27,10 +29,49 @@
     country: '',
     city: '',
     businessType: 'all' as 'all' | 'domain' | 'local',
+    category: '',
+    hasWebsite: '' as '' | 'true' | 'false',
+    hasSocial: '' as '' | 'true' | 'false',
+    hasPhone: '' as '' | 'true' | 'false',
+    hasGps: '' as '' | 'true' | 'false',
+    hasEmail: '' as '' | 'true' | 'false',
   });
 
   // View settings
   let viewMode = $state<'grid' | 'table'>('table');
+
+  let mounted = false;
+
+  function syncToUrl() {
+    const params = new URLSearchParams();
+    if (filters.search) params.set('search', filters.search);
+    if (filters.status) params.set('status', filters.status);
+    if (filters.contacted) params.set('contacted', filters.contacted);
+    if (filters.country) params.set('country', filters.country);
+    if (filters.city) params.set('city', filters.city);
+    if (filters.businessType !== 'all') params.set('businessType', filters.businessType);
+    if (filters.category) params.set('category', filters.category);
+    if (filters.hasWebsite) params.set('hasWebsite', filters.hasWebsite);
+    if (filters.hasSocial) params.set('hasSocial', filters.hasSocial);
+    if (filters.hasPhone) params.set('hasPhone', filters.hasPhone);
+    if (filters.hasGps) params.set('hasGps', filters.hasGps);
+    if (filters.hasEmail) params.set('hasEmail', filters.hasEmail);
+    if (sortBy !== 'createdAt') params.set('sortBy', sortBy);
+    if (sortOrder !== 'desc') params.set('sortOrder', sortOrder);
+    if (viewMode !== 'table') params.set('view', viewMode);
+    const qs = params.toString();
+    replaceState(qs ? `?${qs}` : location.pathname, {});
+  }
+
+  $effect(() => {
+    viewMode;
+    sortBy;
+    sortOrder;
+    const { search, status, contacted, country, city, businessType, category, hasWebsite, hasSocial, hasPhone, hasGps, hasEmail } = filters;
+    void [search, status, contacted, country, city, businessType, category, hasWebsite, hasSocial, hasPhone, hasGps, hasEmail];
+    if (!mounted) return;
+    syncToUrl();
+  });
   let currentPage = $state(1);
   let pageSize = $state(50);
   let totalPages = $state(1);
@@ -68,7 +109,27 @@
   };
 
   onMount(async () => {
-    // Setup WebSocket listeners
+    const params = new URLSearchParams(location.search);
+    filters = {
+      search: params.get('search') || '',
+      status: params.get('status') || '',
+      contacted: params.get('contacted') || '',
+      country: params.get('country') || '',
+      city: params.get('city') || '',
+      businessType: (params.get('businessType') as 'all' | 'domain' | 'local') || 'all',
+      category: params.get('category') || '',
+      hasWebsite: (params.get('hasWebsite') as '' | 'true' | 'false') || '',
+      hasSocial: (params.get('hasSocial') as '' | 'true' | 'false') || '',
+      hasPhone: (params.get('hasPhone') as '' | 'true' | 'false') || '',
+      hasGps: (params.get('hasGps') as '' | 'true' | 'false') || '',
+      hasEmail: (params.get('hasEmail') as '' | 'true' | 'false') || '',
+    };
+    const validSortCols = ['domain', 'email', 'city', 'country', 'score', 'status', 'createdAt'];
+    const urlSortBy = params.get('sortBy');
+    if (urlSortBy && validSortCols.includes(urlSortBy)) sortBy = urlSortBy;
+    if (params.get('sortOrder') === 'asc') sortOrder = 'asc';
+    if (params.get('view') === 'grid') viewMode = 'grid';
+
     wsUnsubscribers = setupAuditListeners(
       updateAuditSession,
       addAuditSession,
@@ -77,8 +138,8 @@
       loadStats
     );
 
-    await loadData();
-    await loadStats();
+    await Promise.all([loadData(), loadStats()]);
+    mounted = true;
   });
 
   onDestroy(() => {
@@ -96,6 +157,16 @@
           search: filters.search || undefined,
           country: filters.country || undefined,
           city: filters.city || undefined,
+          businessType: filters.businessType !== 'all' ? (filters.businessType === 'domain' ? 'DOMAIN' : 'LOCAL_BUSINESS') : undefined,
+          contacted: filters.contacted !== '' ? filters.contacted === 'true' : undefined,
+          category: filters.category || undefined,
+          hasWebsite: filters.hasWebsite !== '' ? filters.hasWebsite === 'true' : undefined,
+          hasSocial: filters.hasSocial !== '' ? filters.hasSocial === 'true' : undefined,
+          hasPhone: filters.hasPhone !== '' ? filters.hasPhone === 'true' : undefined,
+          hasGps: filters.hasGps !== '' ? filters.hasGps === 'true' : undefined,
+          hasEmail: filters.hasEmail !== '' ? filters.hasEmail === 'true' : undefined,
+          sortBy: sortBy as 'domain' | 'email' | 'city' | 'country' | 'score' | 'status' | 'createdAt',
+          sortOrder: sortOrder,
         }),
         trpc.lead.audit.list.query(),
       ]);
@@ -109,7 +180,7 @@
       }
     } catch (error) {
       console.error('Error loading data:', error);
-      toast.push('Failed to load leads data', 'error');
+      toast.push('Échec du chargement des leads', 'error');
       leads = [];
       auditSessions = [];
     } finally {
@@ -130,8 +201,9 @@
   // Filter handling
   let filterTimeout: ReturnType<typeof setTimeout>;
   $effect(() => {
-    // Track filter changes
-    filters;
+    const { search, status, contacted, country, city, businessType, category, hasWebsite, hasSocial, hasPhone, hasGps, hasEmail } = filters;
+    void [search, status, contacted, country, city, businessType, category, hasWebsite, hasSocial, hasPhone, hasGps, hasEmail];
+    if (!mounted) return;
     clearTimeout(filterTimeout);
     filterTimeout = setTimeout(() => {
       currentPage = 1;
@@ -143,7 +215,7 @@
     try {
       startingAudit = true;
       const result = await trpc.lead.audit.start.mutate();
-      toast.push('Audit started! Checking all leads for missing data...', 'success');
+      toast.push('Audit démarré ! Vérification des leads pour les données manquantes...', 'success');
 
       // Add the new audit session to the list
       if (result?.auditSessionId) {
@@ -162,7 +234,7 @@
         });
       }
     } catch (error) {
-      toast.push('Failed to start audit', 'error');
+      toast.push("Échec du démarrage de l'audit", 'error');
       console.error('Audit error:', error);
     } finally {
       startingAudit = false;
@@ -176,7 +248,7 @@
       // The WebSocket event will update the session status to 'CANCELLED'
       // which will make activeAudit become undefined (since it only looks for PENDING/PROCESSING)
     } catch (error) {
-      toast.push('Failed to cancel audit', 'error');
+      toast.push("Échec de l'annulation de l'audit", 'error');
       console.error('Error cancelling audit:', error);
     } finally {
       cancellingAuditId = null;
@@ -195,6 +267,8 @@
       sortBy = column;
       sortOrder = 'desc';
     }
+    currentPage = 1;
+    loadData();
   }
 
   function resetFilters() {
@@ -205,13 +279,24 @@
       country: '',
       city: '',
       businessType: 'all',
+      category: '',
+      hasWebsite: '',
+      hasSocial: '',
+      hasPhone: '',
+      hasGps: '',
+      hasEmail: '',
     };
   }
 
   async function exportToCSV() {
     try {
       exporting = true;
-      const result = await trpc.lead.importExport.exportToCsv.query({});
+      const result = await trpc.lead.importExport.exportToCsv.query({
+        status: (filters.status as 'HOT' | 'WARM' | 'COLD') || undefined,
+        search: filters.search || undefined,
+        country: filters.country || undefined,
+        city: filters.city || undefined,
+      });
 
       const blob = new Blob([result.csv], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
@@ -223,9 +308,9 @@
       link.click();
       document.body.removeChild(link);
 
-      toast.push(`Exported ${result.count} leads successfully`, 'success');
+      toast.push(`${result.count} lead(s) exporté(s) avec succès`, 'success');
     } catch (error) {
-      toast.push('Failed to export leads', 'error');
+      toast.push("Échec de l'exportation des leads", 'error');
       console.error('Export error:', error);
     } finally {
       exporting = false;
@@ -238,7 +323,7 @@
 
     if (!file) return;
     if (!file.name.endsWith('.csv')) {
-      toast.push('Please upload a CSV file', 'error');
+      toast.push('Veuillez télécharger un fichier CSV', 'error');
       return;
     }
 
@@ -247,10 +332,10 @@
       const csvText = await file.text();
       const result = await trpc.lead.importExport.importFromCsv.mutate({ csvContent: csvText });
 
-      toast.push(`Imported ${result.imported} leads successfully`, 'success');
+      toast.push(`${result.imported} lead(s) importé(s) avec succès`, 'success');
       await loadData();
     } catch (error: any) {
-      const errorMessage = error?.message || 'Failed to import CSV';
+      const errorMessage = error?.message || "Échec de l'importation du CSV";
       toast.push(errorMessage, 'error');
       console.error('Import error:', error);
     } finally {
@@ -268,63 +353,7 @@
     auditSessions.find((s) => s.status === 'PENDING' || s.status === 'PROCESSING')
   );
 
-  // Apply filters and sorting to leads
-  let processedLeads = $derived.by(() => {
-    let filtered = leads.filter((lead) => {
-      if (filters.status && lead.status !== filters.status) return false;
-      if (filters.contacted === 'true' && !lead.contacted) return false;
-      if (filters.contacted === 'false' && lead.contacted) return false;
-      if (filters.country && !lead.country?.toLowerCase().includes(filters.country.toLowerCase()))
-        return false;
-      if (filters.city && !lead.city?.toLowerCase().includes(filters.city.toLowerCase()))
-        return false;
-      if (filters.businessType === 'domain' && !lead.domain) return false;
-      if (filters.businessType === 'local' && lead.domain) return false;
-
-      if (filters.search) {
-        const search = filters.search.toLowerCase();
-        return (
-          lead.domain?.toLowerCase().includes(search) ||
-          lead.email?.toLowerCase().includes(search) ||
-          lead.firstName?.toLowerCase().includes(search) ||
-          lead.lastName?.toLowerCase().includes(search) ||
-          lead.technologies?.some((tech: string) => tech.toLowerCase().includes(search))
-        );
-      }
-      return true;
-    });
-
-    // Apply sorting
-    return [...filtered].sort((a, b) => {
-      let comparison = 0;
-      switch (sortBy) {
-        case 'domain':
-          comparison = (a.domain || '').localeCompare(b.domain || '');
-          break;
-        case 'email':
-          comparison = (a.email || '').localeCompare(b.email || '');
-          break;
-        case 'city':
-          comparison = (a.city || '').localeCompare(b.city || '');
-          break;
-        case 'country':
-          comparison = (a.country || '').localeCompare(b.country || '');
-          break;
-        case 'score':
-          comparison = a.score - b.score;
-          break;
-        case 'status':
-          const statusOrder: Record<string, number> = { HOT: 3, WARM: 2, COLD: 1 };
-          comparison = (statusOrder[a.status] || 0) - (statusOrder[b.status] || 0);
-          break;
-        case 'createdAt':
-        default:
-          comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-          break;
-      }
-      return sortOrder === 'asc' ? comparison : -comparison;
-    });
-  });
+  let processedLeads = $derived(leads);
 </script>
 
 <input
@@ -341,18 +370,10 @@
 >
   <!-- Header -->
   <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
-    <div class="flex items-center gap-4">
-      <div class="w-16 h-16 flex items-center justify-center bg-neutral-900 rounded-2xl">
-        <iconify-icon icon="solar:database-bold" width="32" class="text-white"></iconify-icon>
-      </div>
-      <div class="space-y-1">
-        <h1 class="text-5xl font-black tracking-tight leading-none" style="color: #291334;">
-          Leads<span style="color: #FEC129;">.</span>
-        </h1>
-        <p class="text-neutral-400 font-medium text-sm">
-          {totalLeads} total leads in your database
-        </p>
-      </div>
+    <div>
+      <p class="text-neutral-400 font-medium text-sm">
+        {processedLeads.length} résultat{processedLeads.length !== 1 ? 's' : ''} trouvé{processedLeads.length !== 1 ? 's' : ''}
+      </p>
     </div>
 
     <div class="flex items-center gap-3">
@@ -363,10 +384,10 @@
       >
         {#if importing}
           <Spinner size="sm" />
-          Importing...
+          Importation...
         {:else}
           <iconify-icon icon="solar:upload-bold" width="20"></iconify-icon>
-          <span>Import CSV</span>
+          <span>Importer CSV</span>
         {/if}
       </button>
 
@@ -377,10 +398,10 @@
       >
         {#if exporting}
           <Spinner size="sm" />
-          Exporting...
+          Exportation...
         {:else}
           <iconify-icon icon="solar:download-bold" width="20"></iconify-icon>
-          <span>Export CSV</span>
+          <span>Exporter CSV</span>
         {/if}
       </button>
 
@@ -391,10 +412,10 @@
       >
         {#if startingAudit}
           <Spinner size="sm" />
-          Starting...
+          Démarrage...
         {:else}
           <iconify-icon icon="solar:shield-check-bold" width="20"></iconify-icon>
-          <span>Start Audit</span>
+          <span>Lancer l'audit</span>
         {/if}
       </button>
     </div>
@@ -416,7 +437,36 @@
     {/if}
 
     <!-- Filters -->
-    <FilterPanel bind:filters bind:viewMode onReset={resetFilters} />
+    <FilterPanel bind:filters bind:viewMode leads={leads} onReset={resetFilters} />
+
+    <!-- Sort Controls -->
+    <div class="flex items-center gap-2 flex-wrap">
+      {#each [
+        { label: 'Date', value: 'createdAt' },
+        { label: 'Score', value: 'score' },
+        { label: 'Domaine', value: 'domain' },
+        { label: 'E-mail', value: 'email' },
+        { label: 'Localisation', value: 'city' },
+        { label: 'Priorité', value: 'status' },
+      ] as opt}
+        <button
+          onclick={() => handleSort(opt.value)}
+          class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-all {sortBy === opt.value ? 'bg-black text-white shadow-md' : 'bg-white text-neutral-600 hover:bg-neutral-100 shadow-sm'}"
+        >
+          {opt.label}
+          <iconify-icon
+            icon={sortBy === opt.value ? (sortOrder === 'asc' ? 'solar:arrow-up-bold' : 'solar:arrow-down-bold') : 'solar:arrow-down-bold'}
+            width="13"
+            class={sortBy === opt.value ? '' : 'opacity-20'}
+          ></iconify-icon>
+        </button>
+      {/each}
+    </div>
+
+    <!-- Leads Map -->
+    {#if !initialLoading && processedLeads.some(l => l.coordinates)}
+      <LeadsMap leads={processedLeads} />
+    {/if}
 
     <!-- Leads Table/Grid -->
     <div class="rounded-[40px] overflow-hidden shadow-lg" style="background-color: #EFEAE6;">
@@ -433,8 +483,8 @@
             filters.contacted ||
             filters.country ||
             filters.city
-              ? 'No leads match your filters'
-              : 'No leads available'}
+              ? 'Aucun lead ne correspond à vos filtres'
+              : 'Aucun lead disponible'}
           </p>
         </div>
       {:else if viewMode === 'table'}

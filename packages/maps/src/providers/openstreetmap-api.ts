@@ -227,110 +227,126 @@ export class OpenStreetMapService {
     }
   }
 
-  private getCategoryQuery(category: string): string {
-    const categoryMap: Record<string, string> = {
-      restaurant: 'amenity=restaurant',
-      cafe: 'amenity=cafe',
-      bar: 'amenity=bar',
-      retail: 'shop',
-      office: 'office',
-      hotel: 'tourism=hotel',
-      bank: 'amenity=bank',
-      pharmacy: 'amenity=pharmacy',
-      store: 'shop',
-      supermarket: 'shop=supermarket',
-      service: 'shop',  // Generic service businesses
-      'professional-services': 'office',  // Professional services are usually offices
-      healthcare: 'amenity=doctors|amenity=dentist|amenity=hospital',
-      fitness: 'leisure=fitness_centre|leisure=sports_centre',
-      beauty: 'shop=beauty|shop=hairdresser',
-      automotive: 'shop=car_repair|amenity=fuel',
-      education: 'amenity=school|amenity=college|amenity=university',
-      entertainment: 'amenity=cinema|amenity=theatre|leisure=amusement_arcade',
+  private getCategoryFilters(category: string): Array<{ key: string; value?: string }> {
+    const categoryMap: Record<string, Array<{ key: string; value?: string }>> = {
+      restaurant: [{ key: 'amenity', value: 'restaurant' }],
+      cafe: [{ key: 'amenity', value: 'cafe' }],
+      bar: [{ key: 'amenity', value: 'bar' }],
+      retail: [{ key: 'shop' }],
+      office: [{ key: 'office' }],
+      hotel: [{ key: 'tourism', value: 'hotel' }],
+      bank: [{ key: 'amenity', value: 'bank' }],
+      pharmacy: [{ key: 'amenity', value: 'pharmacy' }],
+      store: [{ key: 'shop' }],
+      supermarket: [{ key: 'shop', value: 'supermarket' }],
+      service: [{ key: 'shop' }],
+      'professional-services': [{ key: 'office' }],
+      healthcare: [
+        { key: 'amenity', value: 'doctors' },
+        { key: 'amenity', value: 'dentist' },
+        { key: 'amenity', value: 'hospital' },
+      ],
+      fitness: [
+        { key: 'leisure', value: 'fitness_centre' },
+        { key: 'leisure', value: 'sports_centre' },
+      ],
+      beauty: [
+        { key: 'shop', value: 'beauty' },
+        { key: 'shop', value: 'hairdresser' },
+      ],
+      automotive: [
+        { key: 'shop', value: 'car_repair' },
+        { key: 'amenity', value: 'fuel' },
+      ],
+      education: [
+        { key: 'amenity', value: 'school' },
+        { key: 'amenity', value: 'college' },
+        { key: 'amenity', value: 'university' },
+      ],
+      entertainment: [
+        { key: 'amenity', value: 'cinema' },
+        { key: 'amenity', value: 'theatre' },
+        { key: 'leisure', value: 'amusement_arcade' },
+      ],
     };
 
     const normalized = category.toLowerCase().replace(/_/g, '-');
+    const filters = categoryMap[normalized];
+    if (filters) return filters;
 
-    // Get the mapped query or default to shop for unknown categories
-    const query = categoryMap[normalized];
-
-    if (query) {
-      return query;
-    }
-
-    // For unknown categories, try to be smart about it
-    // If it contains certain keywords, map to appropriate tags
     if (normalized.includes('shop') || normalized.includes('store')) {
-      return 'shop';
+      return [{ key: 'shop' }];
     }
     if (normalized.includes('food') || normalized.includes('restaurant')) {
-      return 'amenity=restaurant|amenity=cafe|amenity=fast_food';
+      return [
+        { key: 'amenity', value: 'restaurant' },
+        { key: 'amenity', value: 'cafe' },
+        { key: 'amenity', value: 'fast_food' },
+      ];
     }
     if (normalized.includes('service')) {
-      return 'shop';  // Most services are shops in OSM
+      return [{ key: 'shop' }];
     }
 
-    // Default fallback - search for shops with this category name
-    // This prevents malformed queries
     console.log(`[OpenStreetMap] Warning: Unknown category "${category}", defaulting to shop search`);
-    return 'shop';
+    return [{ key: 'shop' }];
+  }
+
+  private buildOverpassUnion(
+    filters: Array<{ key: string; value?: string }>,
+    radius: number,
+    lat: number,
+    lng: number
+  ): string {
+    const lines: string[] = [];
+    for (const f of filters) {
+      const tag = f.value ? `["${f.key}"="${f.value}"]` : `["${f.key}"]`;
+      lines.push(`  node${tag}(around:${radius},${lat},${lng});`);
+      lines.push(`  way${tag}(around:${radius},${lat},${lng});`);
+      lines.push(`  relation${tag}(around:${radius},${lat},${lng});`);
+    }
+    return lines.join('\n');
   }
 
   async searchNearby(options: SearchOptions): Promise<SearchResult> {
     try {
       const coordinates = await this.geocode(options.location);
       let radius = options.radius || 5000;
-      const maxResults = options.maxResults || 50;
-      const categoryQuery = this.getCategoryQuery(options.category);
+      const filters = this.getCategoryFilters(options.category);
 
       let attempts = 0;
       let response;
       let lastError;
 
-      // Try with progressively smaller radius if we get timeouts
       while (attempts < 3 && !response) {
         attempts++;
 
-        // Reduce radius on retry to avoid timeouts
         if (attempts > 1) {
           radius = Math.floor(radius * 0.6);
           console.log(`[OpenStreetMap] Retrying with smaller radius: ${radius}m`);
         }
 
-        // Adjust timeout based on radius
         const timeout = radius > 3000 ? 25 : 15;
+        const unionBody = this.buildOverpassUnion(filters, radius, coordinates.lat, coordinates.lng);
 
-        const query = `
-          [out:json][timeout:${timeout}];
-          (
-            node[${categoryQuery}](around:${radius},${coordinates.lat},${coordinates.lng});
-            way[${categoryQuery}](around:${radius},${coordinates.lat},${coordinates.lng});
-            relation[${categoryQuery}](around:${radius},${coordinates.lat},${coordinates.lng});
-          );
-          out body;
-          >;
-          out skel qt;
-        `;
+        const query = `[out:json][timeout:${timeout}];\n(\n${unionBody}\n);\nout center;`;
 
         console.log(`[OpenStreetMap] Searching for ${options.category} near ${options.location} (${coordinates.lat}, ${coordinates.lng}) with radius ${radius}m`);
 
         try {
           response = await this.api.exec(query);
 
-          // Validate response structure
           if (!response || typeof response !== 'object') {
             throw new Error('Invalid response structure from Overpass API');
           }
         } catch (error) {
           lastError = error;
 
-          // If it's a timeout or server error, try with smaller radius
           if (error instanceof Error && (error.message.includes('504') || error.message.includes('timeout'))) {
             console.log(`[OpenStreetMap] Query timed out, will retry with smaller radius`);
             continue;
           }
 
-          // For other errors, fail immediately
           throw error;
         }
       }
@@ -345,7 +361,6 @@ export class OpenStreetMapService {
 
       const businesses: LocalBusiness[] = elements
         .filter((element: any) => element.tags && element.tags.name)
-        .slice(0, maxResults)
         .map((element: any) => {
           const tags = element.tags || {};
           const lat = element.lat || (element.center?.lat) || 0;
@@ -365,21 +380,24 @@ export class OpenStreetMapService {
             category: tags.amenity || tags.shop || tags.office || tags.tourism || options.category,
             coordinates: { lat, lng },
             address: [
-              tags['addr:street'],
               tags['addr:housenumber'],
-              tags['addr:city'],
-              tags['addr:postcode'],
+              tags['addr:street'],
             ]
               .filter(Boolean)
-              .join(', ') || undefined,
+              .join(' ') || undefined,
+            city: tags['addr:city'] || tags['addr:town'] || tags['addr:village'] || undefined,
+            country: tags['addr:country'] || undefined,
+            postalCode: tags['addr:postcode'] || undefined,
             phone: tags.phone || tags['contact:phone'] || undefined,
             email: tags.email || tags['contact:email'] || undefined,
             website: tags.website || tags['contact:website'] || undefined,
             openingHours,
             source: 'openstreetmap' as const,
+            hasWebsite,
           };
         })
-        .filter((b: LocalBusiness | null): b is LocalBusiness => b !== null);
+        .filter((b: LocalBusiness | null): b is LocalBusiness => b !== null)
+        .filter((b: LocalBusiness) => b.coordinates && (b.coordinates.lat !== 0 || b.coordinates.lng !== 0));
 
       return {
         businesses,

@@ -47,20 +47,19 @@
 
         <h2 class="text-3xl font-bold text-gray-800 mb-4">
           {#if status === 404}
-            Page Not Found
+            Page Introuvable
           {:else if status === 500}
-            Internal Server Error
+            Erreur Interne du Serveur
           {:else}
-            Oops! Something went wrong
+            Oups ! Une erreur s'est produite
           {/if}
         </h2>
 
         <p class="text-lg text-gray-600 mb-8 max-w-md mx-auto">
           {#if status === 404}
-            The page you're looking for seems to have wandered off into the digital void. Let's get
-            you back on track.
+            La page que vous recherchez semble s'être perdue dans le vide numérique. Revenons sur la bonne voie.
           {:else if status === 500}
-            Our servers are having a moment. We're on it! Please try again in a few moments.
+            Nos serveurs traversent un moment difficile. On s'en occupe ! Veuillez réessayer dans quelques instants.
           {:else}
             {message}
           {/if}
@@ -72,7 +71,7 @@
             class="group relative px-8 py-3 bg-primary text-white font-semibold rounded-lg shadow-lg hover:bg-primary-hover transition-all duration-200 hover:scale-105 active:scale-95 flex items-center gap-2 cursor-pointer"
           >
             <iconify-icon icon="solar:home-2-bold" width="20"></iconify-icon>
-            <span>Go Home</span>
+            <span>Accueil</span>
             <iconify-icon
               icon="solar:arrow-right-bold"
               width="20"
@@ -85,7 +84,7 @@
             class="px-8 py-3 bg-white text-primary font-semibold rounded-lg shadow-md hover:shadow-lg border-2 border-primary transition-all duration-200 hover:scale-105 active:scale-95 flex items-center gap-2 cursor-pointer"
           >
             <iconify-icon icon="solar:arrow-left-bold" width="20"></iconify-icon>
-            <span>Go Back</span>
+            <span>Retour</span>
           </button>
         </div>
       </div>

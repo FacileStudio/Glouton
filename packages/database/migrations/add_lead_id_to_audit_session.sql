@@ -1,2 +1,0 @@
-ALTER TABLE "AuditSession"
-ADD COLUMN "leadId" TEXT NULL;
