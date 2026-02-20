@@ -412,62 +412,76 @@ export class LocalBusinessHuntProcessor {
     category: string,
     emitter: JobEventEmitter
   ): Promise<void> {
-    const currentSessionData = await prisma.huntSession.findUnique({
-      where: { id: huntSessionId },
-      select: { totalLeads: true, successfulLeads: true, filters: true },
+    const result = await prisma.$transaction(async (tx) => {
+      const currentSessionData = await tx.huntSession.findUnique({
+        where: { id: huntSessionId },
+        select: { totalLeads: true, successfulLeads: true, filters: true },
+      });
+
+      const currentFilters = (currentSessionData?.filters as any) || {};
+      const completedJobs = (currentFilters.completedJobs || 0) + 1;
+      const totalJobs = currentFilters.totalJobs || 1;
+
+      const updatedSession = await tx.huntSession.update({
+        where: { id: huntSessionId },
+        data: {
+          totalLeads: { increment: successCount },
+          successfulLeads: { increment: successCount },
+          filters: {
+            ...currentFilters,
+            completedJobs,
+          } as Prisma.InputJsonValue,
+          updatedAt: new Date(),
+        },
+        select: { totalLeads: true, successfulLeads: true, filters: true },
+      });
+
+      const finalTotalLeads = updatedSession.totalLeads || 0;
+      const finalSuccessfulLeads = updatedSession.successfulLeads || 0;
+      const isCompleted = completedJobs >= totalJobs;
+      const progressPercent = isCompleted ? 100 : Math.min(95, Math.floor((completedJobs / totalJobs) * 100));
+
+      await tx.huntSession.update({
+        where: { id: huntSessionId },
+        data: {
+          status: isCompleted ? 'COMPLETED' : 'PROCESSING',
+          progress: progressPercent,
+          completedAt: isCompleted ? new Date() : null,
+          updatedAt: new Date(),
+        },
+      });
+
+      return {
+        finalTotalLeads,
+        finalSuccessfulLeads,
+        isCompleted,
+        progressPercent,
+        completedJobs,
+        totalJobs,
+      };
     });
 
-    const currentFilters = (currentSessionData?.filters as any) || {};
-    const completedJobs = (currentFilters.completedJobs || 0) + 1;
-    const totalJobs = currentFilters.totalJobs || 1;
-
-    const updatedSession = await prisma.huntSession.update({
-      where: { id: huntSessionId },
-      data: {
-        totalLeads: { increment: successCount },
-        successfulLeads: { increment: successCount },
-        filters: {
-          ...currentFilters,
-          completedJobs,
-        } as Prisma.InputJsonValue,
-        updatedAt: new Date(),
-      },
-      select: { totalLeads: true, successfulLeads: true, filters: true },
-    });
-
-    const finalTotalLeads = updatedSession.totalLeads || 0;
-    const finalSuccessfulLeads = updatedSession.successfulLeads || 0;
-    const isCompleted = completedJobs >= totalJobs;
-    const progressPercent = isCompleted ? 100 : Math.min(95, Math.floor((completedJobs / totalJobs) * 100));
-
-    await prisma.huntSession.update({
-      where: { id: huntSessionId },
-      data: {
-        status: isCompleted ? 'COMPLETED' : 'PROCESSING',
-        progress: progressPercent,
-        completedAt: isCompleted ? new Date() : null,
-        updatedAt: new Date(),
-      },
-    });
+    console.log(`[LocalBusinessHunt] Job completed for ${category} in ${location} (${result.completedJobs}/${result.totalJobs})`);
 
     emitter.emit('hunt-progress', {
       huntSessionId,
-      progress: progressPercent,
-      totalLeads: finalTotalLeads,
-      successfulLeads: finalSuccessfulLeads,
+      progress: result.progressPercent,
+      totalLeads: result.finalTotalLeads,
+      successfulLeads: result.finalSuccessfulLeads,
       location,
       category,
-      status: isCompleted ? 'COMPLETED' : 'PROCESSING',
+      status: result.isCompleted ? 'COMPLETED' : 'PROCESSING',
     });
 
-    if (isCompleted) {
+    if (result.isCompleted) {
+      console.log(`[LocalBusinessHunt] All jobs completed! Emitting hunt-completed event`);
       emitter.emit('hunt-completed', {
         huntSessionId,
-        totalLeads: finalTotalLeads,
-        successfulLeads: finalSuccessfulLeads,
+        totalLeads: result.finalTotalLeads,
+        successfulLeads: result.finalSuccessfulLeads,
         location,
         category,
-        message: `Hunt completed! Found ${finalSuccessfulLeads} ${category} businesses in ${location}`,
+        message: `Hunt completed! Found ${result.finalSuccessfulLeads} ${category} businesses in ${location}`,
       });
     }
   }
