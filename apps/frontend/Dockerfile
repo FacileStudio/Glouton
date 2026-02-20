@@ -21,10 +21,33 @@ COPY packages/tsconfig/package.json ./packages/tsconfig/
 
 RUN bun install --no-save
 
-FROM base AS builder
+FROM node:20-alpine AS builder
 WORKDIR /app
 
-COPY --from=deps /app/node_modules ./node_modules
+# Copy package files
+COPY package.json bun.lock ./
+COPY apps/frontend/package.json ./apps/frontend/
+COPY packages/auth-shared/package.json ./packages/auth-shared/
+COPY packages/database/package.json ./packages/database/
+COPY packages/env/package.json ./packages/env/
+COPY packages/eslint-config/package.json ./packages/eslint-config/
+COPY packages/hunter/package.json ./packages/hunter/
+COPY packages/lead-sources/package.json ./packages/lead-sources/
+COPY packages/logger/package.json ./packages/logger/
+COPY packages/trpc/package.json ./packages/trpc/
+COPY packages/trpc-client/package.json ./packages/trpc-client/
+COPY packages/types/package.json ./packages/types/
+COPY packages/ui/package.json ./packages/ui/
+COPY packages/utils/package.json ./packages/utils/
+COPY packages/tsconfig/package.json ./packages/tsconfig/
+
+# Install bun for the build
+RUN npm install -g bun@1.3.7
+
+# Install dependencies
+RUN bun install --frozen-lockfile
+
+# Copy source
 COPY . .
 
 ARG VITE_API_URL
