@@ -12,6 +12,9 @@ export default defineConfig({
     }
   },
   assetsInclude: ['***.woff2', '***.otf'],
+  ssr: {
+    noExternal: ['@repo/*'],
+  },
   build: {
     rollupOptions: {
       onwarn(warning, warn) {
