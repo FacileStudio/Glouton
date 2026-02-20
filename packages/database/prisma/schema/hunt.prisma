@@ -1,0 +1,75 @@
+model HuntSession {
+  id                  String       @id @default(dbgenerated("gen_random_uuid()")) @db.Text
+  userId              String       @db.Text
+  jobId               String?      @unique @db.Text
+  huntType            HuntType     @default(DOMAIN)
+  sources             LeadSource[]
+  domain              String?      @db.Text
+  filters             Json?
+  status              HuntStatus   @default(PENDING)
+  progress            Int          @default(0)
+  totalLeads          Int          @default(0)
+  successfulLeads     Int          @default(0)
+  failedLeads         Int          @default(0)
+  sourceStats         Json?
+  error               String?      @db.Text
+  lastProcessedIndex  Int?
+  currentDomain       String?      @db.Text
+  currentSource       LeadSource?
+  startedAt           DateTime?    @db.Timestamptz(3)
+  completedAt         DateTime?    @db.Timestamptz(3)
+  createdAt           DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime     @default(now()) @updatedAt @db.Timestamptz(3)
+
+  user                User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  events              HuntSessionEvent[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([huntType])
+  @@index([jobId])
+}
+
+model HuntSessionEvent {
+  id             String     @id @default(dbgenerated("gen_random_uuid()")) @db.Text
+  huntSessionId  String     @db.Text
+  timestamp      DateTime   @default(now()) @db.Timestamptz(3)
+  level          EventLevel
+  category       String     @db.Text
+  message        String     @db.Text
+  metadata       Json?
+  createdAt      DateTime   @default(now()) @db.Timestamptz(3)
+
+  huntSession    HuntSession @relation(fields: [huntSessionId], references: [id], onDelete: Cascade)
+
+  @@index([huntSessionId])
+  @@index([level])
+  @@index([category])
+  @@index([timestamp])
+}
+
+model AuditSession {
+  id                 String       @id @default(dbgenerated("gen_random_uuid()")) @db.Text
+  userId             String       @db.Text
+  jobId              String?      @unique @db.Text
+  leadId             String?      @db.Text
+  status             AuditStatus  @default(PENDING)
+  progress           Int          @default(0)
+  totalLeads         Int          @default(0)
+  processedLeads     Int          @default(0)
+  updatedLeads       Int          @default(0)
+  failedLeads        Int          @default(0)
+  currentDomain      String?      @db.Text
+  lastProcessedIndex Int          @default(0)
+  error              String?      @db.Text
+  startedAt          DateTime?    @db.Timestamptz(3)
+  completedAt        DateTime?    @db.Timestamptz(3)
+  createdAt          DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime     @default(now()) @updatedAt @db.Timestamptz(3)
+
+  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([jobId])
+}

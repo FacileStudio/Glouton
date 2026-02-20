@@ -31,6 +31,11 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+ARG DATABASE_URL
+ENV DATABASE_URL=$DATABASE_URL
+
+RUN cd packages/database && bun run prisma:generate
+
 FROM base AS runner
 WORKDIR /app
 
@@ -49,4 +54,4 @@ USER backend
 
 EXPOSE 3001
 
-CMD ["bun", "run", "apps/backend/src/index.ts"]
+CMD sh -c "cd packages/database && bun run prisma:push && cd ../.. && bun run apps/backend/src/index.ts"

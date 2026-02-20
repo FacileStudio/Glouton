@@ -1,9 +1,9 @@
 import type { JobDefinition } from '../types';
-import type { SQL } from 'bun';
 import { Job as BullJob } from 'bullmq';
 import { HunterService, type HunterDiscoverFilters } from '@repo/hunter';
 import type { EventEmitter } from './index';
 import { JobEventEmitter } from '../lib/job-event-emitter';
+import { prisma } from '@repo/database';
 
 export interface DomainFinderData {
   huntSessionId: string;
@@ -24,7 +24,6 @@ export interface DomainFinderData {
 }
 
 export function createDomainFinderWorker(
-  db: SQL,
   events: EventEmitter
 ): JobDefinition<DomainFinderData, void> {
   return {
@@ -34,20 +33,23 @@ export function createDomainFinderWorker(
       const emitter = new JobEventEmitter(events, userId);
 
       try {
-        const [user] = (await db`
-          SELECT "hunterApiKey" FROM "User" WHERE id = ${userId}
-        `) as any[];
+        const user = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { hunterApiKey: true },
+        });
 
         if (!user) throw new Error(`User ${userId} not found`);
         if (!user.hunterApiKey) throw new Error('Hunter.io API key not configured');
 
-        await db`
-          UPDATE "HuntSession"
-          SET status = 'PROCESSING',
-              "startedAt" = ${new Date()},
-              "updatedAt" = ${new Date()}
-          WHERE id = ${huntSessionId}
-        `;
+        const startedAt = new Date();
+        await prisma.huntSession.update({
+          where: { id: huntSessionId },
+          data: {
+            status: 'PROCESSING',
+            startedAt,
+            updatedAt: startedAt,
+          },
+        });
 
         emitter.emit('hunt-started', {
           huntSessionId,
@@ -94,16 +96,18 @@ export function createDomainFinderWorker(
         const result = await hunter.discover(discoverFilters);
 
         if (!result || result.data.length === 0) {
-          await db`
-            UPDATE "HuntSession"
-            SET status = 'COMPLETED',
-                progress = 100,
-                "totalLeads" = 0,
-                "successfulLeads" = 0,
-                "completedAt" = ${new Date()},
-                "updatedAt" = ${new Date()}
-            WHERE id = ${huntSessionId}
-          `;
+          const completedAt = new Date();
+          await prisma.huntSession.update({
+            where: { id: huntSessionId },
+            data: {
+              status: 'COMPLETED',
+              progress: 100,
+              totalLeads: 0,
+              successfulLeads: 0,
+              completedAt,
+              updatedAt: completedAt,
+            },
+          });
 
           emitter.emit('hunt-completed', {
             huntSessionId,
@@ -119,16 +123,16 @@ export function createDomainFinderWorker(
 
         await job.updateProgress(10);
 
-        const pgDomains = `{${companies
-          .map((c) => `"${c.domain.replace(/"/g, '\\"')}"`)
-          .join(',')}}`;
+        const domains = companies.map((c) => c.domain);
 
-        const existing = (await db`
-          SELECT domain FROM "Lead"
-          WHERE "userId" = ${userId}
-            AND email IS NULL
-            AND domain = ANY(${pgDomains}::text[])
-        `) as any[];
+        const existing = await prisma.lead.findMany({
+          where: {
+            userId,
+            email: null,
+            domain: { in: domains },
+          },
+          select: { domain: true },
+        });
 
         const existingDomains = new Set(existing.map((l) => l.domain));
         const newCompanies = companies.filter((c) => !existingDomains.has(c.domain));
@@ -144,44 +148,49 @@ export function createDomainFinderWorker(
           const company = newCompanies[i];
 
           if (await job.isFailed()) {
-            await db`
-              UPDATE "HuntSession"
-              SET status = 'CANCELLED',
-                  "completedAt" = ${new Date()},
-                  "updatedAt" = ${new Date()}
-              WHERE id = ${huntSessionId}
-            `;
+            const cancelledAt = new Date();
+            await prisma.huntSession.update({
+              where: { id: huntSessionId },
+              data: {
+                status: 'CANCELLED',
+                completedAt: cancelledAt,
+                updatedAt: cancelledAt,
+              },
+            });
 
             emitter.emit('hunt-cancelled', { huntSessionId, successfulLeads });
             return;
           }
 
           try {
-            await db`INSERT INTO "Lead" ${db({
-              userId,
-              huntSessionId,
-              source: 'HUNTER',
-              domain: company.domain,
-              businessName: company.organization || null,
-              status: 'COLD',
-              score: 70,
-              technologies: '{}',
-              additionalEmails: '{}',
-              phoneNumbers: '{}',
-              physicalAddresses: '{}',
-              socialProfiles: null,
-              companyInfo: {
-                industry: company.industry || null,
-                headcount: company.headcount || null,
-                emailsCount: (company.emails_count as any)?.total || null,
-                location: company.location || null,
+            const now = new Date();
+            await prisma.lead.create({
+              data: {
+                userId,
+                huntSessionId,
+                source: 'HUNTER',
+                domain: company.domain,
+                businessName: company.organization || null,
+                status: 'COLD',
+                score: 70,
+                technologies: [],
+                additionalEmails: [],
+                phoneNumbers: [],
+                physicalAddresses: [],
+                socialProfiles: null,
+                companyInfo: {
+                  industry: company.industry || null,
+                  headcount: company.headcount || null,
+                  emailsCount: (company.emails_count as any)?.total || null,
+                  location: company.location || null,
+                },
+                websiteAudit: null,
+                contacted: false,
+                emailsSentCount: 0,
+                createdAt: now,
+                updatedAt: now,
               },
-              websiteAudit: null,
-              contacted: false,
-              emailsSentCount: 0,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            })}`;
+            });
 
             successfulLeads++;
 
@@ -205,29 +214,32 @@ export function createDomainFinderWorker(
               status: 'PROCESSING',
             });
 
-            await db`
-              UPDATE "HuntSession"
-              SET progress = ${progress},
-                  "successfulLeads" = ${successfulLeads},
-                  "totalLeads" = ${i + 1},
-                  "updatedAt" = ${new Date()}
-              WHERE id = ${huntSessionId}
-            `;
+            await prisma.huntSession.update({
+              where: { id: huntSessionId },
+              data: {
+                progress,
+                successfulLeads,
+                totalLeads: i + 1,
+                updatedAt: new Date(),
+              },
+            });
           } catch (err) {
             console.error(`[DomainFinder] Error inserting domain ${company.domain}:`, err);
           }
         }
 
-        await db`
-          UPDATE "HuntSession"
-          SET status = 'COMPLETED',
-              progress = 100,
-              "totalLeads" = ${totalToProcess},
-              "successfulLeads" = ${successfulLeads},
-              "completedAt" = ${new Date()},
-              "updatedAt" = ${new Date()}
-          WHERE id = ${huntSessionId}
-        `;
+        const completedAt = new Date();
+        await prisma.huntSession.update({
+          where: { id: huntSessionId },
+          data: {
+            status: 'COMPLETED',
+            progress: 100,
+            totalLeads: totalToProcess,
+            successfulLeads,
+            completedAt,
+            updatedAt: completedAt,
+          },
+        });
 
         await job.updateProgress(100);
 
@@ -246,14 +258,16 @@ export function createDomainFinderWorker(
 
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
-        await db`
-          UPDATE "HuntSession"
-          SET status = 'FAILED',
-              error = ${errorMessage},
-              "completedAt" = ${new Date()},
-              "updatedAt" = ${new Date()}
-          WHERE id = ${huntSessionId}
-        `;
+        const failedAt = new Date();
+        await prisma.huntSession.update({
+          where: { id: huntSessionId },
+          data: {
+            status: 'FAILED',
+            error: errorMessage,
+            completedAt: failedAt,
+            updatedAt: failedAt,
+          },
+        });
 
         emitter.emit('hunt-failed', {
           huntSessionId,

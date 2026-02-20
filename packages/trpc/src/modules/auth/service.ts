@@ -1,6 +1,6 @@
 import { TRPCError } from '@trpc/server';
 import { UserRole } from '@repo/types';
-import { SQL, sql } from 'bun';
+import { prisma } from '@repo/database/prisma';
 import type { AuthManager } from '@repo/auth';
 import type { LoginInput, RegisterInput, SessionUser } from '@repo/auth-shared';
 
@@ -29,16 +29,20 @@ const userSelection = {
 };
 
 export const authService = {
-  login: async (db: SQL, auth: AuthManager, input: LoginInput) => {
-    const [user] = await db`
-      SELECT id, email, "firstName", "lastName", password, role, "isPremium"
-      FROM "User"
-      WHERE email = ${input.email}
-    ` as Promise<any[]>;
+  login: async (auth: AuthManager, input: LoginInput) => {
+    const user = await prisma.user.findUnique({
+      where: { email: input.email },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        password: true,
+        role: true,
+        isPremium: true,
+      },
+    });
 
-    /**
-     * if
-     */
     if (!user || !(await auth.verifyPassword(input.password, user.password))) {
       throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid credentials' });
     }
@@ -49,33 +53,36 @@ export const authService = {
     return { token, user: sessionUser };
   },
 
-  register: async (db: SQL, auth: AuthManager, input: RegisterInput) => {
-    const [exists] = await db`
-      SELECT id FROM "User" WHERE email = ${input.email}
-    ` as Promise<any[]>;
-    /**
-     * if
-     */
+  register: async (auth: AuthManager, input: RegisterInput) => {
+    const exists = await prisma.user.findUnique({
+      where: { email: input.email },
+      select: { id: true },
+    });
+
     if (exists) {
       throw new TRPCError({ code: 'CONFLICT', message: 'This email is already in use' });
     }
 
     const passwordHash = await auth.hashPassword(input.password);
 
-    const [user] = await db`
-      INSERT INTO "User" (
-        email, "firstName", "lastName", password, role, "createdAt", "updatedAt"
-      ) VALUES (
-        ${input.email},
-        ${input.firstName},
-        ${input.lastName},
-        ${passwordHash},
-        ${UserRole.USER},
-        ${new Date()},
-        ${new Date()}
-      )
-      RETURNING id, email, "firstName", "lastName", password, role, "isPremium"
-    ` as Promise<any[]>;
+    const user = await prisma.user.create({
+      data: {
+        email: input.email,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        password: passwordHash,
+        role: UserRole.USER,
+      },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        password: true,
+        role: true,
+        isPremium: true,
+      },
+    });
 
     const sessionUser = mapToSessionUser(user);
     const token = await auth.createToken(sessionUser);

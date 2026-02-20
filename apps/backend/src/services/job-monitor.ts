@@ -1,39 +1,43 @@
-import type { SQL } from 'bun';
+import type { PrismaClient } from '@prisma/client';
 import type { QueueManager } from '@repo/jobs';
 
-export async function checkOrphanedSessions(db: SQL, jobs: QueueManager) {
-  // Check audit sessions older than 5 minutes without jobId
-  const orphanedAudits = await db`
-    UPDATE "AuditSession"
-    SET status = 'FAILED',
-        error = 'Session orphaned',
-        "completedAt" = NOW()
-    WHERE status IN ('PENDING', 'PROCESSING')
-      AND "jobId" IS NULL
-      AND "createdAt" < NOW() - INTERVAL '5 minutes'
-    RETURNING id
-  `;
+export async function checkOrphanedSessions(prisma: PrismaClient, jobs: QueueManager) {
+  const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
 
-  // Check hunt sessions older than 5 minutes without jobId
-  const orphanedHunts = await db`
-    UPDATE "HuntSession"
-    SET status = 'FAILED',
-        error = 'Session orphaned',
-        "completedAt" = NOW()
-    WHERE status IN ('PENDING', 'PROCESSING')
-      AND "jobId" IS NULL
-      AND "createdAt" < NOW() - INTERVAL '5 minutes'
-    RETURNING id
-  `;
+  const orphanedAudits = await prisma.auditSession.updateMany({
+    where: {
+      status: { in: ['PENDING', 'PROCESSING'] },
+      jobId: null,
+      createdAt: { lt: fiveMinutesAgo }
+    },
+    data: {
+      status: 'FAILED',
+      error: 'Session orphaned',
+      completedAt: new Date()
+    }
+  });
+
+  const orphanedHunts = await prisma.huntSession.updateMany({
+    where: {
+      status: { in: ['PENDING', 'PROCESSING'] },
+      jobId: null,
+      createdAt: { lt: fiveMinutesAgo }
+    },
+    data: {
+      status: 'FAILED',
+      error: 'Session orphaned',
+      completedAt: new Date()
+    }
+  });
 
   return {
-    audits: orphanedAudits.length,
-    hunts: orphanedHunts.length,
+    audits: orphanedAudits.count,
+    hunts: orphanedHunts.count,
   };
 }
 
 export async function syncJobState(
-  db: SQL,
+  prisma: PrismaClient,
   jobs: QueueManager,
   sessionType: 'audit' | 'hunt',
   sessionId: string,
@@ -41,23 +45,22 @@ export async function syncJobState(
 ): Promise<boolean> {
   const job = await jobs.getJob('leads', jobId);
   if (!job) {
-    // Job doesn't exist, mark session as failed
+    const updateData = {
+      status: 'FAILED' as const,
+      error: 'Job not found',
+      completedAt: new Date()
+    };
+
     if (sessionType === 'audit') {
-      await db`
-        UPDATE "AuditSession"
-        SET status = 'FAILED',
-            error = 'Job not found',
-            "completedAt" = NOW()
-        WHERE id = ${sessionId}
-      `;
+      await prisma.auditSession.update({
+        where: { id: sessionId },
+        data: updateData
+      });
     } else {
-      await db`
-        UPDATE "HuntSession"
-        SET status = 'FAILED',
-            error = 'Job not found',
-            "completedAt" = NOW()
-        WHERE id = ${sessionId}
-      `;
+      await prisma.huntSession.update({
+        where: { id: sessionId },
+        data: updateData
+      });
     }
     return false;
   }
@@ -68,22 +71,22 @@ export async function syncJobState(
     const status = state === 'completed' ? 'COMPLETED' : 'FAILED';
     const error = state === 'failed' ? job.failedReason : null;
 
+    const updateData = {
+      status: status as 'COMPLETED' | 'FAILED',
+      error: error,
+      completedAt: new Date()
+    };
+
     if (sessionType === 'audit') {
-      await db`
-        UPDATE "AuditSession"
-        SET status = ${status},
-            error = ${error},
-            "completedAt" = NOW()
-        WHERE id = ${sessionId}
-      `;
+      await prisma.auditSession.update({
+        where: { id: sessionId },
+        data: updateData
+      });
     } else {
-      await db`
-        UPDATE "HuntSession"
-        SET status = ${status},
-            error = ${error},
-            "completedAt" = NOW()
-        WHERE id = ${sessionId}
-      `;
+      await prisma.huntSession.update({
+        where: { id: sessionId },
+        data: updateData
+      });
     }
     return true;
   }
@@ -91,30 +94,35 @@ export async function syncJobState(
   return false;
 }
 
-export async function cleanupStalled(db: SQL) {
-  // Mark sessions that haven't updated in 30 minutes as failed
-  const stalledAudits = await db`
-    UPDATE "AuditSession"
-    SET status = 'FAILED',
-        error = 'Session stalled',
-        "completedAt" = NOW()
-    WHERE status = 'PROCESSING'
-      AND "updatedAt" < NOW() - INTERVAL '30 minutes'
-    RETURNING id
-  `;
+export async function cleanupStalled(prisma: PrismaClient) {
+  const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
 
-  const stalledHunts = await db`
-    UPDATE "HuntSession"
-    SET status = 'FAILED',
-        error = 'Session stalled',
-        "completedAt" = NOW()
-    WHERE status = 'PROCESSING'
-      AND "updatedAt" < NOW() - INTERVAL '30 minutes'
-    RETURNING id
-  `;
+  const stalledAudits = await prisma.auditSession.updateMany({
+    where: {
+      status: 'PROCESSING',
+      updatedAt: { lt: thirtyMinutesAgo }
+    },
+    data: {
+      status: 'FAILED',
+      error: 'Session stalled',
+      completedAt: new Date()
+    }
+  });
+
+  const stalledHunts = await prisma.huntSession.updateMany({
+    where: {
+      status: 'PROCESSING',
+      updatedAt: { lt: thirtyMinutesAgo }
+    },
+    data: {
+      status: 'FAILED',
+      error: 'Session stalled',
+      completedAt: new Date()
+    }
+  });
 
   return {
-    audits: stalledAudits.length,
-    hunts: stalledHunts.length,
+    audits: stalledAudits.count,
+    hunts: stalledHunts.count,
   };
 }

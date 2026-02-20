@@ -1,5 +1,5 @@
 import { AuthManager } from '@repo/auth';
-import { db } from '@repo/database';
+import { prisma } from '@repo/database';
 import { QueueManager, createJobConfig } from '@repo/jobs';
 import { SMTPService } from '@repo/smtp';
 import env from './env';
@@ -10,9 +10,6 @@ const authManager = new AuthManager({
 });
 
 const jobs = new QueueManager(
-  /**
-   * createJobConfig
-   */
   createJobConfig({
     host: env.REDIS_HOST,
     port: parseInt(env.REDIS_PORT),
@@ -40,6 +37,6 @@ export default {
   env,
   jobs,
   smtp,
-  db,
+  prisma,
   events,
 };

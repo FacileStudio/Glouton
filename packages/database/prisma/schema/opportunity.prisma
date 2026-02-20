@@ -1,0 +1,98 @@
+model Opportunity {
+  id              String              @id @default(dbgenerated("gen_random_uuid()")) @db.Text
+  title           String              @db.Text
+  description     String              @db.Text
+  company         String?             @db.Text
+  sourceId        String              @unique @db.Text
+  sourcePlatform  OpportunitySource
+  sourceUrl       String              @db.Text
+  category        OpportunityCategory
+  tags            String[]
+  budget          String?             @db.Text
+  budgetMin       Float?
+  budgetMax       Float?
+  currency        String?             @db.Text
+  location        String?             @db.Text
+  isRemote        Boolean             @default(false)
+  postedAt        DateTime            @db.Timestamptz(3)
+  expiresAt       DateTime?           @db.Timestamptz(3)
+  scrapedAt       DateTime            @default(now()) @db.Timestamptz(3)
+  createdAt       DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime            @default(now()) @updatedAt @db.Timestamptz(3)
+
+  views           OpportunityView[]
+  notifications   UserOpportunityNotification[]
+
+  @@index([sourcePlatform])
+  @@index([category])
+  @@index([postedAt])
+  @@index([scrapedAt])
+  @@index([isRemote])
+  @@index([sourcePlatform, createdAt])
+  @@index([category, postedAt])
+  @@index([createdAt])
+}
+
+model OpportunitySearch {
+  id           String                @id @default(dbgenerated("gen_random_uuid()")) @db.Text
+  userId       String                @db.Text
+  query        String?               @db.Text
+  sources      OpportunitySource[]
+  categories   OpportunityCategory[]
+  remoteOnly   Boolean               @default(false)
+  minBudget    Float?
+  maxBudget    Float?
+  resultsCount Int                   @default(0)
+  createdAt    DateTime              @default(now()) @db.Timestamptz(3)
+
+  user         User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model OpportunityView {
+  id            String      @id @default(dbgenerated("gen_random_uuid()")) @db.Text
+  userId        String      @db.Text
+  opportunityId String      @db.Text
+  viewedAt      DateTime    @default(now()) @db.Timestamptz(3)
+  clickedUrl    Boolean     @default(false)
+
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, opportunityId])
+  @@index([userId, viewedAt])
+  @@index([opportunityId])
+}
+
+model UserOpportunityNotification {
+  id            String      @id @default(dbgenerated("gen_random_uuid()")) @db.Text
+  userId        String      @db.Text
+  opportunityId String      @db.Text
+  notifiedAt    DateTime    @default(now()) @db.Timestamptz(3)
+
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, opportunityId])
+  @@index([userId])
+  @@index([opportunityId])
+}
+
+model UserOpportunityPreferences {
+  id                        String                @id @default(dbgenerated("gen_random_uuid()")) @db.Text
+  userId                    String                @unique @db.Text
+  discordWebhook            String?               @db.Text
+  enableDiscordNotifications Boolean              @default(false)
+  enabledSources            OpportunitySource[]   @default([MALT, CODEUR, FREELANCE_INFORMATIQUE, COMET, LE_HIBOU, UPWORK, FIVERR, FREELANCER, TOPTAL, WE_WORK_REMOTELY, REMOTE_CO, REMOTIVE, LINKEDIN, INDEED, GURU, PEOPLEPERHOUR])
+  enabledCategories         OpportunityCategory[] @default([WEB_DEVELOPMENT, WEB_DESIGN, MOBILE_DEVELOPMENT, UI_UX_DESIGN, FRONTEND, BACKEND, FULLSTACK, DEVOPS, DATA_SCIENCE, MACHINE_LEARNING, BLOCKCHAIN, GAME_DEVELOPMENT, WORDPRESS, ECOMMERCE, SEO, CONTENT_WRITING, COPYWRITING, GRAPHIC_DESIGN, VIDEO_EDITING, MARKETING, CONSULTING, OTHER])
+  keywords                  String[]
+  excludeKeywords           String[]
+  minBudget                 Float?
+  remoteOnly                Boolean               @default(false)
+  createdAt                 DateTime              @default(now()) @db.Timestamptz(3)
+  updatedAt                 DateTime              @default(now()) @updatedAt @db.Timestamptz(3)
+
+  user                      User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

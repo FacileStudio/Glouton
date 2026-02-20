@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { loggerMiddleware } from './middleware/logger';
-import { db } from '@repo/database';
+import { prisma } from '@repo/database';
 import { validateRedisConfiguration } from '@repo/jobs';
 import { logger } from '@repo/logger';
 import corsHandler from './handlers/cors';
@@ -18,8 +18,7 @@ import config from './config';
 
 const { jobs } = config;
 
-// Register workers with database
-registerWorkers(jobs, db);
+registerWorkers(jobs, prisma);
 
 // Initialize event system with websocket broadcaster
 events.init({ broadcastToUser, broadcastToAll });
@@ -46,7 +45,7 @@ async function startup() {
   }
 
   // Clean up orphaned sessions
-  const orphaned = await checkOrphanedSessions(db, jobs);
+  const orphaned = await checkOrphanedSessions(prisma, jobs);
   if (orphaned.audits > 0 || orphaned.hunts > 0) {
     logger.info(`[CLEANUP] Orphaned sessions: ${orphaned.audits} audits, ${orphaned.hunts} hunts`);
   }
@@ -54,7 +53,7 @@ async function startup() {
   // Schedule periodic cleanup (every 30 minutes)
   setInterval(async () => {
     try {
-      const stalled = await cleanupStalled(db);
+      const stalled = await cleanupStalled(prisma);
       if (stalled.audits > 0 || stalled.hunts > 0) {
         logger.info(`[CLEANUP] Stalled sessions: ${stalled.audits} audits, ${stalled.hunts} hunts`);
       }
@@ -71,9 +70,8 @@ const app = new Hono();
 app.use('*', corsHandler(env.TRUSTED_ORIGINS));
 app.use('*', loggerMiddleware);
 
-// Health Checks (Injection de la DB nécessaire pour Readiness)
 app.get('/health/live', createLivenessHandler());
-app.get('/health/ready', createReadinessHandler({ db }));
+app.get('/health/ready', createReadinessHandler({ prisma }));
 
 app.get('/ws', wsHandler);
 

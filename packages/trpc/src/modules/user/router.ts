@@ -4,11 +4,11 @@ import userService from './service';
 
 export const userRouter = router({
   me: protectedProcedure.query(async ({ ctx }) => {
-    return userService.getProfile(ctx.db, ctx.user.id);
+    return userService.getProfile(ctx.user.id);
   }),
 
   getConfiguredSources: protectedProcedure.query(async ({ ctx }) => {
-    return userService.getConfiguredSources(ctx.db, ctx.user.id);
+    return userService.getConfiguredSources(ctx.user.id);
   }),
 
   list: adminProcedure
@@ -22,16 +22,16 @@ export const userRouter = router({
         })
         .optional()
     )
-    .query(async ({ ctx, input }) => {
-      return userService.getAllUsers(ctx.db, input);
+    .query(async ({ input }) => {
+      return userService.getAllUsers(input);
     }),
 
-  getById: adminProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
-    return userService.getUserById(ctx.db, input.id);
+  getById: adminProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
+    return userService.getUserById(input.id);
   }),
 
-  getStats: adminProcedure.query(async ({ ctx }) => {
-    return userService.getUserStats(ctx.db);
+  getStats: adminProcedure.query(async () => {
+    return userService.getUserStats();
   }),
 
   update: adminProcedure
@@ -42,9 +42,9 @@ export const userRouter = router({
         role: z.enum(['USER', 'ADMIN']).optional(),
       })
     )
-    .mutation(async ({ ctx, input }) => {
+    .mutation(async ({ input }) => {
       const { id, ...data } = input;
-      return userService.updateUser(ctx.db, id, data);
+      return userService.updateUser(id, data);
     }),
 
   ban: adminProcedure
@@ -55,11 +55,11 @@ export const userRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      return userService.banUser(ctx.db, input.id, input.reason, ctx.user.id);
+      return userService.banUser(input.id, input.reason, ctx.user.id);
     }),
 
-  unban: adminProcedure.input(z.object({ id: z.string() })).mutation(async ({ ctx, input }) => {
-    return userService.unbanUser(ctx.db, input.id);
+  unban: adminProcedure.input(z.object({ id: z.string() })).mutation(async ({ input }) => {
+    return userService.unbanUser(input.id);
   }),
 
   suspend: adminProcedure
@@ -70,28 +70,28 @@ export const userRouter = router({
         until: z.date(),
       })
     )
-    .mutation(async ({ ctx, input }) => {
-      return userService.suspendUser(ctx.db, input.id, input.reason, input.until);
+    .mutation(async ({ input }) => {
+      return userService.suspendUser(input.id, input.reason, input.until);
     }),
 
-  unsuspend: adminProcedure.input(z.object({ id: z.string() })).mutation(async ({ ctx, input }) => {
-    return userService.unsuspendUser(ctx.db, input.id);
+  unsuspend: adminProcedure.input(z.object({ id: z.string() })).mutation(async ({ input }) => {
+    return userService.unsuspendUser(input.id);
   }),
 
   verifyEmail: adminProcedure
     .input(z.object({ id: z.string() }))
-    .mutation(async ({ ctx, input }) => {
-      return userService.verifyEmail(ctx.db, input.id);
+    .mutation(async ({ input }) => {
+      return userService.verifyEmail(input.id);
     }),
 
-  delete: adminProcedure.input(z.object({ id: z.string() })).mutation(async ({ ctx, input }) => {
-    return userService.deleteUser(ctx.db, input.id);
+  delete: adminProcedure.input(z.object({ id: z.string() })).mutation(async ({ input }) => {
+    return userService.deleteUser(input.id);
   }),
 
   bulkDelete: adminProcedure
     .input(z.object({ ids: z.array(z.string()) }))
-    .mutation(async ({ ctx, input }) => {
-      return userService.bulkDeleteUsers(ctx.db, input.ids);
+    .mutation(async ({ input }) => {
+      return userService.bulkDeleteUsers(input.ids);
     }),
 
   updateProfile: protectedProcedure
@@ -102,7 +102,7 @@ export const userRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      return userService.updateProfile(ctx.db, ctx.user.id, input);
+      return userService.updateProfile(ctx.user.id, input);
     }),
 
   changePassword: protectedProcedure
@@ -114,7 +114,6 @@ export const userRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       return userService.changePassword(
-        ctx.db,
         ctx.auth,
         ctx.user.id,
         input.currentPassword,
@@ -123,7 +122,7 @@ export const userRouter = router({
     }),
 
   deleteOwnAccount: protectedProcedure.mutation(async ({ ctx }) => {
-    return userService.deleteOwnAccount(ctx.db, ctx.user.id);
+    return userService.deleteOwnAccount(ctx.user.id);
   }),
 
   updateApiKeys: protectedProcedure
@@ -133,7 +132,7 @@ export const userRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      return userService.updateApiKeys(ctx.db, ctx.user.id, input);
+      return userService.updateApiKeys(ctx.user.id, input);
     }),
 });
 

@@ -1,0 +1,122 @@
+model User {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Text
+  email              String    @unique @db.Text
+  firstName          String    @db.Text
+  lastName           String    @db.Text
+  password           String    @db.Text
+  emailVerified      Boolean   @default(false)
+  role               UserRole  @default(USER)
+  isPremium          Boolean   @default(false)
+  status             UserStatus @default(ACTIVE)
+  isBanned           Boolean   @default(false)
+  banReason          String?   @db.Text
+  bannedAt           DateTime? @db.Timestamptz(3)
+  bannedBy           String?   @db.Text
+  isSuspended        Boolean   @default(false)
+  suspendedUntil     DateTime? @db.Timestamptz(3)
+  suspensionReason   String?   @db.Text
+  lastLoginAt        DateTime? @db.Timestamptz(3)
+  lastLoginIp        String?   @db.Text
+  hunterApiKey       String?   @db.Text
+  apolloApiKey       String?   @db.Text
+  snovApiKey         String?   @db.Text
+  hasdataApiKey      String?   @db.Text
+  contactoutApiKey   String?   @db.Text
+  googleMapsApiKey   String?   @db.Text
+  createdAt          DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime  @default(now()) @updatedAt @db.Timestamptz(3)
+
+  sessions                      Session[]
+  accounts                      Account[]
+  adminPermissions              AdminPermission[]
+  auditLogs                     AuditLog[]
+  auditSessions                 AuditSession[]
+  huntSessions                  HuntSession[]
+  leads                         Lead[]
+  emailOutreaches               EmailOutreach[]
+  roomParticipants              RoomParticipant[]
+  messages                      Message[]
+  subscription                  Subscription?
+  paymentHistory                PaymentHistory[]
+  opportunitySearches           OpportunitySearch[]
+  opportunityViews              OpportunityView[]
+  opportunityNotifications      UserOpportunityNotification[]
+  opportunityPreferences        UserOpportunityPreferences?
+
+  @@index([status])
+  @@index([isBanned])
+  @@index([emailVerified])
+}
+
+model Session {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Text
+  userId     String    @db.Text
+  token      String    @unique @db.Text
+  expiresAt  DateTime  @db.Timestamptz(3)
+  ipAddress  String?   @db.Text
+  userAgent  String?   @db.Text
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime  @default(now()) @updatedAt @db.Timestamptz(3)
+
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Account {
+  id                      String    @id @default(dbgenerated("gen_random_uuid()")) @db.Text
+  userId                  String    @db.Text
+  accountId               String    @db.Text
+  providerId              String    @db.Text
+  accessToken             String?   @db.Text
+  refreshToken            String?   @db.Text
+  accessTokenExpiresAt    DateTime? @db.Timestamptz(3)
+  refreshTokenExpiresAt   DateTime? @db.Timestamptz(3)
+  scope                   String?   @db.Text
+  idToken                 String?   @db.Text
+  password                String?   @db.Text
+  createdAt               DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt               DateTime  @default(now()) @updatedAt @db.Timestamptz(3)
+
+  user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+}
+
+model Verification {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Text
+  hashedIdentifier String   @db.Text
+  hashedValue      String   @db.Text
+  expiresAt        DateTime @db.Timestamptz(3)
+  createdAt        DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime @default(now()) @updatedAt @db.Timestamptz(3)
+
+  @@unique([hashedIdentifier, hashedValue])
+}
+
+model Contact {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Text
+  email      String   @unique @db.Text
+  firstName  String   @db.Text
+  lastName   String   @db.Text
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+}
+
+model AdminPermission {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Text
+  userId     String   @db.Text
+  entity     String   @db.Text
+  canCreate  Boolean  @default(false)
+  canRead    Boolean  @default(false)
+  canUpdate  Boolean  @default(false)
+  canDelete  Boolean  @default(false)
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime @default(now()) @updatedAt @db.Timestamptz(3)
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, entity])
+  @@index([userId])
+  @@index([entity])
+}

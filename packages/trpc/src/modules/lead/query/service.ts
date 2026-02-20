@@ -1,16 +1,13 @@
-import { SQL, sql } from 'bun';
-import type { LeadStatus } from '@repo/database';
+import { PrismaClient, Prisma, type LeadStatus } from '@prisma/client';
 import { TRPCError } from '@trpc/server';
-
-function sqlJoin(fragments: any[], separator: any): any {
-  return fragments.reduce((acc: any, item: any, i: number) =>
-    i === 0 ? item : sql`${acc}${separator}${item}`
-  );
-}
+import {
+  paginationParams,
+  calculatePagination,
+} from '@repo/database/utils/prisma-helpers';
 
 export interface GetLeadsParams {
   userId: string;
-  db: SQL;
+  prisma: PrismaClient;
   filters?: {
     status?: LeadStatus;
     search?: string;
@@ -58,167 +55,330 @@ export interface DuplicateCheckParams {
     firstName?: string | null;
     lastName?: string | null;
   }>;
-  db: SQL;
+  prisma: PrismaClient;
 }
 
 export interface Context {
   user: { id: string };
-  db: SQL;
+  prisma: PrismaClient;
   log: {
     info: (data: any) => void;
     error: (data: any) => void;
   };
 }
 
-export default {
-  async getLeads({ userId, db, filters }: GetLeadsParams) {
-    const conditions = [db`"userId" = ${userId}`];
+function hasSocialProfilesFilter(hasSocial: boolean | undefined): any {
+  if (hasSocial === undefined) return undefined;
 
-    if (filters?.status) conditions.push(db`status = ${filters.status}`);
+  if (hasSocial) {
+    return {
+      NOT: [
+        { socialProfiles: Prisma.DbNull },
+        { socialProfiles: Prisma.JsonNull },
+        { socialProfiles: { equals: [] } },
+      ],
+    };
+  } else {
+    return {
+      OR: [
+        { socialProfiles: Prisma.DbNull },
+        { socialProfiles: Prisma.JsonNull },
+        { socialProfiles: { equals: [] } },
+      ],
+    };
+  }
+}
 
-    if (filters?.country) conditions.push(db`country ILIKE ${`%${filters.country}%`}`);
+function hasPhoneNumbersFilter(hasPhone: boolean | undefined): any {
+  if (hasPhone === undefined) return undefined;
 
-    if (filters?.city) conditions.push(db`city ILIKE ${`%${filters.city}%`}`);
+  if (hasPhone) {
+    return {
+      NOT: [
+        { phoneNumbers: { isEmpty: true } },
+      ],
+    };
+  } else {
+    return {
+      phoneNumbers: { isEmpty: true },
+    };
+  }
+}
 
-    if (filters?.category) conditions.push(db`category = ${filters.category}`);
+function buildLeadWhereClause(userId: string, filters?: GetLeadsParams['filters']) {
+  const where: Prisma.LeadWhereInput = {
+    userId,
+  };
 
-    if (filters?.businessType) conditions.push(db`"businessType" = ${filters.businessType}`);
+  if (!filters) return where;
 
-    if (filters?.contacted !== undefined) conditions.push(db`contacted = ${filters.contacted}`);
+  if (filters.status) {
+    where.status = filters.status;
+  }
 
-    if (filters?.hasWebsite === true) conditions.push(db`"hasWebsite" = true`);
-    if (filters?.hasWebsite === false) conditions.push(db`("hasWebsite" IS NULL OR "hasWebsite" = false)`);
+  if (filters.country) {
+    where.country = {
+      contains: filters.country,
+      mode: 'insensitive',
+    };
+  }
 
-    if (filters?.hasSocial === true) conditions.push(db`("socialProfiles" IS NOT NULL AND jsonb_typeof("socialProfiles") = 'array' AND jsonb_array_length("socialProfiles") > 0)`);
-    if (filters?.hasSocial === false) conditions.push(db`("socialProfiles" IS NULL OR jsonb_typeof("socialProfiles") != 'array' OR jsonb_array_length("socialProfiles") = 0)`);
+  if (filters.city) {
+    where.city = {
+      contains: filters.city,
+      mode: 'insensitive',
+    };
+  }
 
-    if (filters?.hasPhone === true) conditions.push(db`("phoneNumbers" IS NOT NULL AND "phoneNumbers"::text != '{}')`);
-    if (filters?.hasPhone === false) conditions.push(db`("phoneNumbers" IS NULL OR "phoneNumbers"::text = '{}')`);
+  if (filters.category) {
+    where.category = filters.category;
+  }
 
-    if (filters?.hasGps === true) conditions.push(db`coordinates IS NOT NULL`);
-    if (filters?.hasGps === false) conditions.push(db`coordinates IS NULL`);
+  if (filters.businessType) {
+    where.businessType = filters.businessType as any;
+  }
 
-    if (filters?.hasEmail === true) conditions.push(db`email IS NOT NULL`);
-    if (filters?.hasEmail === false) conditions.push(db`email IS NULL`);
+  if (filters.contacted !== undefined) {
+    where.contacted = filters.contacted;
+  }
 
-    if (filters?.search) {
-      const s = `%${filters.search}%`;
-      conditions.push(db`(
-      domain ILIKE ${s} OR
-      email ILIKE ${s} OR
-      "firstName" ILIKE ${s} OR
-      "lastName" ILIKE ${s} OR
-      "businessName" ILIKE ${s}
-    )`);
+  if (filters.hasWebsite !== undefined) {
+    if (filters.hasWebsite) {
+      where.hasWebsite = true;
+    } else {
+      where.OR = [
+        { hasWebsite: null },
+        { hasWebsite: false },
+      ];
     }
+  }
 
-    const whereClause = conditions.reduce((acc, curr) => db`${acc} AND ${curr}`);
+  const socialFilter = hasSocialProfilesFilter(filters.hasSocial);
+  if (socialFilter) {
+    where.AND = where.AND ? [...(Array.isArray(where.AND) ? where.AND : [where.AND]), socialFilter] : socialFilter;
+  }
 
-    let limit = filters?.limit ?? 50;
-    let offset = ((filters?.page ?? 1) - 1) * limit;
+  const phoneFilter = hasPhoneNumbersFilter(filters.hasPhone);
+  if (phoneFilter) {
+    where.AND = where.AND ? [...(Array.isArray(where.AND) ? where.AND : [where.AND]), phoneFilter] : phoneFilter;
+  }
 
-    const sortDir = filters?.sortOrder === 'asc' ? sql`ASC` : sql`DESC`;
-    const orderBy = (() => {
-      switch (filters?.sortBy) {
-        case 'domain':    return sql`domain ${sortDir} NULLS LAST`;
-        case 'email':     return sql`email ${sortDir} NULLS LAST`;
-        case 'city':      return sql`city ${sortDir} NULLS LAST`;
-        case 'country':   return sql`country ${sortDir} NULLS LAST`;
-        case 'score':     return sql`score ${sortDir} NULLS LAST`;
-        case 'status':    return sql`status ${sortDir} NULLS LAST`;
-        default:          return sql`"createdAt" ${sortDir}`;
-      }
-    })();
+  if (filters.hasGps !== undefined) {
+    if (filters.hasGps) {
+      where.coordinates = { not: Prisma.DbNull } as any;
+    } else {
+      where.coordinates = Prisma.DbNull as any;
+    }
+  }
 
-    const [leads, totalResult] = await Promise.all([
-      db`
-      SELECT
-        id, domain, email, "firstName", "lastName", "businessName", city, country, status, score, technologies,
-        "additionalEmails", "phoneNumbers", "physicalAddresses", "socialProfiles", "companyInfo",
-        "websiteAudit", "scrapedAt", "auditedAt", "huntSessionId", contacted, "lastContactedAt",
-        "emailsSentCount", "createdAt", coordinates, "hasWebsite", "businessType", category
-      FROM "Lead"
-      WHERE ${whereClause}
-      ORDER BY ${orderBy}
-      LIMIT ${limit}
-      OFFSET ${offset}
-    ` as Promise<any[]>,
-      db`
-      SELECT COUNT(*) as count
-      FROM "Lead"
-      WHERE ${whereClause}
-    ` as Promise<[{ count: string | number }]>,
+  if (filters.hasEmail !== undefined) {
+    if (filters.hasEmail) {
+      where.email = { not: null };
+    } else {
+      where.email = null;
+    }
+  }
+
+  if (filters.search) {
+    where.OR = [
+      { domain: { contains: filters.search, mode: 'insensitive' } },
+      { email: { contains: filters.search, mode: 'insensitive' } },
+      { firstName: { contains: filters.search, mode: 'insensitive' } },
+      { lastName: { contains: filters.search, mode: 'insensitive' } },
+      { businessName: { contains: filters.search, mode: 'insensitive' } },
+    ];
+  }
+
+  return where;
+}
+
+function buildOrderBy(sortBy?: string, sortOrder?: string) {
+  const direction = sortOrder === 'asc' ? 'asc' : 'desc';
+
+  switch (sortBy) {
+    case 'domain':
+      return [{ domain: { sort: direction, nulls: 'last' } }];
+    case 'email':
+      return [{ email: { sort: direction, nulls: 'last' } }];
+    case 'city':
+      return [{ city: { sort: direction, nulls: 'last' } }];
+    case 'country':
+      return [{ country: { sort: direction, nulls: 'last' } }];
+    case 'score':
+      return [{ score: { sort: direction, nulls: 'last' } }];
+    case 'status':
+      return [{ status: { sort: direction, nulls: 'last' } }];
+    default:
+      return [{ createdAt: direction }];
+  }
+}
+
+export default {
+  async getLeads({ userId, prisma, filters }: GetLeadsParams) {
+    const where = buildLeadWhereClause(userId, filters);
+    const pagination = paginationParams(filters?.page, filters?.limit);
+    const orderBy = buildOrderBy(filters?.sortBy, filters?.sortOrder) as any;
+
+    const [leads, total] = await Promise.all([
+      prisma.lead.findMany({
+        where,
+        orderBy,
+        skip: pagination.skip,
+        take: pagination.take,
+        select: {
+          id: true,
+          domain: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          businessName: true,
+          city: true,
+          country: true,
+          status: true,
+          score: true,
+          technologies: true,
+          additionalEmails: true,
+          phoneNumbers: true,
+          physicalAddresses: true,
+          socialProfiles: true,
+          companyInfo: true,
+          websiteAudit: true,
+          scrapedAt: true,
+          auditedAt: true,
+          huntSessionId: true,
+          contacted: true,
+          lastContactedAt: true,
+          emailsSentCount: true,
+          createdAt: true,
+          coordinates: true,
+          hasWebsite: true,
+          businessType: true,
+          category: true,
+        },
+      }),
+      prisma.lead.count({ where }),
     ]);
 
-    const total = Number(totalResult[0].count);
+    const paginationMeta = calculatePagination(
+      total,
+      filters?.page ?? 1,
+      filters?.limit ?? 50
+    );
 
     return {
-      leads: leads || [],
+      leads,
       pagination: {
-        page: filters?.page ?? 1,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
+        page: paginationMeta.page,
+        limit: paginationMeta.limit,
+        total: paginationMeta.total,
+        totalPages: paginationMeta.totalPages,
       },
     };
   },
 
-  async getStats(userId: string, db: SQL): Promise<LeadStats> {
+  async getStats(userId: string, prisma: PrismaClient): Promise<LeadStats> {
     try {
-      const [leadStats, huntStats] = await Promise.all([
-        db`
-        SELECT
-          COUNT(*)::INT as total,
-          COUNT(*) FILTER (WHERE status = 'HOT')::INT as hot,
-          COUNT(*) FILTER (WHERE status = 'WARM')::INT as warm,
-          COUNT(*) FILTER (WHERE status = 'COLD')::INT as cold,
-          COUNT(*) FILTER (WHERE contacted = FALSE AND email IS NOT NULL)::INT as contactable,
-          COUNT(*) FILTER (WHERE contacted = TRUE)::INT as contacted,
-          COUNT(*) FILTER (WHERE email IS NOT NULL)::INT as emails,
-          COUNT(*) FILTER (WHERE "phoneNumbers" IS NOT NULL AND "phoneNumbers"::text <> '{}')::INT as phones,
-          COUNT(*) FILTER (WHERE domain IS NOT NULL)::INT as domains,
-          COUNT(*) FILTER (WHERE "socialProfiles" IS NOT NULL AND jsonb_typeof("socialProfiles") = 'array' AND jsonb_array_length("socialProfiles") > 0)::INT as socials,
-          COALESCE(AVG(score), 0)::FLOAT as avg_score
-        FROM "Lead"
-        WHERE "userId" = ${userId}
-      ` as Promise<any[]>,
-
-        db`
-        SELECT
-          COUNT(*) FILTER (WHERE status = 'PENDING')::INT as pending,
-          COUNT(*) FILTER (WHERE status = 'PROCESSING')::INT as processing,
-          COUNT(*) FILTER (WHERE status = 'COMPLETED')::INT as completed,
-          COUNT(*) FILTER (WHERE status = 'FAILED')::INT as failed
-        FROM "HuntSession"
-        WHERE "userId" = ${userId}
-      ` as Promise<any[]>,
+      const [
+        totalLeads,
+        hotLeads,
+        warmLeads,
+        coldLeads,
+        contactableLeads,
+        contactedLeads,
+        totalEmails,
+        totalPhoneNumbers,
+        totalDomains,
+        totalSocials,
+        pendingHunts,
+        processingHunts,
+        completedHunts,
+        failedHunts,
+        averageScoreResult,
+      ] = await Promise.all([
+        prisma.lead.count({ where: { userId } }),
+        prisma.lead.count({ where: { userId, status: 'HOT' } }),
+        prisma.lead.count({ where: { userId, status: 'WARM' } }),
+        prisma.lead.count({ where: { userId, status: 'COLD' } }),
+        prisma.lead.count({
+          where: {
+            userId,
+            contacted: false,
+            email: { not: null },
+          },
+        }),
+        prisma.lead.count({
+          where: {
+            userId,
+            contacted: true,
+          },
+        }),
+        prisma.lead.count({
+          where: {
+            userId,
+            email: { not: null },
+          },
+        }),
+        prisma.lead.count({
+          where: {
+            userId,
+            phoneNumbers: { isEmpty: false },
+          },
+        }),
+        prisma.lead.count({
+          where: {
+            userId,
+            domain: { not: null },
+          },
+        }),
+        prisma.$queryRaw<[{ count: bigint }]>`
+          SELECT COUNT(*)::INT as count
+          FROM "Lead"
+          WHERE "userId" = ${userId}
+            AND "socialProfiles" IS NOT NULL
+            AND jsonb_typeof("socialProfiles") = 'array'
+            AND jsonb_array_length("socialProfiles") > 0
+        `,
+        prisma.huntSession.count({
+          where: { userId, status: 'PENDING' },
+        }),
+        prisma.huntSession.count({
+          where: { userId, status: 'PROCESSING' },
+        }),
+        prisma.huntSession.count({
+          where: { userId, status: 'COMPLETED' },
+        }),
+        prisma.huntSession.count({
+          where: { userId, status: 'FAILED' },
+        }),
+        prisma.lead.aggregate({
+          where: { userId },
+          _avg: { score: true },
+        }),
       ]);
 
-      const ls = leadStats[0] || {};
-      const hs = huntStats[0] || {};
+      const socialsCount = Number(totalSocials[0]?.count ?? 0);
+      const avgScore = averageScoreResult._avg.score ?? 0;
 
-      const completed = hs.completed || 0;
-      const failed = hs.failed || 0;
-      const totalHunts = completed + failed;
-      const successRate = totalHunts > 0 ? (completed / totalHunts) * 100 : 0;
+      const totalHunts = completedHunts + failedHunts;
+      const successRate = totalHunts > 0 ? (completedHunts / totalHunts) * 100 : 0;
 
       return {
-        totalLeads: ls.total || 0,
-        hotLeads: ls.hot || 0,
-        warmLeads: ls.warm || 0,
-        coldLeads: ls.cold || 0,
-        contactableLeads: ls.contactable || 0,
-        contactedLeads: ls.contacted || 0,
-        totalEmails: ls.emails || 0,
-        totalPhoneNumbers: ls.phones || 0,
-        totalDomains: ls.domains || 0,
-        totalSocials: ls.socials || 0,
-        pendingHunts: hs.pending || 0,
-        processingHunts: hs.processing || 0,
-        completedHunts: completed,
-        failedHunts: failed,
+        totalLeads,
+        hotLeads,
+        warmLeads,
+        coldLeads,
+        contactableLeads,
+        contactedLeads,
+        totalEmails,
+        totalPhoneNumbers,
+        totalDomains,
+        totalSocials: socialsCount,
+        pendingHunts,
+        processingHunts,
+        completedHunts,
+        failedHunts,
         successRate: Math.round(successRate * 10) / 10,
-        averageScore: Math.round((ls.avg_score || 0) * 10) / 10,
+        averageScore: Math.round(avgScore * 10) / 10,
       };
     } catch (error) {
       console.error('[DATABASE_ERROR] getStats failed:', error);
@@ -229,22 +389,42 @@ export default {
   async getActiveSessions(ctx: Context) {
     try {
       const [activeAudits, activeHunts] = await Promise.all([
-        ctx.db`
-          SELECT
-            id, status, progress, "totalLeads", "processedLeads",
-            "updatedLeads", "failedLeads", "currentDomain", "startedAt", "createdAt"
-          FROM "AuditSession"
-          WHERE "userId" = ${ctx.user.id} AND status IN ('PENDING', 'PROCESSING')
-          ORDER BY "createdAt" DESC
-        ` as Promise<any[]>,
-        ctx.db`
-          SELECT
-            id, status, progress, "totalLeads",
-            "successfulLeads", "failedLeads", "startedAt", "createdAt"
-          FROM "HuntSession"
-          WHERE "userId" = ${ctx.user.id} AND status IN ('PENDING', 'PROCESSING')
-          ORDER BY "createdAt" DESC
-        ` as Promise<any[]>,
+        ctx.prisma.auditSession.findMany({
+          where: {
+            userId: ctx.user.id,
+            status: { in: ['PENDING', 'PROCESSING'] },
+          },
+          select: {
+            id: true,
+            status: true,
+            progress: true,
+            totalLeads: true,
+            processedLeads: true,
+            updatedLeads: true,
+            failedLeads: true,
+            currentDomain: true,
+            startedAt: true,
+            createdAt: true,
+          },
+          orderBy: { createdAt: 'desc' },
+        }),
+        ctx.prisma.huntSession.findMany({
+          where: {
+            userId: ctx.user.id,
+            status: { in: ['PENDING', 'PROCESSING'] },
+          },
+          select: {
+            id: true,
+            status: true,
+            progress: true,
+            totalLeads: true,
+            successfulLeads: true,
+            failedLeads: true,
+            startedAt: true,
+            createdAt: true,
+          },
+          orderBy: { createdAt: 'desc' },
+        }),
       ]);
 
       return {
@@ -264,13 +444,12 @@ export default {
     }
   },
 
-  async deleteLead(leadId: string, userId: string, db: SQL) {
+  async deleteLead(leadId: string, userId: string, prisma: PrismaClient) {
     try {
-      const [existingLead] = (await db`
-        SELECT id, "userId"
-        FROM "Lead"
-        WHERE id = ${leadId}
-      `) as any[];
+      const existingLead = await prisma.lead.findUnique({
+        where: { id: leadId },
+        select: { id: true, userId: true },
+      });
 
       if (!existingLead) {
         throw new Error('Lead not found');
@@ -280,10 +459,9 @@ export default {
         throw new Error('Unauthorized to delete this lead');
       }
 
-      await db`
-        DELETE FROM "Lead"
-        WHERE id = ${leadId}
-      `;
+      await prisma.lead.delete({
+        where: { id: leadId },
+      });
 
       return {
         success: true,
@@ -296,11 +474,9 @@ export default {
 
   async getLeadById(leadId: string, ctx: Context) {
     try {
-      const [lead] = (await ctx.db`
-        SELECT * FROM "Lead"
-        WHERE id = ${leadId}
-        LIMIT 1
-      `) as any[];
+      const lead = await ctx.prisma.lead.findUnique({
+        where: { id: leadId },
+      });
 
       if (!lead) {
         throw new TRPCError({
@@ -333,47 +509,49 @@ export default {
     }
   },
 
-  async checkForDuplicates({ userId, leads, db }: DuplicateCheckParams) {
+  async checkForDuplicates({ userId, leads, prisma }: DuplicateCheckParams) {
     const emailsToCheck = leads.filter((l) => l.email).map((l) => l.email!);
     const domainsToCheck = leads.filter((l) => l.domain).map((l) => l.domain!);
 
     const existingLeads = await (async () => {
-      const conditions = [sql`"userId" = ${userId}`];
+      const orConditions: Prisma.LeadWhereInput[] = [];
 
-      const emailConditions =
-        emailsToCheck.length > 0
-          ? sql`email IN (${sqlJoin(emailsToCheck.map((e) => sql`${e}`), sql`, `)})`
-          : null;
+      if (emailsToCheck.length > 0) {
+        orConditions.push({
+          email: { in: emailsToCheck },
+        });
+      }
 
       const nameDomainConditions = leads
         .filter((l) => l.domain && l.firstName && l.lastName)
-        .map(
-          (l) =>
-            sql`(domain = ${l.domain!} AND "firstName" = ${l.firstName!} AND "lastName" = ${l.lastName!})`
-        );
-      const nameDomainCombinedConditions =
-        nameDomainConditions.length > 0 ? sqlJoin(nameDomainConditions, sql` OR `) : null;
+        .map((l) => ({
+          domain: l.domain!,
+          firstName: l.firstName!,
+          lastName: l.lastName!,
+        }));
 
-      const orConditions = [];
-      if (emailConditions) {
-        orConditions.push(emailConditions);
-      }
-      if (nameDomainCombinedConditions) {
-        orConditions.push(nameDomainCombinedConditions);
+      if (nameDomainConditions.length > 0) {
+        orConditions.push({
+          OR: nameDomainConditions,
+        });
       }
 
-      if (orConditions.length > 0) {
-        conditions.push(sql`(${sqlJoin(orConditions, sql` OR `)})`);
+      if (orConditions.length === 0) {
+        return [];
       }
 
-      const whereClause =
-        conditions.length > 0 ? sql`WHERE ${sqlJoin(conditions, sql` AND `)}` : sql``;
-
-      return db`
-        SELECT email, domain, "firstName", "lastName"
-        FROM "Lead"
-        ${whereClause}
-      ` as Promise<any[]>;
+      return prisma.lead.findMany({
+        where: {
+          userId,
+          OR: orConditions,
+        },
+        select: {
+          email: true,
+          domain: true,
+          firstName: true,
+          lastName: true,
+        },
+      });
     })();
 
     const duplicateKeys = new Set<string>();

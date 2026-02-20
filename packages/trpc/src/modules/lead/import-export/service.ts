@@ -1,15 +1,13 @@
-import { SQL, sql } from 'bun';
-
-function sqlJoin(fragments: any[], separator: any): any {
-  return fragments.reduce((acc: any, item: any, i: number) =>
-    i === 0 ? item : sql`${acc}${separator}${item}`
-  );
-}
-import type { LeadStatus } from '@repo/database';
+import { prisma } from '@repo/database/prisma';
+import type { LeadStatus, Prisma } from '@repo/database';
 import {
   escapeCSVField,
   escapeCSVArray,
   escapeCSVJson,
+  parseCSVLine,
+  parseCSVArray,
+  parseCSVJson,
+  parseCSVBoolean,
   CSV_HEADERS,
 } from './csv-utils';
 
@@ -22,49 +20,48 @@ export interface ExportParams {
     country?: string;
     city?: string;
   };
-  db: SQL;
+}
+
+export interface ImportParams {
+  userId: string;
+  csvContent: string;
 }
 
 export default {
-  async exportToCsv({ userId, leadIds, filters, db }: ExportParams): Promise<string> {
-    let whereConditions = [sql`"userId" = ${userId}`];
+  async exportToCsv({ userId, leadIds, filters }: ExportParams): Promise<string> {
+    const whereConditions: Prisma.LeadWhereInput = {
+      userId,
+    };
 
     if (leadIds && leadIds.length > 0) {
-      whereConditions.push(sql`id = ANY(${leadIds}::uuid[])`);
+      whereConditions.id = { in: leadIds };
     }
 
     if (filters?.status) {
-      whereConditions.push(sql`status = ${filters.status}`);
+      whereConditions.status = filters.status;
     }
 
     if (filters?.country) {
-      whereConditions.push(sql`country ILIKE ${`%${filters.country}%`}`);
+      whereConditions.country = { contains: filters.country, mode: 'insensitive' };
     }
 
     if (filters?.city) {
-      whereConditions.push(sql`city ILIKE ${`%${filters.city}%`}`);
+      whereConditions.city = { contains: filters.city, mode: 'insensitive' };
     }
 
     if (filters?.search) {
-      const searchTerm = `%${filters.search}%`;
-      whereConditions.push(sql`(
-        domain ILIKE ${searchTerm} OR
-        email ILIKE ${searchTerm} OR
-        "firstName" ILIKE ${searchTerm} OR
-        "lastName" ILIKE ${searchTerm}
-      )`);
+      whereConditions.OR = [
+        { domain: { contains: filters.search, mode: 'insensitive' } },
+        { email: { contains: filters.search, mode: 'insensitive' } },
+        { firstName: { contains: filters.search, mode: 'insensitive' } },
+        { lastName: { contains: filters.search, mode: 'insensitive' } },
+      ];
     }
 
-    const whereClause = whereConditions.length > 0
-      ? sql`WHERE ${sqlJoin(whereConditions, sql` AND `)}`
-      : sql``;
-
-    const leads = await db`
-      SELECT *
-      FROM "Lead"
-      ${whereClause}
-      ORDER BY "createdAt" DESC
-    `;
+    const leads = await prisma.lead.findMany({
+      where: whereConditions,
+      orderBy: { createdAt: 'desc' },
+    });
 
     const csvRows: string[] = [CSV_HEADERS.join(',')];
 
@@ -97,13 +94,78 @@ export default {
         escapeCSVField(lead.contacted?.toString()),
         escapeCSVField(lead.lastContactedAt?.toISOString()),
         escapeCSVField(lead.emailsSentCount?.toString()),
-        escapeCSVField(lead.emailVerified === null || lead.emailVerified === undefined ? '' : lead.emailVerified.toString()),
-        escapeCSVField(lead.emailVerifiedAt?.toISOString()),
-        escapeCSVField(lead.emailVerificationMethod),
       ];
       csvRows.push(row.join(','));
     }
 
     return csvRows.join('\n');
+  },
+
+  async importFromCsv({ userId, csvContent }: ImportParams): Promise<{ created: number; skipped: number }> {
+    const lines = csvContent.split('\n').filter(line => line.trim().length > 0);
+
+    if (lines.length === 0) {
+      return { created: 0, skipped: 0 };
+    }
+
+    const headerLine = lines[0];
+    const dataLines = lines.slice(1);
+
+    const leadsToCreate: Prisma.LeadCreateManyInput[] = [];
+
+    for (const line of dataLines) {
+      const values = parseCSVLine(line);
+
+      if (values.length < CSV_HEADERS.length) {
+        continue;
+      }
+
+      const leadData: Prisma.LeadCreateManyInput = {
+        userId,
+        businessName: values[0] || null,
+        businessType: values[1] as any || 'DOMAIN',
+        domain: values[2] || null,
+        email: values[3] || null,
+        additionalEmails: parseCSVArray(values[4]),
+        firstName: values[5] || null,
+        lastName: values[6] || null,
+        position: values[7] || null,
+        department: values[8] || null,
+        phoneNumbers: parseCSVArray(values[9]),
+        physicalAddresses: parseCSVArray(values[10]),
+        category: values[11] || null,
+        coordinates: parseCSVJson(values[12]),
+        openingHours: values[13] || null,
+        hasWebsite: values[14] ? parseCSVBoolean(values[14]) : true,
+        city: values[15] || null,
+        country: values[16] || null,
+        score: values[17] ? parseInt(values[17], 10) : 0,
+        status: values[18] as any || 'COLD',
+        source: values[19] as any || 'HUNTER',
+        technologies: parseCSVArray(values[20]),
+        socialProfiles: parseCSVJson(values[21]),
+        companyInfo: parseCSVJson(values[22]),
+        websiteAudit: parseCSVJson(values[23]),
+        contacted: values[24] ? parseCSVBoolean(values[24]) : false,
+        lastContactedAt: values[25] ? new Date(values[25]) : null,
+        emailsSentCount: values[26] ? parseInt(values[26], 10) : 0,
+      };
+
+      leadsToCreate.push(leadData);
+    }
+
+    if (leadsToCreate.length === 0) {
+      return { created: 0, skipped: 0 };
+    }
+
+    const result = await prisma.lead.createMany({
+      data: leadsToCreate,
+      skipDuplicates: true,
+    });
+
+    return {
+      created: result.count,
+      skipped: leadsToCreate.length - result.count,
+    };
   },
 };

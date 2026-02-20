@@ -8,9 +8,9 @@ export const trpcHandler =
     env,
     jobs,
     smtp,
-    db,
+    prisma,
     events
-  }: Omit<CreateContextOptions, 'req' | 'resHeaders' | 'info' | 'logger'>) =>
+  }: Omit<CreateContextOptions, 'req' | 'resHeaders' | 'info' | 'logger' | 'db'>) =>
   (c: Context, next: Next) =>
     trpcServer({
       router: appRouter,
@@ -21,7 +21,8 @@ export const trpcHandler =
           req: c.req.raw,
           authManager,
           env,
-          db,
+          db: prisma as any,
+          prisma,
           jobs,
           smtp,
           logger,

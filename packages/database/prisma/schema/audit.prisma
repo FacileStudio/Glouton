@@ -1,0 +1,17 @@
+model AuditLog {
+  id         String      @id @default(dbgenerated("gen_random_uuid()")) @db.Text
+  userId     String      @db.Text
+  entity     String      @db.Text
+  entityId   String      @db.Text
+  action     AuditAction
+  changes    Json?
+  ipAddress  String?     @db.Text
+  userAgent  String?     @db.Text
+  createdAt  DateTime    @default(now()) @db.Timestamptz(3)
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([entity, entityId])
+  @@index([createdAt])
+}

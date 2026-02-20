@@ -1,8 +1,8 @@
 import { Context } from 'hono';
-import { SQL } from 'bun';
+import { PrismaClient } from '@prisma/client';
 
 export interface HealthCheckDependencies {
-  db: SQL;
+  prisma: PrismaClient;
 }
 
 interface ServiceStatus {
@@ -21,10 +21,10 @@ interface HealthCheckResponse {
   };
 }
 
-async function checkDatabase(db: SQL): Promise<ServiceStatus> {
+async function checkDatabase(prisma: PrismaClient): Promise<ServiceStatus> {
   const start = Date.now();
   try {
-    await db`SELECT 1`;
+    await prisma.$queryRaw`SELECT 1`;
     return {
       status: 'healthy',
       latency: Date.now() - start,
@@ -41,7 +41,7 @@ export function createHealthCheckHandler(deps: HealthCheckDependencies) {
   return async (c: Context) => {
     const startTime = Date.now();
 
-    const databaseStatus = await checkDatabase(deps.db);
+    const databaseStatus = await checkDatabase(deps.prisma);
 
     const apiStatus: ServiceStatus = {
       status: 'healthy',
@@ -75,9 +75,9 @@ export function createLivenessHandler() {
   };
 }
 
-export function createReadinessHandler(deps: { db: SQL }) {
+export function createReadinessHandler(deps: { prisma: PrismaClient }) {
   return async (c: Context) => {
-    const databaseStatus = await checkDatabase(deps.db);
+    const databaseStatus = await checkDatabase(deps.prisma);
     const isReady = databaseStatus.status === 'healthy';
 
     return c.json(

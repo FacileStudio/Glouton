@@ -1,5 +1,6 @@
 import { type FetchCreateContextFnOptions } from '@trpc/server/adapters/fetch';
-import { type SQL } from 'bun'; // Import du type SQL de Bun
+import { type SQL } from 'bun';
+import { type PrismaClient } from '@prisma/client';
 import { type AuthManager } from '@repo/auth';
 import { type ServerEnv } from '@repo/env';
 import { QueueManager } from '@repo/jobs';
@@ -7,7 +8,8 @@ import type { Logger } from '@repo/logger';
 import type { SMTPService } from '@repo/smtp';
 
 export interface CreateContextOptions extends FetchCreateContextFnOptions {
-  db: SQL; // Injection de l'instance DB (Bun SQL)
+  db: SQL;
+  prisma: PrismaClient;
   authManager: AuthManager;
   env: ServerEnv;
   logger: Logger;
@@ -42,7 +44,8 @@ export const createContext = async (options: CreateContextOptions) => {
 
   return {
     user,
-    db: options.db, // Utilisation de l'instance passée en option
+    db: options.db,
+    prisma: options.prisma,
     auth: options.authManager,
     env: options.env,
     ipAddress,
