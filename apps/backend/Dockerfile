@@ -30,6 +30,7 @@ WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+COPY prisma.config.ts ./
 
 ARG DATABASE_URL
 ENV DATABASE_URL=$DATABASE_URL
@@ -49,6 +50,7 @@ COPY --from=builder --chown=backend:nodejs /app/packages ./packages
 COPY --from=builder --chown=backend:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=backend:nodejs /app/package.json ./
 COPY --from=builder --chown=backend:nodejs /app/turbo.json ./
+COPY --from=builder --chown=backend:nodejs /app/prisma.config.ts ./
 
 USER backend
 
