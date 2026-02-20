@@ -73,6 +73,7 @@
   let details = $state<RunDetails | null>(null);
   let loading = $state(true);
   let cancelling = $state(false);
+  let relaunching = $state(false);
   let liveEvents = $state<LiveEvent[]>([]);
   let discoveredItems = $state<DiscoveredItem[]>([]);
   let eventsContainer = $state<HTMLDivElement | undefined>(undefined);
@@ -255,6 +256,44 @@
     }
   }
 
+  async function relaunchHunt() {
+    if (!details || !details.filters) {
+      toast.push('Impossible de relancer cette chasse', 'error');
+      return;
+    }
+
+    relaunching = true;
+    try {
+      const filters = details.filters;
+
+      if (details.huntType === 'LOCAL_BUSINESS' || (filters.location && filters.categories)) {
+        await trpc.lead.hunt.startLocalHunt.mutate({
+          location: filters.location,
+          categories: filters.categories || [filters.category],
+          radius: filters.radius || 5000,
+          maxResults: filters.maxResults || 20,
+          hasWebsite: filters.hasWebsite,
+        });
+      } else if (filters.domain) {
+        await trpc.lead.hunt.startDomainHunt.mutate({
+          domain: filters.domain,
+          positions: filters.positions || [],
+          departments: filters.departments || [],
+        });
+      } else {
+        toast.push('Type de chasse non reconnu', 'error');
+        return;
+      }
+
+      toast.push('Nouvelle chasse lancée avec les mêmes paramètres !', 'success');
+      goto('/app/hunts');
+    } catch (error: any) {
+      toast.push(error?.message || 'Échec de la relance', 'error');
+    } finally {
+      relaunching = false;
+    }
+  }
+
   function formatDuration(seconds: number | null): string {
     if (!seconds) return 'N/A';
     const mins = Math.floor(seconds / 60);
@@ -323,34 +362,52 @@
 {:else}
   <div class="p-6 lg:p-12 max-w-[1800px] mx-auto space-y-8 selection:text-black font-sans" style="background-color: #FAF7F5;" in:fade>
 
-    <div class="flex items-center gap-4">
-      <button
-        onclick={() => goto('/app/hunts')}
-        aria-label="Retour aux chasses"
-        class="w-12 h-12 flex items-center justify-center bg-neutral-100 rounded-xl hover:bg-neutral-200 transition-colors"
-      >
-        <iconify-icon icon="solar:alt-arrow-left-bold" width="24" class="text-neutral-700"></iconify-icon>
-      </button>
-      <div>
-        <div class="flex items-center gap-3">
-          <h1 class="text-4xl font-black tracking-tight leading-none">
-            Détails de la chasse<span class="text-yellow-400">.</span>
-          </h1>
-          <span class="px-3 py-1.5 rounded-xl text-xs font-black uppercase {getStatusColor(details.status)}">
-            {details.status}
-            {#if details.status === 'PROCESSING'}
-              <span class="inline-block w-1.5 h-1.5 rounded-full bg-current ml-1 animate-pulse"></span>
+    <div class="flex items-center justify-between gap-4">
+      <div class="flex items-center gap-4">
+        <button
+          onclick={() => goto('/app/hunts')}
+          aria-label="Retour aux chasses"
+          class="w-12 h-12 flex items-center justify-center bg-neutral-100 rounded-xl hover:bg-neutral-200 transition-colors"
+        >
+          <iconify-icon icon="solar:alt-arrow-left-bold" width="24" class="text-neutral-700"></iconify-icon>
+        </button>
+        <div>
+          <div class="flex items-center gap-3">
+            <h1 class="text-4xl font-black tracking-tight leading-none">
+              Détails de la chasse<span class="text-yellow-400">.</span>
+            </h1>
+            <span class="px-3 py-1.5 rounded-xl text-xs font-black uppercase {getStatusColor(details.status)}">
+              {details.status}
+              {#if details.status === 'PROCESSING'}
+                <span class="inline-block w-1.5 h-1.5 rounded-full bg-current ml-1 animate-pulse"></span>
+              {/if}
+            </span>
+          </div>
+          <p class="text-neutral-400 font-medium text-sm mt-1">
+            {#if details.huntType === 'LOCAL_BUSINESS'}
+              {details.filters?.location || 'Local'} · {details.filters?.categories?.join(', ') || ''}
+            {:else}
+              {details.domain || 'Recherche large'} · {details.sources?.join(', ')}
             {/if}
-          </span>
+          </p>
         </div>
-        <p class="text-neutral-400 font-medium text-sm mt-1">
-          {#if details.huntType === 'LOCAL_BUSINESS'}
-            {details.filters?.location || 'Local'} · {details.filters?.categories?.join(', ') || ''}
-          {:else}
-            {details.domain || 'Recherche large'} · {details.sources?.join(', ')}
-          {/if}
-        </p>
       </div>
+
+      {#if details.status === 'COMPLETED'}
+        <button
+          onclick={relaunchHunt}
+          disabled={relaunching}
+          class="flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold bg-black text-white hover:bg-neutral-800 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {#if relaunching}
+            <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            Relance...
+          {:else}
+            <iconify-icon icon="solar:restart-bold" width="16"></iconify-icon>
+            Relancer la chasse
+          {/if}
+        </button>
+      {/if}
     </div>
 
     {#if isProcessing && asBannerSession}

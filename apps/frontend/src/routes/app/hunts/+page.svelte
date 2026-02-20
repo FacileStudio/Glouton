@@ -8,6 +8,7 @@
   import { setupHuntListeners, type HuntSession } from '$lib/websocket-events.svelte';
   import HuntBanner from '$lib/components/leads/HuntBanner.svelte';
   import HuntCard from '$lib/components/hunts/HuntCard.svelte';
+  import HuntListItem from '$lib/components/hunts/HuntListItem.svelte';
   import 'iconify-icon';
 
   interface Stats {
@@ -29,6 +30,7 @@
   let loading = $state(true);
   let cancellingHuntId = $state<string | null>(null);
   let deletingHuntId = $state<string | null>(null);
+  let relaunchingHuntId = $state<string | null>(null);
   let lastFailedHunts = new Set<string>();
   let lastCompletedHunts = new Set<string>();
   let wsUnsubscribers: (() => void)[] = [];
@@ -111,6 +113,46 @@
       await loadData();
     } finally {
       deletingHuntId = null;
+    }
+  }
+
+  async function relaunchHunt(huntSessionId: string) {
+    relaunchingHuntId = huntSessionId;
+    try {
+      const session = huntSessions.find(s => s.id === huntSessionId);
+      if (!session || !session.filters) {
+        toast.push('Impossible de relancer cette chasse', 'error');
+        return;
+      }
+
+      const filters = session.filters;
+
+      if (session.huntType === 'LOCAL_BUSINESS' || (filters.location && filters.categories)) {
+        await trpc.lead.hunt.startLocalHunt.mutate({
+          location: filters.location,
+          categories: filters.categories || [filters.category],
+          radius: filters.radius || 5000,
+          maxResults: filters.maxResults || 20,
+          hasWebsite: filters.hasWebsite,
+        });
+      } else if (filters.domain) {
+        await trpc.lead.hunt.startDomainHunt.mutate({
+          domain: filters.domain,
+          positions: filters.positions || [],
+          departments: filters.departments || [],
+        });
+      } else {
+        toast.push('Type de chasse non reconnu', 'error');
+        return;
+      }
+
+      toast.push('Nouvelle chasse lancée avec les mêmes paramètres !', 'success');
+      await loadData();
+      await loadStats();
+    } catch (error: any) {
+      toast.push(error?.message || 'Échec de la relance', 'error');
+    } finally {
+      relaunchingHuntId = null;
     }
   }
 
@@ -280,13 +322,15 @@
             </div>
             <h2 class="text-2xl font-black tracking-tight">Chasses terminées</h2>
           </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div class="space-y-3">
             {#each huntSessions.filter((s) => s.status === 'COMPLETED') as session (session.id)}
               <div in:fade>
-                <HuntCard
+                <HuntListItem
                   {session}
                   onDelete={deleteHunt}
+                  onRelaunch={relaunchHunt}
                   deleting={deletingHuntId === session.id}
+                  relaunching={relaunchingHuntId === session.id}
                 />
               </div>
             {/each}

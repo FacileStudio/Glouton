@@ -266,12 +266,17 @@ export class LocalBusinessHuntProcessor {
 
     console.log(`[LocalBusinessHunt] Deduplicated ${leadsToInsert.length} leads to ${deduplicatedLeads.length} unique leads`);
 
+    const leadsWithEmail = deduplicatedLeads.filter(lead => lead.email);
+    const leadsWithoutEmail = deduplicatedLeads.filter(lead => !lead.email);
+
+    console.log(`[LocalBusinessHunt] ${leadsWithEmail.length} leads with email, ${leadsWithoutEmail.length} without`);
+
     const BATCH_SIZE = 50;
     let totalInserted = 0;
     let totalUpdated = 0;
 
-    for (let i = 0; i < deduplicatedLeads.length; i += BATCH_SIZE) {
-      const batch = deduplicatedLeads.slice(i, i + BATCH_SIZE);
+    for (let i = 0; i < leadsWithEmail.length; i += BATCH_SIZE) {
+      const batch = leadsWithEmail.slice(i, i + BATCH_SIZE);
 
       const operations = batch.map((lead) =>
         prisma.lead.upsert({
@@ -328,6 +333,37 @@ export class LocalBusinessHuntProcessor {
       }
 
       await new Promise(resolve => setTimeout(resolve, 500));
+    }
+
+    if (leadsWithoutEmail.length > 0) {
+      console.log(`[LocalBusinessHunt] Inserting ${leadsWithoutEmail.length} leads without email`);
+
+      for (let i = 0; i < leadsWithoutEmail.length; i += BATCH_SIZE) {
+        const batch = leadsWithoutEmail.slice(i, i + BATCH_SIZE);
+
+        try {
+          const created = await prisma.lead.createMany({
+            data: batch,
+            skipDuplicates: true,
+          });
+
+          totalInserted += created.count;
+
+          if (created.count > 0) {
+            emitter.emit('leads-created', {
+              huntSessionId,
+              count: created.count,
+              location,
+              category,
+              message: `Found ${created.count} new ${category} businesses without email in ${location}`,
+            });
+          }
+        } catch (error) {
+          console.error(`[LocalBusinessHunt] Error inserting leads without email:`, error);
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
     }
 
     if (totalInserted > 0) {
