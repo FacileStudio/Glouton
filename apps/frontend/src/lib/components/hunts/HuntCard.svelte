@@ -171,7 +171,7 @@
     <!-- Error block (failed only) -->
     {#if session.status === 'FAILED' && session.error}
       <div class="bg-red-50 border border-red-100 rounded-xl px-3 py-2.5 mb-4">
-        <p class="text-xs text-red-700 font-medium line-clamp-2 leading-relaxed">{session.error}</p>
+        <p class="text-xs text-red-700 font-medium line-clamp-2 leading-relaxed break-words overflow-hidden">{session.error}</p>
       </div>
     {/if}
 
