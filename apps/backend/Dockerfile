@@ -35,7 +35,7 @@ COPY prisma.config.ts ./
 ARG DATABASE_URL
 ENV DATABASE_URL=$DATABASE_URL
 
-RUN cd packages/database && bun run prisma:generate
+RUN bun run --cwd packages/database prisma:generate
 
 FROM base AS runner
 WORKDIR /app
@@ -56,4 +56,4 @@ USER backend
 
 EXPOSE 3001
 
-CMD ["sh", "-c", "cd packages/database && DATABASE_URL=\"${DATABASE_URL}\" bun run prisma:push --accept-data-loss && cd ../.. && bun run apps/backend/src/index.ts"]
+CMD ["sh", "-c", "bun run --cwd packages/database prisma:push --accept-data-loss && bun run apps/backend/src/index.ts"]

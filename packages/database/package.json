@@ -10,15 +10,17 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "prisma:generate": "prisma generate --schema=./prisma/schema",
-    "prisma:migrate": "prisma migrate dev --schema=./prisma/schema",
-    "prisma:push": "prisma db push --schema=./prisma/schema",
-    "prisma:studio": "prisma studio --schema=./prisma/schema"
+    "prisma:generate": "cd ../.. && prisma generate",
+    "prisma:migrate": "cd ../.. && prisma migrate dev",
+    "prisma:push": "cd ../.. && prisma db push",
+    "prisma:studio": "cd ../.. && prisma studio"
   },
   "dependencies": {
+    "@prisma/adapter-pg": "^7.4.1",
     "@prisma/client": "^7.4.1",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.3",
+    "pg": "^8.18.0",
     "prisma": "^7.4.1",
     "zod": "^3.24.1"
   },
@@ -26,6 +28,7 @@
     "@faker-js/faker": "^10.2.0",
     "@repo/tsconfig": "workspace:*",
     "@types/bcryptjs": "^3.0.0",
+    "@types/pg": "^8.16.0",
     "typescript": "^5.9.3"
   }
 }
