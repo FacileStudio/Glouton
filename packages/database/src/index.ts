@@ -5,9 +5,9 @@ if (!process.env.DATABASE_URL) {
 }
 
 const db = new SQL(process.env.DATABASE_URL, {
-  max: 20,
-  idleTimeout: 30,
-  connectionTimeout: 10,
+  max: 40,
+  idleTimeout: 20,
+  connectionTimeout: 5,
 });
 
 export { db };
