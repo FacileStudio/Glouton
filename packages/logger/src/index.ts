@@ -29,9 +29,6 @@ export const logger = isBrowser
             console.warn(obj.msg, obj);
           },
           debug: (o) => {
-            /**
-             * if
-             */
             if (isDev) {
               const obj = o as PinoLogObject;
               console.debug(obj.msg, obj);
@@ -42,14 +39,16 @@ export const logger = isBrowser
     })
   : pino({
       level: (typeof process !== 'undefined' && process.env?.LOG_LEVEL) || (isDev ? 'debug' : 'info'),
-      transport: {
-        target: 'pino-pretty',
-        options: {
-          colorize: true,
-          translateTime: 'SYS:standard',
-          ignore: 'pid,hostname',
+      ...(isDev && {
+        transport: {
+          target: 'pino-pretty',
+          options: {
+            colorize: true,
+            translateTime: 'SYS:standard',
+            ignore: 'pid,hostname',
+          },
         },
-      },
+      }),
     });
 
 export default logger;
