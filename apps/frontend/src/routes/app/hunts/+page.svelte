@@ -152,19 +152,19 @@
       </a>
     </div>
 
-    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
       {#each [{ label: 'En attente', val: stats?.pendingHunts?.toString() || '0', icon: 'solar:history-bold-duotone', color: 'text-yellow-500' }, { label: 'En cours', val: stats?.processingHunts?.toString() || '0', icon: 'solar:rocket-2-bold-duotone', color: 'text-blue-500' }, { label: 'Terminées', val: stats?.completedHunts?.toString() || '0', icon: 'solar:check-circle-bold-duotone', color: 'text-green-500' }, { label: 'Échouées', val: stats?.failedHunts?.toString() || '0', icon: 'solar:close-circle-bold-duotone', color: 'text-red-500' }] as stat}
         <div
-          class="p-8 rounded-[32px] shadow-lg hover:shadow-xl transition-shadow"
+          class="p-4 sm:p-6 lg:p-8 rounded-[24px] sm:rounded-[32px] shadow-lg hover:shadow-xl transition-shadow"
           style="background-color: #EFEAE6;"
         >
-          <div class="flex items-start justify-between mb-6">
-            <h3 class="text-lg font-bold text-neutral-700">{stat.label}</h3>
-            <div class="w-14 h-14 bg-neutral-50 rounded-2xl flex items-center justify-center flex-shrink-0">
-              <iconify-icon icon={stat.icon} class={stat.color} width="28"></iconify-icon>
+          <div class="flex items-start justify-between mb-3 sm:mb-4 lg:mb-6">
+            <h3 class="text-sm sm:text-base lg:text-lg font-bold text-neutral-700">{stat.label}</h3>
+            <div class="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 bg-neutral-50 rounded-xl sm:rounded-2xl flex items-center justify-center flex-shrink-0">
+              <iconify-icon icon={stat.icon} class={stat.color} width="20"></iconify-icon>
             </div>
           </div>
-          <p class="text-5xl font-black tracking-tighter">{stat.val}</p>
+          <p class="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tighter">{stat.val}</p>
         </div>
       {/each}
     </section>

@@ -112,7 +112,14 @@ export class MapsOrchestrator {
 
     console.log(`[MapsOrchestrator] After deduplication: ${deduplicated.length} unique businesses`);
 
-    return deduplicated;
+    const maxResults = options.maxResults || 100;
+    const limitedResults = deduplicated.slice(0, maxResults);
+
+    if (deduplicated.length > maxResults) {
+      console.log(`[MapsOrchestrator] Limiting results from ${deduplicated.length} to ${maxResults}`);
+    }
+
+    return limitedResults;
   }
 
   private deduplicateBusinesses(businesses: LocalBusiness[]): LocalBusiness[] {
