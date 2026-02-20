@@ -1,7 +1,7 @@
-import { createLeadExtractionWorker } from './lead-extraction.worker';
-import { createLocalBusinessHuntWorker } from './local-business-hunt.worker';
-import { createLeadAuditWorker } from './lead-audit.worker';
-import { createDomainFinderWorker } from './domain-finder.worker';
+import { createLeadExtractionWorker } from './lead-extraction';
+import { createLocalBusinessHuntWorker } from './local-business-hunt';
+import { createLeadAuditWorker } from './lead-audit';
+import { createDomainFinderWorker } from './domain-finder';
 
 export interface EventEmitter {
   emit: (userId: string, type: string, data?: any) => void;
