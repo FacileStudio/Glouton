@@ -267,7 +267,7 @@
       const filters = details.filters;
 
       if (details.huntType === 'LOCAL_BUSINESS' || (filters.location && filters.categories)) {
-        await trpc.lead.hunt.startLocalHunt.mutate({
+        await trpc.lead.hunt.startLocalBusiness.mutate({
           location: filters.location,
           categories: filters.categories || [filters.category],
           radius: filters.radius || 5000,
@@ -275,7 +275,7 @@
           hasWebsite: filters.hasWebsite,
         });
       } else if (filters.domain) {
-        await trpc.lead.hunt.startDomainHunt.mutate({
+        await trpc.lead.hunt.start.mutate({
           domain: filters.domain,
           positions: filters.positions || [],
           departments: filters.departments || [],
