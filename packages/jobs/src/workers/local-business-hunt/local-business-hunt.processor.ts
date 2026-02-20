@@ -151,7 +151,7 @@ export class LocalBusinessHuntProcessor {
           count: businessesFound.length,
           location,
           category,
-          sources: [...new Set(businessesFound.map(b => b.source))],
+          sources: Array.from(new Set(businessesFound.map(b => b.source))),
         });
       }
 
@@ -206,8 +206,8 @@ export class LocalBusinessHuntProcessor {
     userId: string,
     location: string
   ): Promise<LocalBusiness[]> {
-    const domains = [...new Set(businesses.map(b => b.website).filter(Boolean))];
-    const names = [...new Set(businesses.map(b => b.name).filter(Boolean))];
+    const domains = Array.from(new Set(businesses.map(b => b.website).filter(Boolean))) as string[];
+    const names = Array.from(new Set(businesses.map(b => b.name).filter(Boolean))) as string[];
     const potentialEmails = this.helpers.preparePotentialEmails(businesses, location);
 
     const existingLeads = await prisma.lead.findMany({
@@ -223,17 +223,13 @@ export class LocalBusinessHuntProcessor {
     });
 
     const existingKeys = new Set(
-      existingLeads.flatMap((l: any) => [l.domain, l.businessName, l.email].filter(Boolean))
+      existingLeads.flatMap((l: any) => [l.domain, l.businessName].filter(Boolean))
     );
 
     return businesses.filter(b => {
       const domain = this.helpers.extractDomain(b.website);
 
       if (existingKeys.has(domain) || existingKeys.has(b.name)) {
-        return false;
-      }
-
-      if (b.email && existingKeys.has(b.email)) {
         return false;
       }
 

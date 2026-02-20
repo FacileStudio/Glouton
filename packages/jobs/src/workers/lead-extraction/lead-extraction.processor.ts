@@ -292,7 +292,7 @@ export class LeadExtractionProcessor {
     });
 
     await this.sessionManager.updateSession(huntSessionId, {
-      sourceStats: result.sourceStats as Prisma.InputJsonValue,
+      sourceStats: result.sourceStats as any as Prisma.InputJsonValue,
     });
 
     console.log(`[LeadExtraction] Completed extraction for session ${huntSessionId}`);

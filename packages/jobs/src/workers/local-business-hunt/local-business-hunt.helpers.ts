@@ -4,7 +4,7 @@ import { Prisma } from '@prisma/client';
 export class LocalBusinessHuntHelpers {
   generateEmail(business: LocalBusiness, location: string): string | null {
     const domain = this.extractDomain(business.website);
-    if (!domain) return business.email || null;
+    if (!domain) return null;
 
     const nameSlug = this.createSlug(business.name, 20);
     const businessCity = business.city || business.address?.split(',')[0] || location.split(',')[0];
@@ -43,7 +43,6 @@ export class LocalBusinessHuntHelpers {
     const potentialEmails = businesses.map(b => {
       const domain = this.extractDomain(b.website);
 
-      if (b.email) return b.email;
       if (!domain) return null;
 
       const nameSlug = this.createSlug(b.name, 20);
@@ -68,7 +67,7 @@ export class LocalBusinessHuntHelpers {
       return variants;
     }).flat().filter(Boolean);
 
-    return [...new Set(potentialEmails)] as string[];
+    return Array.from(new Set(potentialEmails.filter(Boolean))) as string[];
   }
 
   prepareLeadData(
@@ -77,7 +76,7 @@ export class LocalBusinessHuntHelpers {
     huntSessionId: string,
     category: string,
     location: string
-  ) {
+  ): any {
     const domain = this.extractDomain(business.website);
     const generatedEmail = this.generateEmail(business, location);
     const phoneNumbers = business.phone ? [business.phone] : [];
@@ -88,8 +87,8 @@ export class LocalBusinessHuntHelpers {
     return {
       userId,
       huntSessionId,
-      source: business.source === 'google-maps' ? 'GOOGLE_MAPS' :
-              business.source === 'openstreetmap' ? 'OPENSTREETMAP' : 'GOOGLE_MAPS',
+      source: (business.source === 'google-maps' ? 'GOOGLE_MAPS' :
+              business.source === 'openstreetmap' ? 'OPENSTREETMAP' : 'GOOGLE_MAPS') as any,
       domain: domain,
       email: generatedEmail,
       businessName: business.name,
@@ -101,9 +100,9 @@ export class LocalBusinessHuntHelpers {
       score: business.hasWebsite ? 60 : 40,
       phoneNumbers,
       physicalAddresses,
-      coordinates: business.coordinates as Prisma.InputJsonValue,
+      coordinates: business.coordinates as any as Prisma.InputJsonValue,
       hasWebsite: business.hasWebsite,
-      socialProfiles: (business.socialProfiles || {}) as Prisma.InputJsonValue,
+      socialProfiles: {} as Prisma.InputJsonValue,
       createdAt: new Date(),
       updatedAt: new Date(),
     };

@@ -5,7 +5,7 @@ import { SessionManager } from '../shared';
 import { LeadAuditProcessor } from './lead-audit.processor';
 import type { LeadAuditJobData } from './lead-audit.types';
 
-export { LeadAuditJobData } from './lead-audit.types';
+export type { LeadAuditJobData } from './lead-audit.types';
 
 export function createLeadAuditWorker(events: EventEmitter) {
   const processor = new LeadAuditProcessor();
