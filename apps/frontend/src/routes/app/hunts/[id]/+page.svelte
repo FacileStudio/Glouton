@@ -522,6 +522,35 @@
               {/each}
             </div>
           </section>
+        {:else if details.status === 'FAILED'}
+          <section class="bg-white rounded-[32px] border-2 border-red-200 overflow-hidden">
+            <div class="p-8 text-center">
+              <div class="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <iconify-icon icon="solar:danger-bold" width="32" class="text-red-600"></iconify-icon>
+              </div>
+              <h3 class="text-xl font-black text-neutral-900 mb-2">La chasse a échoué</h3>
+              <p class="text-sm text-neutral-600 mb-6 max-w-md mx-auto">
+                {#if details.error}
+                  {details.error}
+                {:else}
+                  Aucun lead n'a pu être collecté. Vous pouvez relancer la chasse pour réessayer.
+                {/if}
+              </p>
+              <button
+                onclick={relaunchHunt}
+                disabled={relaunching}
+                class="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold bg-black text-white hover:bg-neutral-800 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {#if relaunching}
+                  <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Relance...
+                {:else}
+                  <iconify-icon icon="solar:restart-bold" width="16"></iconify-icon>
+                  Relancer la chasse
+                {/if}
+              </button>
+            </div>
+          </section>
         {/if}
 
       </div>
