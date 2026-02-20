@@ -68,8 +68,10 @@ model AuditSession {
   updatedAt          DateTime     @default(now()) @updatedAt @db.Timestamptz(3)
 
   user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lead               Lead?        @relation(fields: [leadId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([status])
   @@index([jobId])
+  @@index([leadId])
 }
