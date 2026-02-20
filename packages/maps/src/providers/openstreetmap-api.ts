@@ -359,8 +359,11 @@ export class OpenStreetMapService {
 
       console.log(`[OpenStreetMap] Found ${elements.length} raw elements from Overpass API`);
 
+      const maxResults = options.maxResults || 100;
+
       const businesses: LocalBusiness[] = elements
         .filter((element: any) => element.tags && element.tags.name)
+        .slice(0, maxResults * 3)
         .map((element: any) => {
           const tags = element.tags || {};
           const lat = element.lat || (element.center?.lat) || 0;
@@ -397,7 +400,10 @@ export class OpenStreetMapService {
           };
         })
         .filter((b: LocalBusiness | null): b is LocalBusiness => b !== null)
-        .filter((b: LocalBusiness) => b.coordinates && (b.coordinates.lat !== 0 || b.coordinates.lng !== 0));
+        .filter((b: LocalBusiness) => b.coordinates && (b.coordinates.lat !== 0 || b.coordinates.lng !== 0))
+        .slice(0, maxResults);
+
+      console.log(`[OpenStreetMap] Successfully found ${businesses.length} businesses`);
 
       return {
         businesses,

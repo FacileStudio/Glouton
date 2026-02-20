@@ -306,15 +306,15 @@
     </div>
   </div>
 
-  <section class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+  <section class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
     {#if initialLoading}
       {#each Array(3) as _}
-        <div class="p-8 rounded-[32px] shadow-lg" style="background-color: #EFEAE6;">
-          <div class="flex items-start justify-between mb-6">
+        <div class="p-4 sm:p-6 lg:p-8 rounded-[24px] sm:rounded-[32px] shadow-lg" style="background-color: #EFEAE6;">
+          <div class="flex items-start justify-between mb-3 sm:mb-4 lg:mb-6">
             <Skeleton width="120px" height="1.5rem" rounded="md" />
-            <Skeleton width="52px" height="52px" rounded="2xl" />
+            <Skeleton width="40px" height="40px" rounded="2xl" />
           </div>
-          <Skeleton width="80px" height="3.5rem" rounded="md" />
+          <Skeleton width="80px" height="2rem" rounded="md" />
         </div>
       {/each}
     {:else}
@@ -342,16 +342,16 @@
         },
       ] as stat}
         <div
-          class="p-8 rounded-[32px] shadow-lg hover:shadow-xl transition-shadow {stat.accent ? 'ring-2 ring-amber-300' : ''}"
+          class="p-4 sm:p-6 lg:p-8 rounded-[24px] sm:rounded-[32px] shadow-lg hover:shadow-xl transition-shadow {stat.accent ? 'ring-2 ring-amber-300' : ''}"
           style="background-color: #EFEAE6;"
         >
-          <div class="flex items-start justify-between mb-6">
-            <h3 class="text-lg font-bold text-neutral-700">{stat.label}</h3>
-            <div class="w-14 h-14 bg-neutral-50 rounded-2xl flex items-center justify-center flex-shrink-0">
-              <iconify-icon icon={stat.icon} class={stat.color} width="28"></iconify-icon>
+          <div class="flex items-start justify-between mb-3 sm:mb-4 lg:mb-6">
+            <h3 class="text-sm sm:text-base lg:text-lg font-bold text-neutral-700">{stat.label}</h3>
+            <div class="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 bg-neutral-50 rounded-xl sm:rounded-2xl flex items-center justify-center flex-shrink-0">
+              <iconify-icon icon={stat.icon} class={stat.color} width="20"></iconify-icon>
             </div>
           </div>
-          <p class="text-5xl font-black tracking-tighter {stat.accent ? 'text-amber-600' : ''}">{stat.val}</p>
+          <p class="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tighter {stat.accent ? 'text-amber-600' : ''}">{stat.val}</p>
         </div>
       {/each}
     {/if}

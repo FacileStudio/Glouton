@@ -135,27 +135,35 @@ export class LocalBusinessHuntProcessor {
       const randomDelay = Math.floor(Math.random() * 2000);
       await new Promise(resolve => setTimeout(resolve, randomDelay));
 
+      const safeMaxResults = Math.min(maxResults, 500);
+
       const businessesFound = await mapsOrchestrator.search({
         location,
         category,
         radius,
-        maxResults,
+        maxResults: safeMaxResults,
         hasWebsite,
       });
 
-      console.log(`[LocalBusinessHunt] Found ${businessesFound.length} businesses from map services`);
+      const limitedBusinesses = businessesFound.slice(0, safeMaxResults);
 
-      if (businessesFound.length > 0) {
+      if (businessesFound.length > safeMaxResults) {
+        console.log(`[LocalBusinessHunt] Limited results from ${businessesFound.length} to ${safeMaxResults} for memory protection`);
+      }
+
+      console.log(`[LocalBusinessHunt] Found ${limitedBusinesses.length} businesses from map services`);
+
+      if (limitedBusinesses.length > 0) {
         emitter.emit('businesses-discovered', {
           huntSessionId,
-          count: businessesFound.length,
+          count: limitedBusinesses.length,
           location,
           category,
-          sources: Array.from(new Set(businessesFound.map(b => b.source))),
+          sources: Array.from(new Set(limitedBusinesses.map(b => b.source))),
         });
       }
 
-      return businessesFound;
+      return limitedBusinesses;
     } catch (error) {
       console.error('[LocalBusinessHunt] Maps search failed:', error);
 
