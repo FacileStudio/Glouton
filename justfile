@@ -1,6 +1,50 @@
-# Run development monorepo
+# Quick setup for local development
+setup:
+    ./local-dev.sh
+
+# Start all Docker services (PostgreSQL, Redis, MinIO)
+docker-up:
+    docker-compose -f docker-compose.dev.yml up -d
+
+# Stop all Docker services
+docker-down:
+    docker-compose -f docker-compose.dev.yml down
+
+# Stop Docker services and remove volumes
+docker-clean:
+    docker-compose -f docker-compose.dev.yml down -v
+
+# View Docker logs (all services)
+docker-logs:
+    docker-compose -f docker-compose.dev.yml logs -f
+
+# View Docker logs for specific service (usage: just docker-logs-service postgres)
+docker-logs-service service:
+    docker-compose -f docker-compose.dev.yml logs -f {{service}}
+
+# Restart Docker services
+docker-restart:
+    docker-compose -f docker-compose.dev.yml restart
+
+# Check Docker service status
+docker-status:
+    docker-compose -f docker-compose.dev.yml ps
+
+# Run database migrations
+migrate:
+    bash scripts/migrate.sh
+
+# Run development monorepo (frontend + backend)
 dev:
     bun run dev
+
+# Run backend only
+dev-backend:
+    cd apps/backend && bun run dev
+
+# Run frontend only
+dev-frontend:
+    cd apps/frontend && bun run dev
 
 # Build the monorepo
 build:
@@ -14,15 +58,10 @@ typecheck:
 lint:
     bun run lint
 
-# Run MinIO server
-minio:
-    ./scripts/start-minio.sh
+# Format code
+format:
+    bun run format
 
-# Configure MinIO server
-config-minio:
-    ./scripts/alias-minio.sh
-    ./scripts/allow-minio.sh
-
-# Start Dev DB
-db:
-    ./scripts/start-db-dev.sh
+# Clean and reinstall dependencies
+clean:
+    bun run clean

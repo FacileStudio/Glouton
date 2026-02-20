@@ -372,7 +372,7 @@ export function createLocalBusinessHuntWorker(db: SQL, events: EventEmitter): Jo
 
             console.log(`[LocalBusinessHunt] Deduplicated ${leadsToInsert.length} leads to ${deduplicatedLeads.length} unique leads`);
 
-            const BATCH_SIZE = 200;
+            const BATCH_SIZE = 50;
             let totalInserted = 0;
             let totalUpdated = 0;
 
@@ -428,7 +428,7 @@ export function createLocalBusinessHuntWorker(db: SQL, events: EventEmitter): Jo
                 });
               }
 
-              await new Promise(resolve => setTimeout(resolve, 100));
+              await new Promise(resolve => setTimeout(resolve, 500));
             }
 
             if (totalInserted > 0) {
@@ -527,9 +527,9 @@ export function createLocalBusinessHuntWorker(db: SQL, events: EventEmitter): Jo
       }
     },
     options: {
-      concurrency: 2,
+      concurrency: 1,
       limiter: {
-        max: 10,
+        max: 5,
         duration: 60000,
       },
     },
