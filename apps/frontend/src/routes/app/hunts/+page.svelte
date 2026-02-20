@@ -5,7 +5,7 @@
   import { trpc } from '$lib/trpc';
   import { toast } from '@repo/utils';
   import { Spinner } from '@repo/ui';
-  import { setupHuntListeners, type HuntSession } from '$lib/websocket-events.svelte.js';
+  import { setupHuntListeners, type HuntSession } from '$lib/websocket-events.svelte';
   import HuntBanner from '$lib/components/leads/HuntBanner.svelte';
   import HuntCard from '$lib/components/hunts/HuntCard.svelte';
   import 'iconify-icon';

@@ -11,7 +11,7 @@
   import LeadsGrid from '$lib/components/leads/LeadsGrid.svelte';
   import LeadsMap from '$lib/components/leads/LeadsMap.svelte';
   import PaginationControls from '$lib/components/leads/PaginationControls.svelte';
-  import { setupAuditListeners, type AuditSession } from '$lib/websocket-events.svelte.js';
+  import { setupAuditListeners, type AuditSession } from '$lib/websocket-events.svelte';
   import 'iconify-icon';
 
   // State
