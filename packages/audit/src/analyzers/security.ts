@@ -9,7 +9,7 @@ import tls from 'tls';
 export async function analyzeSSL(hostname: string): Promise<SSLInfo> {
   return new Promise((resolve) => {
     try {
-      const cleanHostname = hostname.replace(/^https?:\/\
+      const cleanHostname = hostname.replace(/^https?:\/\//i, '').replace(/\/.*/,  '');
 
       const socket = tls.connect(443, cleanHostname, {
         servername: cleanHostname,

@@ -50,7 +50,7 @@ const TECHNOLOGY_PATTERNS: TechnologyPattern[] = [
     website: 'https://magento.com',
     patterns: {
       html: [/Mage\.Cookies/i],
-      script: [/mage\
+      script: [/mage/i],
       cookies: ['frontend'],
     },
   },
@@ -86,7 +86,7 @@ const TECHNOLOGY_PATTERNS: TechnologyPattern[] = [
     category: 'JavaScript Framework',
     website: 'https://nextjs.org',
     patterns: {
-      html: [/__next/i, /_next\
+      html: [/__next/i, /_next/i],
       script: [/_next\/static/i],
     },
   },
@@ -96,7 +96,7 @@ const TECHNOLOGY_PATTERNS: TechnologyPattern[] = [
     website: 'https://nuxtjs.org',
     patterns: {
       html: [/__nuxt/i],
-      script: [/_nuxt\
+      script: [/_nuxt/i],
     },
   },
   {
