@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./prisma": "./src/prisma.ts",
     "./utils/prisma-helpers": "./src/utils/prisma-helpers.ts"
   },
   "scripts": {
