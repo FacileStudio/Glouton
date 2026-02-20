@@ -1,0 +1,31 @@
+model Subscription {
+  id                   Int       @id @default(autoincrement())
+  userId               String    @unique @db.Text
+  stripeCustomerId     String    @unique @db.Text
+  stripeSubscriptionId String?   @unique @db.Text
+  status               String    @db.Text
+  planId               String?   @db.Text
+  currentPeriodEnd     DateTime? @db.Timestamptz(3)
+  cancelAtPeriodEnd    Boolean   @default(false)
+  createdAt            DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt            DateTime  @default(now()) @updatedAt @db.Timestamptz(3)
+
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([stripeCustomerId])
+  @@index([stripeSubscriptionId])
+}
+
+model PaymentHistory {
+  id               Int      @id @default(autoincrement())
+  userId           String   @db.Text
+  stripePaymentId  String   @unique @db.Text
+  amount           Int
+  currency         String   @db.Text
+  status           String   @db.Text
+  createdAt        DateTime @default(now()) @db.Timestamptz(3)
+
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}

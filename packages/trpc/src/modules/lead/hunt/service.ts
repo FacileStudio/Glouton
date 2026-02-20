@@ -1,6 +1,7 @@
-import { SQL, sql } from 'bun';
+import { prisma } from '@repo/database/prisma';
 import type { QueueManager } from '@repo/jobs';
 import { TRPCError } from '@trpc/server';
+import type { LeadSource } from '@repo/database';
 
 export interface StartHuntParams {
   userId: string;
@@ -9,7 +10,6 @@ export interface StartHuntParams {
   speed: number;
   filters?: any;
   jobs: QueueManager;
-  db: SQL;
 }
 
 export interface StartLocalBusinessHuntParams {
@@ -21,7 +21,6 @@ export interface StartLocalBusinessHuntParams {
   maxResults?: number;
   googleMapsApiKey?: string;
   jobs: QueueManager;
-  db: SQL;
 }
 
 export interface RunDetails {
@@ -82,32 +81,31 @@ export default {
     speed,
     filters,
     jobs,
-    db,
   }: StartHuntParams) {
-    const [user] = (await db`
-      SELECT id FROM "User" WHERE id = ${userId}
-    `) as any[];
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true }
+    });
 
     if (!user) {
       throw new Error('User not found. Please log in again.');
     }
 
-    const [huntSession] = (await db`
-      INSERT INTO "HuntSession" (
-        id, "userId", "huntType", sources, filters, status, progress, "createdAt", "updatedAt"
-      ) VALUES (
-        gen_random_uuid(),
-        ${userId},
-        'DOMAIN',
-        ARRAY[${source}]::"LeadSource"[],
-        ${JSON.stringify(filters || {})}::jsonb,
-        'PENDING',
-        0,
-        ${new Date()},
-        ${new Date()}
-      )
-      RETURNING id, status, "createdAt"
-    `) as any[];
+    const huntSession = await prisma.huntSession.create({
+      data: {
+        userId,
+        huntType: 'DOMAIN',
+        sources: [source as LeadSource],
+        filters: filters || {},
+        status: 'PENDING',
+        progress: 0,
+      },
+      select: {
+        id: true,
+        status: true,
+        createdAt: true,
+      }
+    });
 
     await jobs.addJob(
       'domain-finder',
@@ -137,35 +135,35 @@ export default {
     maxResults,
     googleMapsApiKey,
     jobs,
-    db,
   }: StartLocalBusinessHuntParams) {
-    const [user] = await db`SELECT id FROM "User" WHERE id = ${userId}`;
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true }
+    });
     if (!user) throw new Error('User not found. Please log in again.');
 
-    const [huntSession] = await db`
-    INSERT INTO "HuntSession" (
-      id,
-      "userId",
-      "huntType",
-      sources,
-      filters,
-      status,
-      progress,
-      "createdAt",
-      "updatedAt"
-    ) VALUES (
-      gen_random_uuid(),
-      ${userId},
-      'LOCAL_BUSINESS',
-      ARRAY['GOOGLE_MAPS', 'OPENSTREETMAP']::"LeadSource"[],
-      ${JSON.stringify({ location, categories, hasWebsite, radius, maxResults, totalJobs: categories.length })}::jsonb,
-      'PENDING',
-      0,
-      ${new Date()},
-      ${new Date()}
-    )
-    RETURNING id, status, "createdAt"
-  `;
+    const huntSession = await prisma.huntSession.create({
+      data: {
+        userId,
+        huntType: 'LOCAL_BUSINESS',
+        sources: ['GOOGLE_MAPS', 'OPENSTREETMAP'] as LeadSource[],
+        filters: {
+          location,
+          categories,
+          hasWebsite,
+          radius,
+          maxResults,
+          totalJobs: categories.length
+        },
+        status: 'PENDING',
+        progress: 0,
+      },
+      select: {
+        id: true,
+        status: true,
+        createdAt: true,
+      }
+    });
 
     for (const category of categories) {
       await jobs.addJob(
@@ -194,13 +192,11 @@ export default {
     };
   },
 
-  async getHuntSessions(userId: string, db: SQL, jobs?: QueueManager) {
-    const sessions = (await db`
-      SELECT *
-      FROM "HuntSession"
-      WHERE "userId" = ${userId}
-      ORDER BY "createdAt" DESC
-    `) as any[];
+  async getHuntSessions(userId: string, jobs?: QueueManager) {
+    const sessions = await prisma.huntSession.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' }
+    });
 
     const validatedSessions = await Promise.all(
       sessions.map(async (session) => {
@@ -214,37 +210,29 @@ export default {
             if (queue) {
               const job = await queue.getJob(session.jobId);
               if (!job) {
-                await db`
-                  UPDATE "HuntSession"
-                  SET status = 'FAILED',
-                      error = 'Job not found in queue (worker may have crashed)',
-                      "completedAt" = ${new Date()}
-                  WHERE id = ${session.id}
-                `;
-                return {
-                  ...session,
-                  status: 'FAILED' as const,
-                  error: 'Job not found in queue (worker may have crashed)',
-                  completedAt: new Date(),
-                };
+                const updated = await prisma.huntSession.update({
+                  where: { id: session.id },
+                  data: {
+                    status: 'FAILED',
+                    error: 'Job not found in queue (worker may have crashed)',
+                    completedAt: new Date()
+                  }
+                });
+                return updated;
               }
 
               const jobState = await job.getState();
               if (jobState === 'failed' || jobState === 'completed') {
                 const newStatus = jobState === 'failed' ? 'FAILED' : 'COMPLETED';
-                await db`
-                  UPDATE "HuntSession"
-                  SET status = ${newStatus},
-                      error = ${jobState === 'failed' ? job.failedReason : null},
-                      "completedAt" = ${new Date()}
-                  WHERE id = ${session.id}
-                `;
-                return {
-                  ...session,
-                  status: newStatus as const,
-                  error: jobState === 'failed' ? job.failedReason : session.error,
-                  completedAt: new Date(),
-                };
+                const updated = await prisma.huntSession.update({
+                  where: { id: session.id },
+                  data: {
+                    status: newStatus,
+                    error: jobState === 'failed' ? job.failedReason : null,
+                    completedAt: new Date()
+                  }
+                });
+                return updated;
               }
             }
           } catch (error) {
@@ -273,38 +261,36 @@ export default {
     }));
   },
 
-  async getHuntSessionStatus(huntSessionId: string, db: SQL) {
-    const [session] = (await db`
-      SELECT *
-      FROM "HuntSession"
-      WHERE id = ${huntSessionId}
-    `) as any[];
+  async getHuntSessionStatus(huntSessionId: string) {
+    const session = await prisma.huntSession.findUnique({
+      where: { id: huntSessionId },
+      select: {
+        id: true,
+        userId: true,
+        status: true,
+        progress: true,
+        totalLeads: true,
+        successfulLeads: true,
+        failedLeads: true,
+        error: true,
+        startedAt: true,
+        completedAt: true,
+        createdAt: true,
+      }
+    });
 
     if (!session) {
       throw new Error('Hunt session not found');
     }
 
-    return {
-      id: session.id,
-      userId: session.userId,
-      status: session.status,
-      progress: session.progress,
-      totalLeads: session.totalLeads,
-      successfulLeads: session.successfulLeads,
-      failedLeads: session.failedLeads,
-      error: session.error,
-      startedAt: session.startedAt,
-      completedAt: session.completedAt,
-      createdAt: session.createdAt,
-    };
+    return session;
   },
 
-  async cancelHunt(huntSessionId: string, userId: string, db: SQL, jobs: QueueManager, events?: { emit: (userId: string, type: string, data?: any) => void }) {
-    const [session] = (await db`
-      SELECT id, "jobId", status
-      FROM "HuntSession"
-      WHERE id = ${huntSessionId} AND "userId" = ${userId}
-    `) as any[];
+  async cancelHunt(huntSessionId: string, userId: string, jobs: QueueManager, events?: { emit: (userId: string, type: string, data?: any) => void }) {
+    const session = await prisma.huntSession.findUnique({
+      where: { id: huntSessionId, userId },
+      select: { id: true, jobId: true, status: true }
+    });
 
     if (!session) {
       throw new Error('Hunt session not found or unauthorized');
@@ -330,15 +316,14 @@ export default {
       }
     }
 
-    await db`
-      UPDATE "HuntSession"
-      SET status = 'CANCELLED',
-          "completedAt" = ${new Date()},
-          "updatedAt" = ${new Date()}
-      WHERE id = ${huntSessionId}
-    `;
+    await prisma.huntSession.update({
+      where: { id: huntSessionId },
+      data: {
+        status: 'CANCELLED',
+        completedAt: new Date(),
+      }
+    });
 
-    // Emit WebSocket event for cancellation
     if (events) {
       events.emit(userId, 'hunt-cancelled', {
         huntSessionId
@@ -348,12 +333,11 @@ export default {
     return { success: true, huntSessionId };
   },
 
-  async deleteHunt(huntSessionId: string, userId: string, db: SQL) {
-    const [session] = (await db`
-      SELECT id, status
-      FROM "HuntSession"
-      WHERE id = ${huntSessionId} AND "userId" = ${userId}
-    `) as any[];
+  async deleteHunt(huntSessionId: string, userId: string) {
+    const session = await prisma.huntSession.findUnique({
+      where: { id: huntSessionId, userId },
+      select: { id: true, status: true }
+    });
 
     if (!session) {
       throw new Error('Hunt session not found or unauthorized');
@@ -363,20 +347,17 @@ export default {
       throw new Error('Cannot delete a hunt session that is currently processing');
     }
 
-    await db`
-      DELETE FROM "HuntSession"
-      WHERE id = ${huntSessionId}
-    `;
+    await prisma.huntSession.delete({
+      where: { id: huntSessionId }
+    });
 
     return { success: true, huntSessionId };
   },
 
-  async getRunDetails(huntSessionId: string, userId: string, db: SQL): Promise<RunDetails> {
-    const [session] = await db`
-      SELECT *
-      FROM "HuntSession"
-      WHERE id = ${huntSessionId}
-    ` as Promise<any[]>;
+  async getRunDetails(huntSessionId: string, userId: string): Promise<RunDetails> {
+    const session = await prisma.huntSession.findUnique({
+      where: { id: huntSessionId }
+    });
 
     if (!session) {
       throw new TRPCError({
@@ -392,27 +373,32 @@ export default {
       });
     }
 
-    const leads = await db`
-      SELECT id, domain, email, "firstName", "lastName", position, status, score, source, contacted, "createdAt"
-      FROM "Lead"
-      WHERE "huntSessionId" = ${huntSessionId}
-      ORDER BY "createdAt" DESC
-    ` as Promise<any[]>;
+    const leads = await prisma.lead.findMany({
+      where: { huntSessionId },
+      select: {
+        id: true,
+        domain: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        position: true,
+        status: true,
+        score: true,
+        source: true,
+        contacted: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' }
+    });
 
     const stats = this.calculateStats(session, leads);
-
-    const sources = Array.isArray(session.sources)
-      ? session.sources
-      : typeof session.sources === 'string'
-        ? session.sources.replace(/[{}]/g, '').split(',').filter(Boolean)
-        : [];
 
     return {
       id: session.id,
       userId: session.userId,
       status: session.status,
       progress: session.progress,
-      sources,
+      sources: session.sources,
       domain: session.domain,
       filters: session.filters,
       totalLeads: session.totalLeads,
@@ -604,7 +590,6 @@ export default {
   async getRunEvents(
     huntSessionId: string,
     userId: string,
-    db: SQL,
     options?: {
       level?: 'info' | 'warning' | 'error' | 'success';
       category?: 'system' | 'source' | 'lead' | 'enrichment';
@@ -612,11 +597,9 @@ export default {
       limit?: number;
     }
   ): Promise<{ events: RunEvent[]; total: number; page: number; limit: number }> {
-    const [session] = await db`
-      SELECT *
-      FROM "HuntSession"
-      WHERE id = ${huntSessionId}
-    ` as Promise<any[]>;
+    const session = await prisma.huntSession.findUnique({
+      where: { id: huntSessionId }
+    });
 
     if (!session) {
       throw new TRPCError({

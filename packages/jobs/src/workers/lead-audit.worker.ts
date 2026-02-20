@@ -4,6 +4,7 @@ import type { Job } from 'bullmq';
 import type { AuditResult } from '../services/scraper.service';
 import type { EventEmitter } from './index';
 import { JobEventEmitter } from '../lib/job-event-emitter';
+import { prisma } from '@repo/database';
 
 interface LeadAuditJobData {
   auditSessionId: string;
@@ -24,7 +25,7 @@ interface ProcessResult {
   error?: Error;
 }
 
-export function createLeadAuditWorker(db: any, events: EventEmitter) {
+export function createLeadAuditWorker(events: EventEmitter) {
   const scraper = new ScraperService();
   const BATCH_SIZE = 10;
   const BATCH_DELAY_MS = 200;
@@ -42,16 +43,18 @@ export function createLeadAuditWorker(db: any, events: EventEmitter) {
         const mergedExtras = Array.from(new Set([...existingExtras, ...newExtras]));
         const calculatedScore = calculateLeadScore(auditData);
 
-        await db`
-          UPDATE "Lead" SET
-            "websiteAudit" = ${auditData},
-            "email" = ${primaryEmail},
-            "additionalEmails" = ${db.array(mergedExtras)},
-            "score" = ${calculatedScore},
-            "auditedAt" = NOW(),
-            "updatedAt" = NOW()
-          WHERE id = ${lead.id}
-        `;
+        const now = new Date();
+        await prisma.lead.update({
+          where: { id: lead.id },
+          data: {
+            websiteAudit: auditData as any,
+            email: primaryEmail,
+            additionalEmails: mergedExtras,
+            score: calculatedScore,
+            auditedAt: now,
+            updatedAt: now,
+          },
+        });
 
         return { success: true, lead, auditData };
       } else {
@@ -79,15 +82,16 @@ export function createLeadAuditWorker(db: any, events: EventEmitter) {
 
     await job.updateProgress(progress);
 
-    await db`
-      UPDATE "AuditSession" SET
-        progress = ${progress},
-        "processedLeads" = ${processedCount},
-        "updatedLeads" = ${updatedLeads},
-        "failedLeads" = ${failedLeads},
-        "updatedAt" = NOW()
-      WHERE id = ${auditSessionId}
-    `;
+    await prisma.auditSession.update({
+      where: { id: auditSessionId },
+      data: {
+        progress,
+        processedLeads: processedCount,
+        updatedLeads,
+        failedLeads,
+        updatedAt: new Date(),
+      },
+    });
 
     emitter.emit('audit-progress', {
       auditSessionId,
@@ -107,11 +111,10 @@ export function createLeadAuditWorker(db: any, events: EventEmitter) {
       let isCancelled = false;
 
       const checkCancellation = async () => {
-        const [session] = await db`
-          SELECT status
-          FROM "AuditSession"
-          WHERE id = ${auditSessionId}
-        `;
+        const session = await prisma.auditSession.findUnique({
+          where: { id: auditSessionId },
+          select: { status: true },
+        });
 
         if (session && session.status === 'CANCELLED') {
           isCancelled = true;
@@ -126,24 +129,33 @@ export function createLeadAuditWorker(db: any, events: EventEmitter) {
       };
 
       try {
-        const leads: Lead[] = await db`
-          SELECT id, domain, email, "additionalEmails"
-          FROM "Lead"
-          WHERE "userId" = ${userId} AND domain IS NOT NULL
-        `;
+        const leads: Lead[] = await prisma.lead.findMany({
+          where: {
+            userId,
+            domain: { not: null },
+          },
+          select: {
+            id: true,
+            domain: true,
+            email: true,
+            additionalEmails: true,
+          },
+        }) as Lead[];
 
         console.log(
           `[WORKER] Starting audit for ${leads.length} leads in parallel batches of ${BATCH_SIZE}`
         );
 
-        await db`
-          UPDATE "AuditSession" SET
-            status = 'PROCESSING',
-            "totalLeads" = ${leads.length},
-            "startedAt" = NOW(),
-            "updatedAt" = NOW()
-          WHERE id = ${auditSessionId}
-        `;
+        const startedAt = new Date();
+        await prisma.auditSession.update({
+          where: { id: auditSessionId },
+          data: {
+            status: 'PROCESSING',
+            totalLeads: leads.length,
+            startedAt,
+            updatedAt: startedAt,
+          },
+        });
 
         let processedCount = 0;
         let updatedLeads = 0;
@@ -155,17 +167,24 @@ export function createLeadAuditWorker(db: any, events: EventEmitter) {
               `[WORKER] Audit cancelled for session ${auditSessionId} at ${processedCount}/${leads.length} leads`
             );
 
-            await db`
-              UPDATE "AuditSession" SET
-                progress = ${Math.floor((processedCount / leads.length) * 100)},
-                "processedLeads" = ${processedCount},
-                "updatedLeads" = ${updatedLeads},
-                "failedLeads" = ${failedLeads},
-                "completedAt" = COALESCE("completedAt", NOW()),
-                "updatedAt" = NOW()
-              WHERE id = ${auditSessionId}
-                AND status != 'COMPLETED'
-            `;
+            const currentSession = await prisma.auditSession.findUnique({
+              where: { id: auditSessionId },
+              select: { status: true, completedAt: true },
+            });
+
+            if (currentSession?.status !== 'COMPLETED') {
+              await prisma.auditSession.update({
+                where: { id: auditSessionId },
+                data: {
+                  progress: Math.floor((processedCount / leads.length) * 100),
+                  processedLeads: processedCount,
+                  updatedLeads,
+                  failedLeads,
+                  completedAt: currentSession?.completedAt || new Date(),
+                  updatedAt: new Date(),
+                },
+              });
+            }
 
             emitter.emit('audit-cancelled', {
               auditSessionId,
@@ -236,14 +255,16 @@ export function createLeadAuditWorker(db: any, events: EventEmitter) {
           failedLeads
         );
 
-        await db`
-          UPDATE "AuditSession" SET
-            status = 'COMPLETED',
-            progress = 100,
-            "completedAt" = NOW(),
-            "updatedAt" = NOW()
-          WHERE id = ${auditSessionId}
-        `;
+        const completedAt = new Date();
+        await prisma.auditSession.update({
+          where: { id: auditSessionId },
+          data: {
+            status: 'COMPLETED',
+            progress: 100,
+            completedAt,
+            updatedAt: completedAt,
+          },
+        });
 
         console.log(
           `[WORKER] Audit completed: ${updatedLeads}/${leads.length} leads updated, ${failedLeads} failed`
@@ -259,14 +280,16 @@ export function createLeadAuditWorker(db: any, events: EventEmitter) {
         return { updatedLeads, failedLeads, totalLeads: leads.length };
       } catch (fatalError: any) {
         console.error('[WORKER] Fatal Error:', fatalError);
-        await db`
-          UPDATE "AuditSession" SET
-            status = 'FAILED',
-            error = ${fatalError.message},
-            "completedAt" = NOW(),
-            "updatedAt" = NOW()
-          WHERE id = ${auditSessionId}
-        `;
+        const failedAt = new Date();
+        await prisma.auditSession.update({
+          where: { id: auditSessionId },
+          data: {
+            status: 'FAILED',
+            error: fatalError.message,
+            completedAt: failedAt,
+            updatedAt: failedAt,
+          },
+        });
 
         throw fatalError;
       }

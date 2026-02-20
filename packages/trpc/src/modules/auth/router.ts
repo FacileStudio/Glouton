@@ -5,11 +5,11 @@ import { z } from 'zod';
 
 export const authRouter = router({
   login: publicProcedure.input(loginSchema).mutation(async ({ ctx, input }) => {
-    return authService.login(ctx.db, ctx.auth, input);
+    return authService.login(ctx.auth, input);
   }),
 
   register: publicProcedure.input(registerSchema).mutation(async ({ ctx, input }) => {
-    return authService.register(ctx.db, ctx.auth, input);
+    return authService.register(ctx.auth, input);
   }),
 
   me: protectedProcedure.input(z.object({})).query(({ ctx }) => {

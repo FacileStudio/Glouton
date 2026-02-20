@@ -1,63 +1,44 @@
-import { SQL, sql } from 'bun';
+import { prisma } from '@repo/database/prisma';
 import { SMTPService, renderTemplate, type EmailTemplate } from '@repo/smtp';
 
 export class EmailService {
-  /**
-   * constructor
-   */
   constructor(
-    private db: SQL,
     private smtp: SMTPService,
   ) {}
 
-  /**
-   * sendEmail
-   */
   async sendEmail(params: {
     leadId: string;
     userId: string;
     templateId: string;
     variables: Record<string, string>;
   }) {
-    const [lead] = await this.db`
-      SELECT id, email
-      FROM "Lead"
-      WHERE id = ${params.leadId}
-    ` as Promise<any[]>;
+    const lead = await prisma.lead.findUnique({
+      where: { id: params.leadId },
+      select: { id: true, email: true },
+    });
 
-    /**
-     * if
-     */
     if (!lead || !lead.email) {
       throw new Error('Lead not found or has no email');
     }
 
     const rendered = renderTemplate(params.templateId, params.variables);
-    /**
-     * if
-     */
     if (!rendered) {
       throw new Error('Template not found');
     }
 
-    const [outreach] = await this.db`
-      INSERT INTO "EmailOutreach" (
-        id, "leadId", "userId", "templateId", subject, "htmlBody", "textBody", variables, status, "createdAt", "updatedAt"
-      ) VALUES (
-        gen_random_uuid(),
-        ${params.leadId},
-        ${params.userId},
-        ${params.templateId},
-        ${rendered.subject},
-        ${rendered.html},
-        ${rendered.text},
-        ${JSON.stringify(params.variables)}::jsonb,
-        'PENDING',
-        ${new Date()},
-        ${new Date()}
-      )
-      RETURNING id
-    ` as Promise<any[]>;
+    const outreach = await prisma.emailOutreach.create({
+      data: {
+        leadId: params.leadId,
+        userId: params.userId,
+        templateId: params.templateId,
+        subject: rendered.subject,
+        htmlBody: rendered.html,
+        textBody: rendered.text,
+        variables: params.variables,
+        status: 'PENDING',
+      },
+      select: { id: true },
+    });
 
     try {
       await this.smtp.sendEmail({
@@ -67,71 +48,84 @@ export class EmailService {
         text: rendered.text,
       });
 
-      await this.db`
-        UPDATE "EmailOutreach"
-        SET status = 'SENT',
-            "sentAt" = ${new Date()}
-        WHERE id = ${outreach.id}
-      `;
+      await prisma.emailOutreach.update({
+        where: { id: outreach.id },
+        data: {
+          status: 'SENT',
+          sentAt: new Date(),
+        },
+      });
 
-      await this.db`
-        UPDATE "Lead"
-        SET contacted = TRUE,
-            "lastContactedAt" = ${new Date()},
-            "emailsSentCount" = "emailsSentCount" + 1
-        WHERE id = ${params.leadId}
-      `;
+      await prisma.lead.update({
+        where: { id: params.leadId },
+        data: {
+          contacted: true,
+          lastContactedAt: new Date(),
+          emailsSentCount: { increment: 1 },
+        },
+      });
 
       return { success: true, outreachId: outreach.id };
     } catch (error) {
-      await this.db`
-        UPDATE "EmailOutreach"
-        SET status = 'FAILED',
-            error = ${error instanceof Error ? error.message : 'Unknown error'}
-        WHERE id = ${outreach.id}
-      `;
+      await prisma.emailOutreach.update({
+        where: { id: outreach.id },
+        data: {
+          status: 'FAILED',
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
+      });
 
       throw error;
     }
   }
 
-  /**
-   * getLeadOutreach
-   */
   async getLeadOutreach(leadId: string, userId: string) {
-    return this.db`
-      SELECT id, "leadId", "userId", "templateId", subject, "htmlBody", "textBody", variables, status, "createdAt", "sentAt"
-      FROM "EmailOutreach"
-      WHERE "leadId" = ${leadId} AND "userId" = ${userId}
-      ORDER BY "createdAt" DESC
-    ` as Promise<any[]>;
+    return prisma.emailOutreach.findMany({
+      where: {
+        leadId,
+        userId,
+      },
+      select: {
+        id: true,
+        leadId: true,
+        userId: true,
+        templateId: true,
+        subject: true,
+        htmlBody: true,
+        textBody: true,
+        variables: true,
+        status: true,
+        createdAt: true,
+        sentAt: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
   }
 
-  /**
-   * getOutreachStats
-   */
   async getOutreachStats(userId: string) {
     const FOLLOW_UP_DAYS = 5;
 
-    const [totalRows, sentRows, openedRows, repliedRows] = await Promise.all([
-      this.db`SELECT COUNT(*)::int as count FROM "EmailOutreach" WHERE "userId" = ${userId}` as Promise<[{count: number}]>,
-      this.db`SELECT COUNT(*)::int as count FROM "EmailOutreach" WHERE "userId" = ${userId} AND status = 'SENT'` as Promise<[{count: number}]>,
-      this.db`SELECT COUNT(*)::int as count FROM "EmailOutreach" WHERE "userId" = ${userId} AND status = 'OPENED'` as Promise<[{count: number}]>,
-      this.db`SELECT COUNT(*)::int as count FROM "EmailOutreach" WHERE "userId" = ${userId} AND status = 'REPLIED'` as Promise<[{count: number}]>,
+    const [total, sent, opened, replied, contactedLeads] = await Promise.all([
+      prisma.emailOutreach.count({
+        where: { userId },
+      }),
+      prisma.emailOutreach.count({
+        where: { userId, status: 'SENT' },
+      }),
+      prisma.emailOutreach.count({
+        where: { userId, status: 'OPENED' },
+      }),
+      prisma.emailOutreach.count({
+        where: { userId, status: 'REPLIED' },
+      }),
+      prisma.lead.count({
+        where: { userId, contacted: true },
+      }),
     ]);
 
-    const total = Number(totalRows[0]?.count ?? 0);
-    const sent = Number(sentRows[0]?.count ?? 0);
-    const opened = Number(openedRows[0]?.count ?? 0);
-    const replied = Number(repliedRows[0]?.count ?? 0);
-
-    const contactedLeads = Number((await this.db`
-      SELECT COUNT(*)::int as count
-      FROM "Lead"
-      WHERE "userId" = ${userId} AND contacted = TRUE
-    ` as Promise<[{count: number}]>)[0]?.count ?? 0);
-
-    const needsFollowUp = Number((await this.db`
+    const needsFollowUpResult = await prisma.$queryRaw<[{ count: bigint }]>`
       SELECT COUNT(DISTINCT latest."leadId")::int as count
       FROM (
         SELECT DISTINCT ON ("leadId") "leadId", status, "sentAt", "createdAt"
@@ -141,7 +135,9 @@ export class EmailService {
       ) latest
       WHERE latest.status NOT IN ('REPLIED', 'BOUNCED', 'FAILED')
         AND EXTRACT(EPOCH FROM (NOW() - COALESCE(latest."sentAt", latest."createdAt"))) / 86400 >= ${FOLLOW_UP_DAYS}
-    ` as Promise<[{count: number}]>)[0]?.count ?? 0);
+    `;
+
+    const needsFollowUp = Number(needsFollowUpResult[0]?.count ?? 0);
 
     return {
       totalEmails: total,
@@ -155,13 +151,28 @@ export class EmailService {
     };
   }
 
-  /**
-   * getAllOutreach
-   */
   async getAllOutreach(userId: string) {
     const FOLLOW_UP_DAYS = 5;
 
-    const rows = await this.db`
+    const rows = await prisma.$queryRaw<Array<{
+      leadId: string;
+      firstName: string | null;
+      lastName: string | null;
+      domain: string | null;
+      businessName: string | null;
+      email: string | null;
+      score: number;
+      status: string;
+      emailsSentCount: number;
+      lastContactedAt: Date | null;
+      lastEmailId: string;
+      lastEmailSubject: string;
+      lastEmailStatus: string;
+      lastEmailSentAt: Date | null;
+      lastEmailCreatedAt: Date;
+      daysSinceLastContact: number;
+      needsFollowUp: boolean;
+    }>>`
       SELECT
         l.id as "leadId",
         l."firstName",
@@ -209,7 +220,7 @@ export class EmailService {
         END ASC,
         CASE l.status WHEN 'HOT' THEN 0 WHEN 'WARM' THEN 1 ELSE 2 END ASC,
         l.score DESC
-    ` as Promise<any[]>;
+    `;
 
     return rows;
   }

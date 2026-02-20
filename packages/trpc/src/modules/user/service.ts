@@ -1,14 +1,13 @@
 import { TRPCError } from '@trpc/server';
-import { SQL } from 'bun';
+import { prisma } from '@repo/database/prisma';
 import { type AuthManager } from '@repo/auth';
+import type { UserRole, UserStatus } from '@repo/types';
 
 export const userService = {
-  getProfile: async (db: SQL, userId: string) => {
-    const [user] = await db`
-      SELECT *
-      FROM "User"
-      WHERE id = ${userId}
-    ` as Promise<any[]>;
+  getProfile: async (userId: string) => {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
 
     if (!user) {
       throw new TRPCError({
@@ -20,12 +19,11 @@ export const userService = {
     return user;
   },
 
-  getConfiguredSources: async (db: SQL, userId: string) => {
-    const [user] = await db`
-      SELECT "hunterApiKey"
-      FROM "User"
-      WHERE id = ${userId}
-    ` as Promise<any[]>;
+  getConfiguredSources: async (userId: string) => {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { hunterApiKey: true },
+    });
 
     if (!user) {
       throw new TRPCError({
@@ -40,7 +38,6 @@ export const userService = {
   },
 
   getAllUsers: async (
-    db: SQL,
     filters?: {
       status?: 'all' | 'active' | 'suspended' | 'banned' | 'pending';
       role?: 'all' | 'admin' | 'user';
@@ -48,29 +45,34 @@ export const userService = {
       isPremium?: boolean;
     }
   ) => {
-    const statusFilter = filters?.status && filters.status !== 'all' ? filters.status.toUpperCase() : null;
-    const roleFilter = filters?.role && filters.role !== 'all' ? filters.role.toUpperCase() : null;
-    const emailVerified = filters?.emailVerified !== undefined ? filters.emailVerified : null;
-    const isPremiumFilter = filters?.isPremium !== undefined ? filters.isPremium : null;
+    const where: any = {};
 
-    return await db`
-      SELECT *
-      FROM "User"
-      WHERE
-        (${statusFilter}::text IS NULL OR status::text = ${statusFilter}::text)
-        AND (${roleFilter}::text IS NULL OR role::text = ${roleFilter}::text)
-        AND (${emailVerified}::boolean IS NULL OR "emailVerified" = ${emailVerified})
-        AND (${isPremiumFilter}::boolean IS NULL OR "isPremium" = ${isPremiumFilter})
-      ORDER BY "createdAt" DESC
-    ` as Promise<any[]>;
+    if (filters?.status && filters.status !== 'all') {
+      where.status = filters.status.toUpperCase() as UserStatus;
+    }
+
+    if (filters?.role && filters.role !== 'all') {
+      where.role = filters.role.toUpperCase() as UserRole;
+    }
+
+    if (filters?.emailVerified !== undefined) {
+      where.emailVerified = filters.emailVerified;
+    }
+
+    if (filters?.isPremium !== undefined) {
+      where.isPremium = filters.isPremium;
+    }
+
+    return await prisma.user.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+    });
   },
 
-  getUserById: async (db: SQL, userId: string) => {
-    const [user] = await db`
-      SELECT *
-      FROM "User"
-      WHERE id = ${userId}
-    ` as Promise<any[]>;
+  getUserById: async (userId: string) => {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
 
     if (!user) {
       throw new TRPCError({
@@ -82,175 +84,172 @@ export const userService = {
     return user;
   },
 
-  getUserStats: async (db: SQL) => {
-    const [stats] = await db`
-      SELECT 
-        COUNT(*)::int as "totalUsers",
-        COUNT(*) FILTER (WHERE status = 'ACTIVE')::int as "activeUsers",
-        COUNT(*) FILTER (WHERE "isBanned" = TRUE)::int as "bannedUsers",
-        COUNT(*) FILTER (WHERE "isSuspended" = TRUE)::int as "suspendedUsers",
-        COUNT(*) FILTER (WHERE "isPremium" = TRUE)::int as "premiumUsers",
-        COUNT(*) FILTER (WHERE "emailVerified" = TRUE)::int as "verifiedUsers",
-        COUNT(*) FILTER (WHERE role = 'ADMIN')::int as "adminUsers"
-      FROM "User"
-    ` as Promise<any[]>;
+  getUserStats: async () => {
+    const [
+      totalUsers,
+      activeUsers,
+      bannedUsers,
+      suspendedUsers,
+      premiumUsers,
+      verifiedUsers,
+      adminUsers,
+    ] = await Promise.all([
+      prisma.user.count(),
+      prisma.user.count({ where: { status: 'ACTIVE' } }),
+      prisma.user.count({ where: { isBanned: true } }),
+      prisma.user.count({ where: { isSuspended: true } }),
+      prisma.user.count({ where: { isPremium: true } }),
+      prisma.user.count({ where: { emailVerified: true } }),
+      prisma.user.count({ where: { role: 'ADMIN' } }),
+    ]);
 
-    return stats || {
-      totalUsers: 0,
-      activeUsers: 0,
-      bannedUsers: 0,
-      suspendedUsers: 0,
-      premiumUsers: 0,
-      verifiedUsers: 0,
-      adminUsers: 0,
+    return {
+      totalUsers,
+      activeUsers,
+      bannedUsers,
+      suspendedUsers,
+      premiumUsers,
+      verifiedUsers,
+      adminUsers,
     };
   },
 
   updateUser: async (
-    db: SQL,
     userId: string,
     data: { isPremium?: boolean; role?: 'USER' | 'ADMIN' }
   ) => {
     if (data.isPremium === undefined && data.role === undefined) {
-      return userService.getUserById(db, userId);
+      return userService.getUserById(userId);
     }
 
-    const isPremium = data.isPremium !== undefined ? data.isPremium : null;
-    const role = data.role !== undefined ? data.role : null;
+    const updateData: any = {};
 
-    const [updatedUser] = await db`
-      UPDATE "User"
-      SET
-        "isPremium" = CASE WHEN ${isPremium}::boolean IS NOT NULL THEN ${isPremium} ELSE "isPremium" END,
-        role = CASE WHEN ${role}::text IS NOT NULL THEN ${role}::"UserRole" ELSE role END,
-        "updatedAt" = NOW()
-      WHERE id = ${userId}
-      RETURNING *
-    ` as Promise<any[]>;
+    if (data.isPremium !== undefined) {
+      updateData.isPremium = data.isPremium;
+    }
+
+    if (data.role !== undefined) {
+      updateData.role = data.role;
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+    });
 
     if (!updatedUser) throw new TRPCError({ code: 'NOT_FOUND', message: 'User not found' });
     return updatedUser;
   },
 
-  banUser: async (db: SQL, userId: string, reason: string, bannedBy: string) => {
-    const [bannedUser] = await db`
-      UPDATE "User"
-      SET "isBanned" = TRUE,
-          status = 'BANNED',
-          "banReason" = ${reason},
-          "bannedAt" = NOW(),
-          "bannedBy" = ${bannedBy},
-          "updatedAt" = NOW()
-      WHERE id = ${userId}
-      RETURNING *
-    ` as Promise<any[]>;
+  banUser: async (userId: string, reason: string, bannedBy: string) => {
+    const bannedUser = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        isBanned: true,
+        status: 'BANNED',
+        banReason: reason,
+        bannedAt: new Date(),
+        bannedBy: bannedBy,
+      },
+    });
     return bannedUser;
   },
 
-  unbanUser: async (db: SQL, userId: string) => {
-    const [unbannedUser] = await db`
-      UPDATE "User"
-      SET "isBanned" = FALSE,
-          status = 'ACTIVE',
-          "banReason" = NULL,
-          "bannedAt" = NULL,
-          "bannedBy" = NULL,
-          "updatedAt" = NOW()
-      WHERE id = ${userId}
-      RETURNING *
-    ` as Promise<any[]>;
+  unbanUser: async (userId: string) => {
+    const unbannedUser = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        isBanned: false,
+        status: 'ACTIVE',
+        banReason: null,
+        bannedAt: null,
+        bannedBy: null,
+      },
+    });
     return unbannedUser;
   },
 
-  suspendUser: async (db: SQL, userId: string, reason: string, until: Date) => {
-    const [suspendedUser] = await db`
-      UPDATE "User"
-      SET "isSuspended" = TRUE,
-          status = 'SUSPENDED',
-          "suspensionReason" = ${reason},
-          "suspendedUntil" = ${until},
-          "updatedAt" = NOW()
-      WHERE id = ${userId}
-      RETURNING *
-    ` as Promise<any[]>;
+  suspendUser: async (userId: string, reason: string, until: Date) => {
+    const suspendedUser = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        isSuspended: true,
+        status: 'SUSPENDED',
+        suspensionReason: reason,
+        suspendedUntil: until,
+      },
+    });
     return suspendedUser;
   },
 
-  unsuspendUser: async (db: SQL, userId: string) => {
-    const [unsuspendedUser] = await db`
-      UPDATE "User"
-      SET "isSuspended" = FALSE,
-          status = 'ACTIVE',
-          "suspensionReason" = NULL,
-          "suspendedUntil" = NULL,
-          "updatedAt" = NOW()
-      WHERE id = ${userId}
-      RETURNING *
-    ` as Promise<any[]>;
+  unsuspendUser: async (userId: string) => {
+    const unsuspendedUser = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        isSuspended: false,
+        status: 'ACTIVE',
+        suspensionReason: null,
+        suspendedUntil: null,
+      },
+    });
     return unsuspendedUser;
   },
 
-  verifyEmail: async (db: SQL, userId: string) => {
-    const [verifiedUser] = await db`
-      UPDATE "User"
-      SET "emailVerified" = TRUE, "updatedAt" = NOW()
-      WHERE id = ${userId}
-      RETURNING *
-    ` as Promise<any[]>;
+  verifyEmail: async (userId: string) => {
+    const verifiedUser = await prisma.user.update({
+      where: { id: userId },
+      data: { emailVerified: true },
+    });
     return verifiedUser;
   },
 
-  deleteUser: async (db: SQL, userId: string) => {
-    const [deletedUser] = await db`
-      DELETE FROM "User"
-      WHERE id = ${userId}
-      RETURNING *
-    ` as Promise<any[]>;
+  deleteUser: async (userId: string) => {
+    const deletedUser = await prisma.user.delete({
+      where: { id: userId },
+    });
     return deletedUser;
   },
 
-  bulkDeleteUsers: async (db: SQL, userIds: string[]) => {
+  bulkDeleteUsers: async (userIds: string[]) => {
     if (userIds.length === 0) return { count: 0 };
-    const deletedUsers = await db`
-      DELETE FROM "User"
-      WHERE id = ANY(${userIds}::text[])
-      RETURNING id
-    ` as Promise<any[]>;
-    return { count: deletedUsers.length };
+    const result = await prisma.user.deleteMany({
+      where: { id: { in: userIds } },
+    });
+    return { count: result.count };
   },
 
   updateProfile: async (
-    db: SQL,
     userId: string,
     data: { firstName?: string; lastName?: string }
   ) => {
     if (data.firstName === undefined && data.lastName === undefined) {
-      return userService.getUserById(db, userId);
+      return userService.getUserById(userId);
     }
 
-    const firstName = data.firstName !== undefined ? data.firstName : null;
-    const lastName = data.lastName !== undefined ? data.lastName : null;
+    const updateData: any = {};
 
-    const [updatedUser] = await db`
-      UPDATE "User"
-      SET
-        "firstName" = CASE WHEN ${firstName}::text IS NOT NULL THEN ${firstName} ELSE "firstName" END,
-        "lastName" = CASE WHEN ${lastName}::text IS NOT NULL THEN ${lastName} ELSE "lastName" END,
-        "updatedAt" = NOW()
-      WHERE id = ${userId}
-      RETURNING *
-    ` as Promise<any[]>;
+    if (data.firstName !== undefined) {
+      updateData.firstName = data.firstName;
+    }
+
+    if (data.lastName !== undefined) {
+      updateData.lastName = data.lastName;
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+    });
     return updatedUser;
   },
 
   changePassword: async (
-    db: SQL,
     auth: AuthManager,
     userId: string,
     currentPassword: string,
     newPassword: string
   ) => {
-    const user = await this.getUserById(db, userId);
+    const user = await userService.getUserById(userId);
     const isValid = await auth.verifyPassword(currentPassword, user.password);
 
     if (!isValid) {
@@ -262,21 +261,17 @@ export const userService = {
 
     const hashedPassword = await auth.hashPassword(newPassword);
 
-    const [updatedUser] = await db`
-      UPDATE "User"
-      SET password = ${hashedPassword}, "updatedAt" = NOW()
-      WHERE id = ${userId}
-      RETURNING *
-    ` as Promise<any[]>;
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedPassword },
+    });
     return updatedUser;
   },
 
-  deleteOwnAccount: async (db: SQL, userId: string) => {
-    const [deletedUser] = await db`
-      DELETE FROM "User"
-      WHERE id = ${userId}
-      RETURNING *
-    ` as Promise<any[]>;
+  deleteOwnAccount: async (userId: string) => {
+    const deletedUser = await prisma.user.delete({
+      where: { id: userId },
+    });
 
     if (!deletedUser) {
       throw new TRPCError({
@@ -289,22 +284,19 @@ export const userService = {
   },
 
   updateApiKeys: async (
-    db: SQL,
     userId: string,
     apiKeys: {
       hunterApiKey?: string;
     }
   ) => {
     if (apiKeys.hunterApiKey === undefined) {
-      return userService.getUserById(db, userId);
+      return userService.getUserById(userId);
     }
 
-    const [updatedUser] = await db`
-      UPDATE "User"
-      SET "hunterApiKey" = ${apiKeys.hunterApiKey || null}, "updatedAt" = NOW()
-      WHERE id = ${userId}
-      RETURNING *
-    ` as Promise<any[]>;
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: { hunterApiKey: apiKeys.hunterApiKey || null },
+    });
 
     return updatedUser;
   },

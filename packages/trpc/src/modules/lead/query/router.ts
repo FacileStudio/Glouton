@@ -7,7 +7,7 @@ export const queryRouter = router({
   list: protectedProcedure.input(listLeadsSchema).query(async ({ ctx, input }) => {
     return await LeadQueryService.getLeads({
       userId: ctx.user.id,
-      db: ctx.db,
+      prisma: ctx.prisma,
       filters: input ?? {},
     });
   }),
@@ -17,11 +17,11 @@ export const queryRouter = router({
   }),
 
   delete: protectedProcedure.input(deleteLeadSchema).mutation(async ({ ctx, input }) => {
-    return await LeadQueryService.deleteLead(input.id, ctx.user.id, ctx.db);
+    return await LeadQueryService.deleteLead(input.id, ctx.user.id, ctx.prisma);
   }),
 
   getStats: protectedProcedure.query(async ({ ctx }) => {
-    return await LeadQueryService.getStats(ctx.user.id, ctx.db);
+    return await LeadQueryService.getStats(ctx.user.id, ctx.prisma);
   }),
 
   getActiveSessions: protectedProcedure.query(async ({ ctx }) => {

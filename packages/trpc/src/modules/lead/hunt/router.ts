@@ -45,7 +45,6 @@ export const huntRouter = router({
         source: selectedSource,
         ...input,
         jobs: ctx.jobs,
-        db: ctx.db,
       });
     } catch (error) {
       if (error instanceof TRPCError) throw error;
@@ -67,7 +66,6 @@ export const huntRouter = router({
           ...input,
           googleMapsApiKey: user.googleMapsApiKey,
           jobs: ctx.jobs,
-          db: ctx.db,
         });
       } catch (error) {
         if (error instanceof TRPCError) throw error;
@@ -76,7 +74,7 @@ export const huntRouter = router({
     }),
 
   list: protectedProcedure.query(async ({ ctx }) => {
-    return await huntService.getHuntSessions(ctx.user.id, ctx.db, ctx.jobs);
+    return await huntService.getHuntSessions(ctx.user.id, ctx.jobs);
   }),
 
   getStatus: protectedProcedure.input(huntStatusSchema).query(async ({ ctx, input }) => {
@@ -93,7 +91,6 @@ export const huntRouter = router({
       const result = await huntService.cancelHunt(
         input.huntSessionId,
         ctx.user.id,
-        ctx.db,
         ctx.jobs,
         ctx.events
       );
@@ -141,8 +138,7 @@ export const huntRouter = router({
       try {
         const details = await huntService.getRunDetails(
           input.huntSessionId,
-          ctx.user.id,
-          ctx.db
+          ctx.user.id
         );
 
         ctx.log.info({
@@ -177,7 +173,6 @@ export const huntRouter = router({
         const result = await huntService.getRunEvents(
           input.huntSessionId,
           ctx.user.id,
-          ctx.db,
           {
             level: input.level,
             category: input.category,

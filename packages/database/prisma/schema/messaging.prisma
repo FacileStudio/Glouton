@@ -1,0 +1,46 @@
+model Room {
+  id           String             @id @default(dbgenerated("gen_random_uuid()")) @db.Text
+  name         String?            @db.Text
+  isGroup      Boolean            @default(false)
+  createdAt    DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime           @default(now()) @updatedAt @db.Timestamptz(3)
+
+  participants RoomParticipant[]
+  messages     Message[]
+}
+
+model RoomParticipant {
+  id       String   @id @default(dbgenerated("gen_random_uuid()")) @db.Text
+  userId   String   @db.Text
+  roomId   String   @db.Text
+  joinedAt DateTime @default(now()) @db.Timestamptz(3)
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  room     Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roomId])
+}
+
+model Message {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Text
+  text      String?  @db.Text
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  userId    String   @db.Text
+  roomId    String   @db.Text
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  media     Media[]
+}
+
+model Media {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Text
+  url       String   @db.Text
+  key       String   @unique @db.Text
+  mimeType  String   @db.Text
+  size      Int
+  messageId String?  @db.Text
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  message   Message? @relation(fields: [messageId], references: [id], onDelete: SetNull)
+}

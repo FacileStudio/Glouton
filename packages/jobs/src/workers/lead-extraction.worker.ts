@@ -1,5 +1,4 @@
 import type { JobDefinition } from '../types';
-import type { SQL } from 'bun';
 import { Job as BullJob } from 'bullmq';
 import {
   LeadSourceFactory,
@@ -8,6 +7,8 @@ import {
 } from '@repo/lead-sources';
 import type { EventEmitter } from './index';
 import { JobEventEmitter } from '../lib/job-event-emitter';
+import { prisma } from '@repo/database';
+import { Prisma } from '@prisma/client';
 
 export interface LeadExtractionData {
   huntSessionId: string;
@@ -39,7 +40,6 @@ function inferCategory(industry: string | null | undefined): string | null {
 }
 
 export function createLeadExtractionWorker(
-  db: SQL,
   events: EventEmitter
 ): JobDefinition<LeadExtractionData, void> {
   return {
@@ -58,19 +58,22 @@ export function createLeadExtractionWorker(
           message: 'Starting lead extraction...',
         });
 
-        await db`
-          UPDATE "HuntSession"
-          SET status = 'PROCESSING',
-              "startedAt" = ${new Date()},
-              "updatedAt" = ${new Date()}
-          WHERE id = ${huntSessionId}
-        `;
+        const startedAt = new Date();
+        await prisma.huntSession.update({
+          where: { id: huntSessionId },
+          data: {
+            status: 'PROCESSING',
+            startedAt,
+            updatedAt: startedAt,
+          },
+        });
 
         await job.updateProgress(5);
 
-        const [user] = (await db`
-          SELECT "hunterApiKey" FROM "User" WHERE id = ${userId}
-        `) as any[];
+        const user = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { hunterApiKey: true },
+        });
 
         if (!user) throw new Error(`User ${userId} not found`);
 
@@ -194,28 +197,28 @@ export function createLeadExtractionWorker(
             const emailLeads = mappedLeads.filter((l) => !!l.email);
 
             if (domainOnlyLeads.length > 0) {
-              const pgDomains = `{${domainOnlyLeads
-                .map((l) => `"${l.domain.replace(/"/g, '\\"')}"`)
-                .join(',')}}`;
-              const existing = (await db`
-                SELECT domain FROM "Lead"
-                WHERE "userId" = ${userId}
-                  AND email IS NULL
-                  AND domain = ANY(${pgDomains}::text[])
-              `) as any[];
-              existing.forEach((l) => existingDomains.add(l.domain));
+              const domains = domainOnlyLeads.map((l) => l.domain);
+              const existing = await prisma.lead.findMany({
+                where: {
+                  userId,
+                  email: null,
+                  domain: { in: domains },
+                },
+                select: { domain: true },
+              });
+              existing.forEach((l) => l.domain && existingDomains.add(l.domain));
             }
 
             if (emailLeads.length > 0) {
-              const pgEmails = `{${emailLeads
-                .map((l) => `"${l.email!.replace(/"/g, '\\"')}"`)
-                .join(',')}}`;
-              const existing = (await db`
-                SELECT email FROM "Lead"
-                WHERE "userId" = ${userId}
-                  AND email = ANY(${pgEmails}::text[])
-              `) as any[];
-              existing.forEach((l) => existingEmails.add(l.email));
+              const emails = emailLeads.map((l) => l.email!);
+              const existing = await prisma.lead.findMany({
+                where: {
+                  userId,
+                  email: { in: emails },
+                },
+                select: { email: true },
+              });
+              existing.forEach((l) => l.email && existingEmails.add(l.email));
             }
 
             const newLeads = mappedLeads.filter((lead) => {
@@ -241,14 +244,12 @@ export function createLeadExtractionWorker(
                 businessName: lead.company,
                 city: lead.city,
                 country: lead.country,
-                status: 'COLD',
+                status: 'COLD' as const,
                 score: lead.confidence || 50,
-                technologies: '{}',
-                additionalEmails: '{}',
-                phoneNumbers: lead.phoneNumbers.length
-                  ? `{${lead.phoneNumbers.map((p: string) => `"${p.replace(/"/g, '\\"')}"`).join(',')}}`
-                  : '{}',
-                physicalAddresses: '{}',
+                technologies: [],
+                additionalEmails: [],
+                phoneNumbers: lead.phoneNumbers.length ? lead.phoneNumbers : [],
+                physicalAddresses: [],
                 socialProfiles: null,
                 companyInfo: null,
                 websiteAudit: null,
@@ -260,21 +261,21 @@ export function createLeadExtractionWorker(
                 updatedAt: new Date(),
               }));
 
-              const insertedLeads = await db`
-                INSERT INTO "Lead" ${db(leadsToInsert)}
-                RETURNING id
-              `;
+              const insertedLeads = await prisma.lead.createMany({
+                data: leadsToInsert,
+                skipDuplicates: true,
+              });
 
-              sourceStats[source].leads = insertedLeads.length;
-              successfulLeads += insertedLeads.length;
-              console.log(`[LeadExtraction] Inserted ${insertedLeads.length} leads from ${source}`);
+              sourceStats[source].leads = insertedLeads.count;
+              successfulLeads += insertedLeads.count;
+              console.log(`[LeadExtraction] Inserted ${insertedLeads.count} leads from ${source}`);
 
               emitter.emit('leads-created', {
                 huntSessionId,
                 source,
-                count: insertedLeads.length,
+                count: insertedLeads.count,
                 totalSoFar: successfulLeads,
-                message: `Added ${insertedLeads.length} new leads from ${source}`,
+                message: `Added ${insertedLeads.count} new leads from ${source}`,
               });
             } else if (extractedLeads.length > 0) {
               emitter.emit('leads-duplicate', {
@@ -306,18 +307,20 @@ export function createLeadExtractionWorker(
           });
         }
 
-        await db`
-          UPDATE "HuntSession"
-          SET status = 'COMPLETED',
-              progress = 100,
-              "totalLeads" = ${totalLeads},
-              "successfulLeads" = ${successfulLeads},
-              "failedLeads" = ${failedLeads},
-              "sourceStats" = ${JSON.stringify(sourceStats)}::jsonb,
-              "completedAt" = ${new Date()},
-              "updatedAt" = ${new Date()}
-          WHERE id = ${huntSessionId}
-        `;
+        const completedAt = new Date();
+        await prisma.huntSession.update({
+          where: { id: huntSessionId },
+          data: {
+            status: 'COMPLETED',
+            progress: 100,
+            totalLeads,
+            successfulLeads,
+            failedLeads,
+            sourceStats: sourceStats as Prisma.InputJsonValue,
+            completedAt,
+            updatedAt: completedAt,
+          },
+        });
 
         await job.updateProgress(100);
         console.log(`[LeadExtraction] Completed extraction for session ${huntSessionId}`);
@@ -341,14 +344,16 @@ export function createLeadExtractionWorker(
           message: 'Lead extraction failed due to an error',
         });
 
-        await db`
-          UPDATE "HuntSession"
-          SET status = 'FAILED',
-              error = ${errorMessage},
-              "completedAt" = ${new Date()},
-              "updatedAt" = ${new Date()}
-          WHERE id = ${huntSessionId}
-        `;
+        const failedAt = new Date();
+        await prisma.huntSession.update({
+          where: { id: huntSessionId },
+          data: {
+            status: 'FAILED',
+            error: errorMessage,
+            completedAt: failedAt,
+            updatedAt: failedAt,
+          },
+        });
 
         throw error;
       }

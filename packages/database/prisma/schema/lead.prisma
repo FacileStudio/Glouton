@@ -1,0 +1,91 @@
+model Lead {
+  id                 String        @id @default(dbgenerated("gen_random_uuid()")) @db.Text
+  userId             String        @db.Text
+  source             LeadSource    @default(HUNTER)
+  sourceId           String?       @db.Text
+  businessType       BusinessType  @default(DOMAIN)
+  domain             String?       @db.Text
+  email              String?       @db.Text
+  firstName          String?       @db.Text
+  lastName           String?       @db.Text
+  position           String?       @db.Text
+  department         String?       @db.Text
+  businessName       String?       @db.Text
+  category           String?       @db.Text
+  coordinates        Json?
+  openingHours       String?       @db.Text
+  hasWebsite         Boolean       @default(true)
+  city               String?       @db.Text
+  country            String?       @db.Text
+  status             LeadStatus    @default(COLD)
+  score              Int           @default(0)
+  technologies       String[]
+  additionalEmails   String[]
+  phoneNumbers       String[]
+  physicalAddresses  String[]
+  socialProfiles     Json?
+  companyInfo        Json?
+  websiteAudit       Json?
+  scrapedAt          DateTime?     @db.Timestamptz(3)
+  auditedAt          DateTime?     @db.Timestamptz(3)
+  metadata           Json?
+  huntSessionId      String?       @db.Text
+  contacted          Boolean       @default(false)
+  lastContactedAt    DateTime?     @db.Timestamptz(3)
+  emailsSentCount    Int           @default(0)
+  createdAt          DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime      @default(now()) @updatedAt @db.Timestamptz(3)
+
+  user               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emailOutreaches    EmailOutreach[]
+
+  @@unique([userId, email])
+  @@unique([userId, domain, firstName, lastName])
+  @@index([userId])
+  @@index([huntSessionId])
+  @@index([status])
+  @@index([source])
+  @@index([contacted])
+  @@index([businessType])
+  @@index([category])
+  @@index([country])
+  @@index([city])
+  @@index([userId, status, createdAt])
+  @@index([userId, sourceId])
+  @@index([email])
+  @@index([createdAt])
+  @@index([userId, domain])
+  @@index([scrapedAt])
+  @@index([auditedAt])
+  @@index([userId, scrapedAt])
+  @@index([userId, auditedAt])
+  @@index([userId, businessName])
+  @@index([domain])
+}
+
+model EmailOutreach {
+  id          String      @id @default(dbgenerated("gen_random_uuid()")) @db.Text
+  leadId      String      @db.Text
+  userId      String      @db.Text
+  templateId  String      @db.Text
+  subject     String      @db.Text
+  htmlBody    String      @db.Text
+  textBody    String      @db.Text
+  variables   Json
+  status      EmailStatus @default(PENDING)
+  sentAt      DateTime?   @db.Timestamptz(3)
+  openedAt    DateTime?   @db.Timestamptz(3)
+  clickedAt   DateTime?   @db.Timestamptz(3)
+  repliedAt   DateTime?   @db.Timestamptz(3)
+  error       String?     @db.Text
+  createdAt   DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime    @default(now()) @updatedAt @db.Timestamptz(3)
+
+  lead        Lead        @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([leadId])
+  @@index([userId])
+  @@index([status])
+  @@index([sentAt])
+}

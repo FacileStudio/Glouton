@@ -11,5 +11,6 @@ const db = new SQL(process.env.DATABASE_URL, {
 });
 
 export { db };
+export { prisma } from './prisma';
 
 export default db;

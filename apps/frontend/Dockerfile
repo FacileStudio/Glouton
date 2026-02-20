@@ -51,9 +51,12 @@ RUN bun install --no-save
 COPY . .
 
 ARG VITE_API_URL
+ARG DATABASE_URL
 ENV VITE_API_URL=$VITE_API_URL
+ENV DATABASE_URL=$DATABASE_URL
 ENV NODE_ENV=production
 
+RUN cd packages/database && bun run prisma:generate
 RUN cd apps/frontend && bunx svelte-kit sync
 RUN bun run build --filter=@repo/frontend
 
