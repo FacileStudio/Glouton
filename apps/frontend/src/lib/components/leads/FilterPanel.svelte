@@ -98,6 +98,7 @@
       {#if filters.search}
         <button
           onclick={() => (filters.search = '')}
+          aria-label="Effacer la recherche"
           class="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-black transition-colors"
         >
           <iconify-icon icon="solar:close-circle-bold" width="18"></iconify-icon>
