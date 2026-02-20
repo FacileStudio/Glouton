@@ -297,6 +297,7 @@
                   {session}
                   onCancel={cancelHunt}
                   cancelling={cancellingHuntId === session.id}
+                  clickable={true}
                 />
               </div>
             {/each}

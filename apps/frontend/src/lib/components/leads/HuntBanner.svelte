@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
+  import { goto } from '$app/navigation';
   import 'iconify-icon';
 
   interface HuntSession {
@@ -22,11 +23,19 @@
     session,
     onCancel,
     cancelling = false,
+    clickable = false,
   }: {
     session: HuntSession | null;
     onCancel: (id: string) => Promise<void>;
     cancelling: boolean;
+    clickable?: boolean;
   } = $props();
+
+  function handleClick() {
+    if (clickable && session) {
+      goto(`/app/hunts/${session.id}`);
+    }
+  }
 
   let currentTime = $state(new Date());
   let timerInterval: ReturnType<typeof setInterval> | null = null;
@@ -117,7 +126,13 @@
 </script>
 
 {#if session}
-  <div class="rounded-[32px] shadow-lg p-8 bg-gradient-to-r from-black to-neutral-800 text-white">
+  <div
+    class="rounded-[32px] shadow-lg p-8 bg-gradient-to-r from-black to-neutral-800 text-white {clickable ? 'cursor-pointer hover:shadow-2xl transition-shadow' : ''}"
+    role={clickable ? 'button' : 'region'}
+    tabindex={clickable ? 0 : undefined}
+    onclick={handleClick}
+    onkeydown={(e) => clickable && e.key === 'Enter' && handleClick()}
+  >
     <div class="flex items-center justify-between mb-6">
       <div class="flex items-center gap-4">
         <div class="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center">
@@ -159,7 +174,10 @@
           <div class="text-sm font-medium opacity-90">ETA : {eta}</div>
         </div>
         <button
-          onclick={() => session && onCancel(session.id)}
+          onclick={(e) => {
+            e.stopPropagation();
+            if (session) onCancel(session.id);
+          }}
           disabled={cancelling}
           class="bg-white/20 hover:bg-white/30 px-6 py-3 rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
         >
