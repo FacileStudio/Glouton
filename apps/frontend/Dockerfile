@@ -45,7 +45,7 @@ COPY packages/tsconfig/package.json ./packages/tsconfig/
 RUN npm install -g bun@1.3.7
 
 # Install dependencies
-RUN bun install --frozen-lockfile
+RUN bun install --no-save
 
 # Copy source
 COPY . .
