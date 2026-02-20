@@ -304,7 +304,7 @@ export function extractAddress($: CheerioAPI): string | undefined {
  * findAboutPage
  */
 export function findAboutPage($: CheerioAPI, baseUrl: string): string | undefined {
-  const aboutPatterns = ['/about', '/about-us', '/company', '/who-we-are', '/our-story'];
+  const aboutPatterns = ['/about', '/about-us', '/company', '/who-we-are', '/our-story', '/about-company', '/aboutus'];
 
   const links = $('a[href]');
   /**
@@ -343,7 +343,7 @@ export function findAboutPage($: CheerioAPI, baseUrl: string): string | undefine
  * findContactPage
  */
 export function findContactPage($: CheerioAPI, baseUrl: string): string | undefined {
-  const contactPatterns = ['/contact', '/contact-us', '/get-in-touch', '/reach-us'];
+  const contactPatterns = ['/contact', '/contact-us', '/get-in-touch', '/reach-us', '/contactus'];
 
   const links = $('a[href]');
   /**
@@ -376,4 +376,69 @@ export function findContactPage($: CheerioAPI, baseUrl: string): string | undefi
   }
 
   return undefined;
+}
+
+/**
+ * findTeamPage
+ */
+export function findTeamPage($: CheerioAPI, baseUrl: string): string | undefined {
+  const teamPatterns = ['/team', '/our-team', '/people', '/meet-the-team', '/leadership', '/about/team'];
+
+  const links = $('a[href]');
+  for (let i = 0; i < links.length; i++) {
+    const href = $(links[i]).attr('href');
+    if (!href) continue;
+
+    const lowerHref = href.toLowerCase();
+    for (const pattern of teamPatterns) {
+      if (lowerHref.includes(pattern)) {
+        try {
+          const url = new URL(href, baseUrl);
+          return url.href;
+        } catch {
+          continue;
+        }
+      }
+    }
+  }
+
+  return undefined;
+}
+
+/**
+ * findSpeculativePaths - Try common URL paths directly
+ */
+export async function findSpeculativePaths(baseUrl: string, httpClient: any): Promise<Record<string, string>> {
+  const paths = {
+    about: ['/about', '/about-us', '/company', '/who-we-are', '/about.html', '/aboutus'],
+    contact: ['/contact', '/contact-us', '/contactus', '/get-in-touch', '/contact.html'],
+    team: ['/team', '/our-team', '/people', '/leadership', '/meet-the-team', '/about/team'],
+    careers: ['/careers', '/jobs', '/join-us', '/work-with-us', '/opportunities'],
+    services: ['/services', '/what-we-do', '/solutions'],
+    pricing: ['/pricing', '/plans', '/packages'],
+    blog: ['/blog', '/news', '/articles', '/insights'],
+  };
+
+  const found: Record<string, string> = {};
+  const checks: Promise<void>[] = [];
+
+  for (const [category, variants] of Object.entries(paths)) {
+    for (const path of variants) {
+      checks.push(
+        (async () => {
+          try {
+            const url = new URL(path, baseUrl);
+            const response = await httpClient.head(url.href);
+            if (response && !found[category]) {
+              found[category] = url.href;
+            }
+          } catch {
+          }
+        })()
+      );
+    }
+  }
+
+  await Promise.all(checks);
+  return found;
 }

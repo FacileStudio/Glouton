@@ -12,6 +12,8 @@ import {
   extractAddress,
   findAboutPage,
   findContactPage,
+  findTeamPage,
+  findSpeculativePaths,
 } from '../utils/parser';
 
 /**
@@ -68,37 +70,58 @@ export async function extractCompanyInfo(
    */
   extractFromMetaTags($, companyInfo);
 
-  const aboutUrl = findAboutPage($, url);
-  /**
-   * if
-   */
-  if (aboutUrl) {
-    try {
-      const aboutHtml = await httpClient.get(aboutUrl);
-      const $about = parseHtml(aboutHtml);
-      /**
-       * extractFromAboutPage
-       */
-      extractFromAboutPage($about, companyInfo);
-    } catch {
-    }
+  let aboutUrl = findAboutPage($, url);
+  let contactUrl = findContactPage($, url);
+  let teamUrl = findTeamPage($, url);
+
+  const speculativePaths = await findSpeculativePaths(url, httpClient);
+
+  if (!aboutUrl && speculativePaths.about) {
+    aboutUrl = speculativePaths.about;
+  }
+  if (!contactUrl && speculativePaths.contact) {
+    contactUrl = speculativePaths.contact;
+  }
+  if (!teamUrl && speculativePaths.team) {
+    teamUrl = speculativePaths.team;
   }
 
-  const contactUrl = findContactPage($, url);
-  /**
-   * if
-   */
-  if (contactUrl && contactUrl !== aboutUrl) {
-    try {
-      const contactHtml = await httpClient.get(contactUrl);
-      const $contact = parseHtml(contactHtml);
-      /**
-       * extractFromContactPage
-       */
-      extractFromContactPage($contact, companyInfo);
-    } catch {
-    }
+  const pagePromises: Promise<void>[] = [];
+
+  if (aboutUrl) {
+    pagePromises.push(
+      httpClient.get(aboutUrl)
+        .then((aboutHtml: string) => {
+          const $about = parseHtml(aboutHtml);
+          extractFromAboutPage($about, companyInfo);
+        })
+        .catch(() => {})
+    );
   }
+
+  if (contactUrl && contactUrl !== aboutUrl) {
+    pagePromises.push(
+      httpClient.get(contactUrl)
+        .then((contactHtml: string) => {
+          const $contact = parseHtml(contactHtml);
+          extractFromContactPage($contact, companyInfo);
+        })
+        .catch(() => {})
+    );
+  }
+
+  if (teamUrl && teamUrl !== aboutUrl && teamUrl !== contactUrl) {
+    pagePromises.push(
+      httpClient.get(teamUrl)
+        .then((teamHtml: string) => {
+          const $team = parseHtml(teamHtml);
+          extractFromTeamPage($team, companyInfo);
+        })
+        .catch(() => {})
+    );
+  }
+
+  await Promise.allSettled(pagePromises);
 
   return companyInfo;
 }
@@ -417,6 +440,34 @@ function extractFromContactPage($: CheerioAPI, companyInfo: CompanyInfo): void {
      */
     if (Object.keys(social).length > 0) {
       companyInfo.socialMedia = social;
+    }
+  }
+}
+
+/**
+ * extractFromTeamPage
+ */
+function extractFromTeamPage($: CheerioAPI, companyInfo: CompanyInfo): void {
+  const pageText = $('body').text();
+
+  if (!companyInfo.email) {
+    const emails = extractEmails(pageText);
+    if (emails.length > 0) {
+      companyInfo.email = emails[0];
+    }
+  }
+
+  if (!companyInfo.socialMedia || Object.keys(companyInfo.socialMedia).length === 0) {
+    const social = extractSocialLinks($);
+    if (Object.keys(social).length > 0) {
+      companyInfo.socialMedia = social;
+    }
+  }
+
+  if (!companyInfo.employees) {
+    const teamMembers = $('.team-member, .person, [class*="team"], [class*="member"]').length;
+    if (teamMembers > 0 && teamMembers < 500) {
+      companyInfo.employees = `~${teamMembers}`;
     }
   }
 }
