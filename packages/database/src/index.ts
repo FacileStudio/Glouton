@@ -12,5 +12,22 @@ const db = new SQL(process.env.DATABASE_URL, {
 
 export { db };
 export { prisma } from './prisma';
+export type {
+  User,
+  Session,
+  Subscription,
+  Verification,
+  Contact,
+  Media,
+  Lead,
+  EmailOutreach,
+  HuntSession,
+  AuditSession,
+  Opportunity,
+  Room,
+  Message,
+  RoomParticipant,
+  PaymentHistory,
+} from '@prisma/client';
 
 export default db;
