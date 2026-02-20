@@ -107,7 +107,7 @@
   tabindex="0"
   onclick={() => goto(`/app/hunts/${session.id}`)}
   onkeydown={(e) => e.key === 'Enter' && goto(`/app/hunts/${session.id}`)}
-  class="group relative rounded-2xl bg-white shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all cursor-pointer overflow-hidden border border-neutral-100"
+  class="group relative rounded-2xl bg-white shadow-md hover:shadow-2xl hover:-translate-y-1 hover:scale-[1.01] transition-all duration-200 cursor-pointer overflow-hidden border border-neutral-100 hover:border-neutral-200"
 >
   <div class="p-5">
     <!-- Top row: title + actions -->
