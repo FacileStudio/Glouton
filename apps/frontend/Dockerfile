@@ -29,7 +29,9 @@ COPY . .
 
 ARG VITE_API_URL
 ENV VITE_API_URL=$VITE_API_URL
+ENV NODE_ENV=production
 
+RUN cd apps/frontend && bunx svelte-kit sync
 RUN bun run build --filter=@repo/frontend
 
 FROM base AS runner
