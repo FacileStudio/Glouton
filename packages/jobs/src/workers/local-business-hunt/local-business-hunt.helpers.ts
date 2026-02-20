@@ -82,7 +82,9 @@ export class LocalBusinessHuntHelpers {
     const phoneNumbers = business.phone ? [business.phone] : [];
     const physicalAddresses = business.address ? [business.address] : [];
     const cityName = business.city || location.split(',')[0].trim() || 'Unknown';
-    const countryCode = (business.country || location.split(',').pop()?.trim() || '').toUpperCase() || null;
+
+    let countryCode = (business.country || location.split(',').pop()?.trim() || '').toUpperCase();
+    countryCode = countryCode && countryCode.length >= 2 ? countryCode : null;
 
     return {
       userId,
@@ -94,7 +96,7 @@ export class LocalBusinessHuntHelpers {
       businessName: business.name || 'Unknown Business',
       businessType: 'LOCAL_BUSINESS',
       category: category || 'retail',
-      city: cityName,
+      city: cityName || 'Unknown',
       country: countryCode,
       status: 'COLD',
       score: business.hasWebsite ? 60 : 40,
