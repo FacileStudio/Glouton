@@ -21,14 +21,18 @@
     session,
     onCancel,
     onDelete,
+    onRelaunch,
     cancelling = false,
     deleting = false,
+    relaunching = false,
   }: {
     session: HuntSession;
     onCancel?: (id: string) => Promise<void>;
     onDelete?: (id: string) => Promise<void>;
+    onRelaunch?: (id: string) => Promise<void>;
     cancelling?: boolean;
     deleting?: boolean;
+    relaunching?: boolean;
   } = $props();
 
   function formatTimeAgo(date: Date): string {
@@ -151,6 +155,23 @@
           </button>
         {/if}
 
+        {#if session.status === 'FAILED' && onRelaunch}
+          <button
+            onclick={() => onRelaunch!(session.id)}
+            disabled={relaunching}
+            class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wide border border-neutral-200 text-neutral-700 hover:bg-black hover:text-white hover:border-black transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Relancer la chasse"
+          >
+            {#if relaunching}
+              <div class="w-2.5 h-2.5 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+              Relance...
+            {:else}
+              <iconify-icon icon="solar:restart-bold" width="12"></iconify-icon>
+              Relancer
+            {/if}
+          </button>
+        {/if}
+
         {#if (session.status === 'COMPLETED' || session.status === 'FAILED') && onDelete}
           <button
             onclick={() => onDelete!(session.id)}
@@ -170,7 +191,7 @@
 
     <!-- Error block (failed only) -->
     {#if session.status === 'FAILED' && session.error}
-      <div class="bg-red-50 border border-red-100 rounded-xl px-3 py-2.5 mb-4">
+      <div class="bg-red-50 border border-red-100 rounded-lg px-3 py-2.5 mb-4">
         <p class="text-xs text-red-700 font-medium line-clamp-2 leading-relaxed break-words overflow-hidden">{session.error}</p>
       </div>
     {/if}

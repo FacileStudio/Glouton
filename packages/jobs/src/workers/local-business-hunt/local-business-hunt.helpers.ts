@@ -100,6 +100,8 @@ export class LocalBusinessHuntHelpers {
       country: countryCode,
       status: 'COLD',
       score: business.hasWebsite ? 60 : 40,
+      technologies: [],
+      additionalEmails: [],
       phoneNumbers,
       physicalAddresses,
       coordinates: business.coordinates as any as Prisma.InputJsonValue,
