@@ -80,11 +80,11 @@
 </script>
 
 <div
-  class="group relative rounded-2xl bg-white shadow-md hover:shadow-lg transition-all overflow-hidden border border-neutral-100"
+  class="group relative rounded-2xl bg-white shadow-md hover:shadow-2xl hover:-translate-y-0.5 transition-all duration-200 overflow-hidden border border-neutral-100 hover:border-neutral-200"
 >
   <button
     onclick={() => goto(`/app/hunts/${session.id}`)}
-    class="w-full p-5 text-left hover:bg-neutral-50/50 transition-colors"
+    class="w-full p-5 text-left hover:bg-neutral-50/50 transition-colors duration-200"
   >
     <div class="flex items-center gap-4">
       <div class="flex items-center justify-center w-12 h-12 rounded-xl bg-green-50 flex-shrink-0">

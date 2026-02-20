@@ -127,7 +127,7 @@
 
 {#if session}
   <div
-    class="rounded-[32px] shadow-lg p-8 bg-gradient-to-r from-black to-neutral-800 text-white {clickable ? 'cursor-pointer hover:shadow-2xl transition-shadow' : ''}"
+    class="rounded-[32px] shadow-lg p-8 bg-gradient-to-r from-black to-neutral-800 text-white transition-all duration-200 {clickable ? 'cursor-pointer hover:shadow-2xl hover:-translate-y-0.5 hover:scale-[1.005]' : ''}"
     role={clickable ? 'button' : 'region'}
     tabindex={clickable ? 0 : undefined}
     onclick={handleClick}
