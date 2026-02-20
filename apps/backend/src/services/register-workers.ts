@@ -5,7 +5,7 @@ import { events } from './events';
 import { logger } from '@repo/logger';
 
 export function registerWorkers(queueManager: QueueManager, prisma: PrismaClient) {
-  const workers = createWorkers(prisma, events);
+  const workers = createWorkers(events);
 
   Object.entries(workers).forEach(([name, worker]) => {
     queueManager.registerWorker(name, worker);
