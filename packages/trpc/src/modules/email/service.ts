@@ -125,19 +125,31 @@ export class EmailService {
       }),
     ]);
 
-    const needsFollowUpResult = await prisma.$queryRaw<[{ count: bigint }]>`
-      SELECT COUNT(DISTINCT latest."leadId")::int as count
-      FROM (
-        SELECT DISTINCT ON ("leadId") "leadId", status, "sentAt", "createdAt"
-        FROM "EmailOutreach"
-        WHERE "userId" = ${userId}
-        ORDER BY "leadId", "createdAt" DESC
-      ) latest
-      WHERE latest.status NOT IN ('REPLIED', 'BOUNCED', 'FAILED')
-        AND EXTRACT(EPOCH FROM (NOW() - COALESCE(latest."sentAt", latest."createdAt"))) / 86400 >= ${FOLLOW_UP_DAYS}
-    `;
+    const allOutreach = await prisma.emailOutreach.findMany({
+      where: { userId },
+      select: {
+        leadId: true,
+        status: true,
+        sentAt: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
 
-    const needsFollowUp = Number(needsFollowUpResult[0]?.count ?? 0);
+    const latestByLead = new Map<string, typeof allOutreach[0]>();
+    for (const outreach of allOutreach) {
+      if (!latestByLead.has(outreach.leadId)) {
+        latestByLead.set(outreach.leadId, outreach);
+      }
+    }
+
+    const now = Date.now();
+    const needsFollowUp = Array.from(latestByLead.values()).filter(latest => {
+      if (['REPLIED', 'BOUNCED', 'FAILED'].includes(latest.status)) return false;
+      const lastContactDate = (latest.sentAt || latest.createdAt).getTime();
+      const daysSince = (now - lastContactDate) / (1000 * 60 * 60 * 24);
+      return daysSince >= FOLLOW_UP_DAYS;
+    }).length;
 
     return {
       totalEmails: total,
@@ -154,73 +166,95 @@ export class EmailService {
   async getAllOutreach(userId: string) {
     const FOLLOW_UP_DAYS = 5;
 
-    const rows = await prisma.$queryRaw<Array<{
-      leadId: string;
-      firstName: string | null;
-      lastName: string | null;
-      domain: string | null;
-      businessName: string | null;
-      email: string | null;
-      score: number;
-      status: string;
-      emailsSentCount: number;
-      lastContactedAt: Date | null;
-      lastEmailId: string;
-      lastEmailSubject: string;
-      lastEmailStatus: string;
-      lastEmailSentAt: Date | null;
-      lastEmailCreatedAt: Date;
-      daysSinceLastContact: number;
-      needsFollowUp: boolean;
-    }>>`
-      SELECT
-        l.id as "leadId",
-        l."firstName",
-        l."lastName",
-        l.domain,
-        l."businessName",
-        l.email,
-        l.score,
-        l.status,
-        l."emailsSentCount",
-        l."lastContactedAt",
-        latest.id as "lastEmailId",
-        latest.subject as "lastEmailSubject",
-        latest.status as "lastEmailStatus",
-        latest."sentAt" as "lastEmailSentAt",
-        latest."createdAt" as "lastEmailCreatedAt",
-        EXTRACT(EPOCH FROM (NOW() - COALESCE(latest."sentAt", latest."createdAt"))) / 86400 as "daysSinceLastContact",
-        CASE
-          WHEN latest.status NOT IN ('REPLIED', 'BOUNCED', 'FAILED')
-            AND EXTRACT(EPOCH FROM (NOW() - COALESCE(latest."sentAt", latest."createdAt"))) / 86400 >= ${FOLLOW_UP_DAYS}
-          THEN true
-          ELSE false
-        END as "needsFollowUp"
-      FROM "Lead" l
-      INNER JOIN (
-        SELECT DISTINCT ON ("leadId") id, "leadId", subject, status, "sentAt", "createdAt"
-        FROM "EmailOutreach"
-        WHERE "userId" = ${userId}
-        ORDER BY "leadId", "createdAt" DESC
-      ) latest ON latest."leadId" = l.id
-      WHERE l."userId" = ${userId}
-      ORDER BY
-        CASE
-          WHEN latest.status NOT IN ('REPLIED', 'BOUNCED', 'FAILED')
-            AND EXTRACT(EPOCH FROM (NOW() - COALESCE(latest."sentAt", latest."createdAt"))) / 86400 >= ${FOLLOW_UP_DAYS}
-          THEN 0
-          WHEN latest.status = 'OPENED'
-            AND EXTRACT(EPOCH FROM (NOW() - COALESCE(latest."sentAt", latest."createdAt"))) / 86400 < ${FOLLOW_UP_DAYS}
-          THEN 1
-          WHEN latest.status = 'SENT'
-            AND EXTRACT(EPOCH FROM (NOW() - COALESCE(latest."sentAt", latest."createdAt"))) / 86400 < ${FOLLOW_UP_DAYS}
-          THEN 2
-          WHEN latest.status = 'REPLIED' THEN 3
-          ELSE 4
-        END ASC,
-        CASE l.status WHEN 'HOT' THEN 0 WHEN 'WARM' THEN 1 ELSE 2 END ASC,
-        l.score DESC
-    `;
+    const allOutreach = await prisma.emailOutreach.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        leadId: true,
+        subject: true,
+        status: true,
+        sentAt: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const latestByLead = new Map<string, typeof allOutreach[0]>();
+    for (const outreach of allOutreach) {
+      if (!latestByLead.has(outreach.leadId)) {
+        latestByLead.set(outreach.leadId, outreach);
+      }
+    }
+
+    const leadsWithOutreach = await prisma.lead.findMany({
+      where: {
+        userId,
+        id: { in: Array.from(latestByLead.keys()) },
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        domain: true,
+        businessName: true,
+        email: true,
+        score: true,
+        status: true,
+        emailsSentCount: true,
+        lastContactedAt: true,
+      },
+    });
+
+    const now = Date.now();
+    const rows = leadsWithOutreach
+      .map(lead => {
+        const latest = latestByLead.get(lead.id)!;
+        const lastContactDate = (latest.sentAt || latest.createdAt).getTime();
+        const daysSinceLastContact = (now - lastContactDate) / (1000 * 60 * 60 * 24);
+        const needsFollowUp = !['REPLIED', 'BOUNCED', 'FAILED'].includes(latest.status)
+          && daysSinceLastContact >= FOLLOW_UP_DAYS;
+
+        let sortPriority = 4;
+        if (needsFollowUp) {
+          sortPriority = 0;
+        } else if (latest.status === 'OPENED' && daysSinceLastContact < FOLLOW_UP_DAYS) {
+          sortPriority = 1;
+        } else if (latest.status === 'SENT' && daysSinceLastContact < FOLLOW_UP_DAYS) {
+          sortPriority = 2;
+        } else if (latest.status === 'REPLIED') {
+          sortPriority = 3;
+        }
+
+        const statusPriority = lead.status === 'HOT' ? 0 : lead.status === 'WARM' ? 1 : 2;
+
+        return {
+          leadId: lead.id,
+          firstName: lead.firstName,
+          lastName: lead.lastName,
+          domain: lead.domain,
+          businessName: lead.businessName,
+          email: lead.email,
+          score: lead.score,
+          status: lead.status,
+          emailsSentCount: lead.emailsSentCount,
+          lastContactedAt: lead.lastContactedAt,
+          lastEmailId: latest.id,
+          lastEmailSubject: latest.subject,
+          lastEmailStatus: latest.status,
+          lastEmailSentAt: latest.sentAt,
+          lastEmailCreatedAt: latest.createdAt,
+          daysSinceLastContact,
+          needsFollowUp,
+          sortPriority,
+          statusPriority,
+        };
+      })
+      .sort((a, b) => {
+        if (a.sortPriority !== b.sortPriority) return a.sortPriority - b.sortPriority;
+        if (a.statusPriority !== b.statusPriority) return a.statusPriority - b.statusPriority;
+        return b.score - a.score;
+      })
+      .map(({ sortPriority, statusPriority, ...row }) => row);
 
     return rows;
   }

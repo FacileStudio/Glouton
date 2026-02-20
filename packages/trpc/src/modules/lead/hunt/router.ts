@@ -9,6 +9,7 @@ import {
   cancelHuntSchema,
   deleteHuntSchema,
 } from '../schemas';
+import { prisma } from '@repo/database/prisma';
 
 const getRunDetailsSchema = z.object({
   huntSessionId: z.string().uuid('Invalid hunt session ID'),
@@ -25,7 +26,10 @@ const getRunEventsSchema = z.object({
 export const huntRouter = router({
   start: protectedProcedure.input(startHuntSchema).mutation(async ({ ctx, input }) => {
     try {
-      const [user] = await ctx.db`SELECT "hunterApiKey" FROM "User" WHERE id = ${ctx.user.id}`;
+      const user = await prisma.user.findUnique({
+        where: { id: ctx.user.id },
+        select: { hunterApiKey: true },
+      });
 
       if (!user) {
         throw new TRPCError({ code: 'UNAUTHORIZED', message: 'User not found.' });
@@ -42,8 +46,8 @@ export const huntRouter = router({
 
       return await huntService.startHunt({
         userId: ctx.user.id,
-        source: selectedSource,
         ...input,
+        source: selectedSource,
         jobs: ctx.jobs,
       });
     } catch (error) {
@@ -57,14 +61,16 @@ export const huntRouter = router({
     .input(startLocalBusinessHuntSchema)
     .mutation(async ({ ctx, input }) => {
       try {
-        const [user] =
-          await ctx.db`SELECT "googleMapsApiKey" FROM "User" WHERE id = ${ctx.user.id}`;
+        const user = await prisma.user.findUnique({
+          where: { id: ctx.user.id },
+          select: { googleMapsApiKey: true },
+        });
         if (!user) throw new TRPCError({ code: 'UNAUTHORIZED' });
 
         return await huntService.startLocalBusinessHunt({
           userId: ctx.user.id,
           ...input,
-          googleMapsApiKey: user.googleMapsApiKey,
+          googleMapsApiKey: user.googleMapsApiKey ?? undefined,
           jobs: ctx.jobs,
         });
       } catch (error) {
@@ -78,7 +84,9 @@ export const huntRouter = router({
   }),
 
   getStatus: protectedProcedure.input(huntStatusSchema).query(async ({ ctx, input }) => {
-    const [session] = await ctx.db`SELECT * FROM "HuntSession" WHERE id = ${input.huntSessionId}`;
+    const session = await prisma.huntSession.findUnique({
+      where: { id: input.huntSessionId },
+    });
 
     if (!session) throw new TRPCError({ code: 'NOT_FOUND' });
     if (session.userId !== ctx.user.id) throw new TRPCError({ code: 'FORBIDDEN' });
@@ -121,13 +129,17 @@ export const huntRouter = router({
   }),
 
   delete: protectedProcedure.input(deleteHuntSchema).mutation(async ({ ctx, input }) => {
-    const [session] =
-      await ctx.db`SELECT "userId" FROM "HuntSession" WHERE id = ${input.huntSessionId}`;
+    const session = await prisma.huntSession.findUnique({
+      where: { id: input.huntSessionId },
+      select: { userId: true },
+    });
 
     if (!session) throw new TRPCError({ code: 'NOT_FOUND' });
     if (session.userId !== ctx.user.id) throw new TRPCError({ code: 'FORBIDDEN' });
 
-    await ctx.db`DELETE FROM "HuntSession" WHERE id = ${input.huntSessionId}`;
+    await prisma.huntSession.delete({
+      where: { id: input.huntSessionId },
+    });
 
     return { success: true };
   }),

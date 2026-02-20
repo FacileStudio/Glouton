@@ -147,8 +147,8 @@ function buildLeadWhereClause(userId: string, filters?: GetLeadsParams['filters'
       where.hasWebsite = true;
     } else {
       where.OR = [
-        { hasWebsite: null },
         { hasWebsite: false },
+        { NOT: { hasWebsite: true } },
       ];
     }
   }
@@ -330,14 +330,19 @@ export default {
             domain: { not: null },
           },
         }),
-        prisma.$queryRaw<[{ count: bigint }]>`
-          SELECT COUNT(*)::INT as count
-          FROM "Lead"
-          WHERE "userId" = ${userId}
-            AND "socialProfiles" IS NOT NULL
-            AND jsonb_typeof("socialProfiles") = 'array'
-            AND jsonb_array_length("socialProfiles") > 0
-        `,
+        (async () => {
+          const leadsWithSocials = await prisma.lead.findMany({
+            where: {
+              userId,
+              socialProfiles: { not: { equals: null } },
+            },
+            select: { socialProfiles: true },
+          });
+          return leadsWithSocials.filter(lead => {
+            const profiles = lead.socialProfiles as unknown;
+            return Array.isArray(profiles) && profiles.length > 0;
+          }).length;
+        })(),
         prisma.huntSession.count({
           where: { userId, status: 'PENDING' },
         }),
@@ -356,7 +361,7 @@ export default {
         }),
       ]);
 
-      const socialsCount = Number(totalSocials[0]?.count ?? 0);
+      const socialsCount = totalSocials;
       const avgScore = averageScoreResult._avg.score ?? 0;
 
       const totalHunts = completedHunts + failedHunts;
