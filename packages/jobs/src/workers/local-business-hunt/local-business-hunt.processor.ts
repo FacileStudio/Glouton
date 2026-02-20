@@ -278,8 +278,30 @@ export class LocalBusinessHuntProcessor {
     for (let i = 0; i < leadsWithEmail.length; i += BATCH_SIZE) {
       const batch = leadsWithEmail.slice(i, i + BATCH_SIZE);
 
-      const operations = batch.map((lead) =>
-        prisma.lead.upsert({
+      const operations = batch.map((lead, idx) => {
+        const requiredFields = {
+          userId: lead.userId,
+          email: lead.email,
+          businessName: lead.businessName,
+          city: lead.city,
+          country: lead.country,
+          status: lead.status,
+          category: lead.category,
+        };
+
+        console.log(`[LocalBusinessHunt] Lead ${i + idx} required fields:`, JSON.stringify(requiredFields));
+
+        if (!lead.email) {
+          console.error(`[LocalBusinessHunt] Lead ${i + idx} has no email!`, lead);
+          throw new Error('Lead without email in leadsWithEmail batch');
+        }
+
+        const nullFields = Object.entries(requiredFields).filter(([_, v]) => v === null || v === undefined);
+        if (nullFields.length > 0) {
+          console.warn(`[LocalBusinessHunt] Lead ${i + idx} has null fields:`, nullFields.map(([k]) => k).join(', '));
+        }
+
+        return prisma.lead.upsert({
           where: {
             userId_email: {
               userId: lead.userId,
@@ -298,8 +320,8 @@ export class LocalBusinessHuntProcessor {
             coordinates: lead.coordinates ?? undefined,
             updatedAt: new Date(),
           },
-        })
-      );
+        });
+      });
 
       const results = await prisma.$transaction(operations);
 
