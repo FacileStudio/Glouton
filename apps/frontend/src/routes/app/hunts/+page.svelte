@@ -270,7 +270,9 @@
                 <HuntCard
                   {session}
                   onDelete={deleteHunt}
+                  onRelaunch={relaunchHunt}
                   deleting={deletingHuntId === session.id}
+                  relaunching={relaunchingHuntId === session.id}
                 />
               </div>
             {/each}
