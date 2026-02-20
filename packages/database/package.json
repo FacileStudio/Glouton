@@ -10,9 +10,9 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "prisma:generate": "prisma generate --schema=./prisma/schema",
-    "prisma:migrate": "prisma migrate dev",
-    "prisma:push": "prisma db push",
-    "prisma:studio": "prisma studio"
+    "prisma:migrate": "prisma migrate dev --schema=./prisma/schema",
+    "prisma:push": "prisma db push --schema=./prisma/schema",
+    "prisma:studio": "prisma studio --schema=./prisma/schema"
   },
   "dependencies": {
     "@prisma/client": "^7.4.1",
