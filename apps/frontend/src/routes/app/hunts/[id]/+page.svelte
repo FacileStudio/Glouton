@@ -393,7 +393,7 @@
         </div>
       </div>
 
-      {#if details.status === 'COMPLETED'}
+      {#if details.status === 'COMPLETED' || details.status === 'FAILED'}
         <button
           onclick={relaunchHunt}
           disabled={relaunching}
