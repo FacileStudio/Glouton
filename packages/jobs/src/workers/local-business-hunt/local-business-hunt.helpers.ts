@@ -82,11 +82,7 @@ export class LocalBusinessHuntHelpers {
     const phoneNumbers = business.phone ? [business.phone] : [];
     const physicalAddresses = business.address ? [business.address] : [];
     const cityName = business.city || location.split(',')[0].trim() || 'Unknown';
-
-    let countryCode = (business.country || location.split(',').pop()?.trim() || '').toUpperCase();
-    if (!countryCode || countryCode.length < 2) {
-      countryCode = location.toUpperCase().includes('PARIS') || location.toUpperCase().includes('FRANCE') ? 'FR' : '';
-    }
+    const countryCode = (business.country || location.split(',').pop()?.trim() || '').toUpperCase() || null;
 
     return {
       userId,
@@ -99,7 +95,7 @@ export class LocalBusinessHuntHelpers {
       businessType: 'LOCAL_BUSINESS',
       category: category || 'retail',
       city: cityName,
-      country: countryCode || null,
+      country: countryCode,
       status: 'COLD',
       score: business.hasWebsite ? 60 : 40,
       phoneNumbers,
