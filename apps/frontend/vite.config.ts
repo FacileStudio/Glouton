@@ -11,5 +11,13 @@ export default defineConfig({
       allow: ['..', '../../packages']
     }
   },
-  assetsInclude: ['***.woff2', '***.otf']
+  assetsInclude: ['***.woff2', '***.otf'],
+  build: {
+    rollupOptions: {
+      onwarn(warning, warn) {
+        if (warning.code === 'UNUSED_EXTERNAL_IMPORT') return;
+        warn(warning);
+      }
+    }
+  }
 });
