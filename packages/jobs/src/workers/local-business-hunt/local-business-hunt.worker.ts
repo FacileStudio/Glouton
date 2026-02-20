@@ -6,7 +6,7 @@ import { SessionManager } from '../shared';
 import { LocalBusinessHuntProcessor } from './local-business-hunt.processor';
 import type { LocalBusinessHuntData } from './local-business-hunt.types';
 
-export { LocalBusinessHuntData } from './local-business-hunt.types';
+export type { LocalBusinessHuntData } from './local-business-hunt.types';
 
 export function createLocalBusinessHuntWorker(events: EventEmitter): JobDefinition<LocalBusinessHuntData, void> {
   const processor = new LocalBusinessHuntProcessor();

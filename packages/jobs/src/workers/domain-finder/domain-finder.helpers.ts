@@ -61,14 +61,12 @@ export class DomainFinderHelpers {
         additionalEmails: [],
         phoneNumbers: [],
         physicalAddresses: [],
-        socialProfiles: null,
-        companyInfo: {
+        companyInfo: company.industry || company.headcount || company.location ? {
           industry: company.industry || null,
           headcount: company.headcount || null,
           emailsCount: (company.emails_count as any)?.total || null,
           location: company.location || null,
-        },
-        websiteAudit: null,
+        } as any : undefined,
         contacted: false,
         emailsSentCount: 0,
         createdAt: now,

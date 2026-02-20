@@ -6,7 +6,7 @@ import { SessionManager } from '../shared';
 import { LeadExtractionProcessor } from './lead-extraction.processor';
 import type { LeadExtractionData } from './lead-extraction.types';
 
-export { LeadExtractionData } from './lead-extraction.types';
+export type { LeadExtractionData } from './lead-extraction.types';
 
 export function createLeadExtractionWorker(events: EventEmitter): JobDefinition<LeadExtractionData, void> {
   const processor = new LeadExtractionProcessor();

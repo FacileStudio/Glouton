@@ -62,11 +62,11 @@ export class LeadExtractionHelpers {
     return 'professional-services';
   }
 
-  prepareLead Insert(lead: MappedLead, userId: string, huntSessionId: string, source: string) {
+  prepareLeadInsert(lead: MappedLead, userId: string, huntSessionId: string, source: string): any {
     return {
       userId,
       huntSessionId,
-      source,
+      source: source as any,
       domain: lead.domain,
       email: lead.email,
       firstName: lead.firstName,

@@ -144,7 +144,11 @@ export class LeadAuditProcessor {
       `[LeadAudit] Audit cancelled for session ${auditSessionId} at ${stats.processedCount}/${totalLeads} leads`
     );
 
-    await this.sessionManager.cancelAuditSession(auditSessionId, stats);
+    await this.sessionManager.cancelAuditSession(auditSessionId, {
+      processedLeads: stats.processedCount,
+      updatedLeads: stats.updatedLeads,
+      failedLeads: stats.failedLeads,
+    });
 
     emitter.emit('audit-cancelled', {
       auditSessionId,

@@ -6,7 +6,7 @@ import { SessionManager } from '../shared';
 import { DomainFinderProcessor } from './domain-finder.processor';
 import type { DomainFinderData } from './domain-finder.types';
 
-export { DomainFinderData } from './domain-finder.types';
+export type { DomainFinderData } from './domain-finder.types';
 
 export function createDomainFinderWorker(events: EventEmitter): JobDefinition<DomainFinderData, void> {
   const processor = new DomainFinderProcessor();
