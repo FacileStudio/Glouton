@@ -81,7 +81,7 @@ export class LocalBusinessHuntHelpers {
     const generatedEmail = this.generateEmail(business, location);
     const phoneNumbers = business.phone ? [business.phone] : [];
     const physicalAddresses = business.address ? [business.address] : [];
-    const cityName = business.city || location.split(',')[0].trim();
+    const cityName = business.city || location.split(',')[0].trim() || 'Unknown';
     const countryCode = (business.country || location.split(',').pop()?.trim() || '').toUpperCase();
 
     return {
@@ -89,19 +89,19 @@ export class LocalBusinessHuntHelpers {
       huntSessionId,
       source: (business.source === 'google-maps' ? 'GOOGLE_MAPS' :
               business.source === 'openstreetmap' ? 'OPENSTREETMAP' : 'GOOGLE_MAPS') as any,
-      domain: domain,
-      email: generatedEmail,
-      businessName: business.name,
+      domain: domain || null,
+      email: generatedEmail || null,
+      businessName: business.name || 'Unknown Business',
       businessType: 'LOCAL_BUSINESS',
-      category,
+      category: category || 'retail',
       city: cityName,
-      country: countryCode || null,
+      country: countryCode || 'FR',
       status: 'COLD',
       score: business.hasWebsite ? 60 : 40,
       phoneNumbers,
       physicalAddresses,
       coordinates: business.coordinates as any as Prisma.InputJsonValue,
-      hasWebsite: business.hasWebsite,
+      hasWebsite: business.hasWebsite || false,
       socialProfiles: {} as Prisma.InputJsonValue,
       createdAt: new Date(),
       updatedAt: new Date(),
