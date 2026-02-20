@@ -427,6 +427,8 @@ export function createLocalBusinessHuntWorker(db: SQL, events: EventEmitter): Jo
                   message: `Found ${batchInserted.length} new ${category} businesses in ${location}`,
                 });
               }
+
+              await new Promise(resolve => setTimeout(resolve, 100));
             }
 
             if (totalInserted > 0) {
