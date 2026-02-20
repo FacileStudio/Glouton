@@ -320,14 +320,14 @@
     {:else}
       {#each [
         {
-          label: 'Total envoyés',
+          label: 'Envoyés',
           val: (stats?.totalEmails ?? 0).toString(),
           icon: 'solar:letter-bold-duotone',
           color: 'text-black',
           accent: null,
         },
         {
-          label: 'Leads contactés',
+          label: 'Contactés',
           val: (stats?.contactedLeads ?? 0).toString(),
           icon: 'solar:users-group-rounded-bold-duotone',
           color: 'text-blue-500',
@@ -347,9 +347,7 @@
         >
           <div class="flex items-start justify-between mb-3 sm:mb-4 lg:mb-6">
             <h3 class="text-sm sm:text-base lg:text-lg font-bold text-neutral-700">{stat.label}</h3>
-            <div class="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 bg-neutral-50 rounded-xl sm:rounded-2xl flex items-center justify-center flex-shrink-0">
-              <iconify-icon icon={stat.icon} class={stat.color} width="20"></iconify-icon>
-            </div>
+            <iconify-icon icon={stat.icon} class={stat.color} width="24"></iconify-icon>
           </div>
           <p class="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tighter {stat.accent ? 'text-amber-600' : ''}">{stat.val}</p>
         </div>
