@@ -168,7 +168,6 @@
                 </div>
               </div>
 
-              <iconify-icon icon="solar:arrow-right-bold" width="20" class="text-neutral-300 group-hover:text-neutral-700 transition-colors flex-shrink-0"></iconify-icon>
             </div>
           </button>
         {/each}
