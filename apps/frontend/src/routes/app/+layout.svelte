@@ -19,6 +19,7 @@
 
   let userInitials = $derived($authStore.user?.firstName?.[0] || 'U');
   let userName = $derived($authStore.user?.firstName || 'Utilisateur');
+  let userEmail = $derived($authStore.user?.email || 'user@example.com');
 
   function getPageTitle(path: string): string {
     if (path.startsWith('/app/hunts/new')) return 'Nouvelle Chasse — Glouton';
@@ -84,6 +85,10 @@
 
     <span slot="user-name">
       {userName}
+    </span>
+
+    <span slot="user-email">
+      {userEmail}
     </span>
   </Sidebar>
 
