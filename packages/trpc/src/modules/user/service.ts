@@ -21,7 +21,26 @@ export const userService = {
     return user;
   },
 
-  getConfiguredSources: async (userId: string) => {
+  getConfiguredSources: async (userId: string, teamId?: string) => {
+    if (teamId) {
+      const team = await prisma.team.findUnique({
+        where: { id: teamId },
+        select: { hunterApiKey: true, googleMapsApiKey: true },
+      });
+
+      if (!team) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Team not found',
+        });
+      }
+
+      const sources: string[] = [];
+      if (team.hunterApiKey) sources.push('HUNTER');
+      if (team.googleMapsApiKey) sources.push('GOOGLE_MAPS');
+      return sources;
+    }
+
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { hunterApiKey: true },
