@@ -23,6 +23,13 @@ model User {
   hasdataApiKey      String?   @db.Text
   contactoutApiKey   String?   @db.Text
   googleMapsApiKey   String?   @db.Text
+  smtpHost           String?   @db.Text
+  smtpPort           Int?
+  smtpSecure         Boolean?
+  smtpUser           String?   @db.Text
+  smtpPass           String?   @db.Text
+  smtpFromName       String?   @db.Text
+  smtpFromEmail      String?   @db.Text
   createdAt          DateTime  @default(now()) @db.Timestamptz(3)
   updatedAt          DateTime  @default(now()) @updatedAt @db.Timestamptz(3)
 
