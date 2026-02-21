@@ -82,7 +82,7 @@
 <div class="relative" id="team-context-dropdown">
   <button
     onclick={toggleDropdown}
-    class="group flex items-center gap-2 px-3 py-2 rounded-xl transition-all duration-200 hover:bg-neutral-50 border border-transparent hover:border-neutral-200 w-full"
+    class="group flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 hover:bg-neutral-50 border border-transparent hover:border-neutral-200 w-full"
   >
     <div class="flex items-center gap-2 flex-1 min-w-0">
       <div class="flex-shrink-0">
@@ -116,7 +116,7 @@
   </button>
 
   {#if isOpen}
-    <div class="absolute left-0 right-0 mt-1 bg-white border border-neutral-200 rounded-xl shadow-lg overflow-hidden z-50">
+    <div class="absolute left-0 right-0 mt-1 bg-white border border-neutral-200 rounded-lg shadow-lg overflow-hidden z-50">
       {#if loading}
         <div class="px-3 py-6 text-center">
           <div class="inline-block w-5 h-5 border-2 border-neutral-200 border-t-neutral-700 rounded-full animate-spin"></div>
