@@ -24,12 +24,12 @@
 
   let {
     filters = $bindable(),
-    viewMode = $bindable(),
+    filtersExpanded = $bindable(),
     leads = [],
     onReset,
   }: {
     filters: Filters;
-    viewMode: 'grid' | 'table';
+    filtersExpanded: boolean;
     leads?: Lead[];
     onReset: () => void;
   } = $props();
@@ -81,7 +81,7 @@
 
 <div class="rounded-[28px] shadow-lg p-5 space-y-3" style="background-color: #EFEAE6;">
 
-  <!-- Row 1: Search + View Toggle + Reset -->
+  <!-- Row 1: Search + Filters Toggle + Reset -->
   <div class="flex items-center gap-3">
     <div class="relative flex-1">
       <iconify-icon
@@ -105,22 +105,14 @@
         </button>
       {/if}
     </div>
-    <div class="flex items-center gap-1 bg-white rounded-2xl p-1 border border-neutral-200 h-12 flex-shrink-0">
-      <button
-        onclick={() => (viewMode = 'table')}
-        aria-label="Vue tableau"
-        class="px-3 h-full rounded-xl transition-all flex items-center justify-center {viewMode === 'table' ? 'bg-neutral-900 text-white' : 'text-neutral-500 hover:bg-neutral-100'}"
-      >
-        <iconify-icon icon="solar:list-bold" width="18"></iconify-icon>
-      </button>
-      <button
-        onclick={() => (viewMode = 'grid')}
-        aria-label="Vue grille"
-        class="px-3 h-full rounded-xl transition-all flex items-center justify-center {viewMode === 'grid' ? 'bg-neutral-900 text-white' : 'text-neutral-500 hover:bg-neutral-100'}"
-      >
-        <iconify-icon icon="solar:widget-2-bold" width="18"></iconify-icon>
-      </button>
-    </div>
+    <button
+      onclick={() => (filtersExpanded = !filtersExpanded)}
+      aria-label={filtersExpanded ? 'Masquer les filtres' : 'Afficher les filtres'}
+      class="h-12 px-4 bg-white rounded-2xl border border-neutral-200 text-neutral-600 hover:text-black hover:border-neutral-900 transition-all font-bold text-sm flex items-center gap-2 flex-shrink-0 {filtersExpanded ? 'bg-neutral-900 text-white border-neutral-900' : ''}"
+    >
+      <iconify-icon icon={filtersExpanded ? 'solar:alt-arrow-up-bold' : 'solar:filter-bold'} width="16"></iconify-icon>
+      {filtersExpanded ? 'Masquer filtres' : 'Filtres'}
+    </button>
     {#if hasActiveFilters}
       <button
         onclick={onReset}
@@ -133,6 +125,7 @@
   </div>
 
   <!-- Row 2: Lead filters -->
+  {#if filtersExpanded}
   <div class="flex flex-wrap items-start gap-4 pt-1">
 
     <!-- Status -->
@@ -394,4 +387,5 @@
     </div>
 
   </div>
+  {/if}
 </div>
