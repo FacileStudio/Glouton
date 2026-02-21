@@ -459,10 +459,6 @@ export const teamService = {
     userId: string,
     apiKeys: {
       hunterApiKey?: string;
-      apolloApiKey?: string;
-      snovApiKey?: string;
-      hasdataApiKey?: string;
-      contactoutApiKey?: string;
       googleMapsApiKey?: string;
     }
   ) => {
@@ -471,14 +467,6 @@ export const teamService = {
     const updateData: any = {};
     if (apiKeys.hunterApiKey !== undefined)
       updateData.hunterApiKey = apiKeys.hunterApiKey || null;
-    if (apiKeys.apolloApiKey !== undefined)
-      updateData.apolloApiKey = apiKeys.apolloApiKey || null;
-    if (apiKeys.snovApiKey !== undefined)
-      updateData.snovApiKey = apiKeys.snovApiKey || null;
-    if (apiKeys.hasdataApiKey !== undefined)
-      updateData.hasdataApiKey = apiKeys.hasdataApiKey || null;
-    if (apiKeys.contactoutApiKey !== undefined)
-      updateData.contactoutApiKey = apiKeys.contactoutApiKey || null;
     if (apiKeys.googleMapsApiKey !== undefined)
       updateData.googleMapsApiKey = apiKeys.googleMapsApiKey || null;
 
@@ -487,10 +475,6 @@ export const teamService = {
       data: updateData,
       select: {
         hunterApiKey: true,
-        apolloApiKey: true,
-        snovApiKey: true,
-        hasdataApiKey: true,
-        contactoutApiKey: true,
         googleMapsApiKey: true,
       },
     });
