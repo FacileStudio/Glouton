@@ -9,14 +9,23 @@ export interface LeadIdentifier {
 export class DeduplicationService {
   async findExistingLeadsByDomains(
     userId: string,
-    domains: string[]
+    domains: string[],
+    teamId?: string | null
   ): Promise<Set<string>> {
+    const whereClause: any = {
+      email: null,
+      domain: { in: domains },
+    };
+
+    if (teamId) {
+      whereClause.teamId = teamId;
+    } else {
+      whereClause.userId = userId;
+      whereClause.teamId = null;
+    }
+
     const existing = await prisma.lead.findMany({
-      where: {
-        userId,
-        email: null,
-        domain: { in: domains },
-      },
+      where: whereClause,
       select: { domain: true },
     });
 
@@ -25,13 +34,22 @@ export class DeduplicationService {
 
   async findExistingLeadsByEmails(
     userId: string,
-    emails: string[]
+    emails: string[],
+    teamId?: string | null
   ): Promise<Set<string>> {
+    const whereClause: any = {
+      email: { in: emails },
+    };
+
+    if (teamId) {
+      whereClause.teamId = teamId;
+    } else {
+      whereClause.userId = userId;
+      whereClause.teamId = null;
+    }
+
     const existing = await prisma.lead.findMany({
-      where: {
-        userId,
-        email: { in: emails },
-      },
+      where: whereClause,
       select: { email: true },
     });
 
@@ -40,7 +58,8 @@ export class DeduplicationService {
 
   async findExistingLeads(
     userId: string,
-    identifiers: { domains?: string[]; emails?: string[]; names?: string[] }
+    identifiers: { domains?: string[]; emails?: string[]; names?: string[] },
+    teamId?: string | null
   ): Promise<{ domains: Set<string>; emails: Set<string>; names: Set<string> }> {
     const whereConditions: any[] = [];
 
@@ -58,11 +77,19 @@ export class DeduplicationService {
       return { domains: new Set(), emails: new Set(), names: new Set() };
     }
 
+    const whereClause: any = {
+      OR: whereConditions,
+    };
+
+    if (teamId) {
+      whereClause.teamId = teamId;
+    } else {
+      whereClause.userId = userId;
+      whereClause.teamId = null;
+    }
+
     const existing = await prisma.lead.findMany({
-      where: {
-        userId,
-        OR: whereConditions,
-      },
+      where: whereClause,
       select: { domain: true, email: true, businessName: true },
     });
 

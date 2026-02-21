@@ -14,7 +14,7 @@ export class DomainFinderProcessor {
   private helpers = new DomainFinderHelpers();
 
   async process(job: BullJob<DomainFinderData>, emitter: JobEventEmitter): Promise<void> {
-    const { huntSessionId, userId, filters } = job.data;
+    const { huntSessionId, userId, teamId, filters } = job.data;
 
     await this.sessionManager.startSession(huntSessionId);
     emitter.emit('hunt-started', {
@@ -38,7 +38,7 @@ export class DomainFinderProcessor {
     const companies = result.data.filter((c) => !!c.domain) as CompanyData[];
     await job.updateProgress(10);
 
-    const newCompanies = await this.deduplicateCompanies(companies, userId);
+    const newCompanies = await this.deduplicateCompanies(companies, userId, teamId);
 
     console.log(
       `[DomainFinder] ${newCompanies.length} new domains after dedup (${companies.length - newCompanies.length} duplicates skipped)`
@@ -99,12 +99,14 @@ export class DomainFinderProcessor {
 
   private async deduplicateCompanies(
     companies: CompanyData[],
-    userId: string
+    userId: string,
+    teamId?: string | null
   ): Promise<CompanyData[]> {
     const domains = companies.map((c) => c.domain);
     const existingDomains = await this.deduplicationService.findExistingLeadsByDomains(
       userId,
-      domains
+      domains,
+      teamId
     );
 
     return companies.filter((c) => !existingDomains.has(c.domain));

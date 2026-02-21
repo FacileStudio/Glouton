@@ -435,9 +435,6 @@
 
     <div class="space-y-8 max-w-5xl mx-auto">
 
-
-        {#if isProcessing || liveEvents.length > 0}
-
         <section class="bg-white rounded-[32px] border-2 border-neutral-200 p-8">
           <div class="flex items-center gap-3 mb-6">
             <div class="w-10 h-10 bg-neutral-900 rounded-xl flex items-center justify-center">
@@ -660,6 +657,28 @@
               </div>
             {/if}
 
+            <div>
+              <p class="text-xs font-bold text-neutral-500 uppercase mb-2">Dates</p>
+              <div class="bg-neutral-50 rounded-xl p-4 space-y-3 text-xs">
+                <div class="flex justify-between items-center">
+                  <span class="text-neutral-500 font-medium">Créée le</span>
+                  <span class="font-bold">{new Date(details.createdAt).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}</span>
+                </div>
+                {#if details.startedAt}
+                  <div class="flex justify-between items-center">
+                    <span class="text-neutral-500 font-medium">Démarrée le</span>
+                    <span class="font-bold">{new Date(details.startedAt).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}</span>
+                  </div>
+                {/if}
+                {#if details.completedAt}
+                  <div class="flex justify-between items-center">
+                    <span class="text-neutral-500 font-medium">Terminée le</span>
+                    <span class="font-bold">{new Date(details.completedAt).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}</span>
+                  </div>
+                {/if}
+              </div>
+            </div>
+
             {#if details.error}
               <div class="bg-red-50 border-2 border-red-200 rounded-lg p-4">
                 <div class="flex items-start gap-2">
@@ -670,7 +689,6 @@
             {/if}
           </div>
         </section>
-        {/if}
 
         {#if discoveredItems.length > 0}
 
@@ -734,7 +752,7 @@
               </button>
             </div>
 
-            <div bind:this={eventsContainer} class="px-4 pb-8 space-y-2 max-h-[400px] overflow-y-auto">
+            <div bind:this={eventsContainer} class="px-8 pb-8 space-y-2 max-h-[400px] overflow-y-auto">
               {#if liveEvents.length === 0}
                 <div class="flex flex-col items-center justify-center py-12 space-y-3">
                   <iconify-icon icon="solar:hourglass-bold" width="36" class="text-neutral-300"></iconify-icon>
@@ -763,7 +781,7 @@
               <h2 class="text-2xl font-black tracking-tight">Domaines découverts</h2>
               <span class="px-3 py-1 bg-neutral-100 text-neutral-700 rounded-lg text-xs font-black">{discoveredItems.length}</span>
             </div>
-            <div class="px-4 pb-8 space-y-2 max-h-[400px] overflow-y-auto">
+            <div class="px-8 pb-8 space-y-2 max-h-[400px] overflow-y-auto">
               {#each discoveredItems as item (item.index)}
                 <div class="flex items-center gap-4 py-2.5 border-b border-neutral-100 last:border-0" in:fly={{ y: -6, duration: 150 }}>
                   <span class="text-xs font-mono text-neutral-400 w-8 flex-shrink-0">#{item.index}</span>
@@ -793,7 +811,7 @@
               <h2 class="text-2xl font-black tracking-tight">Leads</h2>
               <span class="px-3 py-1 bg-neutral-100 text-neutral-700 rounded-lg text-xs font-black">{details.leads.length}</span>
             </div>
-            <div class="px-4 pb-8 space-y-2 max-h-[500px] overflow-y-auto">
+            <div class="px-8 pb-8 space-y-2 max-h-[500px] overflow-y-auto">
               {#each details.leads as lead}
                 <div class="flex items-center gap-4 py-2.5 border-b border-neutral-100 last:border-0 hover:bg-neutral-50 transition-colors rounded-xl px-2 -mx-2">
                   <div class="w-9 h-9 rounded-xl bg-neutral-100 flex items-center justify-center flex-shrink-0">
