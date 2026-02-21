@@ -75,11 +75,13 @@
     replaceState(qs ? `?${qs}` : location.pathname, {});
   }
 
-  $: if (mounted) {
-    search;
-    activeTab;
-    syncToUrl();
-  }
+  $effect(() => {
+    if (mounted) {
+      search;
+      activeTab;
+      syncToUrl();
+    }
+  });
 
   let expandedLeadId: string | null = null;
   let panelHistory: EmailHistory[] = [];
