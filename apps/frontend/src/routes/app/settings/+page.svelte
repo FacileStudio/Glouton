@@ -26,6 +26,7 @@
     newPassword: '',
     confirmPassword: '',
     hunterApiKey: '',
+    googleMapsApiKey: '',
     smtpHost: '',
     smtpPort: 587,
     smtpSecure: false,
@@ -37,6 +38,7 @@
 
   let existingApiKeys = $state({
     hunterApiKey: '',
+    googleMapsApiKey: '',
   });
 
   let existingSmtpConfig = $state({
@@ -51,6 +53,7 @@
 
   let showApiKeys = $state({
     hunterApiKey: false,
+    googleMapsApiKey: false,
   });
 
   let showSmtpPass = $state(false);
@@ -67,7 +70,8 @@
   );
 
   let hasApiKeyChanges = $derived(
-    formData.hunterApiKey !== existingApiKeys.hunterApiKey
+    formData.hunterApiKey !== existingApiKeys.hunterApiKey ||
+    formData.googleMapsApiKey !== existingApiKeys.googleMapsApiKey
   );
 
   let hasSmtpConfigChanges = $derived(
@@ -174,12 +178,16 @@
       const updatePayload: any = {};
       if (formData.hunterApiKey && formData.hunterApiKey.trim())
         updatePayload.hunterApiKey = formData.hunterApiKey.trim();
+      if (formData.googleMapsApiKey && formData.googleMapsApiKey.trim())
+        updatePayload.googleMapsApiKey = formData.googleMapsApiKey.trim();
 
       await trpc.user.updateApiKeys.mutate(updatePayload);
 
       const user = await trpc.user.me.query();
       existingApiKeys.hunterApiKey = user.hunterApiKey || '';
       formData.hunterApiKey = user.hunterApiKey || '';
+      existingApiKeys.googleMapsApiKey = user.googleMapsApiKey || '';
+      formData.googleMapsApiKey = user.googleMapsApiKey || '';
 
       toast.push('API keys updated successfully!', 'success');
       message = { type: 'success', text: 'API keys updated successfully!' };
@@ -316,6 +324,8 @@
       const user = userResult.value;
       existingApiKeys.hunterApiKey = user.hunterApiKey || '';
       formData.hunterApiKey = user.hunterApiKey || '';
+      existingApiKeys.googleMapsApiKey = user.googleMapsApiKey || '';
+      formData.googleMapsApiKey = user.googleMapsApiKey || '';
     } else {
       console.error('Failed to fetch API key status:', userResult.reason);
     }
@@ -592,6 +602,55 @@
                     target="_blank"
                     rel="noopener noreferrer"
                     class="underline hover:text-neutral-900">hunter.io/api</a
+                  >
+                </p>
+              </div>
+
+              <div class="space-y-2">
+                <label
+                  for="googleMapsApiKey"
+                  class="text-sm font-bold text-neutral-700 flex items-center gap-2"
+                >
+                  Google Maps API Key
+                  {#if existingApiKeys.googleMapsApiKey}
+                    <span
+                      class="text-xs font-bold text-green-600 flex items-center gap-1 px-2 py-0.5 bg-green-50 rounded-full"
+                    >
+                      <iconify-icon icon="solar:check-circle-bold" width="12"></iconify-icon>
+                      Actif
+                    </span>
+                  {/if}
+                </label>
+                <div class="relative">
+                  <Input
+                    id="googleMapsApiKey"
+                    type={showApiKeys.googleMapsApiKey ? 'text' : 'password'}
+                    bind:value={formData.googleMapsApiKey}
+                    placeholder="Entrez votre clé API Google Maps"
+                    class="rounded-xl font-mono pr-10"
+                  />
+                  {#if formData.googleMapsApiKey}
+                    <button
+                      type="button"
+                      onclick={() => (showApiKeys.googleMapsApiKey = !showApiKeys.googleMapsApiKey)}
+                      aria-label={showApiKeys.googleMapsApiKey
+                        ? 'Masquer la clé API Google Maps'
+                        : 'Afficher la clé API Google Maps'}
+                      class="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors"
+                    >
+                      <iconify-icon
+                        icon={showApiKeys.googleMapsApiKey ? 'solar:eye-bold' : 'solar:eye-closed-bold'}
+                        width="20"
+                      ></iconify-icon>
+                    </button>
+                  {/if}
+                </div>
+                <p class="text-xs text-neutral-500">
+                  Utilisée pour les chasses locales. Get yours at <a
+                    href="https://console.cloud.google.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="underline hover:text-neutral-900">console.cloud.google.com</a
                   >
                 </p>
               </div>

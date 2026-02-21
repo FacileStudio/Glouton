@@ -309,15 +309,24 @@ export const userService = {
     userId: string,
     apiKeys: {
       hunterApiKey?: string;
+      googleMapsApiKey?: string;
     }
   ) => {
-    if (apiKeys.hunterApiKey === undefined) {
+    if (apiKeys.hunterApiKey === undefined && apiKeys.googleMapsApiKey === undefined) {
       return userService.getUserById(userId);
+    }
+
+    const updateData: any = {};
+    if (apiKeys.hunterApiKey !== undefined) {
+      updateData.hunterApiKey = apiKeys.hunterApiKey || null;
+    }
+    if (apiKeys.googleMapsApiKey !== undefined) {
+      updateData.googleMapsApiKey = apiKeys.googleMapsApiKey || null;
     }
 
     const updatedUser = await prisma.user.update({
       where: { id: userId },
-      data: { hunterApiKey: apiKeys.hunterApiKey || null },
+      data: updateData,
     });
 
     return updatedUser;

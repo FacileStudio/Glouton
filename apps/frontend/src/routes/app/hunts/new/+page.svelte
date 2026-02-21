@@ -12,6 +12,8 @@
   let teamId = $derived(teamContextStore.getTeamId());
   let settingsUrl = $derived(teamId ? `/app/teams/${teamId}/settings` : '/app/settings');
 
+  let hasGoogleMapsKey = $state(false);
+
   let mapComponent: LocationPickerMap;
   let showMap = $state(false);
 
@@ -403,7 +405,9 @@
       );
       console.log('Configured sources:', sources);
       configuredSourcesCount = sources.length;
+      hasGoogleMapsKey = sources.includes('GOOGLE_MAPS');
       console.log('configuredSourcesCount:', configuredSourcesCount);
+      console.log('hasGoogleMapsKey:', hasGoogleMapsKey);
 
       /**
        * if
@@ -784,6 +788,23 @@
             <p class="text-sm text-neutral-500 font-medium">Trouvez des entreprises près d'une localisation</p>
           </div>
         </div>
+
+        {#if !hasGoogleMapsKey}
+          <div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
+            <div class="flex items-start gap-3">
+              <iconify-icon icon="solar:info-circle-bold" width="20" class="text-blue-600 flex-shrink-0 mt-0.5"></iconify-icon>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium text-blue-900">
+                  Clé Google Maps non configurée
+                </p>
+                <p class="text-xs text-blue-700 mt-1">
+                  Sans clé Google Maps, nous utiliserons OpenStreetMap pour rechercher les entreprises.
+                  Pour de meilleurs résultats, <a href={settingsUrl} class="underline hover:text-blue-900 font-bold">configurez une clé Google Maps dans les paramètres</a>.
+                </p>
+              </div>
+            </div>
+          </div>
+        {/if}
 
         <div class="space-y-4">
           <label class="block">
