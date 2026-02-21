@@ -769,17 +769,24 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div class="p-8 rounded-2xl shadow-lg" style="background-color: #EFEAE6;">
-            <div class="mb-6">
-              <h3 class="font-black text-lg mb-1" style="color: #291334;">Session</h3>
-              <p class="text-sm text-neutral-500">Terminer votre session en cours</p>
+        <div class="p-8 md:p-10 rounded-2xl shadow-lg" style="background-color: #EFEAE6;">
+          <div class="mb-8">
+            <div class="flex items-center gap-3 mb-2">
+              <div class="w-11 h-11 flex items-center justify-center bg-neutral-900 rounded-lg">
+                <iconify-icon icon="solar:logout-2-bold-duotone" width="20" class="text-white"
+                ></iconify-icon>
+              </div>
+              <h2 class="text-2xl font-black" style="color: #291334;">Session</h2>
             </div>
+            <p class="text-neutral-500 text-sm">Terminer votre session en cours</p>
+          </div>
+
+          <div class="flex justify-end">
             <Button
               onclick={() => authStore.logout()}
-              class="bg-red-600 text-white hover:bg-red-700 w-full"
+              class="px-6 bg-red-600 text-white hover:bg-red-700"
             >
-              <iconify-icon icon="solar:logout-2-bold" width="20"></iconify-icon>
+              <iconify-icon icon="solar:logout-2-bold" width="18"></iconify-icon>
               Se déconnecter
             </Button>
           </div>
