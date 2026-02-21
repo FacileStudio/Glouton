@@ -9,7 +9,10 @@
   import HuntBanner from '$lib/components/leads/HuntBanner.svelte';
   import HuntCard from '$lib/components/hunts/HuntCard.svelte';
   import HuntListItem from '$lib/components/hunts/HuntListItem.svelte';
+  import { teamContextStore } from '$lib/stores/team-context.svelte';
   import 'iconify-icon';
+
+  let teamId = $derived(teamContextStore.getTeamId());
 
   interface Stats {
     totalLeads: number;
@@ -69,7 +72,7 @@
 
   async function loadData() {
     try {
-      const sessionsData = await trpc.lead.hunt.list.query();
+      const sessionsData = await trpc.lead.hunt.list.query({ teamId });
       huntSessions = Array.isArray(sessionsData) ? sessionsData : [];
 
       huntSessions.forEach((s) => {
@@ -86,7 +89,7 @@
 
   async function loadStats() {
     try {
-      const statsData = await trpc.lead.query.getStats.query();
+      const statsData = await trpc.lead.query.getStats.query({ teamId });
       stats = statsData || null;
     } catch (error: any) {
       console.error('Error loading stats:', error);

@@ -6,7 +6,10 @@
   import { onMount } from 'svelte';
   import { Tabs } from '@repo/ui';
   import LocationPickerMap from '$lib/components/LocationPickerMap.svelte';
+  import { teamContextStore } from '$lib/stores/team-context.svelte';
   import 'iconify-icon';
+
+  let teamId = $derived(teamContextStore.getTeamId());
 
   let mapComponent: LocationPickerMap;
   let showMap = false;
@@ -326,6 +329,7 @@
       };
 
       const result = await trpc.lead.hunt.start.mutate({
+        teamId,
         filters: huntFilters,
       });
 
@@ -362,6 +366,7 @@
         : `${localBusinessFilters.location.coordinates?.lat},${localBusinessFilters.location.coordinates?.lng}`;
 
       const result = await trpc.lead.hunt.startLocalBusiness.mutate({
+        teamId,
         location: locationString,
         categories: localBusinessFilters.categories,
         hasWebsite: localBusinessFilters.hasWebsite === 'with' ? true : localBusinessFilters.hasWebsite === 'without' ? false : undefined,
