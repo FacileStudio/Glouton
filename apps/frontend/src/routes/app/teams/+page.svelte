@@ -38,7 +38,7 @@
   function getRoleBadgeColor(role: string) {
     switch (role) {
       case 'OWNER':
-        return 'bg-red-100 text-red-700 border-red-200';
+        return 'bg-neutral-100 text-neutral-700 border-neutral-200';
       case 'ADMIN':
         return 'bg-blue-100 text-blue-700 border-blue-200';
       default:
@@ -71,13 +71,18 @@
   style="background-color: #FAF7F5; selection-background-color: #FEC129;"
 >
   <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
-    <div>
-      <h1 class="text-3xl md:text-4xl font-black tracking-tight" style="color: #291334;">
-        Équipes
-      </h1>
-      <p class="text-neutral-500 font-medium text-base mt-1">
-        Gérez vos équipes et collaborez avec vos collègues
-      </p>
+    <div class="flex items-center gap-4">
+      <div class="w-16 h-16 flex items-center justify-center bg-neutral-900 rounded-2xl">
+        <iconify-icon icon="solar:users-group-rounded-bold" width="32" class="text-white"></iconify-icon>
+      </div>
+      <div class="space-y-1">
+        <h1 class="text-5xl font-black tracking-tight leading-none" style="color: #291334;">
+          Équipes
+        </h1>
+        <p class="text-neutral-400 font-medium text-sm">
+          Gérez vos équipes et collaborez avec vos collègues
+        </p>
+      </div>
     </div>
 
     <button
@@ -130,38 +135,40 @@
         </EmptyState>
       </div>
     {:else}
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-8">
+      <div class="space-y-3">
         {#each filteredTeams as team (team.id)}
           <button
             onclick={() => handleTeamClick(team.id)}
-            class="bg-white rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all duration-200 border border-neutral-100 text-left group hover:scale-[1.02] active:scale-[0.98]"
+            class="w-full bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200 border border-neutral-100 text-left group"
           >
-            <div class="flex items-start justify-between mb-4">
-              <div class="w-12 h-12 bg-neutral-900 rounded-xl flex items-center justify-center text-white font-black text-lg group-hover:bg-black transition-colors">
+            <div class="flex items-center gap-4">
+              <div class="w-10 h-10 bg-neutral-900 rounded-lg flex items-center justify-center text-white font-black text-sm group-hover:bg-black transition-colors flex-shrink-0">
                 {team.name[0].toUpperCase()}
               </div>
-              <span class="inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold uppercase border {getRoleBadgeColor(team.role)}">
-                {getRoleLabel(team.role)}
-              </span>
-            </div>
 
-            <h3 class="font-black text-xl mb-2 text-neutral-900 group-hover:text-black">
-              {team.name}
-            </h3>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-1">
+                  <h3 class="font-bold text-base text-neutral-900 truncate">
+                    {team.name}
+                  </h3>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase border {getRoleBadgeColor(team.role)}">
+                    {getRoleLabel(team.role)}
+                  </span>
+                </div>
 
-            {#if team.description}
-              <p class="text-neutral-500 text-sm mb-4 line-clamp-2">
-                {team.description}
-              </p>
-            {/if}
-
-            <div class="flex items-center gap-4 pt-4 border-t border-neutral-100">
-              <div class="flex items-center gap-2 text-neutral-600">
-                <iconify-icon icon="solar:calendar-bold" width="16"></iconify-icon>
-                <span class="text-xs font-medium">
-                  Rejoint le {new Date(team.joinedAt).toLocaleDateString('fr-FR')}
-                </span>
+                <div class="flex items-center gap-4 text-xs text-neutral-500">
+                  <div class="flex items-center gap-1">
+                    <iconify-icon icon="solar:users-group-rounded-bold" width="14"></iconify-icon>
+                    <span>{team._count?.members || 0} membre{(team._count?.members || 0) !== 1 ? 's' : ''}</span>
+                  </div>
+                  <div class="flex items-center gap-1">
+                    <iconify-icon icon="solar:chart-square-bold" width="14"></iconify-icon>
+                    <span>{team._count?.leads || 0} lead{(team._count?.leads || 0) !== 1 ? 's' : ''}</span>
+                  </div>
+                </div>
               </div>
+
+              <iconify-icon icon="solar:arrow-right-bold" width="20" class="text-neutral-300 group-hover:text-neutral-700 transition-colors flex-shrink-0"></iconify-icon>
             </div>
           </button>
         {/each}
