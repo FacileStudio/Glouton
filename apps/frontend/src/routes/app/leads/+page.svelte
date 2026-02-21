@@ -10,7 +10,7 @@
   import LeadsTable from '$lib/components/leads/LeadsTable.svelte';
   import LeadsMap from '$lib/components/leads/LeadsMap.svelte';
   import PaginationControls from '$lib/components/leads/PaginationControls.svelte';
-  import { setupAuditListeners, type AuditSession } from '$lib/websocket-events.svelte';
+  import { setupAuditListeners, setupHuntListeners, type AuditSession, type HuntSession } from '$lib/websocket-events.svelte';
   import { teamContextStore } from '$lib/stores/team-context.svelte';
   import 'iconify-icon';
 
@@ -20,6 +20,7 @@
   let leads = $state<any[]>([]);
   let stats = $state<any>(null);
   let auditSessions = $state<AuditSession[]>([]);
+  let huntSessions = $state<HuntSession[]>([]);
   let initialLoading = $state(true);
   let loadingData = $state(false);
 
@@ -108,6 +109,19 @@
     auditSessions = auditSessions.filter(s => s.id !== id);
   };
 
+  const updateHuntSession = (id: string, updates: Partial<HuntSession>) => {
+    const index = huntSessions.findIndex(s => s.id === id);
+    if (index !== -1) {
+      huntSessions[index] = { ...huntSessions[index], ...updates };
+      return true;
+    }
+    return false;
+  };
+
+  const addHuntSession = (session: HuntSession) => {
+    huntSessions = [session, ...huntSessions];
+  };
+
   onMount(async () => {
     const params = new URLSearchParams(location.search);
     filters = {
@@ -129,13 +143,22 @@
     if (urlSortBy && validSortCols.includes(urlSortBy)) sortBy = urlSortBy;
     if (params.get('sortOrder') === 'asc') sortOrder = 'asc';
 
-    wsUnsubscribers = setupAuditListeners(
+    const auditUnsubscribers = setupAuditListeners(
       updateAuditSession,
       addAuditSession,
       removeAuditSession,
       loadData,
       loadStats
     );
+
+    const huntUnsubscribers = setupHuntListeners(
+      updateHuntSession,
+      addHuntSession,
+      loadData,
+      loadStats
+    );
+
+    wsUnsubscribers = [...auditUnsubscribers, ...huntUnsubscribers];
 
     await Promise.all([loadData(), loadStats()]);
     mounted = true;
