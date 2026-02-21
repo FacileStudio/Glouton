@@ -106,7 +106,7 @@
           { icon: 'solar:case-round-bold-duotone', title: 'Opportunités Multi-Plateformes', desc: 'Scrapez en temps réel 16+ plateformes freelance (Malt, Codeur, Upwork...) avec filtrage par budget, catégorie et localisation.' },
           { icon: 'solar:map-point-wave-bold-duotone', title: 'Géolocalisation Intelligente', desc: 'Visualisez vos leads sur carte interactive, ciblez par zone géographique et optimisez votre prospection locale.' }
         ] as feature (feature.title)}
-          <div class="feature-card p-10 rounded-[40px] shadow-lg transition-all group" style="background-color: #EFEAE6;">
+          <div class="feature-card p-10 rounded-2xl shadow-lg transition-all group" style="background-color: #EFEAE6;">
             <div class="w-14 h-14 bg-black rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition-all duration-500" style="color: #FEC129;">
               <iconify-icon icon={feature.icon} width="28"></iconify-icon>
             </div>
@@ -117,7 +117,7 @@
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div class="p-12 rounded-[40px] shadow-lg" style="background-color: #EFEAE6;">
+        <div class="p-12 rounded-2xl shadow-lg" style="background-color: #EFEAE6;">
           <div class="w-16 h-16 bg-black rounded-2xl flex items-center justify-center mb-6" style="color: #FEC129;">
             <iconify-icon icon="solar:chart-bold-duotone" width="32"></iconify-icon>
           </div>
@@ -141,7 +141,7 @@
           </ul>
         </div>
 
-        <div class="p-12 rounded-[40px] shadow-lg" style="background-color: #EFEAE6;">
+        <div class="p-12 rounded-2xl shadow-lg" style="background-color: #EFEAE6;">
           <div class="w-16 h-16 bg-black rounded-2xl flex items-center justify-center mb-6" style="color: #FEC129;">
             <iconify-icon icon="solar:bolt-bold-duotone" width="32"></iconify-icon>
           </div>

@@ -112,7 +112,7 @@
     </div>
   {/if}
 
-  <div class="rounded-[40px] overflow-hidden shadow-lg" style="background-color: #EFEAE6;">
+  <div class="rounded-2xl overflow-hidden shadow-lg" style="background-color: #EFEAE6;">
     {#if loading}
       <div class="flex items-center justify-center py-20">
         <Spinner size="lg" />

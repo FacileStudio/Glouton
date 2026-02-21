@@ -887,7 +887,7 @@
   >
     <div
       in:scale={{ start: 0.95, duration: 200 }}
-      class="bg-white rounded-[32px] p-8 max-w-md w-full shadow-2xl space-y-6"
+      class="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl space-y-6"
     >
       <div class="space-y-2 text-center">
         <div
