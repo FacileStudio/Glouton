@@ -47,10 +47,14 @@ export const emailRouter = router({
     }),
 
   getLeadOutreach: protectedProcedure
-    .input(z.object({ leadId: z.string() }))
+    .input(z.object({
+      leadId: z.string(),
+      teamId: z.string().uuid().optional()
+    }))
     .query(async ({ ctx, input }) => {
+      const scope = await resolveScope(ctx.prisma, ctx.user.id, input.teamId);
       const emailService = new EmailService();
-      return emailService.getLeadOutreach(input.leadId, ctx.user.id, ctx.prisma);
+      return emailService.getLeadOutreach(input.leadId, scope, ctx.prisma);
     }),
 
   getStats: protectedProcedure
