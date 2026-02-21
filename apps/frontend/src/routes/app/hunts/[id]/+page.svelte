@@ -433,191 +433,10 @@
       </div>
     {/if}
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div class="lg:col-span-2 space-y-6">
+    <div class="space-y-8 max-w-5xl mx-auto">
+
 
         {#if isProcessing || liveEvents.length > 0}
-          <section class="bg-white rounded-[32px] border-2 border-neutral-200 overflow-hidden">
-            <div class="p-8 pb-4 flex items-center justify-between">
-              <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-neutral-900 rounded-xl flex items-center justify-center">
-                  <iconify-icon icon="solar:pulse-bold" width="20" class="text-white"></iconify-icon>
-                </div>
-                <h2 class="text-2xl font-black tracking-tight">Flux en direct</h2>
-                {#if isProcessing}
-                  <span class="px-3 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-black animate-pulse">EN DIRECT</span>
-                {/if}
-              </div>
-              <button
-                onclick={() => { autoScroll = !autoScroll; }}
-                class="px-4 py-2 rounded-xl text-xs font-bold {autoScroll ? 'bg-yellow-100 text-yellow-700' : 'bg-neutral-100 text-neutral-600'} hover:opacity-80 transition-opacity"
-              >
-                {autoScroll ? 'Défilement auto' : 'En pause'}
-              </button>
-            </div>
-
-            <div bind:this={eventsContainer} class="px-8 pb-8 space-y-2 max-h-[400px] overflow-y-auto">
-              {#if liveEvents.length === 0}
-                <div class="flex flex-col items-center justify-center py-12 space-y-3">
-                  <iconify-icon icon="solar:hourglass-bold" width="36" class="text-neutral-300"></iconify-icon>
-                  <p class="text-sm font-bold text-neutral-400">En attente d'événements...</p>
-                </div>
-              {:else}
-                {#each liveEvents as event (event.id)}
-                  {@const style = getLevelStyle(event.level)}
-                  <div class="flex items-start gap-3 py-2 border-b border-neutral-100 last:border-0" in:fly={{ y: -8, duration: 200 }}>
-                    <div class="flex-shrink-0 mt-1.5 w-2 h-2 rounded-full {style.dot}"></div>
-                    <div class="flex-1 min-w-0">
-                      <p class="text-sm font-medium text-neutral-900 leading-snug">{event.message}</p>
-                    </div>
-                    <span class="flex-shrink-0 text-xs font-mono text-neutral-400">{formatTs(event.timestamp)}</span>
-                  </div>
-                {/each}
-              {/if}
-            </div>
-          </section>
-        {/if}
-
-        {#if discoveredItems.length > 0}
-          <section class="bg-white rounded-[32px] border-2 border-neutral-200 overflow-hidden">
-            <div class="p-8 pb-4 flex items-center gap-3">
-              <div class="w-10 h-10 bg-neutral-900 rounded-xl flex items-center justify-center">
-                <iconify-icon icon="solar:target-bold" width="20" class="text-white"></iconify-icon>
-              </div>
-              <h2 class="text-2xl font-black tracking-tight">Domaines découverts</h2>
-              <span class="px-3 py-1 bg-neutral-100 text-neutral-700 rounded-lg text-xs font-black">{discoveredItems.length}</span>
-            </div>
-            <div class="px-8 pb-8 space-y-2 max-h-[400px] overflow-y-auto">
-              {#each discoveredItems as item (item.index)}
-                <div class="flex items-center gap-4 py-2.5 border-b border-neutral-100 last:border-0" in:fly={{ y: -6, duration: 150 }}>
-                  <span class="text-xs font-mono text-neutral-400 w-8 flex-shrink-0">#{item.index}</span>
-                  <div class="flex-1 min-w-0">
-                    <p class="font-bold text-neutral-900 truncate text-sm">{item.organization || item.domain}</p>
-                    {#if item.organization}
-                      <p class="text-xs text-neutral-500 truncate">{item.domain}</p>
-                    {/if}
-                  </div>
-                  {#if item.industry}
-                    <span class="text-xs px-2 py-1 bg-neutral-100 text-neutral-600 rounded-lg font-medium flex-shrink-0 truncate max-w-[120px]">{item.industry}</span>
-                  {/if}
-                </div>
-              {/each}
-            </div>
-          </section>
-        {/if}
-
-        {#if details.leads.length > 0}
-          <section class="bg-white rounded-[32px] border-2 border-neutral-200 overflow-hidden">
-            <div class="p-8 pb-4 flex items-center gap-3">
-              <div class="w-10 h-10 bg-neutral-900 rounded-xl flex items-center justify-center">
-                <iconify-icon icon="solar:users-group-rounded-bold" width="20" class="text-white"></iconify-icon>
-              </div>
-              <h2 class="text-2xl font-black tracking-tight">Leads</h2>
-              <span class="px-3 py-1 bg-neutral-100 text-neutral-700 rounded-lg text-xs font-black">{details.leads.length}</span>
-            </div>
-            <div class="px-8 pb-8 space-y-2 max-h-[500px] overflow-y-auto">
-              {#each details.leads as lead}
-                <div class="flex items-center gap-4 py-2.5 border-b border-neutral-100 last:border-0 hover:bg-neutral-50 transition-colors rounded-xl px-2 -mx-2">
-                  <div class="w-9 h-9 rounded-xl bg-neutral-100 flex items-center justify-center flex-shrink-0">
-                    <iconify-icon icon="solar:user-bold" width="18" class="text-neutral-500"></iconify-icon>
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <p class="font-bold text-neutral-900 text-sm truncate">
-                      {lead.businessName || [lead.firstName, lead.lastName].filter(Boolean).join(' ') || lead.domain || 'Sans nom'}
-                    </p>
-                    <p class="text-xs text-neutral-500 truncate">
-                      {lead.email || lead.domain || 'Aucune information de contact'}
-                    </p>
-                  </div>
-                  <div class="flex items-center gap-2 flex-shrink-0">
-                    <span class="text-xs px-2 py-1 rounded-lg font-black {
-                      lead.status === 'HOT' ? 'bg-red-100 text-red-700' :
-                      lead.status === 'WARM' ? 'bg-orange-100 text-orange-700' :
-                      'bg-blue-100 text-blue-700'
-                    }">
-                      {lead.status === 'HOT' ? 'Chaud' :
-                       lead.status === 'WARM' ? 'Tiède' :
-                       'Froid'}
-                    </span>
-                    <span class="text-xs font-bold text-neutral-400">{lead.score}/100</span>
-                  </div>
-                </div>
-              {/each}
-            </div>
-          </section>
-        {:else if details.status === 'FAILED'}
-          <section class="bg-white rounded-[32px] border-2 border-red-200 overflow-hidden">
-            <div class="p-8 text-center">
-              <div class="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <iconify-icon icon="solar:danger-bold" width="32" class="text-red-600"></iconify-icon>
-              </div>
-              <h3 class="text-xl font-black text-neutral-900 mb-2">La chasse a échoué</h3>
-              <p class="text-sm text-neutral-600 mb-6 max-w-md mx-auto">
-                {#if details.error}
-                  {details.error}
-                {:else}
-                  Aucun lead n'a pu être collecté. Vous pouvez relancer la chasse pour réessayer.
-                {/if}
-              </p>
-              <button
-                onclick={relaunchHunt}
-                disabled={relaunching}
-                class="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold bg-black text-white hover:bg-neutral-800 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {#if relaunching}
-                  <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  Relance...
-                {:else}
-                  <iconify-icon icon="solar:restart-bold" width="16"></iconify-icon>
-                  Relancer la chasse
-                {/if}
-              </button>
-            </div>
-          </section>
-        {/if}
-
-      </div>
-
-      <div class="space-y-6">
-
-        <section class="bg-white rounded-[32px] border-2 border-neutral-200 p-8">
-          <div class="flex items-center gap-3 mb-6">
-            <div class="w-10 h-10 bg-neutral-900 rounded-xl flex items-center justify-center">
-              <iconify-icon icon="solar:chart-2-bold" width="20" class="text-white"></iconify-icon>
-            </div>
-            <h2 class="text-xl font-black tracking-tight">Stats</h2>
-          </div>
-          <div class="grid grid-cols-2 gap-3">
-            {#each [
-              { label: 'Total', value: details.stats.totalLeads, icon: 'solar:users-group-rounded-bold', color: 'text-neutral-800' },
-              { label: 'Chaud', value: details.stats.hotLeads, icon: 'solar:fire-bold', color: 'text-red-600' },
-              { label: 'Tiède', value: details.stats.warmLeads, icon: 'solar:sun-2-bold', color: 'text-orange-500' },
-              { label: 'Froid', value: details.stats.coldLeads, icon: 'solar:snowflake-bold', color: 'text-blue-400' },
-            ] as stat}
-              <div class="bg-neutral-50 rounded-2xl p-4">
-                <div class="flex items-center gap-1.5 mb-2">
-                  <iconify-icon icon={stat.icon} class={stat.color} width="16"></iconify-icon>
-                  <p class="text-xs font-bold text-neutral-500 uppercase">{stat.label}</p>
-                </div>
-                <p class="text-2xl font-black">{stat.value}</p>
-              </div>
-            {/each}
-          </div>
-          <div class="grid grid-cols-3 gap-3 mt-4 pt-4 border-t border-neutral-100">
-            <div>
-              <p class="text-xs font-bold text-neutral-500 uppercase mb-1">Taux</p>
-              <p class="text-lg font-black text-green-600">{details.stats.successRate.toFixed(0)}%</p>
-            </div>
-            <div>
-              <p class="text-xs font-bold text-neutral-500 uppercase mb-1">Score</p>
-              <p class="text-lg font-black text-yellow-600">{details.stats.averageScore.toFixed(0)}</p>
-            </div>
-            <div>
-              <p class="text-xs font-bold text-neutral-500 uppercase mb-1">Durée</p>
-              <p class="text-lg font-black">{formatDuration(details.stats.duration)}</p>
-            </div>
-          </div>
-        </section>
 
         <section class="bg-white rounded-[32px] border-2 border-neutral-200 p-8">
           <div class="flex items-center gap-3 mb-6">
@@ -855,8 +674,188 @@
             {/if}
           </div>
         </section>
+        {/if}
+
+        {#if discoveredItems.length > 0}
+
+        <section class="bg-white rounded-[32px] border-2 border-neutral-200 p-8">
+          <div class="flex items-center gap-3 mb-6">
+            <div class="w-10 h-10 bg-neutral-900 rounded-xl flex items-center justify-center">
+              <iconify-icon icon="solar:chart-2-bold" width="20" class="text-white"></iconify-icon>
+            </div>
+            <h2 class="text-xl font-black tracking-tight">Stats</h2>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            {#each [
+              { label: 'Total', value: details.stats.totalLeads, icon: 'solar:users-group-rounded-bold', color: 'text-neutral-800' },
+              { label: 'Chaud', value: details.stats.hotLeads, icon: 'solar:fire-bold', color: 'text-red-600' },
+              { label: 'Tiède', value: details.stats.warmLeads, icon: 'solar:sun-2-bold', color: 'text-orange-500' },
+              { label: 'Froid', value: details.stats.coldLeads, icon: 'solar:snowflake-bold', color: 'text-blue-400' },
+            ] as stat}
+              <div class="bg-neutral-50 rounded-2xl p-4">
+                <div class="flex items-center gap-1.5 mb-2">
+                  <iconify-icon icon={stat.icon} class={stat.color} width="16"></iconify-icon>
+                  <p class="text-xs font-bold text-neutral-500 uppercase">{stat.label}</p>
+                </div>
+                <p class="text-2xl font-black">{stat.value}</p>
+              </div>
+            {/each}
+          </div>
+          <div class="grid grid-cols-3 gap-3 mt-4 pt-4 border-t border-neutral-100">
+            <div>
+              <p class="text-xs font-bold text-neutral-500 uppercase mb-1">Taux</p>
+              <p class="text-lg font-black text-green-600">{details.stats.successRate.toFixed(0)}%</p>
+            </div>
+            <div>
+              <p class="text-xs font-bold text-neutral-500 uppercase mb-1">Score</p>
+              <p class="text-lg font-black text-yellow-600">{details.stats.averageScore.toFixed(0)}</p>
+            </div>
+            <div>
+              <p class="text-xs font-bold text-neutral-500 uppercase mb-1">Durée</p>
+              <p class="text-lg font-black">{formatDuration(details.stats.duration)}</p>
+            </div>
+          </div>
+        </section>
+        {/if}
+
+        {#if details.leads.length > 0}
+          <section class="bg-white rounded-[32px] border-2 border-neutral-200 overflow-hidden">
+            <div class="p-8 pb-4 flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-neutral-900 rounded-xl flex items-center justify-center">
+                  <iconify-icon icon="solar:pulse-bold" width="20" class="text-white"></iconify-icon>
+                </div>
+                <h2 class="text-2xl font-black tracking-tight">Flux en direct</h2>
+                {#if isProcessing}
+                  <span class="px-3 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-black animate-pulse">EN DIRECT</span>
+                {/if}
+              </div>
+              <button
+                onclick={() => { autoScroll = !autoScroll; }}
+                class="px-4 py-2 rounded-xl text-xs font-bold {autoScroll ? 'bg-yellow-100 text-yellow-700' : 'bg-neutral-100 text-neutral-600'} hover:opacity-80 transition-opacity"
+              >
+                {autoScroll ? 'Défilement auto' : 'En pause'}
+              </button>
+            </div>
+
+            <div bind:this={eventsContainer} class="px-8 pb-8 space-y-2 max-h-[400px] overflow-y-auto">
+              {#if liveEvents.length === 0}
+                <div class="flex flex-col items-center justify-center py-12 space-y-3">
+                  <iconify-icon icon="solar:hourglass-bold" width="36" class="text-neutral-300"></iconify-icon>
+                  <p class="text-sm font-bold text-neutral-400">En attente d'événements...</p>
+                </div>
+              {:else}
+                {#each liveEvents as event (event.id)}
+                  {@const style = getLevelStyle(event.level)}
+                  <div class="flex items-start gap-3 py-2 border-b border-neutral-100 last:border-0" in:fly={{ y: -8, duration: 200 }}>
+                    <div class="flex-shrink-0 mt-1.5 w-2 h-2 rounded-full {style.dot}"></div>
+                    <div class="flex-1 min-w-0">
+                      <p class="text-sm font-medium text-neutral-900 leading-snug">{event.message}</p>
+                    </div>
+                    <span class="flex-shrink-0 text-xs font-mono text-neutral-400">{formatTs(event.timestamp)}</span>
+                  </div>
+                {/each}
+              {/if}
+            </div>
+          </section>
+        {:else if details.status === 'FAILED'}
+          <section class="bg-white rounded-[32px] border-2 border-neutral-200 overflow-hidden">
+            <div class="p-8 pb-4 flex items-center gap-3">
+              <div class="w-10 h-10 bg-neutral-900 rounded-xl flex items-center justify-center">
+                <iconify-icon icon="solar:target-bold" width="20" class="text-white"></iconify-icon>
+              </div>
+              <h2 class="text-2xl font-black tracking-tight">Domaines découverts</h2>
+              <span class="px-3 py-1 bg-neutral-100 text-neutral-700 rounded-lg text-xs font-black">{discoveredItems.length}</span>
+            </div>
+            <div class="px-8 pb-8 space-y-2 max-h-[400px] overflow-y-auto">
+              {#each discoveredItems as item (item.index)}
+                <div class="flex items-center gap-4 py-2.5 border-b border-neutral-100 last:border-0" in:fly={{ y: -6, duration: 150 }}>
+                  <span class="text-xs font-mono text-neutral-400 w-8 flex-shrink-0">#{item.index}</span>
+                  <div class="flex-1 min-w-0">
+                    <p class="font-bold text-neutral-900 truncate text-sm">{item.organization || item.domain}</p>
+                    {#if item.organization}
+                      <p class="text-xs text-neutral-500 truncate">{item.domain}</p>
+                    {/if}
+                  </div>
+                  {#if item.industry}
+                    <span class="text-xs px-2 py-1 bg-neutral-100 text-neutral-600 rounded-lg font-medium flex-shrink-0 truncate max-w-[120px]">{item.industry}</span>
+                  {/if}
+                </div>
+              {/each}
+            </div>
+          </section>
+        {/if}
 
       </div>
+
+      <div class="space-y-6">
+          <section class="bg-white rounded-[32px] border-2 border-neutral-200 overflow-hidden">
+            <div class="p-8 pb-4 flex items-center gap-3">
+              <div class="w-10 h-10 bg-neutral-900 rounded-xl flex items-center justify-center">
+                <iconify-icon icon="solar:users-group-rounded-bold" width="20" class="text-white"></iconify-icon>
+              </div>
+              <h2 class="text-2xl font-black tracking-tight">Leads</h2>
+              <span class="px-3 py-1 bg-neutral-100 text-neutral-700 rounded-lg text-xs font-black">{details.leads.length}</span>
+            </div>
+            <div class="px-8 pb-8 space-y-2 max-h-[500px] overflow-y-auto">
+              {#each details.leads as lead}
+                <div class="flex items-center gap-4 py-2.5 border-b border-neutral-100 last:border-0 hover:bg-neutral-50 transition-colors rounded-xl px-2 -mx-2">
+                  <div class="w-9 h-9 rounded-xl bg-neutral-100 flex items-center justify-center flex-shrink-0">
+                    <iconify-icon icon="solar:user-bold" width="18" class="text-neutral-500"></iconify-icon>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <p class="font-bold text-neutral-900 text-sm truncate">
+                      {lead.businessName || [lead.firstName, lead.lastName].filter(Boolean).join(' ') || lead.domain || 'Sans nom'}
+                    </p>
+                    <p class="text-xs text-neutral-500 truncate">
+                      {lead.email || lead.domain || 'Aucune information de contact'}
+                    </p>
+                  </div>
+                  <div class="flex items-center gap-2 flex-shrink-0">
+                    <span class="text-xs px-2 py-1 rounded-lg font-black {
+                      lead.status === 'HOT' ? 'bg-red-100 text-red-700' :
+                      lead.status === 'WARM' ? 'bg-orange-100 text-orange-700' :
+                      'bg-blue-100 text-blue-700'
+                    }">
+                      {lead.status === 'HOT' ? 'Chaud' :
+                       lead.status === 'WARM' ? 'Tiède' :
+                       'Froid'}
+                    </span>
+                    <span class="text-xs font-bold text-neutral-400">{lead.score}/100</span>
+                  </div>
+                </div>
+              {/each}
+            </div>
+          </section>
+          <section class="bg-white rounded-[32px] border-2 border-red-200 overflow-hidden">
+            <div class="p-8 text-center">
+              <div class="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <iconify-icon icon="solar:danger-bold" width="32" class="text-red-600"></iconify-icon>
+              </div>
+              <h3 class="text-xl font-black text-neutral-900 mb-2">La chasse a échoué</h3>
+              <p class="text-sm text-neutral-600 mb-6 max-w-md mx-auto">
+                {#if details.error}
+                  {details.error}
+                {:else}
+                  Aucun lead n'a pu être collecté. Vous pouvez relancer la chasse pour réessayer.
+                {/if}
+              </p>
+              <button
+                onclick={relaunchHunt}
+                disabled={relaunching}
+                class="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold bg-black text-white hover:bg-neutral-800 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {#if relaunching}
+                  <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Relance...
+                {:else}
+                  <iconify-icon icon="solar:restart-bold" width="16"></iconify-icon>
+                  Relancer la chasse
+                {/if}
+              </button>
+            </div>
+          </section>
+
     </div>
 
   </div>
