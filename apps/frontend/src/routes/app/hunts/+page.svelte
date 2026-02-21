@@ -189,7 +189,7 @@
         href="/app/hunts/new"
         class="bg-black text-white px-8 py-4 rounded-xl font-bold hover:bg-neutral-800 active:scale-95 transition-all flex items-center gap-3 shadow-lg shadow-black/20 whitespace-nowrap cursor-pointer"
       >
-        <iconify-icon icon="solar:add-circle-bold" width="24"></iconify-icon>
+        <iconify-icon icon="mdi:plus-circle" width="24"></iconify-icon>
         <span>Nouvelle chasse</span>
       </a>
     </div>
@@ -226,7 +226,7 @@
             href="/app/hunts/new"
             class="mt-4 bg-black text-white px-10 py-5 rounded-2xl font-bold hover:bg-neutral-800 active:scale-95 transition-all flex items-center gap-4 shadow-lg shadow-black/10 cursor-pointer"
           >
-            <iconify-icon icon="solar:add-circle-bold" width="28"></iconify-icon>
+            <iconify-icon icon="mdi:plus-circle" width="28"></iconify-icon>
             <span class="text-lg">Lancer votre première chasse</span>
           </a>
         </div>
@@ -248,7 +248,7 @@
             href="/app/hunts/new"
             class="mt-4 bg-black text-white px-10 py-5 rounded-2xl font-bold hover:bg-neutral-800 active:scale-95 transition-all flex items-center gap-4 shadow-lg shadow-black/10 cursor-pointer"
           >
-            <iconify-icon icon="solar:add-circle-bold" width="28"></iconify-icon>
+            <iconify-icon icon="mdi:plus-circle" width="28"></iconify-icon>
             <span class="text-lg">Nouvelle chasse</span>
           </a>
         </div>
