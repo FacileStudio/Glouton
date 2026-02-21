@@ -200,7 +200,7 @@
     <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
       {#each [{ label: 'En attente', val: stats?.pendingHunts?.toString() || '0', icon: 'solar:history-bold-duotone', color: 'text-yellow-500' }, { label: 'En cours', val: stats?.processingHunts?.toString() || '0', icon: 'solar:rocket-2-bold-duotone', color: 'text-blue-500' }, { label: 'Terminées', val: stats?.completedHunts?.toString() || '0', icon: 'solar:check-circle-bold-duotone', color: 'text-green-500' }, { label: 'Échouées', val: stats?.failedHunts?.toString() || '0', icon: 'solar:close-circle-bold-duotone', color: 'text-red-500' }] as stat}
         <div
-          class="p-4 sm:p-6 lg:p-8 rounded-[24px] sm:rounded-[32px] shadow-lg hover:shadow-xl transition-shadow"
+          class="p-4 sm:p-6 lg:p-8 rounded-[24px] sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow"
           style="background-color: #EFEAE6;"
         >
           <div class="flex items-start justify-between mb-3 sm:mb-4 lg:mb-6">
@@ -213,9 +213,9 @@
     </section>
 
     {#if huntSessions.length === 0}
-      <section class="rounded-[40px] overflow-hidden shadow-lg" style="background-color: #EFEAE6;">
+      <section class="rounded-2xl overflow-hidden shadow-lg" style="background-color: #EFEAE6;">
         <div class="flex flex-col items-center justify-center py-32 px-6 space-y-6">
-          <div class="w-32 h-32 bg-yellow-50 rounded-[32px] flex items-center justify-center">
+          <div class="w-32 h-32 bg-yellow-50 rounded-2xl flex items-center justify-center">
             <iconify-icon icon="solar:lightning-bold-duotone" width="64" style="color: #FEC129;"
             ></iconify-icon>
           </div>
@@ -235,9 +235,9 @@
         </div>
       </section>
     {:else if huntSessions.filter((s) => s.status === 'FAILED').length === 0 && huntSessions.filter((s) => s.status === 'PENDING' || s.status === 'PROCESSING').length === 0 && huntSessions.filter((s) => s.status === 'COMPLETED').length === 0}
-      <section class="rounded-[40px] overflow-hidden shadow-lg" style="background-color: #EFEAE6;">
+      <section class="rounded-2xl overflow-hidden shadow-lg" style="background-color: #EFEAE6;">
         <div class="flex flex-col items-center justify-center py-32 px-6 space-y-6">
-          <div class="w-32 h-32 bg-neutral-50 rounded-[32px] flex items-center justify-center">
+          <div class="w-32 h-32 bg-neutral-50 rounded-2xl flex items-center justify-center">
             <iconify-icon icon="solar:ghost-bold" width="64" class="text-neutral-300"
             ></iconify-icon>
           </div>

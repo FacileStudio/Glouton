@@ -374,7 +374,17 @@ export default {
 
   async getRunDetails(huntSessionId: string, userId: string): Promise<RunDetails> {
     const session = await prisma.huntSession.findUnique({
-      where: { id: huntSessionId }
+      where: { id: huntSessionId },
+      include: {
+        team: {
+          include: {
+            members: {
+              where: { userId },
+              select: { userId: true }
+            }
+          }
+        }
+      }
     });
 
     if (!session) {
@@ -384,7 +394,10 @@ export default {
       });
     }
 
-    if (session.userId !== userId) {
+    const isOwner = session.userId === userId;
+    const isTeamMember = session.teamId && session.team?.members.length > 0;
+
+    if (!isOwner && !isTeamMember) {
       throw new TRPCError({
         code: 'FORBIDDEN',
         message: 'You do not have access to this hunt session',

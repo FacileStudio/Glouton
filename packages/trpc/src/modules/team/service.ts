@@ -15,6 +15,12 @@ export const teamService = {
             description: true,
             createdAt: true,
             updatedAt: true,
+            _count: {
+              select: {
+                members: true,
+                leads: true
+              }
+            }
           },
         },
       },
@@ -29,6 +35,7 @@ export const teamService = {
       joinedAt: membership.joinedAt,
       createdAt: membership.team.createdAt,
       updatedAt: membership.team.updatedAt,
+      _count: membership.team._count,
     }));
   },
 

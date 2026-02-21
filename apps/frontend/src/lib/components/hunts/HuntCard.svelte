@@ -222,13 +222,6 @@
         </div>
       {/if}
 
-      <div class="ml-auto">
-        <iconify-icon
-          icon="solar:alt-arrow-right-bold"
-          width="15"
-          class="text-neutral-300 group-hover:text-neutral-700 group-hover:translate-x-0.5 transition-all"
-        ></iconify-icon>
-      </div>
     </div>
   </div>
 </div>
