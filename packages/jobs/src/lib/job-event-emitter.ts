@@ -3,7 +3,7 @@ import type { EventEmitter } from '../workers/index';
 export interface JobScope {
   type: 'personal' | 'team';
   userId: string;
-  teamId?: string;
+  teamId?: string | null;
 }
 
 export class JobEventEmitter {
