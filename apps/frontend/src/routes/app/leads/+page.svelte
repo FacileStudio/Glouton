@@ -374,10 +374,18 @@
 >
   <!-- Header -->
   <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
-    <div>
-      <p class="text-neutral-400 font-medium text-sm">
-        {processedLeads.length} résultat{processedLeads.length !== 1 ? 's' : ''} trouvé{processedLeads.length !== 1 ? 's' : ''}
-      </p>
+    <div class="flex items-center gap-4">
+      <div class="w-16 h-16 flex items-center justify-center bg-neutral-900 rounded-2xl">
+        <iconify-icon icon="solar:chart-square-bold" width="32" class="text-white"></iconify-icon>
+      </div>
+      <div class="space-y-1">
+        <h1 class="text-5xl font-black tracking-tight leading-none" style="color: #291334;">
+          Leads
+        </h1>
+        <p class="text-neutral-400 font-medium text-sm">
+          {processedLeads.length} résultat{processedLeads.length !== 1 ? 's' : ''} trouvé{processedLeads.length !== 1 ? 's' : ''}
+        </p>
+      </div>
     </div>
 
     <div class="flex items-center gap-3">
