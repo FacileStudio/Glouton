@@ -12,49 +12,42 @@ export function parseHtml(html: string): CheerioAPI {
  * extractEmails
  */
 export function extractEmails(text: string): string[] {
-  const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g;
+  const emailRegex = /\b[A-Za-z0-9][A-Za-z0-9._%+-]*@[A-Za-z0-9][A-Za-z0-9.-]*\.[A-Za-z]{2,}\b/gi;
   const emails = text.match(emailRegex) || [];
 
-  const validBusinessDomains = ['gmail', 'yahoo', 'hotmail', 'outlook', 'aol'];
+  const personalDomains = ['gmail', 'yahoo', 'hotmail', 'outlook', 'aol', 'icloud', 'protonmail', 'proton'];
+  const fileExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.ico', '.css', '.js', '.woff', '.woff2', '.ttf', '.eot'];
 
   return [...new Set(emails)]
     .filter(email => {
-      /**
-       * if
-       */
-      if (email.endsWith('.png') || email.endsWith('.jpg') ||
-          email.endsWith('.gif') || email.endsWith('.svg') ||
-          email.endsWith('.css') || email.endsWith('.js')) {
+      const lowerEmail = email.toLowerCase();
+
+      if (fileExtensions.some(ext => lowerEmail.endsWith(ext))) {
+        return false;
+      }
+
+      if (lowerEmail.includes('example.com') || lowerEmail.includes('test.com') || lowerEmail.includes('yoursite.com')) {
         return false;
       }
 
       const domain = email.split('@')[1]?.toLowerCase();
-      /**
-       * if
-       */
       if (!domain) return false;
 
-      return !validBusinessDomains.some(d => domain.includes(d + '.'));
+      if (domain.length < 4) return false;
+
+      return !personalDomains.some(d => domain.includes(d + '.') || domain === d);
     })
     .sort((a, b) => {
-      /**
-       * getPriority
-       */
       const getPriority = (email: string) => {
         const lower = email.toLowerCase();
-        /**
-         * if
-         */
-        if (lower.includes('info@') || lower.includes('contact@')) return 1;
-        /**
-         * if
-         */
-        if (lower.includes('hello@') || lower.includes('support@')) return 2;
-        /**
-         * if
-         */
-        if (lower.includes('admin@') || lower.includes('sales@')) return 3;
-        return 4;
+        const localPart = lower.split('@')[0] || '';
+
+        if (localPart === 'info' || localPart === 'contact') return 1;
+        if (localPart === 'hello' || localPart === 'support') return 2;
+        if (localPart === 'admin' || localPart === 'sales') return 3;
+        if (localPart === 'team' || localPart === 'hello') return 4;
+        if (localPart.includes('noreply') || localPart.includes('no-reply')) return 10;
+        return 5;
       };
       return getPriority(a) - getPriority(b);
     });
@@ -65,16 +58,17 @@ export function extractEmails(text: string): string[] {
  */
 export function extractPhones(text: string): string[] {
   const phoneRegexes = [
-    /\+?\d{1,4}[-.\s(]?\d{1,4}[-.\s)]?\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,4}/g,
+    /(?:\+|00)(?:[0-9]{1,3})?[\s.-]?(?:\(?\d{1,4}\)?)?[\s.-]?\d{1,4}[\s.-]?\d{1,4}[\s.-]?\d{1,9}/g,
+    /(?:\+?\d{1,3}[-.\s]?)?\(?\d{2,4}\)?[-.\s]?\d{2,4}[-.\s]?\d{2,4}[-.\s]?\d{2,4}/g,
     /\(\d{3}\)\s?\d{3}[-.\s]?\d{4}/g,
     /\d{3}[-.\s]\d{3}[-.\s]\d{4}/g,
-    /\+\d{1,3}\s\d{1,4}\s\d{1,4}\s\d{1,4}/g,
+    /\d{2,3}[-.\s]\d{2,3}[-.\s]\d{2,3}[-.\s]\d{2,3}/g,
+    /(?:\+33|0033|0)[1-9](?:[\s.-]?\d{2}){4}/g,
+    /(?:\+44|0044|0)\d{2,4}[\s.-]?\d{3,4}[\s.-]?\d{3,4}/g,
+    /(?:\+1|001)?[\s.-]?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/g,
   ];
 
   const phones: string[] = [];
-  /**
-   * for
-   */
   for (const regex of phoneRegexes) {
     const matches = text.match(regex) || [];
     phones.push(...matches);
@@ -82,27 +76,27 @@ export function extractPhones(text: string): string[] {
 
   const blacklistPatterns = [
     /^\d{1,4}$/,
-    /^[0-9-]+$/,
+    /^[\d\s.-]+$/,
+    /^[0-9]{1,6}$/,
+    /\d{4}[-./]\d{2}[-./]\d{2}/,
+    /\d{2}[-./]\d{2}[-./]\d{4}/,
+    /copyright|©|price|isbn/i,
   ];
 
   return [...new Set(phones)]
     .filter((phone) => {
       const digitsOnly = phone.replace(/\D/g, '');
-      /**
-       * if
-       */
+
       if (digitsOnly.length < 10 || digitsOnly.length > 15) return false;
 
-      /**
-       * if
-       */
       if (blacklistPatterns.some(pattern => pattern.test(phone))) return false;
 
-      const consecutiveSame = /(\d)\1{7,}/;
-      /**
-       * if
-       */
+      const consecutiveSame = /(\d)\1{6,}/;
       if (consecutiveSame.test(digitsOnly)) return false;
+
+      if (/^0+$/.test(digitsOnly) || /^1+$/.test(digitsOnly)) return false;
+
+      if (/^\d{4}$/.test(phone)) return false;
 
       return true;
     })
@@ -116,54 +110,50 @@ export function extractSocialLinks($: CheerioAPI): Record<string, string> {
   const social: Record<string, string> = {};
 
   const platforms = [
-    { name: 'facebook', domains: ['facebook.com', 'fb.com'], excludePatterns: ['/sharer', '/plugins', '/share.php'] },
+    { name: 'facebook', domains: ['facebook.com', 'fb.com', 'fb.me'], excludePatterns: ['/sharer', '/plugins', '/share.php', '/dialog'] },
     { name: 'twitter', domains: ['twitter.com', 'x.com'], excludePatterns: ['/intent/', '/share'] },
-    { name: 'linkedin', domains: ['linkedin.com'], excludePatterns: ['/shareArticle', '/share'] },
-    { name: 'instagram', domains: ['instagram.com'], excludePatterns: ['/share'] },
-    { name: 'youtube', domains: ['youtube.com', 'youtu.be'], excludePatterns: [] },
-    { name: 'tiktok', domains: ['tiktok.com'], excludePatterns: [] },
-    { name: 'pinterest', domains: ['pinterest.com'], excludePatterns: ['/pin/create'] },
+    { name: 'linkedin', domains: ['linkedin.com', 'lnkd.in'], excludePatterns: ['/shareArticle', '/share', '/sharing/'] },
+    { name: 'instagram', domains: ['instagram.com', 'instagr.am'], excludePatterns: ['/share'] },
+    { name: 'youtube', domains: ['youtube.com', 'youtu.be'], excludePatterns: ['/redirect'] },
+    { name: 'tiktok', domains: ['tiktok.com', 'vm.tiktok.com'], excludePatterns: [] },
+    { name: 'pinterest', domains: ['pinterest.com', 'pin.it'], excludePatterns: ['/pin/create'] },
     { name: 'github', domains: ['github.com'], excludePatterns: [] },
     { name: 'medium', domains: ['medium.com'], excludePatterns: [] },
     { name: 'reddit', domains: ['reddit.com'], excludePatterns: ['/submit'] },
     { name: 'discord', domains: ['discord.gg', 'discord.com/invite'], excludePatterns: [] },
-    { name: 'telegram', domains: ['t.me', 'telegram.me'], excludePatterns: [] },
-    { name: 'whatsapp', domains: ['wa.me', 'whatsapp.com'], excludePatterns: [] },
+    { name: 'telegram', domains: ['t.me', 'telegram.me', 'telegram.org'], excludePatterns: [] },
+    { name: 'whatsapp', domains: ['wa.me', 'whatsapp.com', 'chat.whatsapp.com'], excludePatterns: [] },
     { name: 'snapchat', domains: ['snapchat.com'], excludePatterns: [] },
     { name: 'twitch', domains: ['twitch.tv'], excludePatterns: [] },
+    { name: 'threads', domains: ['threads.net'], excludePatterns: [] },
+    { name: 'mastodon', domains: ['mastodon.social', 'fosstodon.org', 'mas.to'], excludePatterns: [] },
+    { name: 'bluesky', domains: ['bsky.app', 'bsky.social'], excludePatterns: [] },
+    { name: 'vimeo', domains: ['vimeo.com'], excludePatterns: [] },
+    { name: 'behance', domains: ['behance.net'], excludePatterns: [] },
+    { name: 'dribbble', domains: ['dribbble.com'], excludePatterns: [] },
+    { name: 'spotify', domains: ['spotify.com', 'open.spotify.com'], excludePatterns: [] },
+    { name: 'soundcloud', domains: ['soundcloud.com'], excludePatterns: [] },
+    { name: 'slack', domains: ['slack.com'], excludePatterns: [] },
+    { name: 'yelp', domains: ['yelp.com'], excludePatterns: [] },
+    { name: 'tripadvisor', domains: ['tripadvisor.com'], excludePatterns: [] },
   ];
 
-  /**
-   * for
-   */
   for (const platform of platforms) {
     const selectors = platform.domains.map(domain => `a[href*="${domain}"]`).join(', ');
 
     $(selectors).each((_, el) => {
-      /**
-       * if
-       */
       if (social[platform.name]) return false;
 
       const href = $(el).attr('href');
-      /**
-       * if
-       */
       if (!href) return;
 
       const shouldExclude = platform.excludePatterns.some(pattern => href.includes(pattern));
-      /**
-       * if
-       */
       if (shouldExclude) return;
 
       try {
-        const url = new URL(href);
-        /**
-         * if
-         */
+        const url = new URL(href.startsWith('http') ? href : `https://${href}`);
         if (platform.domains.some(domain => url.hostname.includes(domain))) {
-          social[platform.name] = href;
+          social[platform.name] = href.startsWith('http') ? href : `https://${href}`;
           return false;
         }
       } catch {
@@ -261,40 +251,44 @@ export function extractYear(text: string): number | undefined {
 export function extractAddress($: CheerioAPI): string | undefined {
   const addressSelectors = [
     '[itemtype*="PostalAddress"]',
+    '[itemprop="address"]',
     '.address',
     '#address',
     '[class*="address"]',
     '[id*="address"]',
+    '[class*="location"]',
+    '[id*="location"]',
+    '.contact-info address',
+    'address',
   ];
 
-  /**
-   * for
-   */
   for (const selector of addressSelectors) {
     const el = $(selector).first();
-    /**
-     * if
-     */
     if (el.length) {
       const text = cleanText(el.text());
-      /**
-       * if
-       */
-      if (text.length > 10 && text.length < 200) {
+      if (text.length > 15 && text.length < 300) {
         return text;
       }
     }
   }
 
-  const addressRegex =
-    /\d+\s+[\w\s]+(?:street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|court|ct|circle|cir|way)(?:[\s,]+[\w\s]+)*,?\s+[A-Z]{2}\s+\d{5}/i;
+  const addressRegexes = [
+    /\d+\s+[\w\s.]+(?:street|st|avenue|ave|road|rd|boulevard|blvd|lane|ln|drive|dr|court|ct|circle|cir|way|place|pl)(?:[\s,]+[\w\s.]+)*,?\s+[A-Z]{2}\s+\d{5}(?:-\d{4})?/i,
+    /\d+\s+[\w\s.'-]+(?:rue|avenue|boulevard|chemin|route|impasse|allée|place|square)\s+[\w\s.'-]+,?\s+\d{5}\s+[\w\s-]+/i,
+    /\d+[-\s]?\d*\s+[\w\s.'-]+(?:straße|strasse|str\.|weg|platz|allee|gasse)\s*\d*,?\s+\d{5}\s+[\w\s-]+/i,
+    /\d+[a-z]?\s+[\w\s.'-]+,\s+[\w\s]+,\s+[A-Z]{1,3}\s*\d{1,2}[A-Z]{0,2}\s+\d[A-Z]{2}/i,
+    /\d{1,5}\s+[\w\s.'-]+,\s*(?:suite|ste|apt|unit|#)?\s*\d*,?\s*[\w\s]+,\s*[A-Z]{2}\s+\d{5}/i,
+  ];
+
   const pageText = $('body').text();
-  const match = pageText.match(addressRegex);
-  /**
-   * if
-   */
-  if (match) {
-    return cleanText(match[0]);
+  for (const regex of addressRegexes) {
+    const match = pageText.match(regex);
+    if (match) {
+      const addr = cleanText(match[0]);
+      if (addr.length > 15 && addr.length < 300) {
+        return addr;
+      }
+    }
   }
 
   return undefined;

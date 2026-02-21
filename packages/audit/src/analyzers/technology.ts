@@ -331,6 +331,365 @@ const TECHNOLOGY_PATTERNS: TechnologyPattern[] = [
       script: [/zendesk/i],
     },
   },
+  {
+    name: 'Astro',
+    category: 'JavaScript Framework',
+    website: 'https://astro.build',
+    patterns: {
+      html: [/astro-/i, /data-astro-/i],
+      meta: [/astro/i],
+    },
+  },
+  {
+    name: 'Remix',
+    category: 'JavaScript Framework',
+    website: 'https://remix.run',
+    patterns: {
+      html: [/remix/i],
+      script: [/remix/i],
+    },
+  },
+  {
+    name: 'SolidJS',
+    category: 'JavaScript Framework',
+    website: 'https://solidjs.com',
+    patterns: {
+      script: [/solid-js/i, /solidjs/i],
+    },
+  },
+  {
+    name: 'Gatsby',
+    category: 'JavaScript Framework',
+    website: 'https://gatsbyjs.com',
+    patterns: {
+      html: [/gatsby/i],
+      script: [/gatsby/i],
+      meta: [/gatsby/i],
+    },
+  },
+  {
+    name: 'Qwik',
+    category: 'JavaScript Framework',
+    website: 'https://qwik.builder.io',
+    patterns: {
+      html: [/q:base/i, /q:container/i],
+    },
+  },
+  {
+    name: 'Preact',
+    category: 'JavaScript Framework',
+    website: 'https://preactjs.com',
+    patterns: {
+      script: [/preact/i],
+    },
+  },
+  {
+    name: 'Alpine.js',
+    category: 'JavaScript Framework',
+    website: 'https://alpinejs.dev',
+    patterns: {
+      html: [/x-data/i, /x-show/i, /x-bind/i],
+      script: [/alpine/i],
+    },
+  },
+  {
+    name: 'HTMX',
+    category: 'JavaScript Library',
+    website: 'https://htmx.org',
+    patterns: {
+      html: [/hx-get/i, /hx-post/i, /hx-swap/i],
+      script: [/htmx/i],
+    },
+  },
+  {
+    name: 'Ember.js',
+    category: 'JavaScript Framework',
+    website: 'https://emberjs.com',
+    patterns: {
+      html: [/ember/i],
+      script: [/ember/i],
+    },
+  },
+  {
+    name: 'Backbone.js',
+    category: 'JavaScript Framework',
+    website: 'https://backbonejs.org',
+    patterns: {
+      script: [/backbone/i],
+    },
+  },
+  {
+    name: 'Laravel',
+    category: 'Backend Framework',
+    website: 'https://laravel.com',
+    patterns: {
+      headers: {
+        'x-powered-by': /laravel/i,
+      },
+      html: [/laravel/i],
+      cookies: ['laravel_session', 'XSRF-TOKEN'],
+    },
+  },
+  {
+    name: 'Django',
+    category: 'Backend Framework',
+    website: 'https://djangoproject.com',
+    patterns: {
+      headers: {
+        'x-powered-by': /django/i,
+      },
+      html: [/django/i],
+      cookies: ['csrftoken', 'sessionid'],
+    },
+  },
+  {
+    name: 'Ruby on Rails',
+    category: 'Backend Framework',
+    website: 'https://rubyonrails.org',
+    patterns: {
+      headers: {
+        'x-powered-by': /ruby/i,
+      },
+      html: [/csrf-token/i],
+      cookies: ['_session_id'],
+    },
+  },
+  {
+    name: 'Express.js',
+    category: 'Backend Framework',
+    website: 'https://expressjs.com',
+    patterns: {
+      headers: {
+        'x-powered-by': /express/i,
+      },
+    },
+  },
+  {
+    name: 'FastAPI',
+    category: 'Backend Framework',
+    website: 'https://fastapi.tiangolo.com',
+    patterns: {
+      headers: {
+        server: /uvicorn/i,
+      },
+    },
+  },
+  {
+    name: 'Framer',
+    category: 'Website Builder',
+    website: 'https://framer.com',
+    patterns: {
+      html: [/framer/i],
+      meta: [/framer/i],
+    },
+  },
+  {
+    name: 'Ghost',
+    category: 'CMS',
+    website: 'https://ghost.org',
+    patterns: {
+      html: [/ghost/i],
+      meta: [/ghost/i],
+    },
+  },
+  {
+    name: 'Contentful',
+    category: 'CMS',
+    website: 'https://contentful.com',
+    patterns: {
+      html: [/contentful/i],
+      script: [/contentful/i],
+    },
+  },
+  {
+    name: 'Sanity',
+    category: 'CMS',
+    website: 'https://sanity.io',
+    patterns: {
+      html: [/sanity/i],
+      script: [/sanity/i],
+    },
+  },
+  {
+    name: 'Plausible',
+    category: 'Analytics',
+    website: 'https://plausible.io',
+    patterns: {
+      script: [/plausible\.io/i],
+    },
+  },
+  {
+    name: 'Matomo',
+    category: 'Analytics',
+    website: 'https://matomo.org',
+    patterns: {
+      script: [/matomo/i, /piwik/i],
+    },
+  },
+  {
+    name: 'Amplitude',
+    category: 'Analytics',
+    website: 'https://amplitude.com',
+    patterns: {
+      script: [/amplitude/i],
+    },
+  },
+  {
+    name: 'Segment',
+    category: 'Analytics',
+    website: 'https://segment.com',
+    patterns: {
+      script: [/segment/i, /analytics\.js/i],
+    },
+  },
+  {
+    name: 'Mixpanel',
+    category: 'Analytics',
+    website: 'https://mixpanel.com',
+    patterns: {
+      script: [/mixpanel/i],
+    },
+  },
+  {
+    name: 'PostHog',
+    category: 'Analytics',
+    website: 'https://posthog.com',
+    patterns: {
+      script: [/posthog/i],
+    },
+  },
+  {
+    name: 'Fastly',
+    category: 'CDN',
+    website: 'https://fastly.com',
+    patterns: {
+      headers: {
+        'x-served-by': /fastly/i,
+        'fastly-io-info': /.*/,
+      },
+    },
+  },
+  {
+    name: 'Akamai',
+    category: 'CDN',
+    website: 'https://akamai.com',
+    patterns: {
+      headers: {
+        server: /akamai/i,
+        'x-akamai-request-id': /.*/,
+      },
+    },
+  },
+  {
+    name: 'BunnyCDN',
+    category: 'CDN',
+    website: 'https://bunny.net',
+    patterns: {
+      headers: {
+        server: /bunnycdn/i,
+      },
+    },
+  },
+  {
+    name: 'Supabase',
+    category: 'Backend as a Service',
+    website: 'https://supabase.com',
+    patterns: {
+      script: [/supabase/i],
+    },
+  },
+  {
+    name: 'Firebase',
+    category: 'Backend as a Service',
+    website: 'https://firebase.google.com',
+    patterns: {
+      script: [/firebase/i],
+    },
+  },
+  {
+    name: 'Clerk',
+    category: 'Authentication',
+    website: 'https://clerk.com',
+    patterns: {
+      script: [/clerk/i],
+    },
+  },
+  {
+    name: 'Auth0',
+    category: 'Authentication',
+    website: 'https://auth0.com',
+    patterns: {
+      script: [/auth0/i],
+    },
+  },
+  {
+    name: 'Sentry',
+    category: 'Error Tracking',
+    website: 'https://sentry.io',
+    patterns: {
+      script: [/sentry/i],
+    },
+  },
+  {
+    name: 'LogRocket',
+    category: 'Error Tracking',
+    website: 'https://logrocket.com',
+    patterns: {
+      script: [/logrocket/i],
+    },
+  },
+  {
+    name: 'Crisp',
+    category: 'Customer Support',
+    website: 'https://crisp.chat',
+    patterns: {
+      script: [/crisp\.chat/i],
+    },
+  },
+  {
+    name: 'Tawk.to',
+    category: 'Customer Support',
+    website: 'https://tawk.to',
+    patterns: {
+      script: [/tawk\.to/i],
+    },
+  },
+  {
+    name: 'BigCommerce',
+    category: 'E-commerce',
+    website: 'https://bigcommerce.com',
+    patterns: {
+      html: [/bigcommerce/i],
+      meta: [/bigcommerce/i],
+    },
+  },
+  {
+    name: 'PrestaShop',
+    category: 'E-commerce',
+    website: 'https://prestashop.com',
+    patterns: {
+      html: [/prestashop/i],
+      meta: [/prestashop/i],
+    },
+  },
+  {
+    name: 'OpenCart',
+    category: 'E-commerce',
+    website: 'https://opencart.com',
+    patterns: {
+      html: [/opencart/i],
+      script: [/opencart/i],
+    },
+  },
+  {
+    name: 'Salesforce Commerce Cloud',
+    category: 'E-commerce',
+    website: 'https://salesforce.com',
+    patterns: {
+      html: [/demandware/i],
+      script: [/demandware/i],
+    },
+  },
 ];
 
 /**

@@ -56,6 +56,7 @@ export interface RunDetails {
     email: string | null;
     firstName: string | null;
     lastName: string | null;
+    businessName: string | null;
     position: string | null;
     status: string;
     score: number;
@@ -381,6 +382,7 @@ export default {
         email: true,
         firstName: true,
         lastName: true,
+        businessName: true,
         position: true,
         status: true,
         score: true,
@@ -417,6 +419,7 @@ export default {
         email: lead.email,
         firstName: lead.firstName,
         lastName: lead.lastName,
+        businessName: lead.businessName,
         position: lead.position,
         status: lead.status,
         score: lead.score,
