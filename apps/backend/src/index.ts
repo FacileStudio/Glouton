@@ -20,8 +20,8 @@ const { jobs } = config;
 
 registerWorkers(jobs, prisma);
 
-// Initialize event system with websocket broadcaster
-events.init({ broadcastToUser, broadcastToAll });
+// Initialize event system with websocket broadcaster and prisma
+events.init({ broadcastToUser, broadcastToAll }, prisma);
 
 // Simple startup tasks
 async function startup() {
