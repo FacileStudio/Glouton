@@ -435,9 +435,6 @@
 
     <div class="space-y-8 max-w-5xl mx-auto">
 
-
-        {#if isProcessing || liveEvents.length > 0}
-
         <section class="bg-white rounded-[32px] border-2 border-neutral-200 p-8">
           <div class="flex items-center gap-3 mb-6">
             <div class="w-10 h-10 bg-neutral-900 rounded-xl flex items-center justify-center">
@@ -660,6 +657,28 @@
               </div>
             {/if}
 
+            <div>
+              <p class="text-xs font-bold text-neutral-500 uppercase mb-2">Dates</p>
+              <div class="bg-neutral-50 rounded-xl p-4 space-y-3 text-xs">
+                <div class="flex justify-between items-center">
+                  <span class="text-neutral-500 font-medium">Créée le</span>
+                  <span class="font-bold">{new Date(details.createdAt).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}</span>
+                </div>
+                {#if details.startedAt}
+                  <div class="flex justify-between items-center">
+                    <span class="text-neutral-500 font-medium">Démarrée le</span>
+                    <span class="font-bold">{new Date(details.startedAt).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}</span>
+                  </div>
+                {/if}
+                {#if details.completedAt}
+                  <div class="flex justify-between items-center">
+                    <span class="text-neutral-500 font-medium">Terminée le</span>
+                    <span class="font-bold">{new Date(details.completedAt).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}</span>
+                  </div>
+                {/if}
+              </div>
+            </div>
+
             {#if details.error}
               <div class="bg-red-50 border-2 border-red-200 rounded-lg p-4">
                 <div class="flex items-start gap-2">
@@ -670,7 +689,6 @@
             {/if}
           </div>
         </section>
-        {/if}
 
         {#if discoveredItems.length > 0}
 
