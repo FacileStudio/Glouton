@@ -182,7 +182,7 @@
         </div>
         <div class="space-y-1">
           <h1 class="text-5xl font-black tracking-tight leading-none" style="color: #291334;">
-            Chasses<span style="color: #FEC129;">.</span>
+            Chasses
           </h1>
           <p class="text-neutral-400 font-medium text-sm">Gestion des chasses aux leads</p>
         </div>

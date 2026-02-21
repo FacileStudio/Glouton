@@ -71,13 +71,18 @@
   style="background-color: #FAF7F5; selection-background-color: #FEC129;"
 >
   <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
-    <div>
-      <h1 class="text-3xl md:text-4xl font-black tracking-tight" style="color: #291334;">
-        Équipes
-      </h1>
-      <p class="text-neutral-500 font-medium text-base mt-1">
-        Gérez vos équipes et collaborez avec vos collègues
-      </p>
+    <div class="flex items-center gap-4">
+      <div class="w-16 h-16 flex items-center justify-center bg-neutral-900 rounded-2xl">
+        <iconify-icon icon="solar:users-group-rounded-bold" width="32" class="text-white"></iconify-icon>
+      </div>
+      <div class="space-y-1">
+        <h1 class="text-5xl font-black tracking-tight leading-none" style="color: #291334;">
+          Équipes
+        </h1>
+        <p class="text-neutral-400 font-medium text-sm">
+          Gérez vos équipes et collaborez avec vos collègues
+        </p>
+      </div>
     </div>
 
     <button

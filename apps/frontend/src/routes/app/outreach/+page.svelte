@@ -304,7 +304,7 @@
     </div>
     <div class="space-y-1">
       <h1 class="text-5xl font-black tracking-tight leading-none" style="color: #291334;">
-        Prospection<span style="color: #FEC129;">.</span>
+        Prospection
       </h1>
       <p class="text-neutral-400 font-medium text-sm">Historique des e-mails, relances et réponses</p>
     </div>
