@@ -114,7 +114,7 @@
   async function loadData() {
     try {
       const [leadData, templatesData, historyData] = await Promise.all([
-        trpc.lead.query.getById.query({ id: leadId }),
+        trpc.lead.query.getById.query({ leadId }),
         trpc.email.getTemplates.query(),
         trpc.email.getLeadOutreach.query({ leadId }),
       ]);
@@ -180,7 +180,9 @@
     debounceTimer = setTimeout(() => updatePreview(), 300);
   }
 
-  $: if (variables && selectedTemplate) debouncedUpdatePreview();
+  $effect(() => {
+    if (variables && selectedTemplate) debouncedUpdatePreview();
+  });
 
   function handleTemplateChange() {
     const template = templates.find((t) => t.id === selectedTemplate);
@@ -324,11 +326,11 @@
     return lead.domain ?? '';
   }
 
-  $: technologies = lead?.technologies ?? [];
-  $: additionalEmails = lead?.additionalEmails ?? [];
-  $: phoneNumbers = lead?.phoneNumbers ?? [];
-  $: addresses = lead?.physicalAddresses ?? [];
-  $: socialProfiles = lead?.socialProfiles ?? [];
+  let technologies = $derived(lead?.technologies ?? []);
+  let additionalEmails = $derived(lead?.additionalEmails ?? []);
+  let phoneNumbers = $derived(lead?.phoneNumbers ?? []);
+  let addresses = $derived(lead?.physicalAddresses ?? []);
+  let socialProfiles = $derived(lead?.socialProfiles ?? []);
 </script>
 
 {#if loading}

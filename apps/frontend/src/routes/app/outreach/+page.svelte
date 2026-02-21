@@ -267,20 +267,21 @@
     }
   }
 
-  $: followUpLeads = outreachLeads.filter((l) => l.needsFollowUp);
-  $: pendingLeads = outreachLeads.filter(
+  let followUpLeads = $derived(outreachLeads.filter((l) => l.needsFollowUp));
+  let pendingLeads = $derived(outreachLeads.filter(
     (l) => !l.needsFollowUp && (l.lastEmailStatus === 'SENT' || l.lastEmailStatus === 'OPENED'),
-  );
-  $: repliedLeads = outreachLeads.filter((l) => l.lastEmailStatus === 'REPLIED');
-  $: tabLeads =
+  ));
+  let repliedLeads = $derived(outreachLeads.filter((l) => l.lastEmailStatus === 'REPLIED'));
+  let tabLeads = $derived(
     activeTab === 'all'
       ? outreachLeads
       : activeTab === 'followup'
         ? followUpLeads
         : activeTab === 'pending'
           ? pendingLeads
-          : repliedLeads;
-  $: filteredLeads = search
+          : repliedLeads
+  );
+  let filteredLeads = $derived(search
     ? tabLeads.filter((l) => {
         const s = search.toLowerCase();
         return (
@@ -291,9 +292,9 @@
           l.businessName?.toLowerCase().includes(s)
         );
       })
-    : tabLeads;
+    : tabLeads);
 
-  $: expandedLead = outreachLeads.find((l) => l.leadId === expandedLeadId) ?? null;
+  let expandedLead = $derived(outreachLeads.find((l) => l.leadId === expandedLeadId) ?? null);
 </script>
 
 <div
