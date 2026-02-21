@@ -10,6 +10,8 @@ import {
   deleteHuntSchema,
 } from '../schemas';
 import { prisma } from '@repo/database/prisma';
+import { resolveScope } from '../../../utils/scope';
+import { getApiKeys } from '../../../utils/api-keys';
 
 const getRunDetailsSchema = z.object({
   huntSessionId: z.string().uuid('Invalid hunt session ID'),
@@ -26,29 +28,26 @@ const getRunEventsSchema = z.object({
 export const huntRouter = router({
   start: protectedProcedure.input(startHuntSchema).mutation(async ({ ctx, input }) => {
     try {
-      const user = await prisma.user.findUnique({
-        where: { id: ctx.user.id },
-        select: { hunterApiKey: true },
-      });
-
-      if (!user) {
-        throw new TRPCError({ code: 'UNAUTHORIZED', message: 'User not found.' });
-      }
+      const scope = await resolveScope(ctx.prisma, ctx.user.id, input.teamId);
+      const apiKeys = await getApiKeys(ctx.prisma, scope, ctx.env.ENCRYPTION_SECRET);
 
       const selectedSource = input.source || 'HUNTER';
 
-      if (!user.hunterApiKey) {
+      if (!apiKeys.hunterApiKey) {
+        const contextType = scope.type === 'team' ? 'team' : 'your account';
         throw new TRPCError({
           code: 'BAD_REQUEST',
-          message: `Hunter.io API key not configured.`,
+          message: `Hunter.io API key not configured for ${contextType}.`,
         });
       }
 
       return await huntService.startHunt({
-        userId: ctx.user.id,
+        scope,
+        apiKeys,
         ...input,
         source: selectedSource,
         jobs: ctx.jobs,
+        prisma: ctx.prisma,
       });
     } catch (error) {
       if (error instanceof TRPCError) throw error;
@@ -61,17 +60,16 @@ export const huntRouter = router({
     .input(startLocalBusinessHuntSchema)
     .mutation(async ({ ctx, input }) => {
       try {
-        const user = await prisma.user.findUnique({
-          where: { id: ctx.user.id },
-          select: { googleMapsApiKey: true },
-        });
-        if (!user) throw new TRPCError({ code: 'UNAUTHORIZED' });
+        const scope = await resolveScope(ctx.prisma, ctx.user.id, input.teamId);
+        const apiKeys = await getApiKeys(ctx.prisma, scope, ctx.env.ENCRYPTION_SECRET);
 
         return await huntService.startLocalBusinessHunt({
-          userId: ctx.user.id,
+          scope,
+          apiKeys,
           ...input,
-          googleMapsApiKey: user.googleMapsApiKey ?? undefined,
+          googleMapsApiKey: apiKeys.googleMapsApiKey,
           jobs: ctx.jobs,
+          prisma: ctx.prisma,
         });
       } catch (error) {
         if (error instanceof TRPCError) throw error;
@@ -79,9 +77,12 @@ export const huntRouter = router({
       }
     }),
 
-  list: protectedProcedure.query(async ({ ctx }) => {
-    return await huntService.getHuntSessions(ctx.user.id, ctx.jobs);
-  }),
+  list: protectedProcedure
+    .input(z.object({ teamId: z.string().uuid().optional() }).optional())
+    .query(async ({ ctx, input }) => {
+      const scope = await resolveScope(ctx.prisma, ctx.user.id, input?.teamId);
+      return await huntService.getHuntSessions(scope, ctx.prisma, ctx.jobs);
+    }),
 
   getStatus: protectedProcedure.input(huntStatusSchema).query(async ({ ctx, input }) => {
     const session = await prisma.huntSession.findUnique({

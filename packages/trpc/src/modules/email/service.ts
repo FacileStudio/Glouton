@@ -1,62 +1,53 @@
-import { prisma } from '@repo/database/prisma';
+import type { PrismaClient } from '@prisma/client';
 import { SMTPService, renderTemplate, type EmailTemplate } from '@repo/smtp';
+import { buildEmailFilter, buildLeadFilter, type Scope } from '../../utils/scope';
+import { getSmtpConfig } from '../../utils/api-keys';
+import { logger } from '@repo/logger';
 
 export class EmailService {
   async sendEmail(params: {
+    scope: Scope;
     leadId: string;
-    userId: string;
     templateId: string;
     variables: Record<string, string>;
+    encryptionSecret: string;
+    prisma: PrismaClient;
   }) {
-    const [lead, user] = await Promise.all([
-      prisma.lead.findUnique({
-        where: { id: params.leadId },
-        select: { id: true, email: true },
-      }),
-      prisma.user.findUnique({
-        where: { id: params.userId },
-        select: {
-          smtpHost: true,
-          smtpPort: true,
-          smtpSecure: true,
-          smtpUser: true,
-          smtpPass: true,
-          smtpFromName: true,
-          smtpFromEmail: true,
-        },
-      }),
-    ]);
+    const lead = await params.prisma.lead.findUnique({
+      where: { id: params.leadId },
+      select: { id: true, email: true },
+    });
 
     if (!lead || !lead.email) {
       throw new Error('Lead not found or has no email');
     }
 
-    if (
-      !user ||
-      !user.smtpHost ||
-      !user.smtpPort ||
-      user.smtpSecure === null ||
-      !user.smtpUser ||
-      !user.smtpPass ||
-      !user.smtpFromName ||
-      !user.smtpFromEmail
-    ) {
+    const smtpConfig = await getSmtpConfig(params.prisma, params.scope, params.encryptionSecret);
+
+    if (!smtpConfig) {
+      const contextType = params.scope.type === 'team' ? 'team or your account' : 'your account';
       throw new Error(
-        'SMTP configuration not found. Please configure your SMTP settings in your account.'
+        `SMTP configuration not found for ${contextType}. Please configure SMTP settings.`
       );
     }
 
+    logger.info({
+      leadId: params.leadId,
+      scope: params.scope.type,
+      teamId: params.scope.type === 'team' ? params.scope.teamId : null,
+    }, '[EMAIL] Sending email');
+
     const smtp = new SMTPService({
-      host: user.smtpHost,
-      port: user.smtpPort,
-      secure: user.smtpSecure,
+      host: smtpConfig.host,
+      port: smtpConfig.port,
+      secure: smtpConfig.secure,
       auth: {
-        user: user.smtpUser,
-        pass: user.smtpPass,
+        user: smtpConfig.user,
+        pass: smtpConfig.pass,
       },
       from: {
-        name: user.smtpFromName,
-        email: user.smtpFromEmail,
+        name: smtpConfig.fromName,
+        email: smtpConfig.fromEmail,
       },
     });
 
@@ -65,17 +56,25 @@ export class EmailService {
       throw new Error('Template not found');
     }
 
-    const outreach = await prisma.emailOutreach.create({
-      data: {
-        leadId: params.leadId,
-        userId: params.userId,
-        templateId: params.templateId,
-        subject: rendered.subject,
-        htmlBody: rendered.html,
-        textBody: rendered.text,
-        variables: params.variables,
-        status: 'PENDING',
-      },
+    const outreachData: any = {
+      leadId: params.leadId,
+      userId: params.scope.userId,
+      templateId: params.templateId,
+      subject: rendered.subject,
+      htmlBody: rendered.html,
+      textBody: rendered.text,
+      variables: params.variables,
+      status: 'PENDING',
+    };
+
+    if (params.scope.type === 'team') {
+      outreachData.teamId = params.scope.teamId;
+    } else {
+      outreachData.teamId = null;
+    }
+
+    const outreach = await params.prisma.emailOutreach.create({
+      data: outreachData,
       select: { id: true },
     });
 
@@ -87,7 +86,7 @@ export class EmailService {
         text: rendered.text,
       });
 
-      await prisma.emailOutreach.update({
+      await params.prisma.emailOutreach.update({
         where: { id: outreach.id },
         data: {
           status: 'SENT',
@@ -95,7 +94,7 @@ export class EmailService {
         },
       });
 
-      await prisma.lead.update({
+      await params.prisma.lead.update({
         where: { id: params.leadId },
         data: {
           contacted: true,
@@ -108,7 +107,7 @@ export class EmailService {
 
       return { success: true, outreachId: outreach.id };
     } catch (error) {
-      await prisma.emailOutreach.update({
+      await params.prisma.emailOutreach.update({
         where: { id: outreach.id },
         data: {
           status: 'FAILED',
@@ -122,7 +121,7 @@ export class EmailService {
     }
   }
 
-  async getLeadOutreach(leadId: string, userId: string) {
+  async getLeadOutreach(leadId: string, userId: string, prisma: PrismaClient) {
     return prisma.emailOutreach.findMany({
       where: {
         leadId,
@@ -147,29 +146,30 @@ export class EmailService {
     });
   }
 
-  async getOutreachStats(userId: string) {
+  async getOutreachStats(scope: Scope, prisma: PrismaClient) {
     const FOLLOW_UP_DAYS = 5;
+    const emailFilter = buildEmailFilter(scope);
 
     const [total, sent, opened, replied, contactedLeads] = await Promise.all([
       prisma.emailOutreach.count({
-        where: { userId },
+        where: emailFilter,
       }),
       prisma.emailOutreach.count({
-        where: { userId, status: 'SENT' },
+        where: { ...emailFilter, status: 'SENT' },
       }),
       prisma.emailOutreach.count({
-        where: { userId, status: 'OPENED' },
+        where: { ...emailFilter, status: 'OPENED' },
       }),
       prisma.emailOutreach.count({
-        where: { userId, status: 'REPLIED' },
+        where: { ...emailFilter, status: 'REPLIED' },
       }),
       prisma.lead.count({
-        where: { userId, contacted: true },
+        where: { ...buildLeadFilter(scope), contacted: true },
       }),
     ]);
 
     const allOutreach = await prisma.emailOutreach.findMany({
-      where: { userId },
+      where: emailFilter,
       select: {
         leadId: true,
         status: true,
@@ -206,11 +206,12 @@ export class EmailService {
     };
   }
 
-  async getAllOutreach(userId: string) {
+  async getAllOutreach(scope: Scope, prisma: PrismaClient) {
     const FOLLOW_UP_DAYS = 5;
+    const emailFilter = buildEmailFilter(scope);
 
     const allOutreach = await prisma.emailOutreach.findMany({
-      where: { userId },
+      where: emailFilter,
       select: {
         id: true,
         leadId: true,
@@ -229,9 +230,10 @@ export class EmailService {
       }
     }
 
+    const leadFilter = buildLeadFilter(scope);
     const leadsWithOutreach = await prisma.lead.findMany({
       where: {
-        userId,
+        ...leadFilter,
         id: { in: Array.from(latestByLead.keys()) },
       },
       select: {
@@ -250,7 +252,7 @@ export class EmailService {
 
     const now = Date.now();
     const rows = leadsWithOutreach
-      .map(lead => {
+      .map((lead) => {
         const latest = latestByLead.get(lead.id)!;
         const lastContactDate = (latest.sentAt || latest.createdAt).getTime();
         const daysSinceLastContact = (now - lastContactDate) / (1000 * 60 * 60 * 24);
@@ -292,12 +294,12 @@ export class EmailService {
           statusPriority,
         };
       })
-      .sort((a, b) => {
+      .sort((a: { sortPriority: number; statusPriority: number; score: number }, b: { sortPriority: number; statusPriority: number; score: number }) => {
         if (a.sortPriority !== b.sortPriority) return a.sortPriority - b.sortPriority;
         if (a.statusPriority !== b.statusPriority) return a.statusPriority - b.statusPriority;
         return b.score - a.score;
       })
-      .map(({ sortPriority, statusPriority, ...row }) => row);
+      .map(({ sortPriority, statusPriority, ...row }: { sortPriority: number; statusPriority: number; [key: string]: any }) => row);
 
     return rows;
   }

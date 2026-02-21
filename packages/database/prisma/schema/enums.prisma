@@ -3,6 +3,12 @@ enum UserRole {
   ADMIN
 }
 
+enum TeamRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
 enum UserStatus {
   ACTIVE
   SUSPENDED

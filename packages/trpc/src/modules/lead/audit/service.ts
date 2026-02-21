@@ -1,5 +1,7 @@
 import { prisma } from '@repo/database/prisma';
 import type { QueueManager } from '@repo/jobs';
+import { buildAuditFilter, type Scope } from '../../../utils/scope';
+import { logger } from '@repo/logger';
 
 export interface ListAuditParams {
   leadId?: string;
@@ -17,21 +19,22 @@ export interface AuditContext {
   events?: {
     emit: (userId: string, type: string, data?: any) => void;
   };
+  prisma: any;
 }
 
 export default {
-  async list(input: ListAuditParams, ctx: AuditContext) {
+  async list(scope: Scope, input: ListAuditParams, ctx: AuditContext) {
     try {
       const { leadId, limit = 10, offset = 0 } = input;
-      const userId = ctx.user.id;
+      const baseFilter = buildAuditFilter(scope);
 
       const where = {
-        userId,
+        ...baseFilter,
         ...(leadId && { leadId }),
       };
 
       const [auditSessions, totalAuditSessions] = await Promise.all([
-        prisma.auditSession.findMany({
+        ctx.prisma.auditSession.findMany({
           where,
           include: {
             lead: {
@@ -48,7 +51,7 @@ export default {
           take: limit,
           skip: offset,
         }),
-        prisma.auditSession.count({ where }),
+        ctx.prisma.auditSession.count({ where }),
       ]);
 
       return {
@@ -125,17 +128,14 @@ export default {
     }
   },
 
-  async start(ctx: AuditContext) {
-    const userId = ctx.user.id;
+  async start(scope: Scope, ctx: AuditContext) {
+    const userId = scope.userId;
     const jobs = ctx.jobs;
+    const auditFilter = buildAuditFilter(scope);
 
-    if (!userId) {
-      throw new Error('userId is required to start an audit session');
-    }
-
-    const existingSessions = await prisma.auditSession.findMany({
+    const existingSessions = await ctx.prisma.auditSession.findMany({
       where: {
-        userId,
+        ...auditFilter,
         status: { in: ['PENDING', 'PROCESSING'] }
       },
       select: { id: true, jobId: true }
@@ -143,7 +143,7 @@ export default {
 
     for (const session of existingSessions) {
       try {
-        await prisma.auditSession.update({
+        await ctx.prisma.auditSession.update({
           where: { id: session.id },
           data: {
             status: 'CANCELLED',
@@ -163,12 +163,22 @@ export default {
       }
     }
 
-    const auditSession = await prisma.auditSession.create({
-      data: {
-        userId,
-        status: 'PENDING',
-        progress: 0,
-      },
+    const auditData: any = {
+      userId,
+      status: 'PENDING',
+      progress: 0,
+    };
+
+    if (scope.type === 'team') {
+      auditData.teamId = scope.teamId;
+      logger.info({ teamId: scope.teamId, userId }, '[AUDIT] Starting audit for team');
+    } else {
+      auditData.teamId = null;
+      logger.info({ userId }, '[AUDIT] Starting audit for personal use');
+    }
+
+    const auditSession = await ctx.prisma.auditSession.create({
+      data: auditData,
       select: {
         id: true,
         status: true,
@@ -180,19 +190,22 @@ export default {
       const job = await jobs.addJob(
         'lead-audit',
         'lead-audit',
-        { auditSessionId: auditSession.id, userId },
-        { timeout: 21600000 }
+        {
+          auditSessionId: auditSession.id,
+          userId,
+          teamId: scope.type === 'team' ? scope.teamId : null,
+        }
       );
 
-      await prisma.$transaction([
-        prisma.auditSession.updateMany({
+      await ctx.prisma.$transaction([
+        ctx.prisma.auditSession.updateMany({
           where: {
             jobId: job.id,
             id: { not: auditSession.id }
           },
           data: { jobId: null }
         }),
-        prisma.auditSession.update({
+        ctx.prisma.auditSession.update({
           where: { id: auditSession.id },
           data: { jobId: job.id }
         })
@@ -216,7 +229,7 @@ export default {
         createdAt: auditSession.createdAt,
       };
     } catch (error) {
-      await prisma.auditSession.update({
+      await ctx.prisma.auditSession.update({
         where: { id: auditSession.id },
         data: {
           status: 'FAILED',

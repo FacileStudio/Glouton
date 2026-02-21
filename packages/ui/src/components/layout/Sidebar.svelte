@@ -46,6 +46,8 @@
   </nav>
 
   <div class="mt-auto pt-6 border-t border-neutral-50 space-y-3">
+    <slot name="context-switcher" />
+
     <div
       class="p-4 bg-neutral-50 rounded-[24px] border border-neutral-100"
     >

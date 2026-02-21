@@ -4,9 +4,10 @@ import {
   paginationParams,
   calculatePagination,
 } from '@repo/database/utils/prisma-helpers';
+import { buildLeadFilter, buildHuntFilter, buildAuditFilter, type Scope } from '../../../utils/scope';
 
 export interface GetLeadsParams {
-  userId: string;
+  scope: Scope;
   prisma: PrismaClient;
   filters?: {
     status?: LeadStatus;
@@ -47,14 +48,9 @@ export interface LeadStats {
   averageScore: number;
 }
 
-export interface DuplicateCheckParams {
+export interface DuplicateCheckParams<T = any> {
   userId: string;
-  leads: Array<{
-    email?: string | null;
-    domain?: string | null;
-    firstName?: string | null;
-    lastName?: string | null;
-  }>;
+  leads: T[];
   prisma: PrismaClient;
 }
 
@@ -105,10 +101,8 @@ function hasPhoneNumbersFilter(hasPhone: boolean | undefined): any {
   }
 }
 
-function buildLeadWhereClause(userId: string, filters?: GetLeadsParams['filters']) {
-  const where: Prisma.LeadWhereInput = {
-    userId,
-  };
+function buildLeadWhereClause(scope: Scope, filters?: GetLeadsParams['filters']) {
+  const where: Prisma.LeadWhereInput = buildLeadFilter(scope);
 
   if (!filters) return where;
 
@@ -214,8 +208,8 @@ function buildOrderBy(sortBy?: string, sortOrder?: string) {
 }
 
 export default {
-  async getLeads({ userId, prisma, filters }: GetLeadsParams) {
-    const where = buildLeadWhereClause(userId, filters);
+  async getLeads({ scope, prisma, filters }: GetLeadsParams) {
+    const where = buildLeadWhereClause(scope, filters);
     const pagination = paginationParams(filters?.page, filters?.limit);
     const orderBy = buildOrderBy(filters?.sortBy, filters?.sortOrder) as any;
 
@@ -276,8 +270,11 @@ export default {
     };
   },
 
-  async getStats(userId: string, prisma: PrismaClient): Promise<LeadStats> {
+  async getStats(scope: Scope, prisma: PrismaClient): Promise<LeadStats> {
     try {
+      const baseFilter = buildLeadFilter(scope);
+      const huntFilter = buildHuntFilter(scope);
+
       const [
         totalLeads,
         hotLeads,
@@ -295,45 +292,45 @@ export default {
         failedHunts,
         averageScoreResult,
       ] = await Promise.all([
-        prisma.lead.count({ where: { userId } }),
-        prisma.lead.count({ where: { userId, status: 'HOT' } }),
-        prisma.lead.count({ where: { userId, status: 'WARM' } }),
-        prisma.lead.count({ where: { userId, status: 'COLD' } }),
+        prisma.lead.count({ where: baseFilter }),
+        prisma.lead.count({ where: { ...baseFilter, status: 'HOT' } }),
+        prisma.lead.count({ where: { ...baseFilter, status: 'WARM' } }),
+        prisma.lead.count({ where: { ...baseFilter, status: 'COLD' } }),
         prisma.lead.count({
           where: {
-            userId,
+            ...baseFilter,
             contacted: false,
             email: { not: null },
           },
         }),
         prisma.lead.count({
           where: {
-            userId,
+            ...baseFilter,
             contacted: true,
           },
         }),
         prisma.lead.count({
           where: {
-            userId,
+            ...baseFilter,
             email: { not: null },
           },
         }),
         prisma.lead.count({
           where: {
-            userId,
+            ...baseFilter,
             phoneNumbers: { isEmpty: false },
           },
         }),
         prisma.lead.count({
           where: {
-            userId,
+            ...baseFilter,
             domain: { not: null },
           },
         }),
         (async () => {
           const leadsWithSocials = await prisma.lead.findMany({
             where: {
-              userId,
+              ...baseFilter,
               socialProfiles: { not: { equals: null } },
             },
             select: { socialProfiles: true },
@@ -344,19 +341,19 @@ export default {
           }).length;
         })(),
         prisma.huntSession.count({
-          where: { userId, status: 'PENDING' },
+          where: { ...huntFilter, status: 'PENDING' },
         }),
         prisma.huntSession.count({
-          where: { userId, status: 'PROCESSING' },
+          where: { ...huntFilter, status: 'PROCESSING' },
         }),
         prisma.huntSession.count({
-          where: { userId, status: 'COMPLETED' },
+          where: { ...huntFilter, status: 'COMPLETED' },
         }),
         prisma.huntSession.count({
-          where: { userId, status: 'FAILED' },
+          where: { ...huntFilter, status: 'FAILED' },
         }),
         prisma.lead.aggregate({
-          where: { userId },
+          where: baseFilter,
           _avg: { score: true },
         }),
       ]);
@@ -391,12 +388,15 @@ export default {
     }
   },
 
-  async getActiveSessions(ctx: Context) {
+  async getActiveSessions(scope: Scope, ctx: Context) {
     try {
+      const auditFilter = buildAuditFilter(scope);
+      const huntFilter = buildHuntFilter(scope);
+
       const [activeAudits, activeHunts] = await Promise.all([
         ctx.prisma.auditSession.findMany({
           where: {
-            userId: ctx.user.id,
+            ...auditFilter,
             status: { in: ['PENDING', 'PROCESSING'] },
           },
           select: {
@@ -415,7 +415,7 @@ export default {
         }),
         ctx.prisma.huntSession.findMany({
           where: {
-            userId: ctx.user.id,
+            ...huntFilter,
             status: { in: ['PENDING', 'PROCESSING'] },
           },
           select: {
@@ -514,7 +514,7 @@ export default {
     }
   },
 
-  async checkForDuplicates({ userId, leads, prisma }: DuplicateCheckParams) {
+  async checkForDuplicates<T extends { email?: string | null; domain?: string | null; firstName?: string | null; lastName?: string | null }>({ userId, leads, prisma }: DuplicateCheckParams<T>) {
     const emailsToCheck = leads.filter((l) => l.email).map((l) => l.email!);
     const domainsToCheck = leads.filter((l) => l.domain).map((l) => l.domain!);
 

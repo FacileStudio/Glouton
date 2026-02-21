@@ -5,6 +5,7 @@
   import authStore from '$lib/auth-store';
   import { Sidebar } from '@repo/ui';
   import { ws } from '$lib/websocket';
+  import TeamContextSwitcher from '$lib/components/TeamContextSwitcher.svelte';
   import 'iconify-icon';
 
   let { children } = $props();
@@ -13,6 +14,7 @@
     { label: 'Chasses', icon: 'solar:lightning-bold', href: '/app/hunts' },
     { label: 'Leads', icon: 'solar:chart-square-bold', href: '/app/leads' },
     { label: 'Prospection', icon: 'solar:letter-bold', href: '/app/outreach' },
+    { label: 'Équipes', icon: 'solar:users-group-rounded-bold', href: '/app/teams' },
   ];
 
   let userInitials = $derived($authStore.user?.firstName?.[0] || 'U');
@@ -25,6 +27,11 @@
     if (path.match(/^\/app\/leads\/.+/)) return 'Lead — Glouton';
     if (path === '/app/leads') return 'Leads — Glouton';
     if (path === '/app/outreach') return 'Prospection — Glouton';
+    if (path === '/app/teams/new') return 'Nouvelle Équipe — Glouton';
+    if (path.match(/^\/app\/teams\/.+\/settings/)) return 'Paramètres d\'équipe — Glouton';
+    if (path.match(/^\/app\/teams\/.+\/members/)) return 'Membres — Glouton';
+    if (path.match(/^\/app\/teams\/.+/)) return 'Équipe — Glouton';
+    if (path === '/app/teams') return 'Équipes — Glouton';
     if (path === '/app/settings') return 'Paramètres — Glouton';
     if (path === '/app/premium') return 'Premium — Glouton';
     return 'Glouton';
@@ -66,6 +73,8 @@
     settingsHref="/app/settings"
     logoSrc="/logo.png"
   >
+    <TeamContextSwitcher slot="context-switcher" />
+
     <div
       slot="user-avatar"
       class="flex h-full w-full items-center justify-center bg-black text-xs font-black text-white"

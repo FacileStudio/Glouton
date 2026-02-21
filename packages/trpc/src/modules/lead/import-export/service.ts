@@ -1,5 +1,5 @@
 import { prisma } from '@repo/database/prisma';
-import type { LeadStatus, Prisma } from '@repo/database';
+import type { LeadStatus, Prisma } from '@prisma/client';
 import {
   escapeCSVField,
   escapeCSVArray,

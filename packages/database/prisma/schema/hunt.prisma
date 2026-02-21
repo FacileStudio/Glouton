@@ -1,6 +1,7 @@
 model HuntSession {
   id                  String       @id @default(dbgenerated("gen_random_uuid()")) @db.Text
   userId              String       @db.Text
+  teamId              String?      @db.Text
   jobId               String?      @unique @db.Text
   huntType            HuntType     @default(DOMAIN)
   sources             LeadSource[]
@@ -22,9 +23,11 @@ model HuntSession {
   updatedAt           DateTime     @default(now()) @updatedAt @db.Timestamptz(3)
 
   user                User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team                Team?        @relation(fields: [teamId], references: [id], onDelete: Cascade)
   events              HuntSessionEvent[]
 
   @@index([userId])
+  @@index([teamId])
   @@index([status])
   @@index([huntType])
   @@index([jobId])
@@ -51,6 +54,7 @@ model HuntSessionEvent {
 model AuditSession {
   id                 String       @id @default(dbgenerated("gen_random_uuid()")) @db.Text
   userId             String       @db.Text
+  teamId             String?      @db.Text
   jobId              String?      @unique @db.Text
   leadId             String?      @db.Text
   status             AuditStatus  @default(PENDING)
@@ -68,9 +72,11 @@ model AuditSession {
   updatedAt          DateTime     @default(now()) @updatedAt @db.Timestamptz(3)
 
   user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team               Team?        @relation(fields: [teamId], references: [id], onDelete: Cascade)
   lead               Lead?        @relation(fields: [leadId], references: [id], onDelete: SetNull)
 
   @@index([userId])
+  @@index([teamId])
   @@index([status])
   @@index([jobId])
   @@index([leadId])

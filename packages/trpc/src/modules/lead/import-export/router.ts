@@ -22,7 +22,6 @@ export const importExportRouter = router({
           country: input.country,
           city: input.city,
         },
-        db: ctx.db,
       });
 
       const lines = csv.split('\n');
@@ -65,7 +64,7 @@ export const importExportRouter = router({
       let huntSessionId = input.huntSessionId;
 
       if (!huntSessionId) {
-        const huntSession = await ctx.db.huntSession.create({
+        const huntSession = await ctx.prisma.huntSession.create({
           data: {
             userId: ctx.user.id,
             status: 'COMPLETED',
@@ -204,10 +203,10 @@ export const importExportRouter = router({
       const dedupResult = await queryService.checkForDuplicates({
         userId: ctx.user.id,
         leads,
-        db: ctx.db,
+        prisma: ctx.prisma,
       });
 
-      const result = await ctx.db.lead.createMany({
+      const result = await ctx.prisma.lead.createMany({
         data: dedupResult.newLeads,
         skipDuplicates: true,
       });
@@ -219,7 +218,7 @@ export const importExportRouter = router({
         imported: result.count,
       });
 
-      await ctx.db.huntSession.update({
+      await ctx.prisma.huntSession.update({
         where: { id: huntSessionId },
         data: {
           totalLeads: result.count,
