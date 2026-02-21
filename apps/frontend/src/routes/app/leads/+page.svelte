@@ -12,7 +12,10 @@
   import LeadsMap from '$lib/components/leads/LeadsMap.svelte';
   import PaginationControls from '$lib/components/leads/PaginationControls.svelte';
   import { setupAuditListeners, type AuditSession } from '$lib/websocket-events.svelte';
+  import { teamContextStore } from '$lib/stores/team-context.svelte';
   import 'iconify-icon';
+
+  let teamId = $derived(teamContextStore.getTeamId());
 
   // State
   let leads = $state<any[]>([]);
@@ -151,6 +154,7 @@
     try {
       const [leadsData, auditData] = await Promise.all([
         trpc.lead.query.list.query({
+          teamId,
           page: currentPage,
           limit: pageSize,
           status: filters.status || undefined,
@@ -168,7 +172,7 @@
           sortBy: sortBy as 'domain' | 'email' | 'city' | 'country' | 'score' | 'status' | 'createdAt',
           sortOrder: sortOrder,
         }),
-        trpc.lead.audit.list.query(),
+        trpc.lead.audit.list.query({ teamId }),
       ]);
 
       leads = leadsData?.leads || [];
@@ -191,7 +195,7 @@
 
   async function loadStats() {
     try {
-      const statsData = await trpc.lead.query.getStats.query();
+      const statsData = await trpc.lead.query.getStats.query({ teamId });
       if (statsData) stats = statsData;
     } catch (error) {
       console.error('Error loading stats:', error);
@@ -370,10 +374,18 @@
 >
   <!-- Header -->
   <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
-    <div>
-      <p class="text-neutral-400 font-medium text-sm">
-        {processedLeads.length} résultat{processedLeads.length !== 1 ? 's' : ''} trouvé{processedLeads.length !== 1 ? 's' : ''}
-      </p>
+    <div class="flex items-center gap-4">
+      <div class="w-16 h-16 flex items-center justify-center bg-neutral-900 rounded-2xl">
+        <iconify-icon icon="solar:chart-square-bold" width="32" class="text-white"></iconify-icon>
+      </div>
+      <div class="space-y-1">
+        <h1 class="text-5xl font-black tracking-tight leading-none" style="color: #291334;">
+          Leads
+        </h1>
+        <p class="text-neutral-400 font-medium text-sm">
+          {processedLeads.length} résultat{processedLeads.length !== 1 ? 's' : ''} trouvé{processedLeads.length !== 1 ? 's' : ''}
+        </p>
+      </div>
     </div>
 
     <div class="flex items-center gap-3">

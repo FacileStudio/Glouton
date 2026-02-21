@@ -6,7 +6,10 @@
   import { onMount } from 'svelte';
   import { Tabs } from '@repo/ui';
   import LocationPickerMap from '$lib/components/LocationPickerMap.svelte';
+  import { teamContextStore } from '$lib/stores/team-context.svelte';
   import 'iconify-icon';
+
+  let teamId = $derived(teamContextStore.getTeamId());
 
   let mapComponent: LocationPickerMap;
   let showMap = false;
@@ -326,6 +329,7 @@
       };
 
       const result = await trpc.lead.hunt.start.mutate({
+        teamId,
         filters: huntFilters,
       });
 
@@ -362,6 +366,7 @@
         : `${localBusinessFilters.location.coordinates?.lat},${localBusinessFilters.location.coordinates?.lng}`;
 
       const result = await trpc.lead.hunt.startLocalBusiness.mutate({
+        teamId,
         location: locationString,
         categories: localBusinessFilters.categories,
         hasWebsite: localBusinessFilters.hasWebsite === 'with' ? true : localBusinessFilters.hasWebsite === 'without' ? false : undefined,
@@ -439,35 +444,52 @@
   });
 </script>
 
-<div class="min-h-screen p-6 lg:p-12">
-  <div class="max-w-4xl mx-auto space-y-8">
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-5xl font-black tracking-tight text-brand-purple">
-          Nouvelle Chasse<span class="text-brand-gold">.</span>
+<div class="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-neutral-200 px-6 py-4">
+  <div class="max-w-[1600px] mx-auto flex items-center justify-between gap-4">
+    <div class="flex items-center gap-4 min-w-0">
+      <a
+        href="/app/hunts"
+        class="w-10 h-10 flex-shrink-0 flex items-center justify-center bg-neutral-100 hover:bg-neutral-200 rounded-xl transition-colors"
+      >
+        <iconify-icon icon="solar:arrow-left-bold" width="18"></iconify-icon>
+      </a>
+
+      <div class="w-10 h-10 flex-shrink-0 rounded-xl border border-neutral-200 bg-white flex items-center justify-center overflow-hidden shadow-sm">
+        <iconify-icon icon="solar:rocket-2-bold" width="20" class="text-neutral-700"></iconify-icon>
+      </div>
+
+      <div class="min-w-0">
+        <h1 class="text-xl font-black tracking-tight text-neutral-900 truncate">
+          Nouvelle Chasse
         </h1>
-        <p class="text-slate-500 font-medium mt-2">
+        <p class="text-sm text-neutral-500 font-medium truncate">
           {#if huntType === 'domain'}
             {#if configuredSourcesCount > 0}
-              Utilisation de {configuredSourcesCount} source{configuredSourcesCount > 1
-                ? 's'
-                : ''} configurée{configuredSourcesCount > 1 ? 's' : ''}
+              {configuredSourcesCount} source{configuredSourcesCount > 1 ? 's' : ''} configurée{configuredSourcesCount > 1 ? 's' : ''}
             {:else}
-              Configurez des clés API dans les paramètres pour commencer
+              Configurez des clés API dans les paramètres
             {/if}
           {:else}
-            Rechercher des entreprises locales près d'une localisation
+            Recherche locale par localisation
           {/if}
         </p>
       </div>
+    </div>
+
+    <div class="flex items-center gap-3 flex-shrink-0">
       <a
-        href="/app/leads"
-        class="px-4 py-2 border-2 border-slate-200 rounded-xl font-bold hover:border-brand-purple hover:text-brand-purple transition-all flex items-center gap-2"
+        href="/app/hunts"
+        class="px-5 py-2.5 bg-neutral-100 text-neutral-700 hover:bg-neutral-200 rounded-xl text-sm font-bold transition-colors flex items-center gap-2"
       >
-        <iconify-icon icon="solar:close-circle-bold" width="20"></iconify-icon>
+        <iconify-icon icon="solar:close-circle-bold" width="16"></iconify-icon>
         Annuler
       </a>
     </div>
+  </div>
+</div>
+
+<div class="min-h-screen p-6 lg:p-12" style="background-color: #FAF7F5;">
+  <div class="max-w-4xl mx-auto space-y-8">
 
     <Tabs
       tabs={[

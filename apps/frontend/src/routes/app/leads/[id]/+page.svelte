@@ -8,7 +8,10 @@
   import { Spinner } from '@repo/ui';
   import { getFaviconUrl, handleFaviconError } from '$lib/utils/favicon';
   import LeadLocationMap from '$lib/components/leads/LeadLocationMap.svelte';
+  import { teamContextStore } from '$lib/stores/team-context.svelte';
   import 'iconify-icon';
+
+  let teamId = $derived(teamContextStore.getTeamId());
 
   interface SocialProfile {
     platform: string;
@@ -206,6 +209,7 @@
     sending = true;
     try {
       await trpc.email.sendEmail.mutate({
+        teamId,
         leadId: lead.id,
         templateId: selectedTemplate,
         variables,
