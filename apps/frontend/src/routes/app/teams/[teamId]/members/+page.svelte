@@ -227,7 +227,7 @@
             onclick={() => (addMemberModalOpen = true)}
             class="bg-black text-white px-8 py-4 rounded-xl font-bold hover:bg-neutral-800 active:scale-95 transition-all flex items-center gap-3 shadow-lg shadow-black/20"
           >
-            <iconify-icon icon="solar:user-plus-bold" width="20"></iconify-icon>
+            <iconify-icon icon="mdi:account-plus" width="20"></iconify-icon>
             <span>Ajouter un membre</span>
           </button>
         {/if}
@@ -249,7 +249,7 @@
             <div slot="action">
               {#if canManage}
                 <Button onclick={() => (addMemberModalOpen = true)} intent="primary" size="lg">
-                  <iconify-icon icon="solar:user-plus-bold" width="20"></iconify-icon>
+                  <iconify-icon icon="mdi:account-plus" width="20"></iconify-icon>
                   Ajouter un membre
                 </Button>
               {/if}
@@ -381,7 +381,7 @@
           <Spinner size="sm" />
           <span>Ajout...</span>
         {:else}
-          <iconify-icon icon="solar:user-plus-bold" width="20"></iconify-icon>
+          <iconify-icon icon="mdi:account-plus" width="20"></iconify-icon>
           <span>Ajouter</span>
         {/if}
       </Button>

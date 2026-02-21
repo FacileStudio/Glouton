@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { invalidateAll } from '$app/navigation';
   import { teamContextStore } from '$lib/stores/team-context.svelte';
   import trpc from '$lib/trpc';
   import { toast } from '@repo/utils';
@@ -43,16 +44,20 @@
     isOpen = false;
   }
 
-  function switchToPersonal() {
+  async function switchToPersonal() {
     teamContextStore.setPersonal();
     closeDropdown();
     toast.push('Switched to personal context', 'success');
+    await invalidateAll();
+    window.location.reload();
   }
 
-  function switchToTeam(teamId: string, name: string, role: 'OWNER' | 'ADMIN' | 'MEMBER') {
+  async function switchToTeam(teamId: string, name: string, role: 'OWNER' | 'ADMIN' | 'MEMBER') {
     teamContextStore.setTeam(teamId, name, role);
     closeDropdown();
     toast.push(`Switched to ${name}`, 'success');
+    await invalidateAll();
+    window.location.reload();
   }
 
   function getRoleBadgeColor(role: 'OWNER' | 'ADMIN' | 'MEMBER'): string {
@@ -212,7 +217,7 @@
             onclick={closeDropdown}
           >
             <iconify-icon
-              icon="solar:add-circle-bold"
+              icon="mdi:plus-circle"
               width="18"
               class="text-brand-purple"
             ></iconify-icon>

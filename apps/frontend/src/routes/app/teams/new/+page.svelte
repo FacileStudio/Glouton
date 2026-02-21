@@ -125,7 +125,7 @@
           <Spinner size="sm" />
           <span>Création...</span>
         {:else}
-          <iconify-icon icon="solar:add-circle-bold" width="20"></iconify-icon>
+          <iconify-icon icon="mdi:plus-circle" width="20"></iconify-icon>
           <span>Créer l'équipe</span>
         {/if}
       </Button>
