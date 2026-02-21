@@ -8,10 +8,9 @@
   import FilterPanel from '$lib/components/leads/FilterPanel.svelte';
   import AuditBanner from '$lib/components/leads/AuditBanner.svelte';
   import LeadsTable from '$lib/components/leads/LeadsTable.svelte';
-  import LeadsGrid from '$lib/components/leads/LeadsGrid.svelte';
   import LeadsMap from '$lib/components/leads/LeadsMap.svelte';
   import PaginationControls from '$lib/components/leads/PaginationControls.svelte';
-  import { setupAuditListeners, type AuditSession } from '$lib/websocket-events.svelte';
+  import { setupAuditListeners, setupHuntListeners, type AuditSession, type HuntSession } from '$lib/websocket-events.svelte';
   import { teamContextStore } from '$lib/stores/team-context.svelte';
   import 'iconify-icon';
 
@@ -21,6 +20,7 @@
   let leads = $state<any[]>([]);
   let stats = $state<any>(null);
   let auditSessions = $state<AuditSession[]>([]);
+  let huntSessions = $state<HuntSession[]>([]);
   let initialLoading = $state(true);
   let loadingData = $state(false);
 
@@ -41,7 +41,7 @@
   });
 
   // View settings
-  let viewMode = $state<'grid' | 'table'>('table');
+  let filtersExpanded = $state(false);
 
   let mounted = false;
 
@@ -61,13 +61,11 @@
     if (filters.hasEmail) params.set('hasEmail', filters.hasEmail);
     if (sortBy !== 'createdAt') params.set('sortBy', sortBy);
     if (sortOrder !== 'desc') params.set('sortOrder', sortOrder);
-    if (viewMode !== 'table') params.set('view', viewMode);
     const qs = params.toString();
     replaceState(qs ? `?${qs}` : location.pathname, {});
   }
 
   $effect(() => {
-    viewMode;
     sortBy;
     sortOrder;
     const { search, status, contacted, country, city, businessType, category, hasWebsite, hasSocial, hasPhone, hasGps, hasEmail } = filters;
@@ -111,6 +109,19 @@
     auditSessions = auditSessions.filter(s => s.id !== id);
   };
 
+  const updateHuntSession = (id: string, updates: Partial<HuntSession>) => {
+    const index = huntSessions.findIndex(s => s.id === id);
+    if (index !== -1) {
+      huntSessions[index] = { ...huntSessions[index], ...updates };
+      return true;
+    }
+    return false;
+  };
+
+  const addHuntSession = (session: HuntSession) => {
+    huntSessions = [session, ...huntSessions];
+  };
+
   onMount(async () => {
     const params = new URLSearchParams(location.search);
     filters = {
@@ -131,15 +142,23 @@
     const urlSortBy = params.get('sortBy');
     if (urlSortBy && validSortCols.includes(urlSortBy)) sortBy = urlSortBy;
     if (params.get('sortOrder') === 'asc') sortOrder = 'asc';
-    if (params.get('view') === 'grid') viewMode = 'grid';
 
-    wsUnsubscribers = setupAuditListeners(
+    const auditUnsubscribers = setupAuditListeners(
       updateAuditSession,
       addAuditSession,
       removeAuditSession,
       loadData,
       loadStats
     );
+
+    const huntUnsubscribers = setupHuntListeners(
+      updateHuntSession,
+      addHuntSession,
+      loadData,
+      loadStats
+    );
+
+    wsUnsubscribers = [...auditUnsubscribers, ...huntUnsubscribers];
 
     await Promise.all([loadData(), loadStats()]);
     mounted = true;
@@ -449,7 +468,7 @@
     {/if}
 
     <!-- Filters -->
-    <FilterPanel bind:filters bind:viewMode leads={leads} onReset={resetFilters} />
+    <FilterPanel bind:filters bind:filtersExpanded leads={leads} onReset={resetFilters} />
 
     <!-- Sort Controls -->
     <div class="flex items-center gap-2 flex-wrap">
@@ -481,7 +500,7 @@
     {/if}
 
     <!-- Leads Table/Grid -->
-    <div class="rounded-[40px] overflow-hidden shadow-lg" style="background-color: #EFEAE6;">
+    <div class="rounded-2xl overflow-hidden shadow-lg" style="background-color: #EFEAE6;">
       {#if loadingData && !initialLoading}
         <div class="flex items-center justify-center py-20">
           <Spinner size="lg" />
@@ -499,10 +518,8 @@
               : 'Aucun lead disponible'}
           </p>
         </div>
-      {:else if viewMode === 'table'}
-        <LeadsTable leads={processedLeads} bind:sortBy bind:sortOrder onSort={handleSort} />
       {:else}
-        <LeadsGrid leads={processedLeads} />
+        <LeadsTable leads={processedLeads} bind:sortBy bind:sortOrder onSort={handleSort} />
       {/if}
     </div>
 

@@ -6,6 +6,7 @@ import { createDomainFinderWorker } from './domain-finder';
 export interface EventEmitter {
   emit: (userId: string, type: string, data?: any) => void;
   broadcast: (type: string, data?: any) => void;
+  emitToScope: (scope: { type: 'personal' | 'team'; userId: string; teamId?: string | null }, type: string, data?: any) => Promise<void>;
 }
 
 export function createWorkers(events: EventEmitter) {

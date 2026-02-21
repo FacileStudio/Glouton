@@ -45,12 +45,14 @@ export class DomainFinderHelpers {
   async createLeadFromCompany(
     company: CompanyData,
     userId: string,
-    huntSessionId: string
+    huntSessionId: string,
+    teamId?: string | null
   ): Promise<void> {
     const now = new Date();
     await prisma.lead.create({
       data: {
         userId,
+        teamId: teamId || null,
         huntSessionId,
         source: 'HUNTER',
         domain: company.domain,

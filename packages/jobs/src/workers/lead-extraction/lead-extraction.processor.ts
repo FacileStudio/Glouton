@@ -264,7 +264,7 @@ export class LeadExtractionProcessor {
     }
 
     const leadsToInsert = newLeads.map((lead) =>
-      this.helpers.prepareLeadInsert(lead, userId, huntSessionId, source)
+      this.helpers.prepareLeadInsert(lead, userId, huntSessionId, source, teamId)
     );
 
     const insertedLeads = await prisma.lead.createMany({
