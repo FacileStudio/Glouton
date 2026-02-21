@@ -39,7 +39,6 @@ class EventEmitter {
         SELECT "userId"
         FROM "TeamMember"
         WHERE "teamId" = ${teamId}::text
-        AND "isActive" = true
       `;
 
       const message = {
