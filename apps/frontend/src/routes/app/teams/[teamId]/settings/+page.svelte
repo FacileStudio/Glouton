@@ -25,10 +25,6 @@
 
   let apiKeysForm = $state({
     hunterApiKey: '',
-    apolloApiKey: '',
-    snovApiKey: '',
-    hasdataApiKey: '',
-    contactoutApiKey: '',
     googleMapsApiKey: '',
   });
 
@@ -44,10 +40,6 @@
 
   let showApiKeys = $state({
     hunterApiKey: false,
-    apolloApiKey: false,
-    snovApiKey: false,
-    hasdataApiKey: false,
-    contactoutApiKey: false,
     googleMapsApiKey: false,
   });
 
@@ -106,10 +98,6 @@
     try {
       const apiKeys = await trpc.team.getApiKeys.query({ teamId });
       apiKeysForm.hunterApiKey = apiKeys.hunterApiKey || '';
-      apiKeysForm.apolloApiKey = apiKeys.apolloApiKey || '';
-      apiKeysForm.snovApiKey = apiKeys.snovApiKey || '';
-      apiKeysForm.hasdataApiKey = apiKeys.hasdataApiKey || '';
-      apiKeysForm.contactoutApiKey = apiKeys.contactoutApiKey || '';
       apiKeysForm.googleMapsApiKey = apiKeys.googleMapsApiKey || '';
       originalApiKeysForm = { ...apiKeysForm };
     } catch (error) {
@@ -160,10 +148,6 @@
       await trpc.team.updateApiKeys.mutate({
         teamId,
         hunterApiKey: apiKeysForm.hunterApiKey || undefined,
-        apolloApiKey: apiKeysForm.apolloApiKey || undefined,
-        snovApiKey: apiKeysForm.snovApiKey || undefined,
-        hasdataApiKey: apiKeysForm.hasdataApiKey || undefined,
-        contactoutApiKey: apiKeysForm.contactoutApiKey || undefined,
         googleMapsApiKey: apiKeysForm.googleMapsApiKey || undefined,
       });
       await loadApiKeys();
@@ -262,7 +246,7 @@
       </div>
     </div>
 
-    {#if !canManage}
+    {#if !loading && !canManage}
       <Alert variant="warning">
         Vous n'avez pas les permissions nécessaires pour modifier ces paramètres. Contactez un administrateur.
       </Alert>
@@ -376,10 +360,6 @@
           <div class="space-y-6">
             {#each [
               { key: 'hunterApiKey', label: 'Hunter.io', url: 'https://hunter.io/api' },
-              { key: 'apolloApiKey', label: 'Apollo.io', url: 'https://apollo.io/api' },
-              { key: 'snovApiKey', label: 'Snov.io', url: 'https://snov.io/api' },
-              { key: 'hasdataApiKey', label: 'HasData', url: 'https://hasdata.com' },
-              { key: 'contactoutApiKey', label: 'ContactOut', url: 'https://contactout.com' },
               { key: 'googleMapsApiKey', label: 'Google Maps', url: 'https://console.cloud.google.com' },
             ] as provider}
               <div class="space-y-2">
