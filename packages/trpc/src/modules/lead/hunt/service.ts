@@ -379,7 +379,7 @@ export default {
         team: {
           include: {
             members: {
-              where: { userId, isActive: true },
+              where: { userId },
               select: { userId: true }
             }
           }
