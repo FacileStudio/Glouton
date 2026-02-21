@@ -799,8 +799,6 @@
           </section>
         {/if}
 
-      </div>
-
         <section class="bg-white rounded-2xl border-2 border-neutral-200 overflow-hidden">
           <div class="p-8 pb-4 flex items-center gap-3">
             <div class="w-10 h-10 bg-neutral-900 rounded-xl flex items-center justify-center">
