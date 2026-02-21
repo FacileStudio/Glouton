@@ -16,6 +16,7 @@ export class LocalBusinessHuntProcessor {
     const {
       huntSessionId,
       userId,
+      teamId,
       location,
       category,
       hasWebsite,
@@ -57,6 +58,7 @@ export class LocalBusinessHuntProcessor {
     const successCount = await this.processBusinesses(
       businessesFound,
       userId,
+      teamId,
       huntSessionId,
       location,
       category,
@@ -181,6 +183,7 @@ export class LocalBusinessHuntProcessor {
   private async processBusinesses(
     businesses: LocalBusiness[],
     userId: string,
+    teamId: string | null | undefined,
     huntSessionId: string,
     location: string,
     category: string,
@@ -189,7 +192,7 @@ export class LocalBusinessHuntProcessor {
   ): Promise<number> {
     if (businesses.length === 0) return 0;
 
-    const newBusinesses = await this.filterExistingBusinesses(businesses, userId, location);
+    const newBusinesses = await this.filterExistingBusinesses(businesses, userId, teamId, location);
 
     if (await this.cancellationChecker.checkHuntCancellation(job)) {
       return 0;
@@ -202,6 +205,7 @@ export class LocalBusinessHuntProcessor {
     return await this.insertBusinesses(
       validBusinesses,
       userId,
+      teamId,
       huntSessionId,
       location,
       category,
@@ -212,21 +216,30 @@ export class LocalBusinessHuntProcessor {
   private async filterExistingBusinesses(
     businesses: LocalBusiness[],
     userId: string,
+    teamId: string | null | undefined,
     location: string
   ): Promise<LocalBusiness[]> {
     const domains = Array.from(new Set(businesses.map(b => b.website).filter(Boolean))) as string[];
     const names = Array.from(new Set(businesses.map(b => b.name).filter(Boolean))) as string[];
     const potentialEmails = this.helpers.preparePotentialEmails(businesses, location);
 
+    const whereClause: any = {
+      OR: [
+        { domain: { in: domains } },
+        { businessName: { in: names } },
+        ...(potentialEmails.length > 0 ? [{ email: { in: potentialEmails } }] : []),
+      ],
+    };
+
+    if (teamId) {
+      whereClause.teamId = teamId;
+    } else {
+      whereClause.userId = userId;
+      whereClause.teamId = null;
+    }
+
     const existingLeads = await prisma.lead.findMany({
-      where: {
-        userId,
-        OR: [
-          { domain: { in: domains } },
-          { businessName: { in: names } },
-          ...(potentialEmails.length > 0 ? [{ email: { in: potentialEmails } }] : []),
-        ],
-      },
+      where: whereClause,
       select: { domain: true, businessName: true, email: true },
     });
 
@@ -253,13 +266,14 @@ export class LocalBusinessHuntProcessor {
   private async insertBusinesses(
     validBusinesses: LocalBusiness[],
     userId: string,
+    teamId: string | null | undefined,
     huntSessionId: string,
     location: string,
     category: string,
     emitter: JobEventEmitter
   ): Promise<number> {
     const leadsToInsert = validBusinesses.map(business =>
-      this.helpers.prepareLeadData(business, userId, huntSessionId, category, location)
+      this.helpers.prepareLeadData(business, userId, huntSessionId, category, location, teamId)
     );
 
     const deduplicatedLeads = this.helpers.deduplicateByEmail(leadsToInsert, lead => lead.email);

@@ -15,8 +15,13 @@ export function createLeadExtractionWorker(events: EventEmitter): JobDefinition<
   return {
     name: 'lead-extraction',
     processor: async (job: BullJob<LeadExtractionData>) => {
-      const { huntSessionId, userId } = job.data;
-      const emitter = new JobEventEmitter(events, userId);
+      const { huntSessionId, userId, teamId } = job.data;
+      const scope = {
+        type: teamId ? 'team' as const : 'personal' as const,
+        userId,
+        teamId,
+      };
+      const emitter = new JobEventEmitter(events, scope);
 
       try {
         await processor.process(job, emitter);

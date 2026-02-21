@@ -752,7 +752,7 @@
               </button>
             </div>
 
-            <div bind:this={eventsContainer} class="px-4 pb-8 space-y-2 max-h-[400px] overflow-y-auto">
+            <div bind:this={eventsContainer} class="px-8 pb-8 space-y-2 max-h-[400px] overflow-y-auto">
               {#if liveEvents.length === 0}
                 <div class="flex flex-col items-center justify-center py-12 space-y-3">
                   <iconify-icon icon="solar:hourglass-bold" width="36" class="text-neutral-300"></iconify-icon>
@@ -781,7 +781,7 @@
               <h2 class="text-2xl font-black tracking-tight">Domaines découverts</h2>
               <span class="px-3 py-1 bg-neutral-100 text-neutral-700 rounded-lg text-xs font-black">{discoveredItems.length}</span>
             </div>
-            <div class="px-4 pb-8 space-y-2 max-h-[400px] overflow-y-auto">
+            <div class="px-8 pb-8 space-y-2 max-h-[400px] overflow-y-auto">
               {#each discoveredItems as item (item.index)}
                 <div class="flex items-center gap-4 py-2.5 border-b border-neutral-100 last:border-0" in:fly={{ y: -6, duration: 150 }}>
                   <span class="text-xs font-mono text-neutral-400 w-8 flex-shrink-0">#{item.index}</span>
@@ -811,7 +811,7 @@
               <h2 class="text-2xl font-black tracking-tight">Leads</h2>
               <span class="px-3 py-1 bg-neutral-100 text-neutral-700 rounded-lg text-xs font-black">{details.leads.length}</span>
             </div>
-            <div class="px-4 pb-8 space-y-2 max-h-[500px] overflow-y-auto">
+            <div class="px-8 pb-8 space-y-2 max-h-[500px] overflow-y-auto">
               {#each details.leads as lead}
                 <div class="flex items-center gap-4 py-2.5 border-b border-neutral-100 last:border-0 hover:bg-neutral-50 transition-colors rounded-xl px-2 -mx-2">
                   <div class="w-9 h-9 rounded-xl bg-neutral-100 flex items-center justify-center flex-shrink-0">

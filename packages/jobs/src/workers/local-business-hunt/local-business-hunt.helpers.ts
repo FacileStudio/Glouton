@@ -75,7 +75,8 @@ export class LocalBusinessHuntHelpers {
     userId: string,
     huntSessionId: string,
     category: string,
-    location: string
+    location: string,
+    teamId?: string | null
   ): any {
     const domain = this.extractDomain(business.website);
     const generatedEmail = this.generateEmail(business, location);
@@ -88,6 +89,7 @@ export class LocalBusinessHuntHelpers {
 
     return {
       userId,
+      teamId: teamId || null,
       huntSessionId,
       source: (business.source === 'google-maps' ? 'GOOGLE_MAPS' :
               business.source === 'openstreetmap' ? 'OPENSTREETMAP' : 'GOOGLE_MAPS') as any,

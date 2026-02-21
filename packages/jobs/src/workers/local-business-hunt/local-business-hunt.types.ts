@@ -1,6 +1,7 @@
 export interface LocalBusinessHuntData {
   huntSessionId: string;
   userId: string;
+  teamId?: string | null;
   location: string;
   category: string;
   hasWebsite?: boolean;
