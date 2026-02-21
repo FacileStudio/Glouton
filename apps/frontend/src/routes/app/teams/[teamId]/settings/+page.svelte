@@ -565,7 +565,7 @@
     transition:fade={{ duration: 150 }}
     class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-900/60 backdrop-blur-sm"
   >
-    <div class="bg-white rounded-[32px] p-8 max-w-md w-full shadow-2xl space-y-6">
+    <div class="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl space-y-6">
       <div class="space-y-2 text-center">
         <div class="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto text-red-500 mb-4">
           <iconify-icon icon="solar:bomb-bold-duotone" width="32"></iconify-icon>

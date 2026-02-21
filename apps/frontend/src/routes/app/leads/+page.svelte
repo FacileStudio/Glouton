@@ -481,7 +481,7 @@
     {/if}
 
     <!-- Leads Table/Grid -->
-    <div class="rounded-[40px] overflow-hidden shadow-lg" style="background-color: #EFEAE6;">
+    <div class="rounded-2xl overflow-hidden shadow-lg" style="background-color: #EFEAE6;">
       {#if loadingData && !initialLoading}
         <div class="flex items-center justify-center py-20">
           <Spinner size="lg" />
