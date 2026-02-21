@@ -1,7 +1,7 @@
 import { TRPCError } from '@trpc/server';
 import { prisma } from '@repo/database/prisma';
 import { encrypt, decrypt } from '@repo/utils';
-import { TeamRole, checkTeamPermission, isTeamOwner } from './permissions';
+import { TeamRole, checkTeamPermission, checkTeamMembership, isTeamOwner } from './permissions';
 
 export const teamService = {
   listUserTeams: async (userId: string) => {
@@ -33,7 +33,7 @@ export const teamService = {
   },
 
   getTeam: async (teamId: string, userId: string) => {
-    const role = await checkTeamPermission(userId, teamId, TeamRole.MEMBER);
+    const role = await checkTeamMembership(userId, teamId);
 
     const team = await prisma.team.findUnique({
       where: { id: teamId },
