@@ -495,7 +495,7 @@
     />
 
     {#if huntType === 'domain'}
-    <div class="bg-white rounded-[35px] border border-slate-100 shadow-md p-8 space-y-8">
+    <div class="bg-white rounded-2xl border border-slate-100 shadow-md p-8 space-y-8">
       <div class="space-y-4">
         <div class="flex items-center justify-between mb-4">
           <span class="text-sm font-black uppercase tracking-wider text-slate-400"
@@ -777,7 +777,7 @@
       </div>
     </div>
     {:else}
-    <div class="bg-white rounded-[35px] border border-slate-100 shadow-md p-8 space-y-8">
+    <div class="bg-white rounded-2xl border border-slate-100 shadow-md p-8 space-y-8">
       <div class="space-y-6">
         <div class="flex items-center gap-3">
           <div class="w-12 h-12 bg-yellow-400/10 rounded-2xl flex items-center justify-center">
