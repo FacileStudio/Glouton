@@ -10,6 +10,7 @@
   import 'iconify-icon';
 
   let teamId = $derived(teamContextStore.getTeamId());
+  let settingsUrl = $derived(teamId ? `/app/teams/${teamId}/settings` : '/app/settings');
 
   let mapComponent: LocationPickerMap;
   let showMap = false;
@@ -305,7 +306,7 @@
       /**
        * goto
        */
-      goto('/app/settings');
+      goto(settingsUrl);
       return;
     }
 
@@ -755,7 +756,7 @@
                   Pour commencer à chercher des leads, vous devez configurer au moins une clé API dans vos paramètres.
                 </p>
                 <a
-                  href="/app/settings"
+                  href={settingsUrl}
                   class="inline-flex items-center gap-2 px-4 py-2 bg-brand-purple text-white rounded-xl font-bold hover:bg-brand-gold hover:text-brand-purple transition-all duration-200"
                 >
                   <iconify-icon icon="solar:settings-bold" width="18"></iconify-icon>
