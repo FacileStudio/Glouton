@@ -19,9 +19,9 @@ export class LeadAuditProcessor {
   private readonly PROGRESS_UPDATE_INTERVAL = 5;
 
   async process(job: Job<LeadAuditJobData>, emitter: JobEventEmitter): Promise<any> {
-    const { auditSessionId, userId } = job.data;
+    const { auditSessionId, userId, teamId } = job.data;
 
-    const leads = await this.helpers.fetchLeads(userId);
+    const leads = await this.helpers.fetchLeads(userId, teamId);
 
     console.log(
       `[LeadAudit] Starting audit for ${leads.length} leads in parallel batches of ${this.BATCH_SIZE}`

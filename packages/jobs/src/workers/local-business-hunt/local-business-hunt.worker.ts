@@ -15,10 +15,16 @@ export function createLocalBusinessHuntWorker(events: EventEmitter): JobDefiniti
   return {
     name: 'local-business-hunt',
     processor: async (job: BullJob<LocalBusinessHuntData>) => {
-      const { huntSessionId, location, category } = job.data;
+      const { huntSessionId, location, category, userId, teamId } = job.data;
+      const scope = {
+        type: teamId ? 'team' as const : 'personal' as const,
+        userId,
+        teamId,
+      };
+      const emitter = new JobEventEmitter(events, scope);
 
       try {
-        return await processor.process(job, new JobEventEmitter(events, job.data.userId));
+        return await processor.process(job, emitter);
       } catch (error) {
         console.error(`[LocalBusinessHunt] Fatal error:`, error);
 
@@ -26,7 +32,7 @@ export function createLocalBusinessHuntWorker(events: EventEmitter): JobDefiniti
 
         await sessionManager.failSession(huntSessionId, errorMessage);
 
-        new JobEventEmitter(events, job.data.userId).emit('hunt-failed', {
+        emitter.emit('hunt-failed', {
           huntSessionId,
           error: errorMessage,
           location,

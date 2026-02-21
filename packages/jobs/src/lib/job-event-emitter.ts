@@ -1,12 +1,22 @@
 import type { EventEmitter } from '../workers/index';
 
+export interface JobScope {
+  type: 'personal' | 'team';
+  userId: string;
+  teamId?: string;
+}
+
 export class JobEventEmitter {
   constructor(
     private readonly emitter: EventEmitter,
-    private readonly userId: string
+    private readonly scope: JobScope
   ) {}
 
-  emit(type: string, data?: any): void {
-    this.emitter.emit(this.userId, type, data);
+  async emit(type: string, data?: any): Promise<void> {
+    if (this.scope.type === 'team' && this.scope.teamId) {
+      await this.emitter.emitToScope(this.scope, type, data);
+    } else {
+      this.emitter.emit(this.scope.userId, type, data);
+    }
   }
 }

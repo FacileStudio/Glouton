@@ -15,8 +15,13 @@ export function createDomainFinderWorker(events: EventEmitter): JobDefinition<Do
   return {
     name: 'domain-finder',
     processor: async (job: BullJob<DomainFinderData>) => {
-      const { huntSessionId, userId } = job.data;
-      const emitter = new JobEventEmitter(events, userId);
+      const { huntSessionId, userId, teamId } = job.data;
+      const scope = {
+        type: teamId ? 'team' as const : 'personal' as const,
+        userId,
+        teamId,
+      };
+      const emitter = new JobEventEmitter(events, scope);
 
       try {
         await processor.process(job, emitter);
