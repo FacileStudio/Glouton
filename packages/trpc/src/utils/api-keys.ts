@@ -6,10 +6,6 @@ import { decrypt } from '@repo/utils';
 
 export interface ApiKeys {
   hunterApiKey?: string;
-  apolloApiKey?: string;
-  snovApiKey?: string;
-  hasdataApiKey?: string;
-  contactoutApiKey?: string;
   googleMapsApiKey?: string;
 }
 
@@ -32,19 +28,11 @@ export async function getApiKeys(
     const team = await prisma.$queryRaw<
       Array<{
         hunterApiKey: string | null;
-        apolloApiKey: string | null;
-        snovApiKey: string | null;
-        hasdataApiKey: string | null;
-        contactoutApiKey: string | null;
         googleMapsApiKey: string | null;
       }>
     >`
       SELECT
         "hunterApiKey",
-        "apolloApiKey",
-        "snovApiKey",
-        "hasdataApiKey",
-        "contactoutApiKey",
         "googleMapsApiKey"
       FROM "Team"
       WHERE "id" = ${scope.teamId}::text
@@ -63,24 +51,8 @@ export async function getApiKeys(
     logger.info({ teamId: scope.teamId }, '[API_KEYS] Using team API keys');
 
     return {
-      hunterApiKey: teamData.hunterApiKey
-        ? decrypt(teamData.hunterApiKey, encryptionSecret)
-        : undefined,
-      apolloApiKey: teamData.apolloApiKey
-        ? decrypt(teamData.apolloApiKey, encryptionSecret)
-        : undefined,
-      snovApiKey: teamData.snovApiKey
-        ? decrypt(teamData.snovApiKey, encryptionSecret)
-        : undefined,
-      hasdataApiKey: teamData.hasdataApiKey
-        ? decrypt(teamData.hasdataApiKey, encryptionSecret)
-        : undefined,
-      contactoutApiKey: teamData.contactoutApiKey
-        ? decrypt(teamData.contactoutApiKey, encryptionSecret)
-        : undefined,
-      googleMapsApiKey: teamData.googleMapsApiKey
-        ? decrypt(teamData.googleMapsApiKey, encryptionSecret)
-        : undefined,
+      hunterApiKey: teamData.hunterApiKey ?? undefined,
+      googleMapsApiKey: teamData.googleMapsApiKey ?? undefined,
     };
   }
 
@@ -88,10 +60,6 @@ export async function getApiKeys(
     where: { id: scope.userId },
     select: {
       hunterApiKey: true,
-      apolloApiKey: true,
-      snovApiKey: true,
-      hasdataApiKey: true,
-      contactoutApiKey: true,
       googleMapsApiKey: true,
     },
   });
@@ -108,10 +76,6 @@ export async function getApiKeys(
 
   return {
     hunterApiKey: user.hunterApiKey ?? undefined,
-    apolloApiKey: user.apolloApiKey ?? undefined,
-    snovApiKey: user.snovApiKey ?? undefined,
-    hasdataApiKey: user.hasdataApiKey ?? undefined,
-    contactoutApiKey: user.contactoutApiKey ?? undefined,
     googleMapsApiKey: user.googleMapsApiKey ?? undefined,
   };
 }
