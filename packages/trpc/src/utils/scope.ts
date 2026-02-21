@@ -20,7 +20,6 @@ export async function resolveScope(
     FROM "TeamMember" tm
     WHERE tm."teamId" = ${teamId}::text
     AND tm."userId" = ${userId}::text
-    AND tm."isActive" = true
     LIMIT 1
   `;
 
