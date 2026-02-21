@@ -453,14 +453,29 @@ export default {
     try {
       const existingLead = await prisma.lead.findUnique({
         where: { id: leadId },
-        select: { id: true, userId: true },
+        select: {
+          id: true,
+          userId: true,
+          teamId: true,
+          team: {
+            select: {
+              members: {
+                where: { userId, isActive: true },
+                select: { userId: true }
+              }
+            }
+          }
+        },
       });
 
       if (!existingLead) {
         throw new Error('Lead not found');
       }
 
-      if (existingLead.userId !== userId) {
+      const isOwner = existingLead.userId === userId;
+      const isTeamMember = existingLead.teamId && existingLead.team?.members.length > 0;
+
+      if (!isOwner && !isTeamMember) {
         throw new Error('Unauthorized to delete this lead');
       }
 
@@ -481,6 +496,16 @@ export default {
     try {
       const lead = await ctx.prisma.lead.findUnique({
         where: { id: leadId },
+        include: {
+          team: {
+            include: {
+              members: {
+                where: { userId: ctx.user.id, isActive: true },
+                select: { userId: true }
+              }
+            }
+          }
+        }
       });
 
       if (!lead) {
@@ -490,7 +515,10 @@ export default {
         });
       }
 
-      if (lead.userId !== ctx.user.id) {
+      const isOwner = lead.userId === ctx.user.id;
+      const isTeamMember = lead.teamId && lead.team?.members.length > 0;
+
+      if (!isOwner && !isTeamMember) {
         throw new TRPCError({
           code: 'FORBIDDEN',
           message: 'You do not have access to this lead',
