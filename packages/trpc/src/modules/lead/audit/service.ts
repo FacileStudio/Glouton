@@ -110,7 +110,11 @@ export default {
       }
 
       if (ctx.events) {
-        ctx.events.emit(ctx.user.id, 'audit-cancelled', {
+        const scope: { type: 'personal' | 'team'; userId: string; teamId?: string } = {
+          type: 'personal',
+          userId: ctx.user.id
+        };
+        await ctx.events.emitToScope(scope, 'audit-cancelled', {
           auditSessionId: result.id,
           processedLeads: result.processedLeads || 0,
           updatedLeads: result.updatedLeads || 0,
@@ -212,7 +216,7 @@ export default {
       ]);
 
       if (ctx.events) {
-        ctx.events.emit(userId, 'audit-started', {
+        await ctx.events.emitToScope(scope, 'audit-started', {
           auditSessionId: auditSession.id,
           status: 'PENDING',
           progress: 0,

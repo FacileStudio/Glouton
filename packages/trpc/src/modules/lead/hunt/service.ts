@@ -304,10 +304,10 @@ export default {
     return session;
   },
 
-  async cancelHunt(huntSessionId: string, userId: string, jobs: QueueManager, events?: { emit: (userId: string, type: string, data?: any) => void }) {
+  async cancelHunt(huntSessionId: string, userId: string, jobs: QueueManager, events?: { emitToScope: (scope: { type: 'personal' | 'team'; userId: string; teamId?: string }, type: string, data?: any) => Promise<void> }) {
     const session = await prisma.huntSession.findUnique({
       where: { id: huntSessionId, userId },
-      select: { id: true, jobId: true, status: true }
+      select: { id: true, jobId: true, status: true, teamId: true }
     });
 
     if (!session) {
@@ -343,7 +343,10 @@ export default {
     });
 
     if (events) {
-      events.emit(userId, 'hunt-cancelled', {
+      const scope: { type: 'personal' | 'team'; userId: string; teamId?: string } = session.teamId
+        ? { type: 'team', userId, teamId: session.teamId }
+        : { type: 'personal', userId };
+      await events.emitToScope(scope, 'hunt-cancelled', {
         huntSessionId
       });
     }
