@@ -1,6 +1,7 @@
 model Lead {
   id                 String        @id @default(dbgenerated("gen_random_uuid()")) @db.Text
   userId             String        @db.Text
+  teamId             String?       @db.Text
   source             LeadSource    @default(HUNTER)
   sourceId           String?       @db.Text
   businessType       BusinessType  @default(DOMAIN)
@@ -37,12 +38,14 @@ model Lead {
   updatedAt          DateTime      @default(now()) @updatedAt @db.Timestamptz(3)
 
   user               User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team               Team?           @relation(fields: [teamId], references: [id], onDelete: Cascade)
   emailOutreaches    EmailOutreach[]
   auditSessions      AuditSession[]
 
   @@unique([userId, email])
   @@unique([userId, domain, firstName, lastName])
   @@index([userId])
+  @@index([teamId])
   @@index([huntSessionId])
   @@index([status])
   @@index([source])
@@ -68,6 +71,7 @@ model EmailOutreach {
   id          String      @id @default(dbgenerated("gen_random_uuid()")) @db.Text
   leadId      String      @db.Text
   userId      String      @db.Text
+  teamId      String?     @db.Text
   templateId  String      @db.Text
   subject     String      @db.Text
   htmlBody    String      @db.Text
@@ -84,9 +88,11 @@ model EmailOutreach {
 
   lead        Lead        @relation(fields: [leadId], references: [id], onDelete: Cascade)
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team        Team?       @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   @@index([leadId])
   @@index([userId])
+  @@index([teamId])
   @@index([status])
   @@index([sentAt])
 }

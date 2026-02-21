@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { router, protectedProcedure } from '../../trpc';
 import { EmailService } from './service';
 import { getAllTemplates, renderTemplate } from '@repo/smtp';
+import { resolveScope } from '../../utils/scope';
 
 export const emailRouter = router({
   getTemplates: protectedProcedure.query(async () => {
@@ -26,18 +27,22 @@ export const emailRouter = router({
   sendEmail: protectedProcedure
     .input(
       z.object({
+        teamId: z.string().uuid().optional(),
         leadId: z.string(),
         templateId: z.string(),
         variables: z.record(z.string()),
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      const scope = await resolveScope(ctx.prisma, ctx.user.id, input.teamId);
       const emailService = new EmailService();
       return emailService.sendEmail({
+        scope,
         leadId: input.leadId,
-        userId: ctx.user.id,
         templateId: input.templateId,
         variables: input.variables,
+        encryptionSecret: ctx.env.ENCRYPTION_SECRET,
+        prisma: ctx.prisma,
       });
     }),
 
@@ -45,16 +50,22 @@ export const emailRouter = router({
     .input(z.object({ leadId: z.string() }))
     .query(async ({ ctx, input }) => {
       const emailService = new EmailService();
-      return emailService.getLeadOutreach(input.leadId, ctx.user.id);
+      return emailService.getLeadOutreach(input.leadId, ctx.user.id, ctx.prisma);
     }),
 
-  getStats: protectedProcedure.query(async ({ ctx }) => {
-    const emailService = new EmailService();
-    return emailService.getOutreachStats(ctx.user.id);
-  }),
+  getStats: protectedProcedure
+    .input(z.object({ teamId: z.string().uuid().optional() }).optional())
+    .query(async ({ ctx, input }) => {
+      const scope = await resolveScope(ctx.prisma, ctx.user.id, input?.teamId);
+      const emailService = new EmailService();
+      return emailService.getOutreachStats(scope, ctx.prisma);
+    }),
 
-  getAllOutreach: protectedProcedure.query(async ({ ctx }) => {
-    const emailService = new EmailService();
-    return emailService.getAllOutreach(ctx.user.id);
-  }),
+  getAllOutreach: protectedProcedure
+    .input(z.object({ teamId: z.string().uuid().optional() }).optional())
+    .query(async ({ ctx, input }) => {
+      const scope = await resolveScope(ctx.prisma, ctx.user.id, input?.teamId);
+      const emailService = new EmailService();
+      return emailService.getAllOutreach(scope, ctx.prisma);
+    }),
 });

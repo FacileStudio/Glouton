@@ -1,19 +1,26 @@
 import { prisma } from '@repo/database/prisma';
+import type { PrismaClient, LeadSource } from '@prisma/client';
 import type { QueueManager } from '@repo/jobs';
 import { TRPCError } from '@trpc/server';
-import type { LeadSource } from '@repo/database';
+import type { Scope } from '../../../utils/scope';
+import type { ApiKeys } from '../../../utils/api-keys';
+import { buildHuntFilter } from '../../../utils/scope';
+import { logger } from '@repo/logger';
 
 export interface StartHuntParams {
-  userId: string;
+  scope: Scope;
+  apiKeys: ApiKeys;
   source: string;
   companyName?: string;
   speed: number;
   filters?: any;
   jobs: QueueManager;
+  prisma: PrismaClient;
 }
 
 export interface StartLocalBusinessHuntParams {
-  userId: string;
+  scope: Scope;
+  apiKeys: ApiKeys;
   location: string;
   categories: string[];
   hasWebsite?: boolean;
@@ -21,6 +28,7 @@ export interface StartLocalBusinessHuntParams {
   maxResults?: number;
   googleMapsApiKey?: string;
   jobs: QueueManager;
+  prisma: PrismaClient;
 }
 
 export interface RunDetails {
@@ -76,31 +84,34 @@ export interface RunEvent {
 
 export default {
   async startHunt({
-    userId,
+    scope,
+    apiKeys,
     source,
     companyName,
     speed,
     filters,
     jobs,
+    prisma,
   }: StartHuntParams) {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { id: true }
-    });
+    const huntData: any = {
+      userId: scope.userId,
+      huntType: 'DOMAIN',
+      sources: [source as LeadSource],
+      filters: filters || {},
+      status: 'PENDING',
+      progress: 0,
+    };
 
-    if (!user) {
-      throw new Error('User not found. Please log in again.');
+    if (scope.type === 'team') {
+      huntData.teamId = scope.teamId;
+      logger.info({ teamId: scope.teamId, userId: scope.userId }, '[HUNT] Starting hunt for team');
+    } else {
+      huntData.teamId = null;
+      logger.info({ userId: scope.userId }, '[HUNT] Starting hunt for personal use');
     }
 
     const huntSession = await prisma.huntSession.create({
-      data: {
-        userId,
-        huntType: 'DOMAIN',
-        sources: [source as LeadSource],
-        filters: filters || {},
-        status: 'PENDING',
-        progress: 0,
-      },
+      data: huntData,
       select: {
         id: true,
         status: true,
@@ -113,10 +124,10 @@ export default {
       'domain-finder',
       {
         huntSessionId: huntSession.id,
-        userId,
+        userId: scope.userId,
+        teamId: scope.type === 'team' ? scope.teamId : null,
         filters,
-      },
-      { timeout: 7200000 }
+      }
     );
 
     return {
@@ -128,7 +139,8 @@ export default {
   },
 
   async startLocalBusinessHunt({
-    userId,
+    scope,
+    apiKeys,
     location,
     categories,
     hasWebsite,
@@ -136,29 +148,34 @@ export default {
     maxResults,
     googleMapsApiKey,
     jobs,
+    prisma,
   }: StartLocalBusinessHuntParams) {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { id: true }
-    });
-    if (!user) throw new Error('User not found. Please log in again.');
+    const huntData: any = {
+      userId: scope.userId,
+      huntType: 'LOCAL_BUSINESS',
+      sources: ['GOOGLE_MAPS', 'OPENSTREETMAP'] as LeadSource[],
+      filters: {
+        location,
+        categories,
+        hasWebsite,
+        radius,
+        maxResults,
+        totalJobs: categories.length
+      },
+      status: 'PENDING',
+      progress: 0,
+    };
+
+    if (scope.type === 'team') {
+      huntData.teamId = scope.teamId;
+      logger.info({ teamId: scope.teamId, userId: scope.userId }, '[HUNT] Starting local business hunt for team');
+    } else {
+      huntData.teamId = null;
+      logger.info({ userId: scope.userId }, '[HUNT] Starting local business hunt for personal use');
+    }
 
     const huntSession = await prisma.huntSession.create({
-      data: {
-        userId,
-        huntType: 'LOCAL_BUSINESS',
-        sources: ['GOOGLE_MAPS', 'OPENSTREETMAP'] as LeadSource[],
-        filters: {
-          location,
-          categories,
-          hasWebsite,
-          radius,
-          maxResults,
-          totalJobs: categories.length
-        },
-        status: 'PENDING',
-        progress: 0,
-      },
+      data: huntData,
       select: {
         id: true,
         status: true,
@@ -172,15 +189,15 @@ export default {
         'local-business-hunt',
         {
           huntSessionId: huntSession.id,
-          userId,
+          userId: scope.userId,
+          teamId: scope.type === 'team' ? scope.teamId : null,
           location,
           category,
           hasWebsite,
           radius,
           maxResults: Math.floor((maxResults || 100) / categories.length),
           googleMapsApiKey,
-        },
-        { timeout: 10800000 }
+        }
       );
     }
 
@@ -193,9 +210,10 @@ export default {
     };
   },
 
-  async getHuntSessions(userId: string, jobs?: QueueManager) {
+  async getHuntSessions(scope: Scope, prisma: PrismaClient, jobs?: QueueManager) {
+    const huntFilter = buildHuntFilter(scope);
     const sessions = await prisma.huntSession.findMany({
-      where: { userId },
+      where: huntFilter,
       orderBy: { createdAt: 'desc' }
     });
 
@@ -248,7 +266,6 @@ export default {
     return validatedSessions.map((session) => ({
       id: session.id,
       huntType: session.huntType,
-      speed: session.speed,
       status: session.status,
       progress: session.progress,
       totalLeads: session.totalLeads,

@@ -30,7 +30,6 @@ export function createJobConfig(options?: {
         type: 'exponential',
         delay: 1000,
       },
-      timeout: 1800000,
     },
     workerOptions: {
       lockDuration: 300000,
@@ -103,10 +102,7 @@ export async function validateRedisConfiguration(connection: JobConfig['connecti
     });
 
     const maxmemoryPolicy = await redis.config('GET', 'maxmemory-policy');
-    /**
-     * if
-     */
-    if (maxmemoryPolicy && maxmemoryPolicy[1] !== 'noeviction') {
+    if (Array.isArray(maxmemoryPolicy) && maxmemoryPolicy[1] !== 'noeviction') {
       warnings.push(
         `Redis maxmemory-policy is "${maxmemoryPolicy[1]}" but should be "noeviction" for BullMQ. ` +
         `Run: redis-cli CONFIG SET maxmemory-policy noeviction`

@@ -1,0 +1,42 @@
+model Team {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Text
+  name               String    @db.Text
+  description        String?   @db.Text
+  hunterApiKey       String?   @db.Text
+  apolloApiKey       String?   @db.Text
+  snovApiKey         String?   @db.Text
+  hasdataApiKey      String?   @db.Text
+  contactoutApiKey   String?   @db.Text
+  googleMapsApiKey   String?   @db.Text
+  smtpHost           String?   @db.Text
+  smtpPort           Int?
+  smtpSecure         Boolean?
+  smtpUser           String?   @db.Text
+  smtpPass           String?   @db.Text
+  smtpFromName       String?   @db.Text
+  smtpFromEmail      String?   @db.Text
+  createdAt          DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime  @default(now()) @updatedAt @db.Timestamptz(3)
+
+  members            TeamMember[]
+  leads              Lead[]
+  huntSessions       HuntSession[]
+  auditSessions      AuditSession[]
+  emailOutreaches    EmailOutreach[]
+}
+
+model TeamMember {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Text
+  teamId    String    @db.Text
+  userId    String    @db.Text
+  role      TeamRole  @default(MEMBER)
+  joinedAt  DateTime  @default(now()) @db.Timestamptz(3)
+
+  team      Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@index([teamId])
+  @@index([userId])
+  @@index([role])
+}

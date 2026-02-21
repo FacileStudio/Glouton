@@ -19,6 +19,7 @@ export const hunterFiltersSchema = z.object({
 }).optional();
 
 export const startHuntSchema = z.object({
+  teamId: z.string().uuid().optional(),
   source: leadSourceSchema.default('HUNTER'),
   companyName: z.string().optional(),
   speed: z
@@ -61,6 +62,7 @@ export const businessCategoryEnum = z.enum([
 ]);
 
 export const startLocalBusinessHuntSchema = z.object({
+  teamId: z.string().uuid().optional(),
   location: z.string().min(1, 'Location is required'),
   categories: z.array(businessCategoryEnum).min(1, 'At least one category is required'),
   hasWebsite: z.boolean().optional(),
@@ -70,6 +72,7 @@ export const startLocalBusinessHuntSchema = z.object({
 
 export const listLeadsSchema = z
   .object({
+    teamId: z.string().uuid().optional(),
     status: z.enum(['HOT', 'WARM', 'COLD']).optional(),
     search: z.string().optional(),
     country: z.string().optional(),
@@ -98,7 +101,7 @@ export const deleteLeadSchema = z.object({
 });
 
 export const getByIdSchema = z.object({
-  id: z.string().uuid('Invalid lead ID'),
+  leadId: z.string().uuid('Invalid lead ID'),
 });
 
 export const cancelHuntSchema = z.object({
