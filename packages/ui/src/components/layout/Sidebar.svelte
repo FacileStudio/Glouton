@@ -12,7 +12,7 @@
 <aside
   class="w-72 h-screen sticky top-0 bg-white border-r-2 border-neutral-100 p-8 flex flex-col selection:bg-black selection:text-white"
 >
-  <div class="mb-12 px-2">
+  <div class="mb-8 px-2">
     <div class="flex items-center gap-3">
       {#if logoSrc}
         <img src={logoSrc} alt="Glouton Logo" class="w-10 h-10" />
@@ -23,6 +23,10 @@
         Glouton.
       </h1>
     </div>
+  </div>
+
+  <div class="mb-8">
+    <slot name="context-switcher" />
   </div>
 
   <nav class="flex-1 space-y-2">
@@ -46,8 +50,6 @@
   </nav>
 
   <div class="mt-auto pt-6 border-t border-neutral-50 space-y-3">
-    <slot name="context-switcher" />
-
     <div
       class="p-4 bg-neutral-50 rounded-[24px] border border-neutral-100"
     >

@@ -52,7 +52,7 @@
           Login
         </a>
         <a href={resolve('/register')} class="nav-btn group flex items-center gap-2 text-sm font-black tracking-wide bg-black text-white px-6 py-3 rounded-xl transition-all active:scale-95" style="border: 2px solid #291334;">
-          <iconify-icon icon="solar:user-plus-bold-duotone" width="18"></iconify-icon>
+          <iconify-icon icon="mdi:account-plus" width="18"></iconify-icon>
           Commencer gratuitement
         </a>
       {:else}

@@ -104,9 +104,16 @@
           </p>
         {/if}
       </div>
+      <button
+        onclick={() => handleNavigate('/settings')}
+        class="w-12 h-12 flex items-center justify-center bg-white rounded-xl hover:bg-neutral-50 transition-colors border border-neutral-100"
+        title="Paramètres"
+      >
+        <iconify-icon icon="solar:settings-bold" width="20" class="text-neutral-700"></iconify-icon>
+      </button>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <button
         onclick={() => handleNavigate('/members')}
         class="bg-white rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all border border-neutral-100 text-left group hover:scale-[1.02] active:scale-[0.98]"
@@ -132,20 +139,6 @@
         <h3 class="font-bold text-sm text-neutral-500 uppercase">Leads</h3>
         <p class="text-2xl font-black text-neutral-900 mt-1">
           {loadingStats ? '...' : stats?.totalLeads || 0}
-        </p>
-      </button>
-
-      <button
-        onclick={() => handleNavigate('/settings')}
-        class="bg-white rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all border border-neutral-100 text-left group hover:scale-[1.02] active:scale-[0.98]"
-      >
-        <div class="flex items-center justify-between mb-2">
-          <iconify-icon icon="solar:settings-bold" width="32" class="text-neutral-700 group-hover:text-black"></iconify-icon>
-          <iconify-icon icon="solar:arrow-right-bold" width="20" class="text-neutral-300 group-hover:text-neutral-700"></iconify-icon>
-        </div>
-        <h3 class="font-bold text-sm text-neutral-500 uppercase">Paramètres</h3>
-        <p class="text-sm font-medium text-neutral-600 mt-1">
-          {team.userRole === 'OWNER' || team.userRole === 'ADMIN' ? 'Gérer l\'équipe' : 'Voir les détails'}
         </p>
       </button>
     </div>
