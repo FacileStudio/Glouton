@@ -4,12 +4,20 @@ import type { Lead, ProcessResult } from './lead-audit.types';
 import type { AuditResult } from '../../services/scraper.service';
 
 export class LeadAuditHelpers {
-  async fetchLeads(userId: string): Promise<Lead[]> {
+  async fetchLeads(userId: string, teamId?: string | null): Promise<Lead[]> {
+    const whereClause: any = {
+      domain: { not: null },
+    };
+
+    if (teamId) {
+      whereClause.teamId = teamId;
+    } else {
+      whereClause.userId = userId;
+      whereClause.teamId = null;
+    }
+
     return prisma.lead.findMany({
-      where: {
-        userId,
-        domain: { not: null },
-      },
+      where: whereClause,
       select: {
         id: true,
         domain: true,

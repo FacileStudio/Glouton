@@ -3,6 +3,7 @@ import type { Prisma } from '@prisma/client';
 export interface LeadExtractionData {
   huntSessionId: string;
   userId: string;
+  teamId?: string | null;
   sources: string[];
   companyName?: string;
   filters?: any;

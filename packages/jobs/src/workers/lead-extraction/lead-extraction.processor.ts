@@ -14,7 +14,7 @@ export class LeadExtractionProcessor {
   private helpers = new LeadExtractionHelpers();
 
   async process(job: BullJob<LeadExtractionData>, emitter: JobEventEmitter): Promise<void> {
-    const { huntSessionId, userId, sources, companyName, filters } = job.data;
+    const { huntSessionId, userId, teamId, sources, companyName, filters } = job.data;
 
     console.log(`[LeadExtraction] Starting lead extraction for session ${huntSessionId}`);
 
@@ -35,6 +35,7 @@ export class LeadExtractionProcessor {
     const result = await this.processSources(
       sources,
       userId,
+      teamId,
       huntSessionId,
       companyName,
       filters,
@@ -68,6 +69,7 @@ export class LeadExtractionProcessor {
   private async processSources(
     sources: string[],
     userId: string,
+    teamId: string | null | undefined,
     huntSessionId: string,
     companyName: string | undefined,
     filters: any,
@@ -96,6 +98,7 @@ export class LeadExtractionProcessor {
       const result = await this.processSource(
         source,
         userId,
+        teamId,
         huntSessionId,
         companyName,
         filters,
@@ -128,6 +131,7 @@ export class LeadExtractionProcessor {
   private async processSource(
     source: string,
     userId: string,
+    teamId: string | null | undefined,
     huntSessionId: string,
     companyName: string | undefined,
     filters: any,
@@ -181,6 +185,7 @@ export class LeadExtractionProcessor {
     return await this.insertLeads(
       extractedLeads,
       userId,
+      teamId,
       huntSessionId,
       source,
       companyName,
@@ -221,6 +226,7 @@ export class LeadExtractionProcessor {
   private async insertLeads(
     extractedLeads: LeadData[],
     userId: string,
+    teamId: string | null | undefined,
     huntSessionId: string,
     source: string,
     companyName: string | undefined,
@@ -235,7 +241,7 @@ export class LeadExtractionProcessor {
     const existing = await this.deduplicationService.findExistingLeads(userId, {
       domains: domainOnlyLeads.map((l) => l.domain),
       emails: emailLeads.map((l) => l.email!),
-    });
+    }, teamId);
 
     const newLeads = mappedLeads.filter((lead) => {
       if (lead.email) return !existing.emails.has(lead.email);

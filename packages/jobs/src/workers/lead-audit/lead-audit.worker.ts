@@ -14,8 +14,13 @@ export function createLeadAuditWorker(events: EventEmitter) {
   return {
     name: 'lead-audit',
     processor: async (job: Job<LeadAuditJobData>) => {
-      const { auditSessionId, userId } = job.data;
-      const emitter = new JobEventEmitter(events, userId);
+      const { auditSessionId, userId, teamId } = job.data;
+      const scope = {
+        type: teamId ? 'team' as const : 'personal' as const,
+        userId,
+        teamId,
+      };
+      const emitter = new JobEventEmitter(events, scope);
 
       try {
         return await processor.process(job, emitter);

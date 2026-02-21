@@ -1,6 +1,7 @@
 export interface DomainFinderData {
   huntSessionId: string;
   userId: string;
+  teamId?: string | null;
   filters?: {
     location?: {
       continent?: string;

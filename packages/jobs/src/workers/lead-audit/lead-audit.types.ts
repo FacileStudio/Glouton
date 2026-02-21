@@ -1,6 +1,7 @@
 export interface LeadAuditJobData {
   auditSessionId: string;
   userId: string;
+  teamId?: string | null;
 }
 
 export interface Lead {
