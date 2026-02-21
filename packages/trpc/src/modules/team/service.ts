@@ -6,7 +6,7 @@ import { TeamRole, checkTeamPermission, checkTeamMembership, isTeamOwner } from 
 export const teamService = {
   listUserTeams: async (userId: string) => {
     const memberships = await prisma.teamMember.findMany({
-      where: { userId },
+      where: { userId, isActive: true },
       include: {
         team: {
           select: {
@@ -15,6 +15,14 @@ export const teamService = {
             description: true,
             createdAt: true,
             updatedAt: true,
+            _count: {
+              select: {
+                members: {
+                  where: { isActive: true }
+                },
+                leads: true
+              }
+            }
           },
         },
       },
@@ -29,6 +37,7 @@ export const teamService = {
       joinedAt: membership.joinedAt,
       createdAt: membership.team.createdAt,
       updatedAt: membership.team.updatedAt,
+      _count: membership.team._count,
     }));
   },
 
