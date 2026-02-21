@@ -139,7 +139,7 @@
         {#each filteredTeams as team (team.id)}
           <button
             onclick={() => handleTeamClick(team.id)}
-            class="w-full bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200 border border-neutral-100 text-left group"
+            class="w-full bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200 border border-neutral-100 text-left group cursor-pointer"
           >
             <div class="flex items-center gap-4">
               <div class="w-10 h-10 bg-neutral-900 rounded-lg flex items-center justify-center text-white font-black text-sm group-hover:bg-black transition-colors flex-shrink-0">
