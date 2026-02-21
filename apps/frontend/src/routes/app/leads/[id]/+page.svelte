@@ -116,7 +116,7 @@
       const [leadData, templatesData, historyData] = await Promise.all([
         trpc.lead.query.getById.query({ leadId }),
         trpc.email.getTemplates.query(),
-        trpc.email.getLeadOutreach.query({ leadId }),
+        trpc.email.getLeadOutreach.query({ leadId, teamId }),
       ]);
 
       lead = leadData;

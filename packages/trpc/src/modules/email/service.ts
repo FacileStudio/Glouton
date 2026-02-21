@@ -121,11 +121,12 @@ export class EmailService {
     }
   }
 
-  async getLeadOutreach(leadId: string, userId: string, prisma: PrismaClient) {
+  async getLeadOutreach(leadId: string, scope: Scope, prisma: PrismaClient) {
+    const emailFilter = buildEmailFilter(scope);
     return prisma.emailOutreach.findMany({
       where: {
+        ...emailFilter,
         leadId,
-        userId,
       },
       select: {
         id: true,

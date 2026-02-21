@@ -62,9 +62,10 @@ export class LeadExtractionHelpers {
     return 'professional-services';
   }
 
-  prepareLeadInsert(lead: MappedLead, userId: string, huntSessionId: string, source: string): any {
+  prepareLeadInsert(lead: MappedLead, userId: string, huntSessionId: string, source: string, teamId?: string | null): any {
     return {
       userId,
+      teamId: teamId || null,
       huntSessionId,
       source: source as any,
       domain: lead.domain,

@@ -47,6 +47,7 @@ export class DomainFinderProcessor {
     const successfulLeads = await this.processCompanies(
       newCompanies,
       userId,
+      teamId,
       huntSessionId,
       job,
       emitter
@@ -115,6 +116,7 @@ export class DomainFinderProcessor {
   private async processCompanies(
     companies: CompanyData[],
     userId: string,
+    teamId: string | null | undefined,
     huntSessionId: string,
     job: BullJob<DomainFinderData>,
     emitter: JobEventEmitter
@@ -132,7 +134,7 @@ export class DomainFinderProcessor {
       }
 
       try {
-        await this.helpers.createLeadFromCompany(company, userId, huntSessionId);
+        await this.helpers.createLeadFromCompany(company, userId, huntSessionId, teamId);
         successfulLeads++;
 
         const progress = Math.floor(10 + ((i + 1) / totalToProcess) * 85);
