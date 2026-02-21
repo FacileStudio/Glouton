@@ -7,9 +7,11 @@ export const userRouter = router({
     return userService.getProfile(ctx.user.id);
   }),
 
-  getConfiguredSources: protectedProcedure.query(async ({ ctx }) => {
-    return userService.getConfiguredSources(ctx.user.id);
-  }),
+  getConfiguredSources: protectedProcedure
+    .input(z.object({ teamId: z.string().optional() }).optional())
+    .query(async ({ ctx, input }) => {
+      return userService.getConfiguredSources(ctx.user.id, input?.teamId);
+    }),
 
   list: adminProcedure
     .input(

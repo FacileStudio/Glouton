@@ -13,17 +13,17 @@
   let settingsUrl = $derived(teamId ? `/app/teams/${teamId}/settings` : '/app/settings');
 
   let mapComponent: LocationPickerMap;
-  let showMap = false;
+  let showMap = $state(false);
 
-  let huntType: 'domain' | 'local' = 'domain';
-  let loading = false;
-  let loadingLocation = false;
-  let selectedPresetId: string | null = null;
-  let showPresets = true;
-  let configuredSourcesCount = 0;
-  let userLocation: { city?: string; country?: string; countryCode?: string; state?: string; raw?: any } | null = null;
+  let huntType = $state<'domain' | 'local'>('domain');
+  let loading = $state(false);
+  let loadingLocation = $state(false);
+  let selectedPresetId = $state<string | null>(null);
+  let showPresets = $state(true);
+  let configuredSourcesCount = $state(0);
+  let userLocation = $state<{ city?: string; country?: string; countryCode?: string; state?: string; raw?: any } | null>(null);
 
-  let localBusinessFilters = {
+  let localBusinessFilters = $state({
     categories: [] as string[],
     hasWebsite: 'all' as 'all' | 'with' | 'without',
     radius: 5,
@@ -33,7 +33,7 @@
       country: '',
       coordinates: null as { lat: number; lng: number } | null,
     },
-  };
+  });
 
   const businessCategories = [
     { value: 'restaurant', label: 'Restaurants & Cafés', icon: 'solar:chef-hat-bold' },
@@ -48,7 +48,7 @@
     { value: 'education', label: 'Éducation', icon: 'solar:book-bold' },
   ];
 
-  let filters = {
+  let filters = $state({
     type: undefined as 'personal' | 'generic' | undefined,
     seniority: [] as string[],
     department: [] as string[],
@@ -59,7 +59,7 @@
       country: '',
       city: '',
     },
-  };
+  });
 
   const departments = [
     'executive',
@@ -80,7 +80,7 @@
 
   const seniorityLevels = ['junior', 'senior', 'executive'];
 
-  let jobTitleInput = '';
+  let jobTitleInput = $state('');
 
   /**
    * detectLocationFromGPS
@@ -199,29 +199,17 @@
 
       userLocation = location;
 
-      /**
-       * if
-       */
-      if (location.city && !filters.location.city) {
+      if (location.city) {
         filters.location.city = location.city;
       }
-      /**
-       * if
-       */
-      if (location.countryCode && !filters.location.country) {
+      if (location.countryCode) {
         filters.location.country = location.countryCode;
       }
 
-      /**
-       * if
-       */
-      if (location.city && !localBusinessFilters.location.city) {
+      if (location.city) {
         localBusinessFilters.location.city = location.city;
       }
-      /**
-       * if
-       */
-      if (location.countryCode && !localBusinessFilters.location.country) {
+      if (location.countryCode) {
         localBusinessFilters.location.country = location.countryCode;
       }
 
@@ -410,7 +398,9 @@
    */
   async function fetchConfiguredSources() {
     try {
-      const sources = await trpc.user.getConfiguredSources.query();
+      const sources = await trpc.user.getConfiguredSources.query(
+        teamId ? { teamId } : undefined
+      );
       console.log('Configured sources:', sources);
       configuredSourcesCount = sources.length;
       console.log('configuredSourcesCount:', configuredSourcesCount);
