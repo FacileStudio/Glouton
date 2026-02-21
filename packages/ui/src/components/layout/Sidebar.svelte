@@ -64,7 +64,9 @@
           <p class="text-[13px] font-black text-black truncate leading-tight">
             <slot name="user-name" />
           </p>
-          <p class="text-[11px] font-bold text-neutral-400 uppercase tracking-wide">Operator</p>
+          <p class="text-[11px] font-medium text-neutral-400 truncate">
+            <slot name="user-email">operator@glouton.app</slot>
+          </p>
         </div>
       </div>
     </div>
