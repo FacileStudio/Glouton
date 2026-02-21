@@ -460,7 +460,7 @@ export default {
           team: {
             select: {
               members: {
-                where: { userId, isActive: true },
+                where: { userId },
                 select: { userId: true }
               }
             }
@@ -500,7 +500,7 @@ export default {
           team: {
             include: {
               members: {
-                where: { userId: ctx.user.id, isActive: true },
+                where: { userId: ctx.user.id },
                 select: { userId: true }
               }
             }
