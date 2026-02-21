@@ -26,15 +26,34 @@
     newPassword: '',
     confirmPassword: '',
     hunterApiKey: '',
+    smtpHost: '',
+    smtpPort: 587,
+    smtpSecure: false,
+    smtpUser: '',
+    smtpPass: '',
+    smtpFromName: '',
+    smtpFromEmail: '',
   });
 
   let existingApiKeys = $state({
     hunterApiKey: '',
   });
 
+  let existingSmtpConfig = $state({
+    smtpHost: '',
+    smtpPort: 587,
+    smtpSecure: false,
+    smtpUser: '',
+    smtpFromName: '',
+    smtpFromEmail: '',
+  });
+
   let showApiKeys = $state({
     hunterApiKey: false,
   });
+
+  let showSmtpPass = $state(false);
+  let testingSmtp = $state(false);
 
   let originalFormData = $state({
     firstName: $authStore.user?.firstName || '',
@@ -48,6 +67,16 @@
 
   let hasApiKeyChanges = $derived(
     formData.hunterApiKey !== existingApiKeys.hunterApiKey
+  );
+
+  let hasSmtpConfigChanges = $derived(
+    formData.smtpHost !== existingSmtpConfig.smtpHost ||
+      formData.smtpPort !== existingSmtpConfig.smtpPort ||
+      formData.smtpSecure !== existingSmtpConfig.smtpSecure ||
+      formData.smtpUser !== existingSmtpConfig.smtpUser ||
+      formData.smtpPass !== '' ||
+      formData.smtpFromName !== existingSmtpConfig.smtpFromName ||
+      formData.smtpFromEmail !== existingSmtpConfig.smtpFromEmail
   );
 
   const tabs = [
@@ -163,6 +192,79 @@
     }
   }
 
+  async function handleTestSmtpConfig() {
+    if (
+      !formData.smtpHost ||
+      !formData.smtpPort ||
+      !formData.smtpUser ||
+      !formData.smtpPass ||
+      !formData.smtpFromName ||
+      !formData.smtpFromEmail
+    ) {
+      toast.push('Veuillez remplir tous les champs SMTP', 'error');
+      return;
+    }
+
+    testingSmtp = true;
+    try {
+      await trpc.user.testSmtpConfig.mutate({
+        smtpHost: formData.smtpHost,
+        smtpPort: formData.smtpPort,
+        smtpSecure: formData.smtpSecure,
+        smtpUser: formData.smtpUser,
+        smtpPass: formData.smtpPass,
+        smtpFromName: formData.smtpFromName,
+        smtpFromEmail: formData.smtpFromEmail,
+      });
+      toast.push('Configuration SMTP valide !', 'success');
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Configuration SMTP invalide';
+      toast.push(errorMessage, 'error');
+    } finally {
+      testingSmtp = false;
+    }
+  }
+
+  async function handleUpdateSmtpConfig() {
+    saving = true;
+    message = null;
+    try {
+      await trpc.user.updateSmtpConfig.mutate({
+        smtpHost: formData.smtpHost || undefined,
+        smtpPort: formData.smtpPort || undefined,
+        smtpSecure: formData.smtpSecure,
+        smtpUser: formData.smtpUser || undefined,
+        smtpPass: formData.smtpPass || undefined,
+        smtpFromName: formData.smtpFromName || undefined,
+        smtpFromEmail: formData.smtpFromEmail || undefined,
+      });
+
+      const smtpConfig = await trpc.user.getSmtpConfig.query();
+      existingSmtpConfig.smtpHost = smtpConfig.smtpHost || '';
+      existingSmtpConfig.smtpPort = smtpConfig.smtpPort || 587;
+      existingSmtpConfig.smtpSecure = smtpConfig.smtpSecure || false;
+      existingSmtpConfig.smtpUser = smtpConfig.smtpUser || '';
+      existingSmtpConfig.smtpFromName = smtpConfig.smtpFromName || '';
+      existingSmtpConfig.smtpFromEmail = smtpConfig.smtpFromEmail || '';
+
+      formData.smtpHost = smtpConfig.smtpHost || '';
+      formData.smtpPort = smtpConfig.smtpPort || 587;
+      formData.smtpSecure = smtpConfig.smtpSecure || false;
+      formData.smtpUser = smtpConfig.smtpUser || '';
+      formData.smtpPass = '';
+      formData.smtpFromName = smtpConfig.smtpFromName || '';
+      formData.smtpFromEmail = smtpConfig.smtpFromEmail || '';
+
+      toast.push('Configuration SMTP enregistrée avec succès !', 'success');
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Échec de la mise à jour de la config SMTP';
+      console.error('Failed to update SMTP config:', error);
+      toast.push(errorMessage, 'error');
+    } finally {
+      saving = false;
+    }
+  }
+
   /**
    * handleDeleteAccount
    */
@@ -200,7 +302,10 @@
    * onMount
    */
   onMount(async () => {
-    const [userResult] = await Promise.allSettled([trpc.user.me.query()]);
+    const [userResult, smtpConfigResult] = await Promise.allSettled([
+      trpc.user.me.query(),
+      trpc.user.getSmtpConfig.query(),
+    ]);
 
     /**
      * if
@@ -211,6 +316,25 @@
       formData.hunterApiKey = user.hunterApiKey || '';
     } else {
       console.error('Failed to fetch API key status:', userResult.reason);
+    }
+
+    if (smtpConfigResult.status === 'fulfilled') {
+      const smtpConfig = smtpConfigResult.value;
+      existingSmtpConfig.smtpHost = smtpConfig.smtpHost || '';
+      existingSmtpConfig.smtpPort = smtpConfig.smtpPort || 587;
+      existingSmtpConfig.smtpSecure = smtpConfig.smtpSecure || false;
+      existingSmtpConfig.smtpUser = smtpConfig.smtpUser || '';
+      existingSmtpConfig.smtpFromName = smtpConfig.smtpFromName || '';
+      existingSmtpConfig.smtpFromEmail = smtpConfig.smtpFromEmail || '';
+
+      formData.smtpHost = smtpConfig.smtpHost || '';
+      formData.smtpPort = smtpConfig.smtpPort || 587;
+      formData.smtpSecure = smtpConfig.smtpSecure || false;
+      formData.smtpUser = smtpConfig.smtpUser || '';
+      formData.smtpFromName = smtpConfig.smtpFromName || '';
+      formData.smtpFromEmail = smtpConfig.smtpFromEmail || '';
+    } else {
+      console.error('Failed to fetch SMTP config:', smtpConfigResult.reason);
     }
   });
 </script>
@@ -482,6 +606,160 @@
                 <iconify-icon icon="solar:diskette-bold" width="18"></iconify-icon>
               {/if}
               {saving ? 'Enregistrement...' : 'Enregistrer les clés API'}
+            </Button>
+          </div>
+        </div>
+
+        <div class="p-8 md:p-10 rounded-2xl shadow-lg" style="background-color: #EFEAE6;">
+          <div class="mb-8">
+            <div class="flex items-center gap-3 mb-2">
+              <div class="w-11 h-11 flex items-center justify-center bg-neutral-900 rounded-lg">
+                <iconify-icon icon="solar:letter-bold-duotone" width="20" class="text-white"
+                ></iconify-icon>
+              </div>
+              <h2 class="text-2xl font-black" style="color: #291334;">Serveur Mail</h2>
+            </div>
+            <p class="text-neutral-500 text-sm">
+              Configurez votre serveur SMTP pour l'envoi d'emails de prospection
+            </p>
+          </div>
+
+          <div class="space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="space-y-2">
+                <label for="smtpHost" class="text-sm font-bold text-neutral-700 block"
+                  >Hôte SMTP</label
+                >
+                <Input
+                  id="smtpHost"
+                  type="text"
+                  bind:value={formData.smtpHost}
+                  placeholder="smtp.gmail.com"
+                  class="rounded-xl"
+                />
+              </div>
+              <div class="space-y-2">
+                <label for="smtpPort" class="text-sm font-bold text-neutral-700 block"
+                  >Port SMTP</label
+                >
+                <Input
+                  id="smtpPort"
+                  type="number"
+                  bind:value={formData.smtpPort}
+                  placeholder="587"
+                  class="rounded-xl"
+                />
+              </div>
+            </div>
+
+            <div class="space-y-2">
+              <label class="text-sm font-bold text-neutral-700 flex items-center gap-2">
+                <Toggle bind:checked={formData.smtpSecure} />
+                Utiliser SSL/TLS (port 465)
+              </label>
+              <p class="text-xs text-neutral-500">
+                Activez cette option si vous utilisez le port 465 avec SSL/TLS
+              </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="space-y-2">
+                <label for="smtpUser" class="text-sm font-bold text-neutral-700 block"
+                  >Nom d'utilisateur SMTP</label
+                >
+                <Input
+                  id="smtpUser"
+                  type="text"
+                  bind:value={formData.smtpUser}
+                  placeholder="votre@email.com"
+                  class="rounded-xl"
+                />
+              </div>
+              <div class="space-y-2">
+                <label for="smtpPass" class="text-sm font-bold text-neutral-700 block"
+                  >Mot de passe SMTP</label
+                >
+                <div class="relative">
+                  <Input
+                    id="smtpPass"
+                    type={showSmtpPass ? 'text' : 'password'}
+                    bind:value={formData.smtpPass}
+                    placeholder="••••••••"
+                    class="rounded-xl pr-10"
+                  />
+                  {#if formData.smtpPass}
+                    <button
+                      type="button"
+                      onclick={() => (showSmtpPass = !showSmtpPass)}
+                      aria-label={showSmtpPass
+                        ? 'Masquer le mot de passe SMTP'
+                        : 'Afficher le mot de passe SMTP'}
+                      class="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors"
+                    >
+                      <iconify-icon
+                        icon={showSmtpPass ? 'solar:eye-bold' : 'solar:eye-closed-bold'}
+                        width="20"
+                      ></iconify-icon>
+                    </button>
+                  {/if}
+                </div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="space-y-2">
+                <label for="smtpFromName" class="text-sm font-bold text-neutral-700 block"
+                  >Nom de l'expéditeur</label
+                >
+                <Input
+                  id="smtpFromName"
+                  type="text"
+                  bind:value={formData.smtpFromName}
+                  placeholder="Votre Nom"
+                  class="rounded-xl"
+                />
+              </div>
+              <div class="space-y-2">
+                <label for="smtpFromEmail" class="text-sm font-bold text-neutral-700 block"
+                  >Email de l'expéditeur</label
+                >
+                <Input
+                  id="smtpFromEmail"
+                  type="email"
+                  bind:value={formData.smtpFromEmail}
+                  placeholder="votre@email.com"
+                  class="rounded-xl"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div
+            class="flex flex-col md:flex-row gap-3 justify-end pt-8 mt-8 border-t border-neutral-100"
+          >
+            <Button
+              onclick={handleTestSmtpConfig}
+              disabled={testingSmtp || saving}
+              class="px-6 bg-neutral-600 text-white hover:bg-neutral-700 disabled:opacity-50"
+            >
+              {#if testingSmtp}
+                <Spinner size="sm" class="text-white" />
+              {:else}
+                <iconify-icon icon="solar:test-tube-bold" width="18"></iconify-icon>
+              {/if}
+              {testingSmtp ? 'Test en cours...' : 'Tester la configuration'}
+            </Button>
+            <Button
+              onclick={handleUpdateSmtpConfig}
+              disabled={saving || !hasSmtpConfigChanges}
+              class="px-6 bg-black text-white hover:bg-neutral-800 disabled:opacity-50"
+            >
+              {#if saving}
+                <Spinner size="sm" class="text-white" />
+              {:else}
+                <iconify-icon icon="solar:diskette-bold" width="18"></iconify-icon>
+              {/if}
+              {saving ? 'Enregistrement...' : 'Enregistrer'}
             </Button>
           </div>
         </div>

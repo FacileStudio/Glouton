@@ -134,6 +134,83 @@ export const userRouter = router({
     .mutation(async ({ ctx, input }) => {
       return userService.updateApiKeys(ctx.user.id, input);
     }),
+
+  getSmtpConfig: protectedProcedure.query(async ({ ctx }) => {
+    return userService.getSmtpConfig(ctx.user.id);
+  }),
+
+  updateSmtpConfig: protectedProcedure
+    .input(
+      z.object({
+        smtpHost: z.string().optional(),
+        smtpPort: z.number().int().min(1).max(65535).optional(),
+        smtpSecure: z.boolean().optional(),
+        smtpUser: z.string().optional(),
+        smtpPass: z.string().optional(),
+        smtpFromName: z.string().optional(),
+        smtpFromEmail: z.string().email().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      return userService.updateSmtpConfig(ctx.user.id, input);
+    }),
+
+  testSmtpConfig: protectedProcedure
+    .input(
+      z.object({
+        smtpHost: z.string(),
+        smtpPort: z.number().int().min(1).max(65535),
+        smtpSecure: z.boolean(),
+        smtpUser: z.string(),
+        smtpPass: z.string(),
+        smtpFromName: z.string(),
+        smtpFromEmail: z.string().email(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const { SMTPService } = await import('@repo/smtp');
+      const { TRPCError } = await import('@trpc/server');
+
+      const testSmtp = new SMTPService({
+        host: input.smtpHost,
+        port: input.smtpPort,
+        secure: input.smtpSecure,
+        auth: {
+          user: input.smtpUser,
+          pass: input.smtpPass,
+        },
+        from: {
+          name: input.smtpFromName,
+          email: input.smtpFromEmail,
+        },
+      });
+
+      try {
+        const isValid = await testSmtp.verifyConnection();
+        await testSmtp.close();
+
+        if (!isValid) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'La vérification de la connexion SMTP a échoué',
+          });
+        }
+
+        return { success: true, message: 'Configuration SMTP valide' };
+      } catch (error) {
+        await testSmtp.close().catch(() => {});
+
+        if (error instanceof TRPCError) {
+          throw error;
+        }
+
+        const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: `Configuration SMTP invalide : ${errorMessage}`,
+        });
+      }
+    }),
 });
 
 export default userRouter;
