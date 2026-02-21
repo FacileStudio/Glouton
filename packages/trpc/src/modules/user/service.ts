@@ -1,7 +1,9 @@
 import { TRPCError } from '@trpc/server';
 import { prisma } from '@repo/database/prisma';
 import { type AuthManager } from '@repo/auth';
-import type { UserRole, UserStatus } from '@repo/types';
+import type { UserRole } from '@repo/types';
+import { UserStatus } from '@prisma/client';
+import { encrypt, decrypt } from '@repo/utils';
 
 export const userService = {
   getProfile: async (userId: string) => {
@@ -301,7 +303,7 @@ export const userService = {
     return updatedUser;
   },
 
-  getSmtpConfig: async (userId: string) => {
+  getSmtpConfig: async (userId: string, encryptionKey: string) => {
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -309,6 +311,7 @@ export const userService = {
         smtpPort: true,
         smtpSecure: true,
         smtpUser: true,
+        smtpPass: true,
         smtpFromName: true,
         smtpFromEmail: true,
       },
@@ -321,7 +324,24 @@ export const userService = {
       });
     }
 
-    return user;
+    let decryptedPass: string | null = null;
+    if (user.smtpPass) {
+      try {
+        decryptedPass = decrypt(user.smtpPass, encryptionKey);
+      } catch (error) {
+        decryptedPass = null;
+      }
+    }
+
+    return {
+      smtpHost: user.smtpHost,
+      smtpPort: user.smtpPort,
+      smtpSecure: user.smtpSecure,
+      smtpUser: user.smtpUser,
+      smtpPass: decryptedPass,
+      smtpFromName: user.smtpFromName,
+      smtpFromEmail: user.smtpFromEmail,
+    };
   },
 
   updateSmtpConfig: async (
@@ -334,8 +354,14 @@ export const userService = {
       smtpPass?: string;
       smtpFromName?: string;
       smtpFromEmail?: string;
-    }
+    },
+    encryptionKey: string
   ) => {
+    let encryptedPass: string | null = null;
+    if (smtpConfig.smtpPass) {
+      encryptedPass = encrypt(smtpConfig.smtpPass, encryptionKey);
+    }
+
     const updatedUser = await prisma.user.update({
       where: { id: userId },
       data: {
@@ -343,7 +369,7 @@ export const userService = {
         smtpPort: smtpConfig.smtpPort ?? null,
         smtpSecure: smtpConfig.smtpSecure ?? null,
         smtpUser: smtpConfig.smtpUser ?? null,
-        smtpPass: smtpConfig.smtpPass ?? null,
+        smtpPass: encryptedPass,
         smtpFromName: smtpConfig.smtpFromName ?? null,
         smtpFromEmail: smtpConfig.smtpFromEmail ?? null,
       },

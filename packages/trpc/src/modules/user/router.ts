@@ -136,7 +136,7 @@ export const userRouter = router({
     }),
 
   getSmtpConfig: protectedProcedure.query(async ({ ctx }) => {
-    return userService.getSmtpConfig(ctx.user.id);
+    return userService.getSmtpConfig(ctx.user.id, ctx.env.ENCRYPTION_SECRET);
   }),
 
   updateSmtpConfig: protectedProcedure
@@ -152,7 +152,7 @@ export const userRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      return userService.updateSmtpConfig(ctx.user.id, input);
+      return userService.updateSmtpConfig(ctx.user.id, input, ctx.env.ENCRYPTION_SECRET);
     }),
 
   testSmtpConfig: protectedProcedure
