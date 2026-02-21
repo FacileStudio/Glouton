@@ -287,66 +287,24 @@ export class LocalBusinessHuntProcessor {
 
     const BATCH_SIZE = 50;
     let totalInserted = 0;
-    let totalUpdated = 0;
 
     for (let i = 0; i < leadsWithEmail.length; i += BATCH_SIZE) {
       const batch = leadsWithEmail.slice(i, i + BATCH_SIZE);
 
-      const operations = batch.map((lead, idx) => {
-        const requiredFields = {
-          userId: lead.userId,
-          email: lead.email,
-          businessName: lead.businessName,
-          city: lead.city,
-          country: lead.country,
-          status: lead.status,
-          category: lead.category,
-        };
-
-        console.log(`[LocalBusinessHunt] Lead ${i + idx} required fields:`, JSON.stringify(requiredFields));
-
-        if (!lead.email) {
-          console.error(`[LocalBusinessHunt] Lead ${i + idx} has no email!`, lead);
-          throw new Error('Lead without email in leadsWithEmail batch');
-        }
-
-        const nullFields = Object.entries(requiredFields).filter(([_, v]) => v === null || v === undefined);
-        if (nullFields.length > 0) {
-          console.warn(`[LocalBusinessHunt] Lead ${i + idx} has null fields:`, nullFields.map(([k]) => k).join(', '));
-        }
-
-        return prisma.lead.upsert({
-          where: {
-            userId_email: {
-              userId: lead.userId,
-              email: lead.email!,
-            },
-          },
-          create: lead,
-          update: {
-            businessName: lead.businessName ?? undefined,
-            domain: lead.domain ?? undefined,
-            city: lead.city ?? undefined,
-            country: lead.country ?? undefined,
-            phoneNumbers: lead.phoneNumbers.length > 0 ? lead.phoneNumbers : undefined,
-            physicalAddresses: lead.physicalAddresses.length > 0 ? lead.physicalAddresses : undefined,
-            hasWebsite: lead.hasWebsite ?? undefined,
-            coordinates: lead.coordinates ?? undefined,
-            updatedAt: new Date(),
-          },
+      try {
+        const result = await prisma.lead.createMany({
+          data: batch,
+          skipDuplicates: true,
         });
-      });
 
-      const results = await prisma.$transaction(operations);
-
-      const batchInserted = results.filter((result) => {
-        return result.createdAt.getTime() === result.updatedAt.getTime();
-      });
-      const batchUpdated = results.length - batchInserted.length;
-      totalInserted += batchInserted.length;
-      totalUpdated += batchUpdated;
+        totalInserted += result.count;
+      } catch (error) {
+        console.error(`[LocalBusinessHunt] Error inserting batch:`, error);
+      }
 
       const batchProgress = Math.min(90, 50 + Math.floor(((i + batch.length) / deduplicatedLeads.length) * 40));
+
+      const batchInserted = totalInserted - (i === 0 ? 0 : totalInserted);
 
       emitter.emit('hunt-progress', {
         huntSessionId,
@@ -358,15 +316,13 @@ export class LocalBusinessHuntProcessor {
         status: 'PROCESSING',
       });
 
-      if (batchInserted.length > 0) {
-        emitter.emit('leads-created', {
-          huntSessionId,
-          count: batchInserted.length,
-          location,
-          category,
-          message: `Found ${batchInserted.length} new ${category} businesses in ${location}`,
-        });
-      }
+      emitter.emit('leads-created', {
+        huntSessionId,
+        count: batchInserted,
+        location,
+        category,
+        message: `Found ${batchInserted} new ${category} businesses in ${location}`,
+      });
 
       await new Promise(resolve => setTimeout(resolve, 500));
     }
@@ -404,16 +360,6 @@ export class LocalBusinessHuntProcessor {
 
     if (totalInserted > 0) {
       console.log(`[LocalBusinessHunt] Inserted ${totalInserted} new leads`);
-    }
-    if (totalUpdated > 0) {
-      console.log(`[LocalBusinessHunt] Updated ${totalUpdated} existing leads`);
-      emitter.emit('leads-updated', {
-        huntSessionId,
-        count: totalUpdated,
-        location,
-        category,
-        message: `Updated ${totalUpdated} existing ${category} businesses in ${location}`,
-      });
     }
 
     return totalInserted;
