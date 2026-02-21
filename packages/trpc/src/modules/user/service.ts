@@ -300,6 +300,57 @@ export const userService = {
 
     return updatedUser;
   },
+
+  getSmtpConfig: async (userId: string) => {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        smtpHost: true,
+        smtpPort: true,
+        smtpSecure: true,
+        smtpUser: true,
+        smtpFromName: true,
+        smtpFromEmail: true,
+      },
+    });
+
+    if (!user) {
+      throw new TRPCError({
+        code: 'NOT_FOUND',
+        message: 'User not found',
+      });
+    }
+
+    return user;
+  },
+
+  updateSmtpConfig: async (
+    userId: string,
+    smtpConfig: {
+      smtpHost?: string;
+      smtpPort?: number;
+      smtpSecure?: boolean;
+      smtpUser?: string;
+      smtpPass?: string;
+      smtpFromName?: string;
+      smtpFromEmail?: string;
+    }
+  ) => {
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        smtpHost: smtpConfig.smtpHost ?? null,
+        smtpPort: smtpConfig.smtpPort ?? null,
+        smtpSecure: smtpConfig.smtpSecure ?? null,
+        smtpUser: smtpConfig.smtpUser ?? null,
+        smtpPass: smtpConfig.smtpPass ?? null,
+        smtpFromName: smtpConfig.smtpFromName ?? null,
+        smtpFromEmail: smtpConfig.smtpFromEmail ?? null,
+      },
+    });
+
+    return updatedUser;
+  },
 };
 
 export default userService;

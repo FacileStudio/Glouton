@@ -1,0 +1,8 @@
+ALTER TABLE "User"
+ADD COLUMN "smtpHost" TEXT,
+ADD COLUMN "smtpPort" INTEGER,
+ADD COLUMN "smtpSecure" BOOLEAN,
+ADD COLUMN "smtpUser" TEXT,
+ADD COLUMN "smtpPass" TEXT,
+ADD COLUMN "smtpFromName" TEXT,
+ADD COLUMN "smtpFromEmail" TEXT;

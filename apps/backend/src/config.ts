@@ -1,7 +1,6 @@
 import { AuthManager } from '@repo/auth';
 import { prisma } from '@repo/database';
 import { QueueManager, createJobConfig } from '@repo/jobs';
-import { SMTPService } from '@repo/smtp';
 import env from './env';
 import { events } from './services/events';
 
@@ -18,25 +17,10 @@ const jobs = new QueueManager(
   })
 );
 
-const smtp = new SMTPService({
-  host: env.SMTP_HOST,
-  port: env.SMTP_PORT,
-  secure: env.SMTP_SECURE,
-  auth: {
-    user: env.SMTP_USER,
-    pass: env.SMTP_PASS,
-  },
-  from: {
-    name: env.SMTP_FROM_NAME,
-    email: env.SMTP_FROM_EMAIL,
-  },
-});
-
 export default {
   authManager,
   env,
   jobs,
-  smtp,
   prisma,
   events,
 };

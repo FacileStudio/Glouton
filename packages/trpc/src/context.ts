@@ -5,7 +5,6 @@ import { type AuthManager } from '@repo/auth';
 import { type ServerEnv } from '@repo/env';
 import { QueueManager } from '@repo/jobs';
 import type { Logger } from '@repo/logger';
-import type { SMTPService } from '@repo/smtp';
 
 export interface CreateContextOptions extends FetchCreateContextFnOptions {
   db: SQL;
@@ -14,7 +13,6 @@ export interface CreateContextOptions extends FetchCreateContextFnOptions {
   env: ServerEnv;
   logger: Logger;
   jobs: QueueManager;
-  smtp?: SMTPService;
   events?: {
     emit: (userId: string, type: string, data?: any) => void;
     broadcast: (type: string, data?: any) => void;
@@ -52,7 +50,6 @@ export const createContext = async (options: CreateContextOptions) => {
     userAgent,
     log,
     jobs: options.jobs,
-    smtp: options.smtp,
     events: options.events,
   };
 };

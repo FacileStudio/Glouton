@@ -2,24 +2,63 @@ import { prisma } from '@repo/database/prisma';
 import { SMTPService, renderTemplate, type EmailTemplate } from '@repo/smtp';
 
 export class EmailService {
-  constructor(
-    private smtp: SMTPService,
-  ) {}
-
   async sendEmail(params: {
     leadId: string;
     userId: string;
     templateId: string;
     variables: Record<string, string>;
   }) {
-    const lead = await prisma.lead.findUnique({
-      where: { id: params.leadId },
-      select: { id: true, email: true },
-    });
+    const [lead, user] = await Promise.all([
+      prisma.lead.findUnique({
+        where: { id: params.leadId },
+        select: { id: true, email: true },
+      }),
+      prisma.user.findUnique({
+        where: { id: params.userId },
+        select: {
+          smtpHost: true,
+          smtpPort: true,
+          smtpSecure: true,
+          smtpUser: true,
+          smtpPass: true,
+          smtpFromName: true,
+          smtpFromEmail: true,
+        },
+      }),
+    ]);
 
     if (!lead || !lead.email) {
       throw new Error('Lead not found or has no email');
     }
+
+    if (
+      !user ||
+      !user.smtpHost ||
+      !user.smtpPort ||
+      user.smtpSecure === null ||
+      !user.smtpUser ||
+      !user.smtpPass ||
+      !user.smtpFromName ||
+      !user.smtpFromEmail
+    ) {
+      throw new Error(
+        'SMTP configuration not found. Please configure your SMTP settings in your account.'
+      );
+    }
+
+    const smtp = new SMTPService({
+      host: user.smtpHost,
+      port: user.smtpPort,
+      secure: user.smtpSecure,
+      auth: {
+        user: user.smtpUser,
+        pass: user.smtpPass,
+      },
+      from: {
+        name: user.smtpFromName,
+        email: user.smtpFromEmail,
+      },
+    });
 
     const rendered = renderTemplate(params.templateId, params.variables);
     if (!rendered) {
@@ -41,7 +80,7 @@ export class EmailService {
     });
 
     try {
-      await this.smtp.sendEmail({
+      await smtp.sendEmail({
         to: lead.email,
         subject: rendered.subject,
         html: rendered.html,
@@ -65,6 +104,8 @@ export class EmailService {
         },
       });
 
+      await smtp.close();
+
       return { success: true, outreachId: outreach.id };
     } catch (error) {
       await prisma.emailOutreach.update({
@@ -74,6 +115,8 @@ export class EmailService {
           error: error instanceof Error ? error.message : 'Unknown error',
         },
       });
+
+      await smtp.close();
 
       throw error;
     }

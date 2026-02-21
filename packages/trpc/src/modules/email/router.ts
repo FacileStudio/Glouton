@@ -32,11 +32,7 @@ export const emailRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      if (!ctx.smtp) {
-        throw new Error('SMTP service not configured');
-      }
-
-      const emailService = new EmailService(ctx.smtp);
+      const emailService = new EmailService();
       return emailService.sendEmail({
         leadId: input.leadId,
         userId: ctx.user.id,
@@ -48,17 +44,17 @@ export const emailRouter = router({
   getLeadOutreach: protectedProcedure
     .input(z.object({ leadId: z.string() }))
     .query(async ({ ctx, input }) => {
-      const emailService = new EmailService(ctx.smtp as any);
+      const emailService = new EmailService();
       return emailService.getLeadOutreach(input.leadId, ctx.user.id);
     }),
 
   getStats: protectedProcedure.query(async ({ ctx }) => {
-    const emailService = new EmailService(ctx.smtp as any);
+    const emailService = new EmailService();
     return emailService.getOutreachStats(ctx.user.id);
   }),
 
   getAllOutreach: protectedProcedure.query(async ({ ctx }) => {
-    const emailService = new EmailService(ctx.smtp as any);
+    const emailService = new EmailService();
     return emailService.getAllOutreach(ctx.user.id);
   }),
 });
