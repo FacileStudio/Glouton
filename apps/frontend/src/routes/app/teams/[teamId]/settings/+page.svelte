@@ -90,14 +90,14 @@
       originalGeneralForm.name = team.name;
       originalGeneralForm.description = team.description || '';
 
-      if (canManage) {
+      if (team.userRole === 'OWNER' || team.userRole === 'ADMIN') {
         await Promise.all([loadApiKeys(), loadSmtpConfig()]);
       }
     } catch (error: any) {
       console.error('Error loading team:', error);
       toast.push(error?.message || 'Échec du chargement de l\'équipe', 'error');
       goto('/app/teams');
-    } finally {
+    } finally{
       loading = false;
     }
   }
