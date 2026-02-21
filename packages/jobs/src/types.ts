@@ -60,4 +60,4 @@ export interface JobInfo {
   finishedOn?: number;
 }
 
-export { Queue, Worker, BullJob };
+export type { Queue, Worker, BullJob };
