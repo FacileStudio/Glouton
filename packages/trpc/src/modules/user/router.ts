@@ -131,6 +131,7 @@ export const userRouter = router({
     .input(
       z.object({
         hunterApiKey: z.string().optional(),
+        googleMapsApiKey: z.string().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
