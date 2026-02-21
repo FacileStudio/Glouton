@@ -44,6 +44,7 @@
     smtpPort: 587,
     smtpSecure: false,
     smtpUser: '',
+    smtpPass: '',
     smtpFromName: '',
     smtpFromEmail: '',
   });
@@ -74,7 +75,7 @@
       formData.smtpPort !== existingSmtpConfig.smtpPort ||
       formData.smtpSecure !== existingSmtpConfig.smtpSecure ||
       formData.smtpUser !== existingSmtpConfig.smtpUser ||
-      formData.smtpPass !== '' ||
+      formData.smtpPass !== existingSmtpConfig.smtpPass ||
       formData.smtpFromName !== existingSmtpConfig.smtpFromName ||
       formData.smtpFromEmail !== existingSmtpConfig.smtpFromEmail
   );
@@ -244,6 +245,7 @@
       existingSmtpConfig.smtpPort = smtpConfig.smtpPort || 587;
       existingSmtpConfig.smtpSecure = smtpConfig.smtpSecure || false;
       existingSmtpConfig.smtpUser = smtpConfig.smtpUser || '';
+      existingSmtpConfig.smtpPass = smtpConfig.smtpPass || '';
       existingSmtpConfig.smtpFromName = smtpConfig.smtpFromName || '';
       existingSmtpConfig.smtpFromEmail = smtpConfig.smtpFromEmail || '';
 
@@ -251,7 +253,7 @@
       formData.smtpPort = smtpConfig.smtpPort || 587;
       formData.smtpSecure = smtpConfig.smtpSecure || false;
       formData.smtpUser = smtpConfig.smtpUser || '';
-      formData.smtpPass = '';
+      formData.smtpPass = smtpConfig.smtpPass || '';
       formData.smtpFromName = smtpConfig.smtpFromName || '';
       formData.smtpFromEmail = smtpConfig.smtpFromEmail || '';
 
@@ -324,6 +326,7 @@
       existingSmtpConfig.smtpPort = smtpConfig.smtpPort || 587;
       existingSmtpConfig.smtpSecure = smtpConfig.smtpSecure || false;
       existingSmtpConfig.smtpUser = smtpConfig.smtpUser || '';
+      existingSmtpConfig.smtpPass = smtpConfig.smtpPass || '';
       existingSmtpConfig.smtpFromName = smtpConfig.smtpFromName || '';
       existingSmtpConfig.smtpFromEmail = smtpConfig.smtpFromEmail || '';
 
@@ -331,6 +334,7 @@
       formData.smtpPort = smtpConfig.smtpPort || 587;
       formData.smtpSecure = smtpConfig.smtpSecure || false;
       formData.smtpUser = smtpConfig.smtpUser || '';
+      formData.smtpPass = smtpConfig.smtpPass || '';
       formData.smtpFromName = smtpConfig.smtpFromName || '';
       formData.smtpFromEmail = smtpConfig.smtpFromEmail || '';
     } else {
@@ -740,14 +744,15 @@
             <Button
               onclick={handleTestSmtpConfig}
               disabled={testingSmtp || saving}
-              class="px-6 bg-neutral-600 text-white hover:bg-neutral-700 disabled:opacity-50"
+              class="px-6 bg-neutral-600 text-white hover:bg-neutral-700 disabled:opacity-50 min-w-[220px]"
             >
               {#if testingSmtp}
                 <Spinner size="sm" class="text-white" />
+                <span>Test en cours...</span>
               {:else}
                 <iconify-icon icon="solar:test-tube-bold" width="18"></iconify-icon>
+                <span>Tester la configuration</span>
               {/if}
-              {testingSmtp ? 'Test en cours...' : 'Tester la configuration'}
             </Button>
             <Button
               onclick={handleUpdateSmtpConfig}
