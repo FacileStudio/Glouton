@@ -43,7 +43,7 @@ export const userService = {
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { hunterApiKey: true },
+      select: { hunterApiKey: true, googleMapsApiKey: true },
     });
 
     if (!user) {
@@ -55,6 +55,7 @@ export const userService = {
 
     const sources: string[] = [];
     if (user.hunterApiKey) sources.push('HUNTER');
+    if (user.googleMapsApiKey) sources.push('GOOGLE_MAPS');
     return sources;
   },
 
