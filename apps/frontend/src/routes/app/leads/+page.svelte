@@ -12,7 +12,10 @@
   import LeadsMap from '$lib/components/leads/LeadsMap.svelte';
   import PaginationControls from '$lib/components/leads/PaginationControls.svelte';
   import { setupAuditListeners, type AuditSession } from '$lib/websocket-events.svelte';
+  import { teamContextStore } from '$lib/stores/team-context.svelte';
   import 'iconify-icon';
+
+  let teamId = $derived(teamContextStore.getTeamId());
 
   // State
   let leads = $state<any[]>([]);
@@ -151,6 +154,7 @@
     try {
       const [leadsData, auditData] = await Promise.all([
         trpc.lead.query.list.query({
+          teamId,
           page: currentPage,
           limit: pageSize,
           status: filters.status || undefined,
@@ -168,7 +172,7 @@
           sortBy: sortBy as 'domain' | 'email' | 'city' | 'country' | 'score' | 'status' | 'createdAt',
           sortOrder: sortOrder,
         }),
-        trpc.lead.audit.list.query(),
+        trpc.lead.audit.list.query({ teamId }),
       ]);
 
       leads = leadsData?.leads || [];
@@ -191,7 +195,7 @@
 
   async function loadStats() {
     try {
-      const statsData = await trpc.lead.query.getStats.query();
+      const statsData = await trpc.lead.query.getStats.query({ teamId });
       if (statsData) stats = statsData;
     } catch (error) {
       console.error('Error loading stats:', error);

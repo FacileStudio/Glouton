@@ -6,7 +6,10 @@
   import { toast } from '@repo/utils';
   import { Spinner, Skeleton } from '@repo/ui';
   import { getFaviconUrl, handleFaviconError } from '$lib/utils/favicon';
+  import { teamContextStore } from '$lib/stores/team-context.svelte';
   import 'iconify-icon';
+
+  let teamId = $derived(teamContextStore.getTeamId());
 
   interface OutreachLead {
     leadId: string;
@@ -101,8 +104,8 @@
     initialLoading = true;
     try {
       const [outreachData, statsData, templatesData] = await Promise.all([
-        trpc.email.getAllOutreach.query(),
-        trpc.email.getStats.query(),
+        trpc.email.getAllOutreach.query({ teamId }),
+        trpc.email.getStats.query({ teamId }),
         trpc.email.getTemplates.query(),
       ]);
       outreachLeads = outreachData as OutreachLead[];
@@ -170,6 +173,7 @@
     sending = true;
     try {
       await trpc.email.sendEmail.mutate({
+        teamId,
         leadId: lead.leadId,
         templateId: selectedTemplate,
         variables: composeVariables,
