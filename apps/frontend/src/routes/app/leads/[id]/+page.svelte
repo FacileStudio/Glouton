@@ -114,7 +114,7 @@
   async function loadData() {
     try {
       const [leadData, templatesData, historyData] = await Promise.all([
-        trpc.lead.query.getById.query({ id: leadId }),
+        trpc.lead.query.getById.query({ leadId }),
         trpc.email.getTemplates.query(),
         trpc.email.getLeadOutreach.query({ leadId }),
       ]);
