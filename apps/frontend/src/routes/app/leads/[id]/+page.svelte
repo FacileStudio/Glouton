@@ -280,6 +280,21 @@
     if (p.includes('snapchat')) return { icon: 'mdi:snapchat', color: 'text-yellow-500', bg: 'bg-yellow-50', label: 'Snapchat' };
     if (p.includes('medium')) return { icon: 'mdi:medium', color: 'text-neutral-900', bg: 'bg-neutral-100', label: 'Medium' };
     if (p.includes('whatsapp')) return { icon: 'mdi:whatsapp', color: 'text-[#25D366]', bg: 'bg-[#E8FDF1]', label: 'WhatsApp' };
+    if (p.includes('telegram')) return { icon: 'mdi:telegram', color: 'text-[#0088CC]', bg: 'bg-[#E6F5FF]', label: 'Telegram' };
+    if (p.includes('discord')) return { icon: 'ic:baseline-discord', color: 'text-[#5865F2]', bg: 'bg-[#EDEFFE]', label: 'Discord' };
+    if (p.includes('reddit')) return { icon: 'mdi:reddit', color: 'text-[#FF4500]', bg: 'bg-[#FFE9E0]', label: 'Reddit' };
+    if (p.includes('threads')) return { icon: 'ri:threads-fill', color: 'text-neutral-900', bg: 'bg-neutral-100', label: 'Threads' };
+    if (p.includes('mastodon')) return { icon: 'mdi:mastodon', color: 'text-[#6364FF]', bg: 'bg-[#EDEDFF]', label: 'Mastodon' };
+    if (p.includes('bluesky') || p.includes('bsky')) return { icon: 'simple-icons:bluesky', color: 'text-[#0085FF]', bg: 'bg-[#E5F2FF]', label: 'Bluesky' };
+    if (p.includes('vimeo')) return { icon: 'mdi:vimeo', color: 'text-[#1AB7EA]', bg: 'bg-[#E6F7FC]', label: 'Vimeo' };
+    if (p.includes('behance')) return { icon: 'mdi:behance', color: 'text-[#1769FF]', bg: 'bg-[#E6EEFF]', label: 'Behance' };
+    if (p.includes('dribbble')) return { icon: 'mdi:dribbble', color: 'text-[#EA4C89]', bg: 'bg-[#FDEAF2]', label: 'Dribbble' };
+    if (p.includes('spotify')) return { icon: 'mdi:spotify', color: 'text-[#1DB954]', bg: 'bg-[#E8F5ED]', label: 'Spotify' };
+    if (p.includes('soundcloud')) return { icon: 'mdi:soundcloud', color: 'text-[#FF5500]', bg: 'bg-[#FFE9E0]', label: 'SoundCloud' };
+    if (p.includes('slack')) return { icon: 'mdi:slack', color: 'text-[#4A154B]', bg: 'bg-[#F3E6F4]', label: 'Slack' };
+    if (p.includes('yelp')) return { icon: 'mdi:yelp', color: 'text-[#FF1A1A]', bg: 'bg-[#FFE6E6]', label: 'Yelp' };
+    if (p.includes('tripadvisor')) return { icon: 'mdi:tripadvisor', color: 'text-[#00AF87]', bg: 'bg-[#E6F7F3]', label: 'TripAdvisor' };
+    if (p.includes('twitch')) return { icon: 'mdi:twitch', color: 'text-[#9146FF]', bg: 'bg-[#F0EBFF]', label: 'Twitch' };
     return { icon: 'mdi:link-variant', color: 'text-neutral-600', bg: 'bg-neutral-100', label: platform };
   }
 

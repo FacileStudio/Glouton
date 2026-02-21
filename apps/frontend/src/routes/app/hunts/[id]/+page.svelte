@@ -46,6 +46,7 @@
       email: string | null;
       firstName: string | null;
       lastName: string | null;
+      businessName: string | null;
       position: string | null;
       status: string;
       score: number;
@@ -302,17 +303,6 @@
     return `${secs}s`;
   }
 
-  function getStatusColor(status: string): string {
-    switch (status) {
-      case 'COMPLETED': return 'bg-green-500 text-white';
-      case 'PROCESSING': return 'bg-yellow-500 text-black';
-      case 'PENDING': return 'bg-blue-500 text-white';
-      case 'FAILED': return 'bg-red-500 text-white';
-      case 'CANCELLED': return 'bg-neutral-500 text-white';
-      default: return 'bg-neutral-400 text-white';
-    }
-  }
-
   function getLevelStyle(level: string) {
     switch (level) {
       case 'success': return { dot: 'bg-green-400', text: 'text-green-700', bg: 'bg-green-50' };
@@ -360,55 +350,82 @@
     </button>
   </div>
 {:else}
-  <div class="p-6 lg:p-12 max-w-[1800px] mx-auto space-y-8 selection:text-black font-sans" style="background-color: #FAF7F5;" in:fade>
-
-    <div class="flex items-center justify-between gap-4">
-      <div class="flex items-center gap-4">
+  <div class="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-neutral-200 px-6 py-4">
+    <div class="max-w-[1600px] mx-auto flex items-center justify-between gap-4">
+      <div class="flex items-center gap-4 min-w-0">
         <button
           onclick={() => goto('/app/hunts')}
-          aria-label="Retour aux chasses"
-          class="w-12 h-12 flex items-center justify-center bg-neutral-100 rounded-xl hover:bg-neutral-200 transition-colors"
+          class="w-10 h-10 flex-shrink-0 flex items-center justify-center bg-neutral-100 hover:bg-neutral-200 rounded-xl transition-colors"
         >
-          <iconify-icon icon="solar:alt-arrow-left-bold" width="24" class="text-neutral-700"></iconify-icon>
+          <iconify-icon icon="solar:arrow-left-bold" width="18"></iconify-icon>
         </button>
-        <div>
-          <div class="flex items-center gap-3">
-            <h1 class="text-4xl font-black tracking-tight leading-none">
-              Détails de la chasse<span class="text-yellow-400">.</span>
-            </h1>
-            <span class="px-3 py-1.5 rounded-xl text-xs font-black uppercase {getStatusColor(details.status)}">
-              {details.status}
-              {#if details.status === 'PROCESSING'}
-                <span class="inline-block w-1.5 h-1.5 rounded-full bg-current ml-1 animate-pulse"></span>
-              {/if}
-            </span>
-          </div>
-          <p class="text-neutral-400 font-medium text-sm mt-1">
+
+        <div class="w-10 h-10 flex-shrink-0 rounded-xl border border-neutral-200 bg-white flex items-center justify-center overflow-hidden shadow-sm">
+          <iconify-icon icon="solar:rocket-2-bold" width="20" class="text-neutral-700"></iconify-icon>
+        </div>
+
+        <div class="min-w-0">
+          <h1 class="text-xl font-black tracking-tight text-neutral-900 truncate">
             {#if details.huntType === 'LOCAL_BUSINESS'}
-              {details.filters?.location || 'Local'} · {details.filters?.categories?.join(', ') || ''}
+              {details.filters?.location || 'Recherche locale'}
             {:else}
-              {details.domain || 'Recherche large'} · {details.sources?.join(', ')}
+              {details.domain || 'Recherche large'}
+            {/if}
+          </h1>
+          <p class="text-sm text-neutral-500 font-medium truncate">
+            {#if details.huntType === 'LOCAL_BUSINESS'}
+              {details.filters?.categories?.join(', ') || 'Commerce local'}
+            {:else}
+              {#if details.sources && details.sources.length > 0}
+                {#each details.sources as source, i}
+                  {source === 'GOOGLE_MAPS' ? 'Google Maps' : source === 'OPENSTREETMAP' ? 'OpenStreetMap' : source}{i < details.sources.length - 1 ? ', ' : ''}
+                {/each}
+              {:else}
+                Aucune source
+              {/if}
             {/if}
           </p>
         </div>
       </div>
 
-      {#if details.status === 'COMPLETED' || details.status === 'FAILED'}
-        <button
-          onclick={relaunchHunt}
-          disabled={relaunching}
-          class="flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold bg-black text-white hover:bg-neutral-800 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {#if relaunching}
-            <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-            Relance...
-          {:else}
-            <iconify-icon icon="solar:restart-bold" width="16"></iconify-icon>
-            Relancer la chasse
+      <div class="flex items-center gap-3 flex-shrink-0">
+        <span class="px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wide {
+          details.status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
+          details.status === 'PROCESSING' ? 'bg-yellow-100 text-yellow-700' :
+          details.status === 'PENDING' ? 'bg-blue-100 text-blue-700' :
+          details.status === 'FAILED' ? 'bg-red-100 text-red-700' :
+          'bg-neutral-100 text-neutral-700'
+        }">
+          {details.status === 'COMPLETED' ? 'Terminée' :
+           details.status === 'PROCESSING' ? 'En cours' :
+           details.status === 'PENDING' ? 'En attente' :
+           details.status === 'FAILED' ? 'Échouée' :
+           details.status === 'CANCELLED' ? 'Annulée' : details.status}
+          {#if details.status === 'PROCESSING'}
+            <span class="inline-block w-1.5 h-1.5 rounded-full bg-current ml-1 animate-pulse"></span>
           {/if}
-        </button>
-      {/if}
+        </span>
+
+        {#if details.status === 'COMPLETED' || details.status === 'FAILED'}
+          <button
+            onclick={relaunchHunt}
+            disabled={relaunching}
+            class="px-5 py-2.5 bg-black text-white rounded-xl text-sm font-bold hover:bg-neutral-800 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {#if relaunching}
+              <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              Relance...
+            {:else}
+              <iconify-icon icon="solar:restart-bold" width="16"></iconify-icon>
+              Relancer
+            {/if}
+          </button>
+        {/if}
+      </div>
     </div>
+  </div>
+
+  <div class="p-6 lg:p-12 max-w-[1800px] mx-auto space-y-8 selection:text-black font-sans" style="background-color: #FAF7F5;" in:fade>
 
     {#if isProcessing && asBannerSession}
       <div in:fly={{ y: -10, duration: 300 }}>
@@ -506,16 +523,22 @@
                   </div>
                   <div class="flex-1 min-w-0">
                     <p class="font-bold text-neutral-900 text-sm truncate">
-                      {[lead.firstName, lead.lastName].filter(Boolean).join(' ') || lead.domain}
+                      {lead.businessName || [lead.firstName, lead.lastName].filter(Boolean).join(' ') || lead.domain || 'Sans nom'}
                     </p>
-                    <p class="text-xs text-neutral-500 truncate">{lead.email || lead.domain}</p>
+                    <p class="text-xs text-neutral-500 truncate">
+                      {lead.email || lead.domain || 'Aucune information de contact'}
+                    </p>
                   </div>
                   <div class="flex items-center gap-2 flex-shrink-0">
                     <span class="text-xs px-2 py-1 rounded-lg font-black {
                       lead.status === 'HOT' ? 'bg-red-100 text-red-700' :
                       lead.status === 'WARM' ? 'bg-orange-100 text-orange-700' :
                       'bg-blue-100 text-blue-700'
-                    }">{lead.status}</span>
+                    }">
+                      {lead.status === 'HOT' ? 'Chaud' :
+                       lead.status === 'WARM' ? 'Tiède' :
+                       'Froid'}
+                    </span>
                     <span class="text-xs font-bold text-neutral-400">{lead.score}/100</span>
                   </div>
                 </div>
@@ -670,7 +693,17 @@
                   <p class="text-xs font-bold text-neutral-500 uppercase mb-2">Sources</p>
                   <div class="flex flex-wrap gap-2">
                     {#each details.sources as source}
-                      <span class="px-3 py-1 bg-neutral-100 text-neutral-800 rounded-lg font-bold text-xs">{source}</span>
+                      <span class="px-3 py-1.5 bg-neutral-100 text-neutral-800 rounded-lg font-bold text-xs">
+                        {source === 'GOOGLE_MAPS' ? 'Google Maps' :
+                         source === 'OPENSTREETMAP' ? 'OpenStreetMap' :
+                         source === 'HUNTER' ? 'Hunter' :
+                         source === 'APOLLO' ? 'Apollo' :
+                         source === 'SNOV' ? 'Snov.io' :
+                         source === 'HASDATA' ? 'HasData' :
+                         source === 'CONTACTOUT' ? 'ContactOut' :
+                         source === 'MANUAL' ? 'Manuel' :
+                         source}
+                      </span>
                     {/each}
                   </div>
                 </div>
@@ -813,7 +846,7 @@
             {/if}
 
             {#if details.error}
-              <div class="bg-red-50 border-2 border-red-200 rounded-xl p-4">
+              <div class="bg-red-50 border-2 border-red-200 rounded-lg p-4">
                 <div class="flex items-start gap-2">
                   <iconify-icon icon="solar:danger-bold" width="18" class="text-red-600 flex-shrink-0 mt-0.5"></iconify-icon>
                   <p class="text-xs font-medium text-red-700">{details.error}</p>
