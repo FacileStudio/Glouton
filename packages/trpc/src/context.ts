@@ -16,6 +16,7 @@ export interface CreateContextOptions extends FetchCreateContextFnOptions {
   events?: {
     emit: (userId: string, type: string, data?: any) => void;
     broadcast: (type: string, data?: any) => void;
+    emitToScope: (scope: { type: 'personal' | 'team'; userId: string; teamId?: string }, type: string, data?: any) => Promise<void>;
   };
 }
 
