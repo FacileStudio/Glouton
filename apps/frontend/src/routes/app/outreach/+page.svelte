@@ -322,7 +322,7 @@
   <section class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
     {#if initialLoading}
       {#each Array(3) as _}
-        <div class="p-4 sm:p-6 lg:p-8 rounded-[24px] sm:rounded-[32px] shadow-lg" style="background-color: #EFEAE6;">
+        <div class="p-4 sm:p-6 lg:p-8 rounded-[24px] sm:rounded-2xl shadow-lg" style="background-color: #EFEAE6;">
           <div class="flex items-start justify-between mb-3 sm:mb-4 lg:mb-6">
             <Skeleton width="120px" height="1.5rem" rounded="md" />
             <Skeleton width="40px" height="40px" rounded="2xl" />
@@ -355,7 +355,7 @@
         },
       ] as stat}
         <div
-          class="p-4 sm:p-6 lg:p-8 rounded-[24px] sm:rounded-[32px] shadow-lg hover:shadow-xl transition-shadow {stat.accent ? 'ring-2 ring-amber-300' : ''}"
+          class="p-4 sm:p-6 lg:p-8 rounded-[24px] sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow {stat.accent ? 'ring-2 ring-amber-300' : ''}"
           style="background-color: #EFEAE6;"
         >
           <div class="flex items-start justify-between mb-3 sm:mb-4 lg:mb-6">
@@ -426,7 +426,7 @@
     </div>
   </div>
 
-  <section class="rounded-[40px] overflow-hidden shadow-lg" style="background-color: #EFEAE6;">
+  <section class="rounded-2xl overflow-hidden shadow-lg" style="background-color: #EFEAE6;">
 
     {#if initialLoading}
       <div class="p-8 space-y-3">

@@ -434,7 +434,7 @@
         </div>
       {/if}
 
-        <section class="bg-white rounded-[32px] border-2 border-neutral-200 p-8">
+        <section class="bg-white rounded-2xl border-2 border-neutral-200 p-8">
           <div class="flex items-center gap-3 mb-6">
             <div class="w-10 h-10 bg-neutral-900 rounded-xl flex items-center justify-center">
               <iconify-icon icon="solar:settings-bold" width="20" class="text-white"></iconify-icon>
@@ -691,7 +691,7 @@
 
         {#if discoveredItems.length > 0}
 
-        <section class="bg-white rounded-[32px] border-2 border-neutral-200 p-8">
+        <section class="bg-white rounded-2xl border-2 border-neutral-200 p-8">
           <div class="flex items-center gap-3 mb-6">
             <div class="w-10 h-10 bg-neutral-900 rounded-xl flex items-center justify-center">
               <iconify-icon icon="solar:chart-2-bold" width="20" class="text-white"></iconify-icon>
@@ -732,7 +732,7 @@
         {/if}
 
         {#if isProcessing || liveEvents.length > 0}
-          <section class="bg-white rounded-[32px] border-2 border-neutral-200 overflow-hidden">
+          <section class="bg-white rounded-2xl border-2 border-neutral-200 overflow-hidden">
             <div class="p-8 pb-4 flex items-center justify-between">
               <div class="flex items-center gap-3">
                 <div class="w-10 h-10 bg-neutral-900 rounded-xl flex items-center justify-center">
@@ -772,7 +772,7 @@
             </div>
           </section>
         {:else if details.status === 'FAILED'}
-          <section class="bg-white rounded-[32px] border-2 border-neutral-200 overflow-hidden">
+          <section class="bg-white rounded-2xl border-2 border-neutral-200 overflow-hidden">
             <div class="p-8 pb-4 flex items-center gap-3">
               <div class="w-10 h-10 bg-neutral-900 rounded-xl flex items-center justify-center">
                 <iconify-icon icon="solar:target-bold" width="20" class="text-white"></iconify-icon>
@@ -801,7 +801,7 @@
 
       </div>
 
-        <section class="bg-white rounded-[32px] border-2 border-neutral-200 overflow-hidden">
+        <section class="bg-white rounded-2xl border-2 border-neutral-200 overflow-hidden">
           <div class="p-8 pb-4 flex items-center gap-3">
             <div class="w-10 h-10 bg-neutral-900 rounded-xl flex items-center justify-center">
               <iconify-icon icon="solar:users-group-rounded-bold" width="20" class="text-white"></iconify-icon>
@@ -841,7 +841,7 @@
         </section>
 
         {#if details.status === 'FAILED'}
-        <section class="bg-white rounded-[32px] border-2 border-red-200 overflow-hidden">
+        <section class="bg-white rounded-2xl border-2 border-red-200 overflow-hidden">
           <div class="p-8 text-center">
             <div class="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <iconify-icon icon="solar:danger-bold" width="32" class="text-red-600"></iconify-icon>
