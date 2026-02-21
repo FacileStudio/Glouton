@@ -59,13 +59,13 @@
     replyRate: number;
   }
 
-  let outreachLeads: OutreachLead[] = [];
-  let stats: Stats | null = null;
-  let templates: EmailTemplate[] = [];
-  let initialLoading = true;
-  let activeTab: 'all' | 'followup' | 'pending' | 'replied' = 'all';
-  let search = '';
-  let mounted = false;
+  let outreachLeads = $state<OutreachLead[]>([]);
+  let stats = $state<Stats | null>(null);
+  let templates = $state<EmailTemplate[]>([]);
+  let initialLoading = $state(true);
+  let activeTab = $state<'all' | 'followup' | 'pending' | 'replied'>('all');
+  let search = $state('');
+  let mounted = $state(false);
 
   function syncToUrl() {
     const params = new URLSearchParams();
@@ -83,14 +83,14 @@
     }
   });
 
-  let expandedLeadId: string | null = null;
-  let panelHistory: EmailHistory[] = [];
-  let panelLoading = false;
-  let expandedEmailId: string | null = null;
+  let expandedLeadId = $state<string | null>(null);
+  let panelHistory = $state<EmailHistory[]>([]);
+  let panelLoading = $state(false);
+  let expandedEmailId = $state<string | null>(null);
 
-  let selectedTemplate = '';
-  let composeVariables: Record<string, string> = {};
-  let sending = false;
+  let selectedTemplate = $state('');
+  let composeVariables = $state<Record<string, string>>({});
+  let sending = $state(false);
 
   onMount(async () => {
     const params = new URLSearchParams(location.search);
@@ -105,17 +105,23 @@
   async function loadData() {
     initialLoading = true;
     try {
+      console.log('[OUTREACH] Loading data with teamId:', teamId);
       const [outreachData, statsData, templatesData] = await Promise.all([
         trpc.email.getAllOutreach.query({ teamId }),
         trpc.email.getStats.query({ teamId }),
         trpc.email.getTemplates.query(),
       ]);
+      console.log('[OUTREACH] Data loaded:', { outreach: outreachData?.length, stats: statsData, templates: templatesData?.length });
       outreachLeads = outreachData as OutreachLead[];
       stats = statsData as Stats;
       templates = templatesData;
     } catch (error) {
+      console.error('[OUTREACH] Error loading data:', error);
       toast.push('Échec du chargement des données de prospection', 'error');
-      console.error(error);
+      // Set to empty arrays so UI shows empty state
+      outreachLeads = [];
+      stats = null;
+      templates = [];
     } finally {
       initialLoading = false;
     }
