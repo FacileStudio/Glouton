@@ -8,7 +8,6 @@
   import FilterPanel from '$lib/components/leads/FilterPanel.svelte';
   import AuditBanner from '$lib/components/leads/AuditBanner.svelte';
   import LeadsTable from '$lib/components/leads/LeadsTable.svelte';
-  import LeadsGrid from '$lib/components/leads/LeadsGrid.svelte';
   import LeadsMap from '$lib/components/leads/LeadsMap.svelte';
   import PaginationControls from '$lib/components/leads/PaginationControls.svelte';
   import { setupAuditListeners, type AuditSession } from '$lib/websocket-events.svelte';
@@ -41,7 +40,7 @@
   });
 
   // View settings
-  let viewMode = $state<'grid' | 'table'>('table');
+  let filtersExpanded = $state(false);
 
   let mounted = false;
 
@@ -61,13 +60,11 @@
     if (filters.hasEmail) params.set('hasEmail', filters.hasEmail);
     if (sortBy !== 'createdAt') params.set('sortBy', sortBy);
     if (sortOrder !== 'desc') params.set('sortOrder', sortOrder);
-    if (viewMode !== 'table') params.set('view', viewMode);
     const qs = params.toString();
     replaceState(qs ? `?${qs}` : location.pathname, {});
   }
 
   $effect(() => {
-    viewMode;
     sortBy;
     sortOrder;
     const { search, status, contacted, country, city, businessType, category, hasWebsite, hasSocial, hasPhone, hasGps, hasEmail } = filters;
@@ -131,7 +128,6 @@
     const urlSortBy = params.get('sortBy');
     if (urlSortBy && validSortCols.includes(urlSortBy)) sortBy = urlSortBy;
     if (params.get('sortOrder') === 'asc') sortOrder = 'asc';
-    if (params.get('view') === 'grid') viewMode = 'grid';
 
     wsUnsubscribers = setupAuditListeners(
       updateAuditSession,
@@ -449,7 +445,7 @@
     {/if}
 
     <!-- Filters -->
-    <FilterPanel bind:filters bind:viewMode leads={leads} onReset={resetFilters} />
+    <FilterPanel bind:filters bind:filtersExpanded leads={leads} onReset={resetFilters} />
 
     <!-- Sort Controls -->
     <div class="flex items-center gap-2 flex-wrap">
@@ -499,10 +495,8 @@
               : 'Aucun lead disponible'}
           </p>
         </div>
-      {:else if viewMode === 'table'}
-        <LeadsTable leads={processedLeads} bind:sortBy bind:sortOrder onSort={handleSort} />
       {:else}
-        <LeadsGrid leads={processedLeads} />
+        <LeadsTable leads={processedLeads} bind:sortBy bind:sortOrder onSort={handleSort} />
       {/if}
     </div>
 
