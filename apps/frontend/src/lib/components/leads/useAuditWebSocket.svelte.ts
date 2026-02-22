@@ -27,7 +27,6 @@ export function useAuditWebSocket(
     // Listen for audit started
     unsubscribers.push(
       ws.on('audit-started', (data) => {
-        console.log('[WS] Audit started:', data);
         const current = getAuditSessions();
         const existingIndex = current.findIndex((s) => s.id === data.auditSessionId);
 

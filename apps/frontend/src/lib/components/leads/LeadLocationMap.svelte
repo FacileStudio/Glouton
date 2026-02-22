@@ -47,4 +47,4 @@
   });
 </script>
 
-<div bind:this={mapContainer} class="w-full h-full rounded-xl overflow-hidden"></div>
+<div bind:this={mapContainer} class="w-full h-full rounded-lg overflow-hidden"></div>
