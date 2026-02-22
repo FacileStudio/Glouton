@@ -25,7 +25,7 @@ const meta = {
       control: 'boolean',
       description: 'Whether the button is disabled',
     },
-  },
+  } as any,
 } satisfies Meta<Button>;
 
 export default meta;

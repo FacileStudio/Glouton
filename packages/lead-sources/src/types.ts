@@ -60,9 +60,8 @@ export interface LeadSourceProvider {
     verificationStatus: boolean;
   };
 
-  /**
-   * search
-   */
+  
+
   search(filters: LeadSourceFilters): Promise<LeadSourceResult>;
   verify?(email: string): Promise<{ valid: boolean; score: number }>;
   getRateLimit?(): Promise<RateLimitInfo>;

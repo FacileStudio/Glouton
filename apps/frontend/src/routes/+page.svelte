@@ -11,20 +11,17 @@
     loading = false,
     message = '';
 
-  /**
-   * scrollTo
-   */
+  
+
   const scrollTo = (id: string) => {
     const el = document.getElementById(id);
-    /**
-     * if
-     */
+    
+
     if (el) el.scrollIntoView({ behavior: 'smooth' });
   };
 
-  /**
-   * handleSubmit
-   */
+  
+
   async function handleSubmit() {
     loading = true;
     try {

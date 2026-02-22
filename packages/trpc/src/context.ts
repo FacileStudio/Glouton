@@ -21,21 +21,17 @@ export interface CreateContextOptions extends FetchCreateContextFnOptions {
 }
 
 export const createContext = async (options: CreateContextOptions) => {
-  // Extraction simplifiée du token
   const authHeader = options.req.headers.get('authorization');
   const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
-  
-  // Authentification de l'utilisateur
+
   const user = token ? await options.authManager.verifyToken(token) : null;
 
-  // Logger contextuel (attache l'utilisateur aux logs s'il existe)
   const log = user
     ? options.logger.child({ userId: user.id, email: user.email })
     : options.logger;
 
-  // Récupération de l'IP et du User-Agent
   const ipAddress =
-    options.req.headers.get('x-forwarded-for')?.split(',')[0] || // On prend la première IP si liste
+    options.req.headers.get('x-forwarded-for')?.split(',')[0] ||
     options.req.headers.get('cf-connecting-ip') ||
     undefined;
 

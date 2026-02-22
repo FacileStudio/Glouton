@@ -424,23 +424,20 @@ export const FILTER_PRESETS: FilterPreset[] = [
   },
 ];
 
-/**
- * getPresetsByCategory
- */
+
+
 export function getPresetsByCategory(category: FilterPreset['category']): FilterPreset[] {
   return FILTER_PRESETS.filter((p) => p.category === category);
 }
 
-/**
- * getPresetById
- */
+
+
 export function getPresetById(id: string): FilterPreset | undefined {
   return FILTER_PRESETS.find((p) => p.id === id);
 }
 
-/**
- * getAllCategories
- */
+
+
 export function getAllCategories(): Array<{
   id: FilterPreset['category'];
   name: string;
@@ -455,9 +452,8 @@ export function getAllCategories(): Array<{
   ];
 }
 
-/**
- * searchPresets
- */
+
+
 export function searchPresets(query: string): FilterPreset[] {
   const lowerQuery = query.toLowerCase();
   return FILTER_PRESETS.filter(

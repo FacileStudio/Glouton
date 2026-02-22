@@ -311,31 +311,27 @@ ${vars.yourName}`,
   },
 };
 
-/**
- * getTemplate
- */
+
+
 export const getTemplate = (templateId: string): EmailTemplate | undefined => {
   return emailTemplates[templateId];
 };
 
-/**
- * getAllTemplates
- */
+
+
 export const getAllTemplates = (): EmailTemplate[] => {
   return Object.values(emailTemplates);
 };
 
-/**
- * renderTemplate
- */
+
+
 export const renderTemplate = (
   templateId: string,
   variables: Record<string, string>,
 ): { html: string; text: string; subject: string } | null => {
   const template = getTemplate(templateId);
-  /**
-   * if
-   */
+  
+
   if (!template) return null;
 
   const html = template.generateHtml(variables);

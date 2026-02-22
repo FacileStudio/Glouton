@@ -6,37 +6,31 @@
   let wsStatus = 'Not connected';
   let ws = null;
 
-  /**
-   * log
-   */
+  
+
   function log(message) {
     const timestamp = new Date().toISOString().split('T')[1].split('.')[0];
     logs = [...logs, `[${timestamp}] ${message}`];
     console.log(message);
   }
 
-  /**
-   * onMount
-   */
+  
+
   onMount(() => {
-    /**
-     * log
-     */
+    
+
     log('🚀 Test page mounted');
 
     const token = $authStore.token;
-    /**
-     * log
-     */
+    
+
     log(`Token: ${token ? 'Found ✅' : 'Missing ❌'}`);
 
-    /**
-     * if
-     */
+    
+
     if (!token) {
-      /**
-       * log
-       */
+      
+
       log('⚠️ No token found - please login first');
       return;
     }
@@ -46,9 +40,8 @@
     const host = new URL(apiUrl).host;
     const wsUrl = `${protocol}//${host}/ws?token=${token}`;
 
-    /**
-     * log
-     */
+    
+
     log(`Connecting to: ${wsUrl}`);
     wsStatus = 'Connecting...';
 
@@ -56,54 +49,46 @@
       ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
-        /**
-         * log
-         */
+        
+
         log('✅ WebSocket connected!');
         wsStatus = 'Connected';
       };
 
       ws.onmessage = (event) => {
-        /**
-         * log
-         */
+        
+
         log(`📨 Message received: ${event.data}`);
       };
 
       ws.onerror = (error) => {
-        /**
-         * log
-         */
+        
+
         log(`❌ WebSocket error: ${error}`);
         wsStatus = 'Error';
       };
 
       ws.onclose = (event) => {
-        /**
-         * log
-         */
+        
+
         log(`❌ WebSocket closed: code=${event.code}, reason=${event.reason}`);
         wsStatus = 'Disconnected';
       };
     } catch (error) {
-      /**
-       * log
-       */
+      
+
       log(`❌ Failed to create WebSocket: ${error.message}`);
       wsStatus = 'Failed';
     }
 
-    /**
-     * return
-     */
+    
+
     return () => {
-      /**
-       * if
-       */
+      
+
       if (ws) {
-        /**
-         * log
-         */
+        
+
         log('Closing WebSocket');
         ws.close();
       }

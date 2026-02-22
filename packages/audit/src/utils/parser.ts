@@ -1,16 +1,14 @@
 import * as cheerio from 'cheerio';
 import type { CheerioAPI } from 'cheerio';
 
-/**
- * parseHtml
- */
+
+
 export function parseHtml(html: string): CheerioAPI {
   return cheerio.load(html);
 }
 
-/**
- * extractEmails
- */
+
+
 export function extractEmails(text: string): string[] {
   const emailRegex = /\b[A-Za-z0-9][A-Za-z0-9._%+-]*@[A-Za-z0-9][A-Za-z0-9.-]*\.[A-Za-z]{2,}\b/gi;
   const emails = text.match(emailRegex) || [];
@@ -53,9 +51,8 @@ export function extractEmails(text: string): string[] {
     });
 }
 
-/**
- * extractPhones
- */
+
+
 export function extractPhones(text: string): string[] {
   const phoneRegexes = [
     /(?:\+|00)(?:[0-9]{1,3})?[\s.-]?(?:\(?\d{1,4}\)?)?[\s.-]?\d{1,4}[\s.-]?\d{1,4}[\s.-]?\d{1,9}/g,
@@ -103,9 +100,8 @@ export function extractPhones(text: string): string[] {
     .slice(0, 5);
 }
 
-/**
- * extractSocialLinks
- */
+
+
 export function extractSocialLinks($: CheerioAPI): Record<string, string> {
   const social: Record<string, string> = {};
 
@@ -164,18 +160,16 @@ export function extractSocialLinks($: CheerioAPI): Record<string, string> {
   return social;
 }
 
-/**
- * extractStructuredData
- */
+
+
 export function extractStructuredData($: CheerioAPI): Array<Record<string, unknown>> {
   const structuredData: Array<Record<string, unknown>> = [];
 
   $('script[type="application/ld+json"]').each((_, el) => {
     try {
       const content = $(el).html();
-      /**
-       * if
-       */
+      
+
       if (content) {
         const data = JSON.parse(content);
         structuredData.push(data);
@@ -187,9 +181,8 @@ export function extractStructuredData($: CheerioAPI): Array<Record<string, unkno
   return structuredData;
 }
 
-/**
- * extractMetaTag
- */
+
+
 export function extractMetaTag($: CheerioAPI, name: string): string | undefined {
   const selectors = [
     `meta[name="${name}"]`,
@@ -198,14 +191,12 @@ export function extractMetaTag($: CheerioAPI, name: string): string | undefined 
     `meta[property="${name.toLowerCase()}"]`,
   ];
 
-  /**
-   * for
-   */
+  
+
   for (const selector of selectors) {
     const content = $(selector).attr('content');
-    /**
-     * if
-     */
+    
+
     if (content) {
       return content;
     }
@@ -214,9 +205,8 @@ export function extractMetaTag($: CheerioAPI, name: string): string | undefined 
   return undefined;
 }
 
-/**
- * cleanText
- */
+
+
 export function cleanText(text: string): string {
   return text
     .replace(/\s+/g, ' ')
@@ -224,20 +214,17 @@ export function cleanText(text: string): string {
     .trim();
 }
 
-/**
- * extractYear
- */
+
+
 export function extractYear(text: string): number | undefined {
   const yearMatch = text.match(/\b(19|20)\d{2}\b/);
-  /**
-   * if
-   */
+  
+
   if (yearMatch) {
     const year = Number.parseInt(yearMatch[0], 10);
     const currentYear = new Date().getFullYear();
-    /**
-     * if
-     */
+    
+
     if (year >= 1900 && year <= currentYear) {
       return year;
     }
@@ -245,9 +232,8 @@ export function extractYear(text: string): number | undefined {
   return undefined;
 }
 
-/**
- * extractAddress
- */
+
+
 export function extractAddress($: CheerioAPI): string | undefined {
   const addressSelectors = [
     '[itemtype*="PostalAddress"]',
@@ -294,31 +280,26 @@ export function extractAddress($: CheerioAPI): string | undefined {
   return undefined;
 }
 
-/**
- * findAboutPage
- */
+
+
 export function findAboutPage($: CheerioAPI, baseUrl: string): string | undefined {
   const aboutPatterns = ['/about', '/about-us', '/company', '/who-we-are', '/our-story', '/about-company', '/aboutus'];
 
   const links = $('a[href]');
-  /**
-   * for
-   */
+  
+
   for (let i = 0; i < links.length; i++) {
     const href = $(links[i]).attr('href');
-    /**
-     * if
-     */
+    
+
     if (!href) continue;
 
     const lowerHref = href.toLowerCase();
-    /**
-     * for
-     */
+    
+
     for (const pattern of aboutPatterns) {
-      /**
-       * if
-       */
+      
+
       if (lowerHref.includes(pattern)) {
         try {
           const url = new URL(href, baseUrl);
@@ -333,31 +314,26 @@ export function findAboutPage($: CheerioAPI, baseUrl: string): string | undefine
   return undefined;
 }
 
-/**
- * findContactPage
- */
+
+
 export function findContactPage($: CheerioAPI, baseUrl: string): string | undefined {
   const contactPatterns = ['/contact', '/contact-us', '/get-in-touch', '/reach-us', '/contactus'];
 
   const links = $('a[href]');
-  /**
-   * for
-   */
+  
+
   for (let i = 0; i < links.length; i++) {
     const href = $(links[i]).attr('href');
-    /**
-     * if
-     */
+    
+
     if (!href) continue;
 
     const lowerHref = href.toLowerCase();
-    /**
-     * for
-     */
+    
+
     for (const pattern of contactPatterns) {
-      /**
-       * if
-       */
+      
+
       if (lowerHref.includes(pattern)) {
         try {
           const url = new URL(href, baseUrl);
@@ -372,9 +348,8 @@ export function findContactPage($: CheerioAPI, baseUrl: string): string | undefi
   return undefined;
 }
 
-/**
- * findTeamPage
- */
+
+
 export function findTeamPage($: CheerioAPI, baseUrl: string): string | undefined {
   const teamPatterns = ['/team', '/our-team', '/people', '/meet-the-team', '/leadership', '/about/team'];
 
@@ -399,9 +374,8 @@ export function findTeamPage($: CheerioAPI, baseUrl: string): string | undefined
   return undefined;
 }
 
-/**
- * findSpeculativePaths - Try common URL paths directly
- */
+
+
 export async function findSpeculativePaths(baseUrl: string, httpClient: any): Promise<Record<string, string>> {
   const paths = {
     about: ['/about', '/about-us', '/company', '/who-we-are', '/about.html', '/aboutus'],

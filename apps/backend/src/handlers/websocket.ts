@@ -13,9 +13,8 @@ const clients = new Map<string, Set<ServerWebSocket<WebSocketData>>>();
 
 export const { upgradeWebSocket, websocket } = createBunWebSocket<WebSocketData>();
 
-/**
- * broadcastToUser
- */
+
+
 export function broadcastToUser(userId: string, message: any) {
   const userClients = clients.get(userId);
 
@@ -28,7 +27,7 @@ export function broadcastToUser(userId: string, message: any) {
   try {
     messageStr = JSON.stringify(message);
   } catch (error) {
-    logger.error(`[WebSocket] Failed to stringify message for user ${userId.slice(0, 8)}:`, error);
+    logger.error({ error }, `[WebSocket] Failed to stringify message for user ${userId.slice(0, 8)}`);
     return;
   }
   let sentCount = 0;
@@ -43,7 +42,7 @@ export function broadcastToUser(userId: string, message: any) {
         staleConnections.push(ws);
       }
     } catch (error) {
-      logger.error(`[WebSocket] Error sending to client:`, error);
+      logger.error({ error }, '[WebSocket] Error sending to client');
       staleConnections.push(ws);
     }
   });
@@ -66,7 +65,7 @@ export function broadcastToAll(message: any) {
   try {
     messageStr = JSON.stringify(message);
   } catch (error) {
-    logger.error('[WebSocket] Failed to stringify broadcast message:', error);
+    logger.error({ error }, '[WebSocket] Failed to stringify broadcast message');
     return;
   }
   let totalSent = 0;
@@ -118,23 +117,26 @@ export const wsHandler = upgradeWebSocket(async (c) => {
   return {
     onOpen(_event, ws) {
       const connectionId = Math.random().toString(36).substring(2, 15);
-      ws.data = {
-        userId,
-        createdAt: Date.now(),
-        connectionId,
-      };
+      const rawWs = ws.raw as ServerWebSocket<WebSocketData> | undefined;
+      if (rawWs) {
+        rawWs.data = {
+          userId,
+          createdAt: Date.now(),
+          connectionId,
+        };
 
-      if (userId) {
-        if (!clients.has(userId)) {
-          clients.set(userId, new Set());
-        }
-        const userClients = clients.get(userId)!;
-        const prevCount = userClients.size;
-        userClients.add(ws);
-        logger.debug(`[WebSocket] User connected: ${userId} (connection: ${connectionId}, total connections: ${userClients.size})`);
+        if (userId) {
+          if (!clients.has(userId)) {
+            clients.set(userId, new Set());
+          }
+          const userClients = clients.get(userId)!;
+          const prevCount = userClients.size;
+          userClients.add(rawWs);
+          logger.debug(`[WebSocket] User connected: ${userId} (connection: ${connectionId}, total connections: ${userClients.size})`);
 
-        if (prevCount > 0) {
-          logger.warn(`[WebSocket] User ${userId.slice(0, 8)} has multiple connections: ${userClients.size}`);
+          if (prevCount > 0) {
+            logger.warn(`[WebSocket] User ${userId.slice(0, 8)} has multiple connections: ${userClients.size}`);
+          }
         }
       }
 
@@ -159,14 +161,15 @@ export const wsHandler = upgradeWebSocket(async (c) => {
     },
 
     onClose(_event, ws) {
-      const userId = ws.data?.userId;
-      const connectionId = ws.data?.connectionId;
+      const rawWs = ws.raw as ServerWebSocket<WebSocketData> | undefined;
+      const userId = rawWs?.data?.userId;
+      const connectionId = rawWs?.data?.connectionId;
 
-      if (userId) {
+      if (userId && rawWs) {
         const userClients = clients.get(userId);
 
         if (userClients) {
-          userClients.delete(ws);
+          userClients.delete(rawWs);
           const remaining = userClients.size;
 
           if (remaining === 0) {
@@ -180,11 +183,12 @@ export const wsHandler = upgradeWebSocket(async (c) => {
     onError(event, ws) {
       logger.debug('[WebSocket] Connection error');
 
-      const userId = ws.data?.userId;
-      if (userId) {
+      const rawWs = ws.raw as ServerWebSocket<WebSocketData> | undefined;
+      const userId = rawWs?.data?.userId;
+      if (userId && rawWs) {
         const userClients = clients.get(userId);
         if (userClients) {
-          userClients.delete(ws);
+          userClients.delete(rawWs);
           if (userClients.size === 0) {
             clients.delete(userId);
           }

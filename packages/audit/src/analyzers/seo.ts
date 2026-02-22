@@ -2,9 +2,8 @@ import type { CheerioAPI } from 'cheerio';
 import type { SEOData } from '../types';
 import { extractMetaTag, extractStructuredData } from '../utils/parser';
 
-/**
- * analyzeSEO
- */
+
+
 export function analyzeSEO($: CheerioAPI, url: string): SEOData {
   const title = $('title').first().text().trim() || undefined;
 
@@ -27,9 +26,8 @@ export function analyzeSEO($: CheerioAPI, url: string): SEOData {
   const h1Tags: string[] = [];
   $('h1').each((_, el) => {
     const text = $(el).text().trim();
-    /**
-     * if
-     */
+    
+
     if (text) {
       h1Tags.push(text);
     }
@@ -60,17 +58,15 @@ export interface SEOScore {
   recommendations: string[];
 }
 
-/**
- * calculateSEOScore
- */
+
+
 export function calculateSEOScore(seo: SEOData, url: string): SEOScore {
   let score = 100;
   const issues: string[] = [];
   const recommendations: string[] = [];
 
-  /**
-   * if
-   */
+  
+
   if (!seo.title) {
     score -= 15;
     issues.push('Missing title tag');
@@ -85,9 +81,8 @@ export function calculateSEOScore(seo: SEOData, url: string): SEOScore {
     recommendations.push('Shorten title tag to 50-60 characters');
   }
 
-  /**
-   * if
-   */
+  
+
   if (!seo.description) {
     score -= 15;
     issues.push('Missing meta description');
@@ -102,9 +97,8 @@ export function calculateSEOScore(seo: SEOData, url: string): SEOScore {
     recommendations.push('Shorten meta description to 150-160 characters');
   }
 
-  /**
-   * if
-   */
+  
+
   if (!seo.h1Tags || seo.h1Tags.length === 0) {
     score -= 10;
     issues.push('Missing H1 tag');
@@ -115,45 +109,40 @@ export function calculateSEOScore(seo: SEOData, url: string): SEOScore {
     recommendations.push('Use only one H1 tag per page');
   }
 
-  /**
-   * if
-   */
+  
+
   if (!seo.canonical) {
     score -= 5;
     issues.push('Missing canonical URL');
     recommendations.push('Add a canonical link tag to prevent duplicate content issues');
   }
 
-  /**
-   * if
-   */
+  
+
   if (!seo.ogTitle || !seo.ogDescription || !seo.ogImage) {
     score -= 10;
     issues.push('Incomplete Open Graph tags');
     recommendations.push('Add Open Graph tags (og:title, og:description, og:image) for better social sharing');
   }
 
-  /**
-   * if
-   */
+  
+
   if (!seo.robotsMeta) {
     score -= 5;
     issues.push('Missing robots meta tag');
     recommendations.push('Add robots meta tag to control indexing');
   }
 
-  /**
-   * if
-   */
+  
+
   if (!seo.structuredData || seo.structuredData.length === 0) {
     score -= 10;
     issues.push('Missing structured data (Schema.org)');
     recommendations.push('Add JSON-LD structured data for better search engine understanding');
   }
 
-  /**
-   * if
-   */
+  
+
   if (!seo.twitterCard) {
     score -= 5;
     issues.push('Missing Twitter Card tags');
@@ -183,9 +172,8 @@ export interface ContentAnalysis {
   };
 }
 
-/**
- * analyzeContent
- */
+
+
 export function analyzeContent($: CheerioAPI, baseUrl: string): ContentAnalysis {
   const bodyText = $('body').text();
   const words = bodyText.trim().split(/\s+/).filter(Boolean);
@@ -205,9 +193,8 @@ export function analyzeContent($: CheerioAPI, baseUrl: string): ContentAnalysis 
       const linkUrl = new URL(href, baseUrl);
       const baseUrlObj = new URL(baseUrl);
 
-      /**
-       * if
-       */
+      
+
       if (linkUrl.hostname === baseUrlObj.hostname) {
         internalLinks++;
       } else {

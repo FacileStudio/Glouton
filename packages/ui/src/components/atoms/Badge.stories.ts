@@ -8,56 +8,67 @@ const meta = {
   argTypes: {
     variant: {
       control: 'select',
-      options: ['indigo', 'rose', 'amber', 'emerald', 'slate'],
+      options: ['primary', 'accent', 'success', 'warning', 'danger', 'slate'],
       description: 'The badge color variant',
     },
-  },
+  } as any,
 } satisfies Meta<Badge>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Indigo: Story = {
+export const Primary: Story = {
   args: {
-    variant: 'indigo',
+    variant: 'primary',
   },
   render: (args) => ({
     Component: Badge,
     props: args,
-    slot: 'Indigo',
+    slot: 'Primary',
   }),
 };
 
-export const Rose: Story = {
+export const Accent: Story = {
   args: {
-    variant: 'rose',
+    variant: 'accent',
   },
   render: (args) => ({
     Component: Badge,
     props: args,
-    slot: 'Rose',
+    slot: 'Accent',
   }),
 };
 
-export const Amber: Story = {
+export const Success: Story = {
   args: {
-    variant: 'amber',
+    variant: 'success',
   },
   render: (args) => ({
     Component: Badge,
     props: args,
-    slot: 'Amber',
+    slot: 'Success',
   }),
 };
 
-export const Emerald: Story = {
+export const Warning: Story = {
   args: {
-    variant: 'emerald',
+    variant: 'warning',
   },
   render: (args) => ({
     Component: Badge,
     props: args,
-    slot: 'Emerald',
+    slot: 'Warning',
+  }),
+};
+
+export const Danger: Story = {
+  args: {
+    variant: 'danger',
+  },
+  render: (args) => ({
+    Component: Badge,
+    props: args,
+    slot: 'Danger',
   }),
 };
 
@@ -75,7 +86,7 @@ export const Slate: Story = {
 export const Status: Story = {
   render: () => ({
     Component: Badge,
-    props: { variant: 'emerald' },
+    props: { variant: 'success' },
     slot: 'Active',
   }),
 };

@@ -84,13 +84,11 @@
 
   let jobTitleInput = $state('');
 
-  /**
-   * detectLocationFromGPS
-   */
+  
+
   async function detectLocationFromGPS() {
-    /**
-     * if
-     */
+    
+
     if (!navigator.geolocation) {
       throw new Error('Geolocation not supported by your browser');
     }
@@ -114,9 +112,8 @@
       },
     );
 
-    /**
-     * if
-     */
+    
+
     if (!response.ok) {
       throw new Error('Failed to reverse geocode coordinates');
     }
@@ -137,14 +134,12 @@
     };
   }
 
-  /**
-   * detectLocationFromIP
-   */
+  
+
   async function detectLocationFromIP() {
     const response = await fetch('https://ipapi.co/json/');
-    /**
-     * if
-     */
+    
+
     if (!response.ok) {
       throw new Error('Failed to detect location from IP');
     }
@@ -160,9 +155,8 @@
     };
   }
 
-  /**
-   * detectLocation
-   */
+  
+
   async function detectLocation(method: 'gps' | 'ip' | 'auto' = 'auto') {
     loadingLocation = true;
     userLocation = null;
@@ -170,18 +164,16 @@
     try {
       let location;
 
-      /**
-       * if
-       */
+      
+
       if (method === 'gps' || method === 'auto') {
         try {
           location = await detectLocationFromGPS();
         } catch (gpsError) {
           console.warn('GPS detection failed:', gpsError);
 
-          /**
-           * if
-           */
+          
+
           if (method === 'gps') {
             throw gpsError;
           }
@@ -226,14 +218,12 @@
     }
   }
 
-  /**
-   * applyPreset
-   */
+  
+
   function applyPreset(presetId: string) {
     const preset = getPresetById(presetId);
-    /**
-     * if
-     */
+    
+
     if (!preset) return;
 
     selectedPresetId = presetId;
@@ -245,9 +235,8 @@
     filters.requiredFields = preset.filters.requiredFields || [];
     filters.verificationStatus = preset.filters.verificationStatus || [];
 
-    /**
-     * if
-     */
+    
+
     if (preset.filters.location && !userLocation) {
       filters.location.country = preset.filters.location.country || '';
       filters.location.city = preset.filters.location.city || '';
@@ -257,38 +246,32 @@
     showPresets = false;
   }
 
-  /**
-   * addJobTitle
-   */
+  
+
   function addJobTitle() {
-    /**
-     * if
-     */
+    
+
     if (jobTitleInput.trim()) {
       filters.jobTitles = [...filters.jobTitles, jobTitleInput.trim()];
       jobTitleInput = '';
     }
   }
 
-  /**
-   * removeJobTitle
-   */
+  
+
   function removeJobTitle(title: string) {
     filters.jobTitles = filters.jobTitles.filter((t) => t !== title);
   }
 
-  /**
-   * startDomainHunt
-   */
+  
+
   async function startDomainHunt() {
-    /**
-     * if
-     */
+    
+
     if (configuredSourcesCount === 0) {
       toast.push('Veuillez configurer au moins une clé API dans les paramètres', 'error');
-      /**
-       * goto
-       */
+      
+
       goto(settingsUrl);
       return;
     }
@@ -374,13 +357,11 @@
     }
   }
 
-  /**
-   * startHunt
-   */
+  
+
   function startHunt() {
-    /**
-     * if
-     */
+    
+
     if (huntType === 'domain') {
       return startDomainHunt();
     } else {
@@ -388,9 +369,8 @@
     }
   }
 
-  /**
-   * fetchConfiguredSources
-   */
+  
+
   async function fetchConfiguredSources() {
     try {
       const sources = await trpc.user.getConfiguredSources.query(
@@ -399,9 +379,8 @@
       configuredSourcesCount = sources.length;
       hasGoogleMapsKey = sources.includes('GOOGLE_MAPS');
 
-      /**
-       * if
-       */
+      
+
       if (configuredSourcesCount === 0) {
         toast.push('Aucune clé API configurée. Veuillez les ajouter dans les paramètres.', 'info');
       }
@@ -410,20 +389,17 @@
     }
   }
 
-  /**
-   * onMount
-   */
+  
+
   onMount(async () => {
     await fetchConfiguredSources();
-    /**
-     * detectLocation
-     */
+    
+
     detectLocation();
   });
 
-  /**
-   * afterNavigate
-   */
+  
+
   afterNavigate(async () => {
     await fetchConfiguredSources();
   });

@@ -93,9 +93,8 @@
   let excludeKeywordsInput = $state('');
   let testingWebhook = $state(false);
 
-  /**
-   * handleUpdateProfile
-   */
+  
+
   async function handleUpdateProfile() {
     saving = true;
     message = null;
@@ -110,9 +109,8 @@
       originalFormData.lastName = formData.lastName;
       showSavedMessage = true;
       toast.push('Profil mis à jour avec succès !', 'success');
-      /**
-       * setTimeout
-       */
+      
+
       setTimeout(() => {
         showSavedMessage = false;
       }, 3000);
@@ -126,21 +124,18 @@
     }
   }
 
-  /**
-   * handleChangePassword
-   */
+  
+
   async function handleChangePassword() {
-    /**
-     * if
-     */
+    
+
     if (formData.newPassword !== formData.confirmPassword) {
       toast.push('Les mots de passe ne correspondent pas', 'error');
       message = { type: 'error', text: 'Les mots de passe ne correspondent pas' };
       return;
     }
-    /**
-     * if
-     */
+    
+
     if (formData.newPassword.length < 8) {
       toast.push('Le mot de passe doit contenir au moins 8 caractères', 'error');
       message = { type: 'error', text: 'Le mot de passe doit contenir au moins 8 caractères' };
@@ -168,9 +163,8 @@
     }
   }
 
-  /**
-   * handleUpdateApiKeys
-   */
+  
+
   async function handleUpdateApiKeys() {
     saving = true;
     message = null;
@@ -275,21 +269,18 @@
     }
   }
 
-  /**
-   * handleDeleteAccount
-   */
+  
+
   async function handleDeleteAccount() {
     deleteModalOpen = true;
     deleteConfirmationText = '';
   }
 
-  /**
-   * confirmDeleteAccount
-   */
+  
+
   async function confirmDeleteAccount() {
-    /**
-     * if
-     */
+    
+
     if (deleteConfirmationText !== 'DELETE') return;
 
     deleting = true;
@@ -308,18 +299,16 @@
     }
   }
 
-  /**
-   * onMount
-   */
+  
+
   onMount(async () => {
     const [userResult, smtpConfigResult] = await Promise.allSettled([
       trpc.user.me.query(),
       trpc.user.getSmtpConfig.query(),
     ]);
 
-    /**
-     * if
-     */
+    
+
     if (userResult.status === 'fulfilled') {
       const user = userResult.value;
       existingApiKeys.hunterApiKey = user.hunterApiKey || '';

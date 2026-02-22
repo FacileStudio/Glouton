@@ -10,7 +10,7 @@ interface SearchOptions {
 
 class OverpassApi {
   private lastRequestTime: number = 0;
-  private minRequestInterval: number = 1000; // Minimum 1 second between requests
+  private minRequestInterval: number = 1000; 
 
   constructor(_config: any) {}
 
@@ -34,7 +34,7 @@ class OverpassApi {
 
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
-        // Apply rate limiting
+        
         await this.waitForRateLimit();
 
         const response = await fetch('https://overpass-api.de/api/interpreter', {
@@ -43,18 +43,18 @@ class OverpassApi {
           headers: { 'Content-Type': 'text/plain' },
         });
 
-        // Check if response is OK
+        
         if (!response.ok) {
           const text = await response.text();
 
-          // Handle rate limiting specifically
+          
           if (response.status === 429) {
-            const retryDelay = Math.min(Math.pow(2, attempt + 1) * 1000, 30000); // Exponential backoff: 2s, 4s, 8s...
+            const retryDelay = Math.min(Math.pow(2, attempt + 1) * 1000, 30000); 
             console.log(`[OverpassApi] Rate limited (429), waiting ${retryDelay}ms before retry ${attempt + 1}/${maxRetries}`);
 
             if (attempt < maxRetries - 1) {
               await this.delay(retryDelay);
-              // Increase minimum interval after rate limiting
+              
               this.minRequestInterval = Math.min(this.minRequestInterval * 2, 10000);
               continue;
             }
@@ -63,13 +63,13 @@ class OverpassApi {
           throw new Error(`Overpass API returned ${response.status}: ${text.substring(0, 200)}`);
         }
 
-      // Check Content-Type to ensure it's JSON
+      
       const contentType = response.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
-        // Try to read as text first to debug
+        
         const text = await response.text();
 
-        // Check for common error patterns
+        
         if (text.includes('rate_limited')) {
           throw new Error('Overpass API rate limit exceeded. Please wait before retrying.');
         }
@@ -80,7 +80,7 @@ class OverpassApi {
           throw new Error(`Overpass API error: ${text.substring(0, 200)}`);
         }
 
-        // Try to parse as JSON anyway
+        
         try {
           return JSON.parse(text);
         } catch (parseError) {
@@ -90,12 +90,12 @@ class OverpassApi {
 
         const data = await response.json();
 
-        // Validate the response structure
+        
         if (!data || typeof data !== 'object') {
           throw new Error('Overpass API returned invalid data structure');
         }
 
-        // Success! Reset the rate limiting interval back to normal
+        
         if (this.minRequestInterval > 1000) {
           this.minRequestInterval = Math.max(1000, this.minRequestInterval / 2);
         }
@@ -105,13 +105,13 @@ class OverpassApi {
         lastError = error instanceof Error ? error : new Error('Unknown error occurred');
 
         if (attempt < maxRetries - 1) {
-          // Don't retry on non-retryable errors
+          
           if (lastError.message.includes('Overpass API returned invalid data structure') ||
               lastError.message.includes('non-JSON response')) {
             throw lastError;
           }
 
-          // For network errors, add a delay before retry
+          
           if (lastError.message.includes('Failed to fetch')) {
             const retryDelay = Math.min(Math.pow(2, attempt + 1) * 1000, 10000);
             console.log(`[OverpassApi] Network error, waiting ${retryDelay}ms before retry ${attempt + 1}/${maxRetries}`);
@@ -122,7 +122,7 @@ class OverpassApi {
       }
     }
 
-    // All retries failed
+    
     if (lastError) {
       if (lastError.message.includes('Failed to fetch')) {
         throw new Error('Failed to connect to Overpass API. Please check your internet connection.');
@@ -134,16 +134,16 @@ class OverpassApi {
   }
 }
 
-// Singleton instance to maintain rate limiting across all usages
+
 let openStreetMapServiceInstance: OpenStreetMapService | null = null;
 
 export class OpenStreetMapService {
-  private api: OverpassApi;
+  private api!: OverpassApi;
   private lastNominatimRequest: number = 0;
-  private nominatimMinInterval: number = 1000; // Nominatim requires min 1 second between requests
+  private nominatimMinInterval: number = 1000;
 
   constructor() {
-    // Return singleton instance to maintain rate limiting
+    
     if (openStreetMapServiceInstance) {
       return openStreetMapServiceInstance;
     }
@@ -172,7 +172,7 @@ export class OpenStreetMapService {
 
   async geocode(location: string): Promise<Coordinates> {
     try {
-      // Apply rate limiting for Nominatim
+      
       await this.waitForNominatimRateLimit();
 
       const response = await fetch(
@@ -189,7 +189,7 @@ export class OpenStreetMapService {
         throw new Error(`Nominatim API error (${response.status}): ${errorText.substring(0, 200)}`);
       }
 
-      // Check Content-Type
+      
       const contentType = response.headers.get('content-type');
       let data;
 
@@ -418,7 +418,7 @@ export class OpenStreetMapService {
 
   async reverseGeocode(coordinates: Coordinates): Promise<string> {
     try {
-      // Apply rate limiting for Nominatim
+      
       await this.waitForNominatimRateLimit();
 
       const response = await fetch(
@@ -435,7 +435,7 @@ export class OpenStreetMapService {
         throw new Error(`Nominatim API error (${response.status}): ${errorText.substring(0, 200)}`);
       }
 
-      // Check Content-Type
+      
       const contentType = response.headers.get('content-type');
       let data;
 

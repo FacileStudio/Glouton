@@ -27,9 +27,8 @@ export const logger = pino({
         console.warn(obj.msg, obj);
       },
       debug: (o) => {
-        /**
-         * if
-         */
+        
+
         if (isDev) {
           const obj = o as PinoLogObject;
           console.debug(obj.msg, obj);

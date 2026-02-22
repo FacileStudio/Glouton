@@ -20,37 +20,32 @@ const { jobs } = config;
 
 registerWorkers(jobs, prisma);
 
-// Initialize event system with websocket broadcaster and prisma
 events.init({ broadcastToUser, broadcastToAll }, prisma);
 
-// Simple startup tasks
 async function startup() {
-  // Validate Redis
   try {
     const validation = await validateRedisConfiguration({
       host: env.REDIS_HOST,
-      port: parseInt(env.REDIS_PORT),
+      port: env.REDIS_PORT,
       password: env.REDIS_PASSWORD,
-      db: parseInt(env.REDIS_DB),
+      db: env.REDIS_DB,
       maxRetriesPerRequest: null,
     });
 
     if (!validation.valid) {
-      logger.warn('[REDIS] Configuration warnings:', validation.warnings);
+      logger.warn({ warnings: validation.warnings }, '[REDIS] Configuration warnings');
     } else {
       logger.info('[REDIS] Configuration valid');
     }
   } catch (error) {
-    logger.error('[REDIS] Validation failed:', error);
+    logger.error({ error }, '[REDIS] Validation failed');
   }
 
-  // Clean up orphaned sessions
   const orphaned = await checkOrphanedSessions(prisma, jobs);
   if (orphaned.audits > 0 || orphaned.hunts > 0) {
     logger.info(`[CLEANUP] Orphaned sessions: ${orphaned.audits} audits, ${orphaned.hunts} hunts`);
   }
 
-  // Schedule periodic cleanup (every 30 minutes)
   setInterval(async () => {
     try {
       const stalled = await cleanupStalled(prisma);
@@ -58,7 +53,7 @@ async function startup() {
         logger.info(`[CLEANUP] Stalled sessions: ${stalled.audits} audits, ${stalled.hunts} hunts`);
       }
     } catch (err) {
-      logger.error('[CLEANUP] Cleanup failed:', err);
+      logger.error({ error: err }, '[CLEANUP] Cleanup failed');
     }
   }, 30 * 60 * 1000);
 }
@@ -103,7 +98,7 @@ app.post('/internal/broadcast', async (c) => {
 
     return c.json({ success: true });
   } catch (error) {
-    logger.error('[INTERNAL] Broadcast error', error);
+    logger.error({ error }, '[INTERNAL] Broadcast error');
     return c.json({ error: 'Invalid request' }, 400);
   }
 });
@@ -121,7 +116,7 @@ async function gracefulShutdown(signal: string) {
     logger.info('[SHUTDOWN] Success');
     process.exit(0);
   } catch (error) {
-    logger.error('[SHUTDOWN] Error:', error);
+    logger.error({ error }, '[SHUTDOWN] Error');
     process.exit(1);
   }
 }
@@ -130,11 +125,11 @@ process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 process.on('uncaughtException', (err) => {
-  logger.error('[PROCESS] Uncaught exception:', err);
+  logger.error({ error: err }, '[PROCESS] Uncaught exception');
 });
 
 process.on('unhandledRejection', (reason) => {
-  logger.error('[PROCESS] Unhandled rejection:', reason);
+  logger.error({ error: reason }, '[PROCESS] Unhandled rejection');
 });
 
 export default { port, fetch: app.fetch, websocket };

@@ -7,28 +7,4 @@ module.exports = [
   ...baseConfig,
   ...sveltePlugin.configs['flat/recommended'],
   {
-    files: ['**/*.svelte'],
-    languageOptions: {
-      parser: svelteParser,
-      parserOptions: {
-        parser: tsParser,
-        extraFileExtensions: ['.svelte'],
-      },
-      globals: {
-        window: 'readonly',
-        document: 'readonly',
-        navigator: 'readonly',
-        console: 'readonly',
-        fetch: 'readonly',
-        localStorage: 'readonly',
-        alert: 'readonly',
-        confirm: 'readonly',
-        history: 'readonly',
-        setTimeout: 'readonly',
-        clearTimeout: 'readonly',
-        setInterval: 'readonly',
-        clearInterval: 'readonly',
-      },
-    },
-  },
-];
+    files: ['**

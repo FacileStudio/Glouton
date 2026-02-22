@@ -112,17 +112,15 @@ export type AuditResult = z.infer<typeof AuditResultSchema>;
 export type AuditOptions = z.infer<typeof AuditOptionsSchema>;
 
 export class AuditError extends Error {
-  /**
-   * constructor
-   */
+  
+
   constructor(
     message: string,
     public code: string,
     public details?: unknown
   ) {
-    /**
-     * super
-     */
+    
+
     super(message);
     this.name = 'AuditError';
   }

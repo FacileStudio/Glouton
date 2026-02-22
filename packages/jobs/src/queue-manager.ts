@@ -8,20 +8,17 @@ export class QueueManager {
   private jobDefinitions: Map<string, Map<string, JobDefinition<any, any>>> = new Map();
   private config: JobConfig;
 
-  /**
-   * constructor
-   */
+  
+
   constructor(config: JobConfig) {
     this.config = config;
   }
 
-  /**
-   * getOrCreateQueue
-   */
+  
+
   private getOrCreateQueue(queueName: string): Queue {
-    /**
-     * if
-     */
+    
+
     if (!this.queues.has(queueName)) {
       const queue = new Queue(queueName, {
         connection: this.config.connection,
@@ -52,32 +49,27 @@ export class QueueManager {
     return queue.addBulk(jobs);
   }
 
-  /**
-   * getOrCreateWorker
-   */
+  
+
   private getOrCreateWorker(queueName: string, definitionConcurrency?: number): Worker {
-    /**
-     * if
-     */
+    
+
     if (!this.workers.has(queueName)) {
       const worker = new Worker(
         queueName,
-        /**
-         * async
-         */
+        
+
         async (job: BullJob<any>) => {
           const definitions = this.jobDefinitions.get(queueName);
-          /**
-           * if
-           */
+          
+
           if (!definitions) {
             throw new Error(`No job definitions registered for queue ${queueName}`);
           }
 
           const definition = definitions.get(job.name);
-          /**
-           * if
-           */
+          
+
           if (!definition) {
             throw new Error(`No processor registered for job ${job.name} in queue ${queueName}`);
           }
@@ -125,17 +117,15 @@ export class QueueManager {
     queueName: string,
     definition: JobDefinition<T, R>
   ): Worker {
-    /**
-     * if
-     */
+    
+
     if (!this.jobDefinitions.has(queueName)) {
       this.jobDefinitions.set(queueName, new Map());
     }
 
     const definitions = this.jobDefinitions.get(queueName)!;
-    /**
-     * if
-     */
+    
+
     if (definitions.has(definition.name)) {
       throw new Error(`Job ${definition.name} already registered for queue ${queueName}`);
     }
@@ -146,32 +136,28 @@ export class QueueManager {
     return this.getOrCreateWorker(queueName, definition.options?.concurrency);
   }
 
-  /**
-   * registerMultipleWorkers
-   */
+  
+
   registerMultipleWorkers(queueName: string, definitions: JobDefinition[]): Worker[] {
     return definitions.map((def) => this.registerWorker(queueName, def));
   }
 
-  /**
-   * getJob
-   */
+  
+
   async getJob(queueName: string, jobId: string): Promise<BullJob | undefined> {
     const queue = this.getOrCreateQueue(queueName);
     return queue.getJob(jobId);
   }
 
-  /**
-   * getJobs
-   */
+  
+
   async getJobs(queueName: string, types: Array<'waiting' | 'active' | 'completed' | 'failed' | 'delayed'>) {
     const queue = this.getOrCreateQueue(queueName);
     return queue.getJobs(types);
   }
 
-  /**
-   * getQueueMetrics
-   */
+  
+
   async getQueueMetrics(queueName: string) {
     const queue = this.getOrCreateQueue(queueName);
     const [waiting, active, completed, failed, delayed] = await Promise.all([
@@ -192,59 +178,51 @@ export class QueueManager {
     };
   }
 
-  /**
-   * pauseQueue
-   */
+  
+
   async pauseQueue(queueName: string): Promise<void> {
     const queue = this.getOrCreateQueue(queueName);
     await queue.pause();
   }
 
-  /**
-   * resumeQueue
-   */
+  
+
   async resumeQueue(queueName: string): Promise<void> {
     const queue = this.getOrCreateQueue(queueName);
     await queue.resume();
   }
 
-  /**
-   * clearQueue
-   */
+  
+
   async clearQueue(queueName: string): Promise<void> {
     const queue = this.getOrCreateQueue(queueName);
     await queue.drain();
   }
 
-  /**
-   * removeJob
-   */
+  
+
   async removeJob(queueName: string, jobId: string): Promise<void> {
     const job = await this.getJob(queueName, jobId);
-    /**
-     * if
-     */
+    
+
     if (job) {
       await job.remove();
     }
   }
 
-  /**
-   * retryJob
-   */
+  
+
   async retryJob(queueName: string, jobId: string): Promise<void> {
     const job = await this.getJob(queueName, jobId);
-    /**
-     * if
-     */
+    
+
     if (job) {
       await job.retry();
     }
   }
 
-  /**
-   * close
-   */
+  
+
   async close(): Promise<void> {
     logger.debug('[BullMQ] Closing all workers and queues');
     await Promise.all([
@@ -258,30 +236,26 @@ export class QueueManager {
     logger.debug('[BullMQ] Closed');
   }
 
-  /**
-   * getQueue
-   */
+  
+
   getQueue(queueName: string): Queue | undefined {
     return this.queues.get(queueName);
   }
 
-  /**
-   * getWorker
-   */
+  
+
   getWorker(queueName: string, jobName: string): Worker | undefined {
     return this.workers.get(`${queueName}:${jobName}`);
   }
 
-  /**
-   * getAllQueues
-   */
+  
+
   getAllQueues(): Map<string, Queue> {
     return this.queues;
   }
 
-  /**
-   * getAllWorkers
-   */
+  
+
   getAllWorkers(): Map<string, Worker> {
     return this.workers;
   }

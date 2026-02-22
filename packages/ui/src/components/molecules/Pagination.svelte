@@ -14,20 +14,17 @@
     class?: string;
   } = $props();
 
-  /**
-   * getPageRange
-   */
+  
+
   const getPageRange = () => {
     const delta = 1;
     const range: (number | string)[] = [];
 
-    /**
-     * for
-     */
+    
+
     for (let i = 1; i <= totalPages; i++) {
-      /**
-       * if
-       */
+      
+
       if (i === 1 || i === totalPages || (i >= currentPage - delta && i <= currentPage + delta)) {
         range.push(i);
       } else if (range[range.length - 1] !== '...') {
@@ -39,13 +36,11 @@
 
   const pages = $derived(getPageRange());
 
-  /**
-   * goToPage
-   */
+  
+
   function goToPage(page: number | string) {
-    /**
-     * if
-     */
+    
+
     if (typeof page !== 'number' || page === currentPage || page < 1 || page > totalPages) return;
     currentPage = page;
     onPageChange?.(page);

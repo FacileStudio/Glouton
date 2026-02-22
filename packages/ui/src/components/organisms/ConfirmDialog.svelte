@@ -11,24 +11,20 @@
     export let onConfirm: () => void = () => {};
     export let onCancel: () => void = () => {};
 
-    /**
-     * handleConfirm
-     */
+    
+
     const handleConfirm = () => {
-        /**
-         * onConfirm
-         */
+        
+
         onConfirm();
         isOpen = false;
     };
 
-    /**
-     * handleCancel
-     */
+    
+
     const handleCancel = () => {
-        /**
-         * onCancel
-         */
+        
+
         onCancel();
         isOpen = false;
     };

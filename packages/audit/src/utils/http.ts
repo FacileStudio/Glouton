@@ -5,25 +5,22 @@ export class RateLimiter {
   private requests: number[] = [];
   private config: RateLimiterConfig;
 
-  /**
-   * constructor
-   */
+  
+
   constructor(config: RateLimiterConfig) {
     this.config = config;
   }
 
-  /**
-   * acquire
-   */
+  
+
   async acquire(): Promise<void> {
     const now = Date.now();
     this.requests = this.requests.filter(
       (timestamp) => now - timestamp < this.config.windowMs
     );
 
-    /**
-     * if
-     */
+    
+
     if (this.requests.length >= this.config.maxRequests) {
       const oldestRequest = this.requests[0];
       const waitTime = this.config.windowMs - (now - oldestRequest!);
@@ -34,9 +31,8 @@ export class RateLimiter {
     this.requests.push(now);
   }
 
-  /**
-   * sleep
-   */
+  
+
   private sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
@@ -48,9 +44,8 @@ export class HttpClient {
   private maxRetries: number;
   private retryDelay: number;
 
-  /**
-   * constructor
-   */
+  
+
   constructor(
     timeout: number = 30000,
     userAgent?: string,
@@ -67,39 +62,20 @@ export class HttpClient {
           userAgent ||
           'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         Accept:
-          'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Accept-Encoding': 'gzip, deflate, br',
-        Connection: 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
-      },
-      maxRedirects: 5,
-      validateStatus: (status) => status < 500,
-    });
+          'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*
 
-    this.rateLimiter = new RateLimiter({
-      maxRequests: 50,
-      windowMs: 1000,
-    });
-  }
-
-  /**
-   * get
-   */
   async get(url: string, config?: AxiosRequestConfig): Promise<string> {
     await this.rateLimiter.acquire();
 
     let lastError: Error | undefined;
-    /**
-     * for
-     */
+    
+
     for (let attempt = 0; attempt < this.maxRetries; attempt++) {
       try {
         const response = await this.axiosInstance.get(url, config);
 
-        /**
-         * if
-         */
+        
+
         if (response.status >= 400) {
           throw new AuditError(
             `HTTP ${response.status}: ${response.statusText}`,
@@ -112,30 +88,25 @@ export class HttpClient {
       } catch (error) {
         lastError = error as Error;
 
-        /**
-         * if
-         */
+        
+
         if (axios.isAxiosError(error)) {
-          /**
-           * if
-           */
+          
+
           if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
-            /**
-             * if
-             */
+            
+
             if (attempt < this.maxRetries - 1) {
               await this.sleep(this.retryDelay * (attempt + 1));
               continue;
             }
           }
 
-          /**
-           * if
-           */
+          
+
           if (error.response?.status && error.response.status >= 500) {
-            /**
-             * if
-             */
+            
+
             if (attempt < this.maxRetries - 1) {
               await this.sleep(this.retryDelay * (attempt + 1));
               continue;
@@ -143,9 +114,8 @@ export class HttpClient {
           }
         }
 
-        /**
-         * if
-         */
+        
+
         if (attempt === this.maxRetries - 1) {
           break;
         }
@@ -159,9 +129,8 @@ export class HttpClient {
     );
   }
 
-  /**
-   * head
-   */
+  
+
   async head(url: string, config?: AxiosRequestConfig): Promise<Record<string, string>> {
     await this.rateLimiter.acquire();
 
@@ -177,29 +146,25 @@ export class HttpClient {
     }
   }
 
-  /**
-   * sleep
-   */
+  
+
   private sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
-  /**
-   * setRateLimitConfig
-   */
+  
+
   setRateLimitConfig(config: RateLimiterConfig): void {
     this.rateLimiter = new RateLimiter(config);
   }
 }
 
-/**
- * normalizeUrl
- */
+
+
 export function normalizeUrl(url: string): string {
   try {
-    /**
-     * if
-     */
+    
+
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
       url = 'https://' + url;
     }
@@ -215,9 +180,8 @@ export function normalizeUrl(url: string): string {
   }
 }
 
-/**
- * extractDomain
- */
+
+
 export function extractDomain(url: string): string {
   try {
     const urlObj = new URL(normalizeUrl(url));
@@ -231,9 +195,8 @@ export function extractDomain(url: string): string {
   }
 }
 
-/**
- * isValidUrl
- */
+
+
 export function isValidUrl(url: string): boolean {
   try {
     new URL(normalizeUrl(url));

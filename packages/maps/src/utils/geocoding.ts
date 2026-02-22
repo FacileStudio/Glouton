@@ -7,9 +7,8 @@ interface NominatimResult {
   display_name: string;
 }
 
-/**
- * geocodeCity
- */
+
+
 async function geocodeCity(city: string): Promise<BoundingBox | null> {
   try {
     const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city)}&format=json&limit=1`;
@@ -20,18 +19,16 @@ async function geocodeCity(city: string): Promise<BoundingBox | null> {
       },
     });
 
-    /**
-     * if
-     */
+    
+
     if (!response.ok) {
       return null;
     }
 
     const data: NominatimResult[] = await response.json();
 
-    /**
-     * if
-     */
+    
+
     if (data.length === 0) {
       return null;
     }
@@ -51,28 +48,24 @@ async function geocodeCity(city: string): Promise<BoundingBox | null> {
   }
 }
 
-/**
- * cityToBoundingBox
- */
+
+
 export async function cityToBoundingBox(city: string): Promise<BoundingBox | null> {
   return await geocodeCity(city);
 }
 
-/**
- * coordinatesToBoundingBox
- */
+
+
 export function coordinatesToBoundingBox(
   coords: Coordinates,
   radiusKm: number = 5
 ): BoundingBox {
   const earthRadiusKm = 6371;
-  /**
-   * latDelta
-   */
+  
+
   const latDelta = (radiusKm / earthRadiusKm) * (180 / Math.PI);
-  /**
-   * lngDelta
-   */
+  
+
   const lngDelta = (radiusKm / (earthRadiusKm * Math.cos((coords.lat * Math.PI) / 180))) * (180 / Math.PI);
 
   return {
@@ -83,18 +76,15 @@ export function coordinatesToBoundingBox(
   };
 }
 
-/**
- * calculateDistance
- */
+
+
 export function calculateDistance(coord1: Coordinates, coord2: Coordinates): number {
   const R = 6371;
-  /**
-   * dLat
-   */
+  
+
   const dLat = ((coord2.lat - coord1.lat) * Math.PI) / 180;
-  /**
-   * dLon
-   */
+  
+
   const dLon = ((coord2.lng - coord1.lng) * Math.PI) / 180;
 
   const a =
@@ -108,20 +98,17 @@ export function calculateDistance(coord1: Coordinates, coord2: Coordinates): num
   return R * c;
 }
 
-/**
- * expandBoundingBox
- */
+
+
 export function expandBoundingBox(bbox: BoundingBox, percentIncrease: number = 10): BoundingBox {
   const latRange = bbox.north - bbox.south;
   const lngRange = bbox.east - bbox.west;
 
-  /**
-   * latExpansion
-   */
+  
+
   const latExpansion = (latRange * percentIncrease) / 100 / 2;
-  /**
-   * lngExpansion
-   */
+  
+
   const lngExpansion = (lngRange * percentIncrease) / 100 / 2;
 
   return {
@@ -132,13 +119,11 @@ export function expandBoundingBox(bbox: BoundingBox, percentIncrease: number = 1
   };
 }
 
-/**
- * isWithinBoundingBox
- */
+
+
 export function isWithinBoundingBox(coords: Coordinates, bbox: BoundingBox): boolean {
-  /**
-   * return
-   */
+  
+
   return (
     coords.lat >= bbox.south &&
     coords.lat <= bbox.north &&

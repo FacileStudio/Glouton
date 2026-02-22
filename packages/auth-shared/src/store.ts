@@ -18,41 +18,35 @@ export class UniversalAuthStore {
   private cookieName = 'auth_token';
   private onSignOut?: () => Promise<any>;
 
-  /**
-   * constructor
-   */
+  
+
   constructor(initialState: AuthState, storage: StorageProvider, onSignOut?: () => Promise<any>) {
     this.state = initialState;
     this.storage = storage;
     this.onSignOut = onSignOut;
   }
 
-  /**
-   * subscribe
-   */
+  
+
   subscribe(listener: Listener<AuthState>) {
     this.listeners.add(listener);
-    /**
-     * listener
-     */
+    
+
     listener(this.state);
-    /**
-     * return
-     */
+    
+
     return () => {
       this.listeners.delete(listener);
     };
   }
 
-  /**
-   * init
-   */
+  
+
   async init() {
     try {
       const saved = await this.storage.getItem(this.key);
-      /**
-       * if
-       */
+      
+
       if (saved) {
         this.state = { ...JSON.parse(saved), loading: false };
       } else {
@@ -66,15 +60,13 @@ export class UniversalAuthStore {
     }
   }
 
-  /**
-   * update
-   */
+  
+
   update(patch: Partial<AuthState>) {
     this.state = { ...this.state, ...patch };
 
-    /**
-     * if
-     */
+    
+
     if (this.state.session) {
       const dataToSave = JSON.stringify({
         user: this.state.user,
@@ -88,13 +80,11 @@ export class UniversalAuthStore {
     this.notify();
   }
 
-  /**
-   * setAuth
-   */
+  
+
   setAuth(session: { token: string }, user: SessionUser) {
-    /**
-     * if
-     */
+    
+
     if (typeof document !== 'undefined') {
       Cookies.set(this.cookieName, session.token, {
         expires: 7,
@@ -107,13 +97,11 @@ export class UniversalAuthStore {
     this.update({ session, user: user as SessionUser, loading: false });
   }
 
-  /**
-   * logout
-   */
+  
+
   async logout() {
-    /**
-     * if
-     */
+    
+
     if (this.onSignOut) {
       try {
         await this.onSignOut();
@@ -124,17 +112,15 @@ export class UniversalAuthStore {
     await this.clear();
   }
 
-  /**
-   * clear
-   */
+  
+
   async clear() {
     this.state = { user: null, session: null, loading: false };
 
     await this.storage.removeItem(this.key);
 
-    /**
-     * if
-     */
+    
+
     if (typeof document !== 'undefined') {
       Cookies.remove(this.cookieName, { path: '/' });
     }
@@ -142,23 +128,20 @@ export class UniversalAuthStore {
     this.notify();
   }
 
-  /**
-   * updateUser
-   */
+  
+
   updateUser(user: SessionUser) {
     this.update({ user });
   }
 
-  /**
-   * getState
-   */
+  
+
   getState() {
     return this.state;
   }
 
-  /**
-   * notify
-   */
+  
+
   private notify() {
     this.listeners.forEach((l) => l(this.state));
   }

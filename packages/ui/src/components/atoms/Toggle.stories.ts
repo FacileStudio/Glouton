@@ -19,7 +19,7 @@ const meta = {
 			options: ['sm', 'md', 'lg'],
 			description: 'The size of the toggle'
 		}
-	}
+	} as any
 } satisfies Meta<Toggle>;
 
 export default meta;

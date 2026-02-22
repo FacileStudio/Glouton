@@ -62,18 +62,16 @@
         });
     });
 
-    /**
-     * handleMouseMove
-     */
+    
+
     function handleMouseMove(event: MouseEvent, index: number) {
         hoveredIndex = index;
         tooltipX = event.clientX;
         tooltipY = event.clientY;
     }
 
-    /**
-     * handleMouseLeave
-     */
+    
+
     function handleMouseLeave() {
         hoveredIndex = null;
     }

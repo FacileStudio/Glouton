@@ -8,7 +8,7 @@ export function registerWorkers(queueManager: QueueManager, prisma: PrismaClient
   const workers = createWorkers(events);
 
   Object.entries(workers).forEach(([name, worker]) => {
-    queueManager.registerWorker(name, worker);
+    queueManager.registerWorker(name, worker as any);
     logger.info(`[WORKERS] Registered ${name} worker`);
   });
 }

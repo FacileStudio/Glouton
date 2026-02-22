@@ -16,7 +16,7 @@
 
   let teamId = $derived(teamContextStore.getTeamId());
 
-  // State
+  
   let leads = $state<any[]>([]);
   let stats = $state<any>(null);
   let auditSessions = $state<AuditSession[]>([]);
@@ -24,7 +24,7 @@
   let initialLoading = $state(true);
   let loadingData = $state(false);
 
-  // Filters
+  
   let filters = $state({
     search: '',
     status: '',
@@ -40,7 +40,7 @@
     hasEmail: '' as '' | 'true' | 'false',
   });
 
-  // View settings
+  
   let filtersExpanded = $state(false);
 
   let mounted = false;
@@ -80,16 +80,16 @@
   let sortBy = $state('createdAt');
   let sortOrder = $state<'asc' | 'desc'>('desc');
 
-  // Audit state
+  
   let startingAudit = $state(false);
   let cancellingAuditId = $state<string | null>(null);
 
-  // Import/Export
+  
   let exporting = $state(false);
   let importing = $state(false);
   let fileInput: HTMLInputElement;
 
-  // WebSocket event listeners
+  
   let wsUnsubscribers: (() => void)[] = [];
 
   const updateAuditSession = (id: string, updates: Partial<AuditSession>) => {
@@ -221,7 +221,7 @@
     }
   }
 
-  // Filter handling
+  
   let filterTimeout: ReturnType<typeof setTimeout>;
   $effect(() => {
     const { search, status, contacted, country, city, businessType, category, hasWebsite, hasSocial, hasPhone, hasGps, hasEmail } = filters;
@@ -240,7 +240,7 @@
       const result = await trpc.lead.audit.start.mutate();
       toast.push('Audit démarré ! Vérification des leads pour les données manquantes...', 'success');
 
-      // Add the new audit session to the list
+      
       if (result?.auditSessionId) {
         auditSessions.unshift({
           id: result.auditSessionId,
@@ -268,8 +268,8 @@
     cancellingAuditId = auditSessionId;
     try {
       await trpc.lead.audit.cancel.mutate({ auditSessionId });
-      // The WebSocket event will update the session status to 'CANCELLED'
-      // which will make activeAudit become undefined (since it only looks for PENDING/PROCESSING)
+      
+      
     } catch (error) {
       toast.push("Échec de l'annulation de l'audit", 'error');
       console.error('Error cancelling audit:', error);
@@ -374,7 +374,7 @@
     fileInput?.click();
   }
 
-  // Derived state
+  
   let activeAudit = $derived(
     auditSessions.find((s) => s.status === 'PENDING' || s.status === 'PROCESSING')
   );

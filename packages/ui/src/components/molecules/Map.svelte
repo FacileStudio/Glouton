@@ -15,14 +15,13 @@
   let LeafletLib: typeof L | null = null;
   let markerLayers: L.Marker[] = [];
 
-  /**
-   * initMap
-   */
+  
+
   async function initMap() {
     const leaflet = await import('leaflet');
     LeafletLib = leaflet.default;
 
-    delete LeafletLib.Icon.Default.prototype._getIconUrl;
+    delete (LeafletLib.Icon.Default.prototype as any)._getIconUrl;
     LeafletLib.Icon.Default.mergeOptions({
       iconRetinaUrl:
         'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
@@ -36,63 +35,53 @@
       attribution: '©OpenStreetMap',
     }).addTo(map);
 
-    /**
-     * updateMarkers
-     */
+    
+
     updateMarkers();
   }
 
-  /**
-   * updateMarkers
-   */
+  
+
   function updateMarkers() {
-    /**
-     * if
-     */
+    
+
     if (!map || !LeafletLib) return;
     markerLayers.forEach((m) => m.remove());
     markerLayers = [];
 
     markers.forEach((p) => {
       const m = LeafletLib!.marker([p.lat, p.lon]).addTo(map!);
-      /**
-       * if
-       */
+      
+
       if (p.label) m.bindPopup(p.label);
       markerLayers.push(m);
     });
   }
 
-  /**
-   * onMount
-   */
+  
+
   onMount(() => {
-    /**
-     * if
-     */
+    
+
     if (browser) {
-      /**
-       * initMap
-       */
+      
+
       initMap();
     }
   });
 
-  /**
-   * onDestroy
-   */
+  
+
   onDestroy(() => {
-    /**
-     * if
-     */
+    
+
     if (map) map.remove();
   });
 
   $: if (map && LeafletLib) {
     markers;
-    /**
-     * updateMarkers
-     */
+    
+
     updateMarkers();
     map.setView([lat, lon], zoom);
   }

@@ -2,23 +2,8 @@ import type { StorybookConfig } from '@storybook/svelte-vite';
 import { mergeConfig } from 'vite';
 
 const config: StorybookConfig = {
-  stories: ['../src/***.stories.@(js|ts|svelte)'],
-  addons: [
-    '@storybook/addon-links',
-    '@storybook/addon-essentials',
-    '@storybook/addon-interactions',
-  ],
-  framework: {
-    name: '@storybook/svelte-vite',
-    options: {},
-  },
-  docs: {},
-  viteFinal: async (config) => {
-    return mergeConfig(config, {
-      optimizeDeps: {
-        include: ['@storybook/svelte'],
-      },
-      assetsInclude: ['***.woff2', '**/*.ttf'],
+  stories: ['../src
+*.ttf'],
     });
   },
 };

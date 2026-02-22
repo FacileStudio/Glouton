@@ -1,7 +1,6 @@
 export function downloadCSV<T>(data: T[], filename: string) {
-  /**
-   * if
-   */
+  
+
   if (data.length === 0) return;
 
   const headers = Object.keys(data[0] as object).join(',');

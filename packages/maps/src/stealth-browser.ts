@@ -58,7 +58,7 @@ export class StealthBrowser {
     }
     const page = await this.context.newPage();
 
-    await page.evaluateOnNewDocument(() => {
+    await page.addInitScript(() => {
       Object.defineProperty(navigator, 'webdriver', {
         get: () => false,
       });
@@ -74,7 +74,7 @@ export class StealthBrowser {
       const originalQuery = window.navigator.permissions.query;
       window.navigator.permissions.query = (parameters: any) =>
         parameters.name === 'notifications'
-          ? Promise.resolve({ state: 'default', onchange: null } as PermissionStatus)
+          ? Promise.resolve({ state: 'default', onchange: null } as unknown as PermissionStatus)
           : originalQuery(parameters);
     });
 

@@ -27,7 +27,7 @@
     averageScore: number;
   }
 
-  // --- Reactive State ---
+  
   let stats = $state<Stats | null>(null);
   let huntSessions = $state<HuntSession[]>([]);
   let loading = $state(true);
@@ -38,7 +38,7 @@
   let lastCompletedHunts = new Set<string>();
   let wsUnsubscribers: (() => void)[] = [];
 
-  // --- WebSocket Helpers ---
+  
   const updateHuntSession = (id: string, updates: Partial<HuntSession>) => {
     const index = huntSessions.findIndex(s => s.id === id);
     if (index !== -1) {
@@ -52,9 +52,9 @@
     huntSessions = [session, ...huntSessions];
   };
 
-  // --- Lifecycle ---
+  
   onMount(async () => {
-    // Setup WebSocket listeners
+    
     wsUnsubscribers = setupHuntListeners(
       updateHuntSession,
       addHuntSession,
@@ -100,8 +100,8 @@
     cancellingHuntId = huntSessionId;
     try {
       await trpc.lead.hunt.cancel.mutate({ huntSessionId });
-      // The WebSocket event will update the session status to 'CANCELLED'
-      // which will remove it from the active hunts section
+      
+      
     } finally {
       cancellingHuntId = null;
     }
