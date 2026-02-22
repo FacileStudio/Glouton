@@ -1,7 +1,7 @@
 import type { PrismaClient, Prisma } from '@prisma/client';
 import type { Logger } from '@repo/logger';
 
-const BATCH_SIZE = 500;
+const BATCH_SIZE = 100;
 
 export interface BatchImportResult {
   totalProcessed: number;
