@@ -121,7 +121,7 @@
         trpc.lead.query.getById.query({ leadId }),
         trpc.email.getTemplates.query(),
         trpc.email.getLeadOutreach.query({ leadId, teamId: currentTeamId }),
-        trpc.lead.favorite.isFavorite.query({ leadId }),
+        trpc.lead.favorite.isFavorite.query({ leadId, teamId: currentTeamId }),
       ]);
 
       lead = leadData;

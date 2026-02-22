@@ -109,11 +109,23 @@ export default {
       const baseFilter = buildLeadFilter(scope);
       const pagination = paginationParams(page, limit);
 
+      let favoriteUserIds: string[] = [scope.userId];
+
+      if (scope.teamId) {
+        const teamMembers = await prisma.teamMember.findMany({
+          where: { teamId: scope.teamId },
+          select: { userId: true },
+        });
+        favoriteUserIds = teamMembers.map(tm => tm.userId);
+      }
+
       const where = {
         ...baseFilter,
         favoritedBy: {
           some: {
-            userId: scope.userId,
+            userId: {
+              in: favoriteUserIds,
+            },
           },
         },
       };
@@ -181,13 +193,23 @@ export default {
     }
   },
 
-  async isFavorite(userId: string, leadId: string, prisma: PrismaClient) {
+  async isFavorite(scope: Scope, leadId: string, prisma: PrismaClient) {
     try {
-      const favorite = await prisma.userFavoriteLead.findUnique({
+      let favoriteUserIds: string[] = [scope.userId];
+
+      if (scope.teamId) {
+        const teamMembers = await prisma.teamMember.findMany({
+          where: { teamId: scope.teamId },
+          select: { userId: true },
+        });
+        favoriteUserIds = teamMembers.map(tm => tm.userId);
+      }
+
+      const favorite = await prisma.userFavoriteLead.findFirst({
         where: {
-          userId_leadId: {
-            userId,
-            leadId,
+          leadId,
+          userId: {
+            in: favoriteUserIds,
           },
         },
       });
