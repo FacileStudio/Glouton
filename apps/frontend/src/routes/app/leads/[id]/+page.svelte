@@ -102,7 +102,6 @@
   let variables: Record<string, string> = $state({});
   let emailPreview = $state({ subject: '', html: '', text: '' });
   let previewLoading = $state(false);
-  let debounceTimer: ReturnType<typeof setTimeout> | null = $state(null);
   let expandedEmails: Set<string> = $state(new Set());
   let isInitialLoad = $state(true);
 
@@ -161,7 +160,7 @@
     });
     variables = newVars;
     if (!isInitialLoad) {
-      debouncedUpdatePreview();
+      updatePreview();
     }
   }
 
@@ -189,11 +188,6 @@
     } finally {
       previewLoading = false;
     }
-  }
-
-  function debouncedUpdatePreview() {
-    if (debounceTimer) clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => updatePreview(), 300);
   }
 
   function handleTemplateChange() {
