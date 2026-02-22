@@ -114,10 +114,11 @@
   async function loadData() {
     try {
       console.log('[LOAD] Starting loadData');
+      const currentTeamId = teamId;
       const [leadData, templatesData, historyData] = await Promise.all([
         trpc.lead.query.getById.query({ leadId }),
         trpc.email.getTemplates.query(),
-        trpc.email.getLeadOutreach.query({ leadId, teamId }),
+        trpc.email.getLeadOutreach.query({ leadId, teamId: currentTeamId }),
       ]);
 
       console.log('[LOAD] All queries completed', { leadData, templatesData, historyData });
@@ -192,7 +193,7 @@
   }
 
   $effect(() => {
-    if (variables && selectedTemplate) debouncedUpdatePreview();
+    if (variables && selectedTemplate && !loading) debouncedUpdatePreview();
   });
 
   function handleTemplateChange() {
