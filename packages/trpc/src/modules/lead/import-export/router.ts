@@ -3,6 +3,7 @@ import { router, protectedProcedure } from '../../../trpc';
 import importExportService from './service';
 import queryService from '../query/service';
 import { exportToCsvSchema, importFromCsvSchema } from '../schemas';
+import { resolveScope } from '../../../utils/scope';
 import {
   parseCSVLine,
   parseCSVArray,
@@ -13,8 +14,9 @@ import {
 export const importExportRouter = router({
   exportToCsv: protectedProcedure.input(exportToCsvSchema).query(async ({ ctx, input }) => {
     try {
+      const scope = await resolveScope(ctx.prisma, ctx.user.id, input.teamId);
       const csv = await importExportService.exportToCsv({
-        userId: ctx.user.id,
+        scope,
         leadIds: input.leadIds,
         filters: {
           status: input.status,
@@ -67,6 +69,8 @@ export const importExportRouter = router({
         const huntSession = await ctx.prisma.huntSession.create({
           data: {
             userId: ctx.user.id,
+            teamId: input.teamId || null,
+            sources: ['MANUAL'],
             status: 'COMPLETED',
             progress: 100,
             totalLeads: 0,
@@ -155,6 +159,7 @@ export const importExportRouter = router({
 
           leads.push({
             userId: ctx.user.id,
+            teamId: input.teamId || null,
             huntSessionId,
             source,
             sourceId: `manual:${domain}:${i}`,
