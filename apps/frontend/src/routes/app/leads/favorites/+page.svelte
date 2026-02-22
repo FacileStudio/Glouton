@@ -39,7 +39,7 @@
       totalLeads = data?.pagination?.total || 0;
     } catch (error) {
       console.error('Error loading favorites:', error);
-      toast.push('Échec du chargement des favoris', 'error');
+      toast.push('ï¿½chec du chargement des favoris', 'error');
       leads = [];
     } finally {
       loading = false;
@@ -64,9 +64,10 @@
 </script>
 
 <div
-  class="p-6 lg:p-12 max-w-[1600px] mx-auto space-y-12 selection:text-black font-sans"
+  class="min-h-screen selection:text-black font-sans"
   style="background-color: #FAF7F5; selection-background-color: #FEC129;"
 >
+  <div class="p-6 lg:p-12 max-w-[1600px] mx-auto space-y-12">
   <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
     <div class="flex items-center gap-4">
       <button
@@ -98,7 +99,7 @@
         { label: 'Domaine', value: 'domain' },
         { label: 'E-mail', value: 'email' },
         { label: 'Localisation', value: 'city' },
-        { label: 'Priorité', value: 'status' },
+        { label: 'Prioritï¿½', value: 'status' },
       ] as opt}
         <button
           onclick={() => handleSort(opt.value)}
@@ -130,7 +131,7 @@
             Aucun lead favori
           </p>
           <p class="text-neutral-400 text-sm">
-            Ajoutez des leads à vos favoris pour les retrouver facilement ici
+            Ajoutez des leads ï¿½ vos favoris pour les retrouver facilement ici
           </p>
           <button
             onclick={() => goto('/app/leads')}
@@ -153,5 +154,6 @@
         onPageChange={handlePageChange}
       />
     {/if}
+  </div>
   </div>
 </div>
