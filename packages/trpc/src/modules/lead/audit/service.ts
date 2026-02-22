@@ -68,7 +68,7 @@ export default {
     try {
       const session = await prisma.auditSession.findUnique({
         where: { id: auditSessionId, userId: ctx.user.id },
-        select: { id: true, jobId: true, status: true }
+        select: { id: true, jobId: true, status: true, teamId: true }
       });
 
       if (!session) {
@@ -110,10 +110,9 @@ export default {
       }
 
       if (ctx.events) {
-        const scope: { type: 'personal' | 'team'; userId: string; teamId?: string } = {
-          type: 'personal',
-          userId: ctx.user.id
-        };
+        const scope: { type: 'personal' | 'team'; userId: string; teamId?: string } = session.teamId
+          ? { type: 'team', userId: ctx.user.id, teamId: session.teamId }
+          : { type: 'personal', userId: ctx.user.id };
         await ctx.events.emitToScope(scope, 'audit-cancelled', {
           auditSessionId: result.id,
           processedLeads: result.processedLeads || 0,
