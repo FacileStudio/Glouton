@@ -170,18 +170,19 @@ export class CsvImportProcessor {
         };
 
         const domain = getHeaderValue('Domaine');
+        const organization = getHeaderValue('Nom Organisation');
+        const email = getHeaderValue('Email');
 
-        if (!domain) {
-          errors.push(`Row ${i + 2}: Missing domain`);
+        if (!domain && !organization && !email) {
+          errors.push(`Row ${i + 2}: Missing domain, organization name, and email`);
           continue;
         }
 
-        const organization = getHeaderValue('Nom Organisation') || domain;
         const city = getHeaderValue('Ville');
         const country = getHeaderValue('Pays');
-        const email = getHeaderValue('Email') || `contact@${domain}`;
-        const firstName = getHeaderValue('Prenom') || organization.split(' ')[0] || '';
-        const lastName = getHeaderValue('Nom') || organization.split(' ').slice(1).join(' ') || '';
+        const emailValue = email || (domain ? `contact@${domain}` : null);
+        const firstName = getHeaderValue('Prenom') || (organization ? organization.split(' ')[0] : '') || '';
+        const lastName = getHeaderValue('Nom') || (organization ? organization.split(' ').slice(1).join(' ') : '') || '';
         const position = getHeaderValue('Position') || null;
         const department = getHeaderValue('Departement') || null;
 
@@ -236,10 +237,10 @@ export class CsvImportProcessor {
           teamId: teamId || null,
           huntSessionId,
           source,
-          sourceId: `csv-import:${domain}:${i}`,
+          sourceId: `csv-import:${domain || organization || email}:${i}`,
           businessType,
-          domain,
-          email,
+          domain: domain || null,
+          email: emailValue,
           additionalEmails,
           firstName,
           lastName,
