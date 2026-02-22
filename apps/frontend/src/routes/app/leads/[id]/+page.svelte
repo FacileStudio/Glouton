@@ -113,8 +113,8 @@
   });
 
   async function loadData() {
+    loading = true;
     try {
-      console.log('[LOAD] Starting loadData');
       const currentTeamId = teamId;
       const [leadData, templatesData, historyData] = await Promise.all([
         trpc.lead.query.getById.query({ leadId }),
@@ -122,46 +122,46 @@
         trpc.email.getLeadOutreach.query({ leadId, teamId: currentTeamId }),
       ]);
 
-      console.log('[LOAD] All queries completed', { leadData, templatesData, historyData });
-
       lead = leadData;
-      templates = templatesData;
-      outreachHistory = historyData;
+      templates = [...templatesData];
+      outreachHistory = [...historyData];
 
-      console.log('[LOAD] State updated, checking templates');
-
-      if (templates.length > 0 && !selectedTemplate) {
-        console.log('[LOAD] Updating variables with first template');
-        selectedTemplate = templates[0].id;
-        updateVariables(templates[0]);
+      if (templatesData.length > 0 && !selectedTemplate) {
+        selectedTemplate = templatesData[0].id;
+        variables = {};
+        templatesData[0].variables.forEach((variable: string) => {
+          if (variable === 'recipientName' && leadData) {
+            variables[variable] = leadData.firstName || leadData.businessName || leadData.domain || '';
+          } else if (variable === 'companyName' && leadData) {
+            variables[variable] = leadData.businessName || leadData.companyInfo?.name || leadData.domain || '';
+          } else {
+            variables[variable] = '';
+          }
+        });
       }
-
-      console.log('[LOAD] About to set loading = false');
     } catch (error) {
-      console.error('[LOAD] Error occurred:', error);
       toast.push('Échec du chargement du lead', 'error');
       console.error(error);
     } finally {
-      console.log('[LOAD] Finally block - setting loading = false');
-      loading = false;
       isInitialLoad = false;
-      console.log('[LOAD] loading is now:', loading);
+      loading = false;
     }
   }
 
   function updateVariables(template: EmailTemplate) {
-    variables = {};
+    const newVars: Record<string, string> = {};
     template.variables.forEach((variable) => {
       if (variable === 'recipientName' && lead) {
-        variables[variable] = lead.firstName || lead.businessName || lead.domain || '';
+        newVars[variable] = lead.firstName || lead.businessName || lead.domain || '';
       } else if (variable === 'companyName' && lead) {
-        variables[variable] = lead.businessName || lead.companyInfo?.name || lead.domain || '';
+        newVars[variable] = lead.businessName || lead.companyInfo?.name || lead.domain || '';
       } else {
-        variables[variable] = '';
+        newVars[variable] = '';
       }
     });
+    variables = newVars;
     if (!isInitialLoad) {
-      updatePreview();
+      debouncedUpdatePreview();
     }
   }
 
@@ -195,10 +195,6 @@
     if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => updatePreview(), 300);
   }
-
-  $effect(() => {
-    if (variables && selectedTemplate && !isInitialLoad) debouncedUpdatePreview();
-  });
 
   function handleTemplateChange() {
     const template = templates.find((t) => t.id === selectedTemplate);
