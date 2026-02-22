@@ -125,6 +125,7 @@ export const deleteAuditSchema = z.object({
 });
 
 export const exportToCsvSchema = z.object({
+  teamId: z.string().uuid().optional(),
   leadIds: z.array(z.string()).optional(),
   status: z.enum(['HOT', 'WARM', 'COLD']).optional(),
   search: z.string().optional(),
@@ -135,4 +136,5 @@ export const exportToCsvSchema = z.object({
 export const importFromCsvSchema = z.object({
   csvContent: z.string().min(1, 'CSV content is required'),
   huntSessionId: z.string().optional(),
+  teamId: z.string().uuid().optional(),
 });

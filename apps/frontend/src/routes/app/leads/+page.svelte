@@ -315,6 +315,7 @@
     try {
       exporting = true;
       const result = await trpc.lead.importExport.exportToCsv.query({
+        teamId: teamId || undefined,
         status: (filters.status as 'HOT' | 'WARM' | 'COLD') || undefined,
         search: filters.search || undefined,
         country: filters.country || undefined,
@@ -353,7 +354,10 @@
     try {
       importing = true;
       const csvText = await file.text();
-      const result = await trpc.lead.importExport.importFromCsv.mutate({ csvContent: csvText });
+      const result = await trpc.lead.importExport.importFromCsv.mutate({
+        csvContent: csvText,
+        teamId: teamId || undefined,
+      });
 
       toast.push(`${result.imported} lead(s) importé(s) avec succès`, 'success');
       await loadData();

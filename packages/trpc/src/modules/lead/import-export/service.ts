@@ -1,5 +1,7 @@
 import { prisma } from '@repo/database/prisma';
 import type { LeadStatus, Prisma } from '@prisma/client';
+import type { Scope } from '../../../utils/scope';
+import { buildLeadFilter } from '../../../utils/scope';
 import {
   escapeCSVField,
   escapeCSVArray,
@@ -12,7 +14,7 @@ import {
 } from './csv-utils';
 
 export interface ExportParams {
-  userId: string;
+  scope: Scope;
   leadIds?: string[];
   filters?: {
     status?: LeadStatus;
@@ -28,9 +30,9 @@ export interface ImportParams {
 }
 
 export default {
-  async exportToCsv({ userId, leadIds, filters }: ExportParams): Promise<string> {
+  async exportToCsv({ scope, leadIds, filters }: ExportParams): Promise<string> {
     const whereConditions: Prisma.LeadWhereInput = {
-      userId,
+      ...buildLeadFilter(scope),
     };
 
     if (leadIds && leadIds.length > 0) {
