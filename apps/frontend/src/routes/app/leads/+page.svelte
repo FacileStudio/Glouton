@@ -359,13 +359,12 @@
         teamId: teamId || undefined,
       });
 
-      toast.push(`${result.imported} lead(s) importé(s) avec succès`, 'success');
-      await loadData();
+      toast.push('Import CSV démarré ! Redirection...', 'success');
+      window.location.href = `/app/hunts/${result.huntSessionId}`;
     } catch (error: any) {
       const errorMessage = error?.message || "Échec de l'importation du CSV";
       toast.push(errorMessage, 'error');
       console.error('Import error:', error);
-    } finally {
       importing = false;
       if (fileInput) fileInput.value = '';
     }
