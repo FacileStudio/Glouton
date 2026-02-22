@@ -52,7 +52,6 @@ class WebSocketEventManager {
 
     events.forEach(event => {
       const unsubscriber = ws.on(event, (data) => {
-        console.log(`[WS] Event: ${event}`, data);
         this.emit(event, data);
       });
       this.globalSubscriptions.set(event, unsubscriber);

@@ -104,7 +104,6 @@
     });
 
     const { latitude, longitude } = position.coords;
-    console.log(`GPS coordinates: ${latitude}, ${longitude}`);
 
     const response = await fetch(
       `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&addressdetails=1`,
@@ -123,7 +122,6 @@
     }
 
     const data = await response.json();
-    console.log('Reverse geocode data:', data);
 
     return {
       city:
@@ -152,7 +150,6 @@
     }
 
     const data = await response.json();
-    console.log('IP geolocation data:', data);
 
     return {
       city: data.city,
@@ -179,7 +176,6 @@
       if (method === 'gps' || method === 'auto') {
         try {
           location = await detectLocationFromGPS();
-          console.log('GPS detection successful:', location);
         } catch (gpsError) {
           console.warn('GPS detection failed:', gpsError);
 
@@ -190,13 +186,10 @@
             throw gpsError;
           }
 
-          console.log('Falling back to IP-based detection...');
           location = await detectLocationFromIP();
-          console.log('IP detection successful:', location);
         }
       } else {
         location = await detectLocationFromIP();
-        console.log('IP detection successful:', location);
       }
 
       userLocation = location;
@@ -403,11 +396,8 @@
       const sources = await trpc.user.getConfiguredSources.query(
         teamId ? { teamId } : undefined
       );
-      console.log('Configured sources:', sources);
       configuredSourcesCount = sources.length;
       hasGoogleMapsKey = sources.includes('GOOGLE_MAPS');
-      console.log('configuredSourcesCount:', configuredSourcesCount);
-      console.log('hasGoogleMapsKey:', hasGoogleMapsKey);
 
       /**
        * if

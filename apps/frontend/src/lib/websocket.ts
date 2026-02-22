@@ -58,7 +58,6 @@ class WebSocketClient {
      * if
      */
     if (this.ws && (this.ws.readyState === WebSocket.CONNECTING || this.ws.readyState === WebSocket.OPEN)) {
-      console.log('[WebSocket] Already connected or connecting, skipping duplicate connection');
       return;
     }
 
@@ -66,7 +65,6 @@ class WebSocketClient {
      * if
      */
     if (this.ws) {
-      console.log('[WebSocket] Closing existing connection before reconnecting');
       this.ws.close();
       this.ws = null;
     }
@@ -74,16 +72,12 @@ class WebSocketClient {
     this.token = token;
     const wsUrl = `${wsBaseUrl}?token=${token}`;
 
-    console.log('[WebSocket] Connecting to:', wsBaseUrl, 'with token:', token.slice(0, 20) + '...');
-
     this.connectionState.set(this.reconnectAttempts > 0 ? 'reconnecting' : 'connecting');
 
     try {
       this.ws = new WebSocket(wsUrl);
-      console.log('[WebSocket] WebSocket object created, waiting for connection...');
 
       this.ws.onopen = () => {
-        console.log('[WebSocket] Connected');
         this.reconnectAttempts = 0;
         this.connectionState.set('connected');
       };
@@ -91,17 +85,6 @@ class WebSocketClient {
       this.ws.onmessage = (event) => {
         try {
           const message = JSON.parse(event.data);
-
-          /**
-           * if
-           */
-          if (message.type !== 'pong' && message.type !== 'connected') {
-            console.log('[WebSocket] Received message:', {
-              type: message.type,
-              hasData: !!message.data,
-              timestamp: message.timestamp,
-            });
-          }
 
           const handlers = this.handlers.get(message.type);
           /**
@@ -121,7 +104,6 @@ class WebSocketClient {
       };
 
       this.ws.onclose = (event) => {
-        console.log('[WebSocket] Disconnected', event.code, event.reason);
         this.connectionState.set('disconnected');
         this.attemptReconnect();
       };
@@ -145,7 +127,6 @@ class WebSocketClient {
      * if
      */
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.log('[WebSocket] Max reconnection attempts reached');
       this.connectionState.set('failed');
       return;
     }
@@ -156,7 +137,6 @@ class WebSocketClient {
       this.maxReconnectDelay
     );
 
-    console.log(`[WebSocket] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts})`);
     this.connectionState.set('reconnecting');
 
     this.reconnectTimeout = setTimeout(() => {
@@ -173,7 +153,6 @@ class WebSocketClient {
    * resetConnection
    */
   resetConnection() {
-    console.log('[WebSocket] Resetting connection');
     this.reconnectAttempts = 0;
     /**
      * if

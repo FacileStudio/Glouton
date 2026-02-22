@@ -105,13 +105,11 @@
   async function loadData() {
     initialLoading = true;
     try {
-      console.log('[OUTREACH] Loading data with teamId:', teamId);
       const [outreachData, statsData, templatesData] = await Promise.all([
         trpc.email.getAllOutreach.query({ teamId }),
         trpc.email.getStats.query({ teamId }),
         trpc.email.getTemplates.query(),
       ]);
-      console.log('[OUTREACH] Data loaded:', { outreach: outreachData?.length, stats: statsData, templates: templatesData?.length });
       outreachLeads = outreachData as OutreachLead[];
       stats = statsData as Stats;
       templates = templatesData;

@@ -41,7 +41,6 @@ export function useHuntWebSocket(
 
     unsubscribers.push(
       ws.on('hunt-started', (data) => {
-        console.log('[WS] Hunt started:', data);
         const current = getHuntSessions();
         const existingIndex = current.findIndex((s) => s.id === data.huntSessionId);
 
@@ -76,7 +75,6 @@ export function useHuntWebSocket(
 
     unsubscribers.push(
       ws.on('hunt-processing', (data) => {
-        console.log('[WS] Hunt processing:', data);
         updateSession(data.huntSessionId, {
           status: 'PROCESSING',
           startedAt: data.startedAt ? new Date(data.startedAt) : new Date(),
@@ -109,7 +107,6 @@ export function useHuntWebSocket(
 
     unsubscribers.push(
       ws.on('hunt-completed', async (data) => {
-        console.log('[WS] Hunt completed:', data);
         const found = updateSession(data.huntSessionId, {
           status: 'COMPLETED',
           progress: 100,
@@ -135,7 +132,6 @@ export function useHuntWebSocket(
 
     unsubscribers.push(
       ws.on('hunt-failed', (data) => {
-        console.log('[WS] Hunt failed:', data);
         updateSession(data.huntSessionId, {
           status: 'FAILED',
           error: data.error || 'Unknown error',
@@ -147,7 +143,6 @@ export function useHuntWebSocket(
 
     unsubscribers.push(
       ws.on('hunt-cancelled', (data) => {
-        console.log('[WS] Hunt cancelled:', data);
         const current = getHuntSessions();
         const session = current.find((s) => s.id === data.huntSessionId);
 
@@ -163,7 +158,6 @@ export function useHuntWebSocket(
 
     unsubscribers.push(
       ws.on('local-business-hunt-progress', (data) => {
-        console.log('[WS] Local business hunt progress:', data);
         updateSession(data.huntSessionId, {
           status: 'PROCESSING',
           progress: data.progress || 0,
@@ -182,7 +176,6 @@ export function useHuntWebSocket(
     unsubscribers.push(
       ws.on('leads-added', async (data) => {
         if (data.huntSessionId) {
-          console.log('[WS] Leads added for hunt:', data);
           const sessions = getHuntSessions();
           const session = sessions.find(s => s.id === data.huntSessionId);
           if (session) {
