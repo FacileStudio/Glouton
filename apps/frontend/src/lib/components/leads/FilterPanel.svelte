@@ -107,7 +107,7 @@
     <button
       onclick={() => (filtersExpanded = !filtersExpanded)}
       aria-label={filtersExpanded ? 'Masquer les filtres' : 'Afficher les filtres'}
-      class="h-12 px-4 bg-white rounded-2xl border border-neutral-200 text-neutral-600 hover:text-black hover:border-neutral-900 transition-all font-bold text-sm flex items-center gap-2 flex-shrink-0 {filtersExpanded ? 'bg-neutral-900 text-white border-neutral-900' : ''}"
+      class="h-12 px-4 rounded-2xl border transition-all font-bold text-sm flex items-center gap-2 flex-shrink-0 {filtersExpanded ? 'bg-neutral-900 text-white border-neutral-900' : 'bg-white border-neutral-200 text-neutral-600 hover:text-black hover:border-neutral-900'}"
     >
       <iconify-icon icon={filtersExpanded ? 'solar:alt-arrow-up-bold' : 'solar:filter-bold'} width="16"></iconify-icon>
       {filtersExpanded ? 'Masquer filtres' : 'Filtres'}
