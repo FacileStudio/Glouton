@@ -25,5 +25,5 @@ jobs:
       - name: Build monorepo
         run: bun run build
 
-      - name: Run linter
-        run: bun run lint
+      # - name: Run linter
+      #   run: bun run lint

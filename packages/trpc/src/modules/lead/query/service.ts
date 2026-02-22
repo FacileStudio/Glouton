@@ -496,9 +496,13 @@ export default {
 
   async getLeadById(leadId: string, ctx: Context) {
     try {
+      ctx.log.info({ action: 'get-lead-by-id-start', leadId });
+
       const lead = await ctx.prisma.lead.findUnique({
         where: { id: leadId },
       });
+
+      ctx.log.info({ action: 'get-lead-by-id-found', leadId, found: !!lead });
 
       if (!lead) {
         throw new TRPCError({
@@ -511,6 +515,7 @@ export default {
       let isTeamMember = false;
 
       if (lead.teamId) {
+        ctx.log.info({ action: 'check-team-membership', teamId: lead.teamId, userId: ctx.user.id });
         const teamMembership = await ctx.prisma.teamMember.findFirst({
           where: {
             teamId: lead.teamId,
@@ -518,6 +523,7 @@ export default {
           },
         });
         isTeamMember = !!teamMembership;
+        ctx.log.info({ action: 'team-membership-checked', isTeamMember });
       }
 
       if (!isOwner && !isTeamMember) {
@@ -527,6 +533,7 @@ export default {
         });
       }
 
+      ctx.log.info({ action: 'get-lead-by-id-success', leadId });
       return lead;
     } catch (error) {
       if (error instanceof TRPCError) throw error;
