@@ -91,6 +91,8 @@
   let selectedTemplate = $state('');
   let composeVariables = $state<Record<string, string>>({});
   let sending = $state(false);
+  let smtpConfigured = $state<boolean>(true);
+  let checkingSmtp = $state(true);
 
   onMount(async () => {
     const params = new URLSearchParams(location.search);
@@ -98,7 +100,7 @@
     const tab = params.get('tab');
     if (tab === 'followup' || tab === 'pending' || tab === 'replied') activeTab = tab;
 
-    await loadData();
+    await Promise.all([loadData(), checkSmtpConfiguration()]);
     mounted = true;
   });
 
@@ -116,12 +118,25 @@
     } catch (error) {
       console.error('[OUTREACH] Error loading data:', error);
       toast.push('Échec du chargement des données de prospection', 'error');
-      
+
       outreachLeads = [];
       stats = null;
       templates = [];
     } finally {
       initialLoading = false;
+    }
+  }
+
+  async function checkSmtpConfiguration() {
+    checkingSmtp = true;
+    try {
+      const config = await trpc.team.getSmtpConfig.query({ teamId });
+      smtpConfigured = !!(config.smtpHost && config.smtpUser && config.smtpPass);
+    } catch (error) {
+      console.error('[OUTREACH] Error checking SMTP config:', error);
+      smtpConfigured = false;
+    } finally {
+      checkingSmtp = false;
     }
   }
 
@@ -316,6 +331,27 @@
       <p class="text-neutral-400 font-medium text-sm">Historique des e-mails, relances et réponses</p>
     </div>
   </div>
+
+  {#if !checkingSmtp && !smtpConfigured}
+    <div class="rounded-2xl bg-amber-50 border-2 border-amber-200 p-6 flex items-start gap-4" transition:slide={{ duration: 200 }}>
+      <div class="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
+        <iconify-icon icon="solar:danger-triangle-bold" width="24" class="text-amber-600"></iconify-icon>
+      </div>
+      <div class="flex-1 space-y-2">
+        <h3 class="text-lg font-black text-amber-900">Configuration SMTP manquante</h3>
+        <p class="text-sm text-amber-700 font-medium leading-relaxed">
+          Vous devez configurer vos paramètres SMTP pour pouvoir envoyer des e-mails. Rendez-vous dans les paramètres de l'équipe pour ajouter votre configuration SMTP.
+        </p>
+        <button
+          onclick={() => goto('/app/settings/team')}
+          class="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-xl font-bold text-sm hover:bg-amber-700 transition-colors mt-2"
+        >
+          <iconify-icon icon="solar:settings-bold" width="16"></iconify-icon>
+          Configurer SMTP
+        </button>
+      </div>
+    </div>
+  {/if}
 
   <section class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
     {#if initialLoading}
@@ -611,6 +647,18 @@
                           <p class="text-xs font-bold text-neutral-400">Aucun modèle disponible</p>
                         </div>
                       {:else}
+                        {#if !smtpConfigured}
+                          <div class="rounded-xl bg-amber-50 border border-amber-200 p-4 flex items-start gap-3">
+                            <iconify-icon icon="solar:danger-triangle-bold" width="20" class="text-amber-600 flex-shrink-0"></iconify-icon>
+                            <div class="flex-1">
+                              <p class="text-xs font-bold text-amber-900 mb-1">SMTP non configuré</p>
+                              <p class="text-[10px] text-amber-700 leading-relaxed">
+                                Configurez vos paramètres SMTP dans les paramètres de l'équipe pour envoyer des e-mails.
+                              </p>
+                            </div>
+                          </div>
+                        {/if}
+
                         <div class="space-y-3">
                           <div>
                             <label for="template-select-{lead.id}" class="block text-[9px] font-black uppercase tracking-widest text-neutral-500 mb-1.5">
@@ -658,7 +706,7 @@
                             </p>
                             <button
                               onclick={() => sendFromPanel(lead)}
-                              disabled={sending || !selectedTemplate}
+                              disabled={sending || !selectedTemplate || !smtpConfigured}
                               class="w-full bg-black text-white px-4 py-3 rounded-xl font-bold text-sm hover:bg-neutral-800 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                             >
                               {#if sending}

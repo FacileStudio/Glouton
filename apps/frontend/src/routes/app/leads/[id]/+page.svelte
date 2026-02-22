@@ -106,11 +106,13 @@
   let isInitialLoad = $state(true);
   let isFavorite = $state(false);
   let togglingFavorite = $state(false);
+  let smtpConfigured = $state<boolean>(true);
+  let checkingSmtp = $state(true);
 
   const leadId = $page.params.id;
 
   onMount(async () => {
-    await loadData();
+    await Promise.all([loadData(), checkSmtpConfiguration()]);
   });
 
   async function loadData() {
@@ -148,6 +150,19 @@
     } finally {
       isInitialLoad = false;
       loading = false;
+    }
+  }
+
+  async function checkSmtpConfiguration() {
+    checkingSmtp = true;
+    try {
+      const config = await trpc.team.getSmtpConfig.query({ teamId });
+      smtpConfigured = !!(config.smtpHost && config.smtpUser && config.smtpPass);
+    } catch (error) {
+      console.error('[LEAD] Error checking SMTP config:', error);
+      smtpConfigured = false;
+    } finally {
+      checkingSmtp = false;
     }
   }
 
@@ -772,6 +787,25 @@
               </p>
             </div>
 
+            {#if !checkingSmtp && !smtpConfigured}
+              <div class="mx-8 mt-6 rounded-xl bg-amber-50 border border-amber-200 p-4 flex items-start gap-3">
+                <iconify-icon icon="solar:danger-triangle-bold" width="20" class="text-amber-600 flex-shrink-0"></iconify-icon>
+                <div class="flex-1">
+                  <p class="text-sm font-bold text-amber-900 mb-1">Configuration SMTP manquante</p>
+                  <p class="text-xs text-amber-700 leading-relaxed mb-2">
+                    Vous devez configurer vos paramètres SMTP pour pouvoir envoyer des e-mails.
+                  </p>
+                  <button
+                    onclick={() => goto('/app/settings/team')}
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 text-white rounded-lg font-bold text-xs hover:bg-amber-700 transition-colors"
+                  >
+                    <iconify-icon icon="solar:settings-bold" width="14"></iconify-icon>
+                    Configurer SMTP
+                  </button>
+                </div>
+              </div>
+            {/if}
+
             <div class="grid grid-cols-1 xl:grid-cols-2 gap-0">
               <div class="p-8 space-y-5 border-r border-neutral-200/60">
                 <div>
@@ -814,7 +848,7 @@
 
                 <button
                   onclick={sendEmail}
-                  disabled={sending || !selectedTemplate}
+                  disabled={sending || !selectedTemplate || !smtpConfigured}
                   class="w-full bg-black text-white px-6 py-4 rounded-xl font-bold hover:bg-neutral-800 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {#if sending}
