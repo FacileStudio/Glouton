@@ -12,23 +12,21 @@
   export let onSubmit: (_data: Record<string, unknown>) => Promise<void>;
   export let submitLabel = "Enregistrer";
 
+  // @ts-ignore - Complex Zod schema causes type instantiation depth error
   const adapter = zod(schema);
 
   const { form, errors, constraints, enhance, delayed } = superForm(
-    /**
-     * defaults
-     */
+
+
     defaults(initialData, adapter),
     {
       validators: adapter,
       SPA: true,
-      /**
-       * onUpdate
-       */
+
+
       async onUpdate({ form }) {
-        /**
-         * if
-         */
+
+
         if (form.valid) {
           try {
             await onSubmit(form.data);
@@ -38,52 +36,44 @@
         }
       }
     }
-  );
+  ) as any;
 
   const shape = schema.shape as Record<string, z.ZodTypeAny>;
   const fields = Object.keys(shape);
 
-  /**
-   * Identifie le type d'input à afficher selon le schéma Zod
-   */
+  
+
   function getFieldType(fieldName: string) {
     const fieldSchema = shape[fieldName];
     const typeName = fieldSchema?._def?.typeName;
 
-    /**
-     * if
-     */
+    
+
     if (fieldName.toLowerCase().includes('image')) return 'image';
-    /**
-     * if
-     */
+    
+
     if (typeName === 'ZodNumber') return 'number';
-    /**
-     * if
-     */
+    
+
     if (typeName === 'ZodBoolean') return 'checkbox';
-    /**
-     * if
-     */
+    
+
     if (typeName === 'ZodEnum' || typeName === 'ZodNativeEnum') return 'select';
 
     return 'text';
   }
 
-  /**
-   * Extrait les options d'un ZodEnum ou ZodNativeEnum
-   */
+  
+
   function getEnumOptions(fieldName: string): string[] {
     const fieldSchema = shape[fieldName];
     const def = fieldSchema._def;
 
-    /**
-     * if
-     */
+    
+
     if (def.typeName === 'ZodEnum') return def.values;
-    /**
-     * if
-     */
+    
+
     if (def.typeName === 'ZodNativeEnum') return Object.values(def.values);
     return [];
   }

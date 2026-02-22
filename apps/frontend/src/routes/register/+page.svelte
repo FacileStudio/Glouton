@@ -17,29 +17,24 @@
   let loading = false;
   let error = '';
 
-  /**
-   * nextStep
-   */
+  
+
   const nextStep = () => {
-    /**
-     * if
-     */
+    
+
     if (step === 1 && firstName && lastName) step = 2;
     else if (step === 2 && email) step = 3;
   };
 
-  /**
-   * prevStep
-   */
+  
+
   const prevStep = () => (step > 1 ? step-- : goto(resolve('/login')));
 
-  /**
-   * handleRegister
-   */
+  
+
   async function handleRegister() {
-    /**
-     * if
-     */
+    
+
     if (password !== confirmPassword) {
       error = 'Les mots de passe ne correspondent pas.';
       return;
@@ -63,13 +58,11 @@
     }
   }
 
-  /**
-   * focusInput
-   */
+  
+
   function focusInput(node: HTMLElement) {
-    /**
-     * setTimeout
-     */
+    
+
     setTimeout(() => node.focus(), 100);
   }
 

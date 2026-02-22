@@ -7,19 +7,16 @@
   $: status = $page.status;
   $: message = $page.error?.message || 'Something went wrong';
 
-  /**
-   * goHome
-   */
+  
+
   function goHome() {
-    /**
-     * goto
-     */
+    
+
     goto(resolve('/'));
   }
 
-  /**
-   * goBack
-   */
+  
+
   function goBack() {
     window.history.back();
   }

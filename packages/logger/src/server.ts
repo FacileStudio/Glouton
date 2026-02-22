@@ -18,13 +18,11 @@ const redactPaths = [
   '*.secret',
 ];
 
-/**
- * createTransport
- */
+
+
 function createTransport() {
-  /**
-   * if
-   */
+  
+
   if (isProd && process.env.LOGTAIL_TOKEN) {
     return pino.transport({
       target: '@logtail/pino',
@@ -32,9 +30,8 @@ function createTransport() {
     });
   }
 
-  /**
-   * if
-   */
+  
+
   if (!isProd) {
     return pino.transport({
       target: 'pino-pretty',
@@ -51,9 +48,8 @@ function createTransport() {
   return undefined;
 }
 
-/**
- * createLogger
- */
+
+
 export function createLogger(options: LoggerOptions = {}): PinoLogger {
   const defaultOptions: LoggerOptions = {
     level: logLevel,

@@ -4,7 +4,7 @@ export interface EventMessage {
   timestamp: Date;
 }
 
-interface WebSocketBroadcaster {
+export interface WebSocketBroadcaster {
   broadcastToUser: (userId: string, message: any) => void;
   broadcastToAll: (message: any) => void;
 }
@@ -55,7 +55,7 @@ class EventEmitter {
     }
   }
 
-  async emitToScope(scope: { type: 'personal' | 'team'; userId: string; teamId?: string }, type: string, data?: any) {
+  async emitToScope(scope: { type: 'personal' | 'team'; userId: string; teamId?: string | null }, type: string, data?: any) {
     if (scope.type === 'team' && scope.teamId) {
       await this.emitToTeam(scope.teamId, type, data);
     } else {

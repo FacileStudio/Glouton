@@ -116,7 +116,7 @@
     } catch (error) {
       console.error('[OUTREACH] Error loading data:', error);
       toast.push('Échec du chargement des données de prospection', 'error');
-      // Set to empty arrays so UI shows empty state
+      
       outreachLeads = [];
       stats = null;
       templates = [];

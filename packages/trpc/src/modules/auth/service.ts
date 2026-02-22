@@ -4,9 +4,8 @@ import { prisma } from '@repo/database/prisma';
 import type { AuthManager } from '@repo/auth';
 import type { LoginInput, RegisterInput, SessionUser } from '@repo/auth-shared';
 
-/**
- * mapToSessionUser
- */
+
+
 const mapToSessionUser = (user: any): SessionUser => ({
   id: user.id,
   email: user.email,

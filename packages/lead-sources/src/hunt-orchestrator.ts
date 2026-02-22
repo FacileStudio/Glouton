@@ -50,26 +50,22 @@ export class HuntOrchestrator {
   private rateLimiter: RateLimiter;
   private providers: Map<LeadSource, LeadSourceProvider> = new Map();
 
-  /**
-   * constructor
-   */
+  
+
   constructor(customLimits?: Partial<Record<LeadSource, import('./rate-limiter').SourceLimits>>) {
     this.rateLimiter = new RateLimiter(customLimits);
   }
 
-  /**
-   * initializeProviders
-   */
+  
+
   private async initializeProviders(sources: LeadSource[], apiKeys: ApiKeys): Promise<void> {
     this.providers.clear();
 
-    /**
-     * for
-     */
+    
+
     for (const source of sources) {
-      /**
-       * if
-       */
+      
+
       if (source === 'MANUAL') continue;
 
       try {
@@ -81,42 +77,36 @@ export class HuntOrchestrator {
     }
   }
 
-  /**
-   * selectNextSource
-   */
+  
+
   private selectNextSource(
     remainingSources: LeadSource[],
     respectRateLimits: boolean,
   ): LeadSource | null {
-    /**
-     * if
-     */
+    
+
     if (remainingSources.length === 0) return null;
 
-    /**
-     * if
-     */
+    
+
     if (!respectRateLimits) {
       return remainingSources[0];
     }
 
-    /**
-     * for
-     */
+    
+
     for (const source of remainingSources) {
       const status = this.rateLimiter.getStatus(source);
-      /**
-       * if
-       */
+      
+
       if (status.canMakeRequest) {
         return source;
       }
     }
 
     const bestSource = this.rateLimiter.getBestSource();
-    /**
-     * if
-     */
+    
+
     if (bestSource && remainingSources.includes(bestSource)) {
       return bestSource;
     }
@@ -124,9 +114,8 @@ export class HuntOrchestrator {
     return null;
   }
 
-  /**
-   * hunt
-   */
+  
+
   async hunt(
     config: HuntConfig,
     onProgress?: (progress: HuntProgress) => void | Promise<void>,
@@ -147,9 +136,8 @@ export class HuntOrchestrator {
     const sourceStats: Record<string, { leads: number; errors: number; rateLimited: boolean }> =
       {};
 
-    /**
-     * for
-     */
+    
+
     for (const source of sources) {
       sourceStats[source] = { leads: 0, errors: 0, rateLimited: false };
     }
@@ -157,19 +145,16 @@ export class HuntOrchestrator {
     const remainingSources = [...sources.filter((s) => this.providers.has(s))];
     let completedSources = 0;
 
-    /**
-     * while
-     */
+    
+
     while (remainingSources.length > 0) {
       const source = this.selectNextSource(remainingSources, respectRateLimits);
 
-      /**
-       * if
-       */
+      
+
       if (!source) {
-        /**
-         * if
-         */
+        
+
         if (respectRateLimits) {
           console.log('All sources are rate limited. Trying to wait...');
           await new Promise((resolve) => setTimeout(resolve, 10000));
@@ -180,17 +165,15 @@ export class HuntOrchestrator {
       }
 
       const provider = this.providers.get(source);
-      /**
-       * if
-       */
+      
+
       if (!provider) {
         remainingSources.splice(remainingSources.indexOf(source), 1);
         continue;
       }
 
-      /**
-       * if
-       */
+      
+
       if (onProgress) {
         await onProgress({
           totalLeads: allLeads.length,
@@ -209,9 +192,8 @@ export class HuntOrchestrator {
         ? await this.rateLimiter.checkAndConsume(source)
         : true;
 
-      /**
-       * if
-       */
+      
+
       if (!canProceed) {
         sourceStats[source].rateLimited = true;
         remainingSources.splice(remainingSources.indexOf(source), 1);
@@ -237,9 +219,8 @@ export class HuntOrchestrator {
 
         console.log(`${source}: Found ${newLeads.length} new leads (${result.leads.length} total)`);
 
-        /**
-         * if
-         */
+        
+
         if (newLeads.length > 0 && onLeadsFound) {
           await onLeadsFound(newLeads);
         }
@@ -252,15 +233,13 @@ export class HuntOrchestrator {
         console.error(`Error searching ${source}:`, errorMessage);
         sourceStats[source].errors++;
 
-        /**
-         * if
-         */
+        
+
         if (error instanceof Error && (error.name === 'RateLimitError' || error.message === 'RATE_LIMIT')) {
           sourceStats[source].rateLimited = true;
 
-          /**
-           * retryAfter
-           */
+          
+
           const retryAfter = (error as any).retryAfter || 20000;
           const jitter = Math.random() * 5000;
           const delay = retryAfter + jitter;
@@ -273,9 +252,8 @@ export class HuntOrchestrator {
       remainingSources.splice(remainingSources.indexOf(source), 1);
       completedSources++;
 
-      /**
-       * if
-       */
+      
+
       if (onProgress) {
         await onProgress({
           totalLeads: allLeads.length,
@@ -301,29 +279,25 @@ export class HuntOrchestrator {
     };
   }
 
-  /**
-   * getRateLimitStatus
-   */
+  
+
   getRateLimitStatus(source?: LeadSource): RateLimitStatus | RateLimitStatus[] {
-    /**
-     * if
-     */
+    
+
     if (source) {
       return this.rateLimiter.getStatus(source);
     }
     return this.rateLimiter.getAllStatuses();
   }
 
-  /**
-   * exportRateLimiterState
-   */
+  
+
   exportRateLimiterState(): string {
     return this.rateLimiter.exportState();
   }
 
-  /**
-   * importRateLimiterState
-   */
+  
+
   importRateLimiterState(state: string): void {
     this.rateLimiter.importState(state);
   }

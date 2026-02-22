@@ -7,7 +7,6 @@ export const trpcHandler =
     authManager,
     env,
     jobs,
-    smtp,
     prisma,
     events
   }: Omit<CreateContextOptions, 'req' | 'resHeaders' | 'info' | 'logger' | 'db'>) =>
@@ -24,7 +23,6 @@ export const trpcHandler =
           db: prisma as any,
           prisma,
           jobs,
-          smtp,
           logger,
           events,
         });

@@ -16,9 +16,8 @@ export class AuthManager {
   private readonly audience: string;
   private readonly tokenExpiration: string;
 
-  /**
-   * constructor
-   */
+  
+
   constructor(config: AuthConfig) {
     this.secret = new TextEncoder().encode(config.encryptionSecret);
 
@@ -29,9 +28,8 @@ export class AuthManager {
     this.tokenExpiration = config.tokenExpiration ?? '7d';
   }
 
-  /**
-   * createToken
-   */
+  
+
   async createToken(user: SessionUser): Promise<string> {
     return await new SignJWT({
       id: user.id,
@@ -51,9 +49,8 @@ export class AuthManager {
       .sign(this.secret);
   }
 
-  /**
-   * verifyToken
-   */
+  
+
   async verifyToken(token: string): Promise<SessionUser | null> {
     try {
       const { payload } = await jwtVerify(token, this.secret, {
@@ -76,30 +73,26 @@ export class AuthManager {
     }
   }
 
-  /**
-   * hashPassword
-   */
+  
+
   async hashPassword(password: string): Promise<string> {
     return await this.crypto.hash.heavy(password);
   }
 
-  /**
-   * verifyPassword
-   */
+  
+
   async verifyPassword(password: string, hash: string): Promise<boolean> {
     return await this.crypto.verify.heavy(hash, password);
   }
 
-  /**
-   * encryptData
-   */
+  
+
   encryptData(text: string): string {
     return this.crypto.encrypt(text);
   }
 
-  /**
-   * decryptData
-   */
+  
+
   decryptData(data: string): string {
     return this.crypto.decrypt(data);
   }

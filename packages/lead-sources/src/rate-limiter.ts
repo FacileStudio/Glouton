@@ -39,13 +39,11 @@ export class RateLimiter {
   private usage: Map<LeadSource, UsageRecord> = new Map();
   private limits: Map<LeadSource, SourceLimits> = new Map();
 
-  /**
-   * constructor
-   */
+  
+
   constructor(customLimits?: Partial<Record<LeadSource, SourceLimits>>) {
-    /**
-     * for
-     */
+    
+
     for (const [source, defaultLimit] of Object.entries(FREE_TIER_LIMITS)) {
       this.limits.set(source as LeadSource, {
         ...defaultLimit,
@@ -54,13 +52,11 @@ export class RateLimiter {
     }
   }
 
-  /**
-   * getOrCreateUsageRecord
-   */
+  
+
   private getOrCreateUsageRecord(source: LeadSource): UsageRecord {
-    /**
-     * if
-     */
+    
+
     if (!this.usage.has(source)) {
       this.usage.set(source, {
         timestamps: [],
@@ -71,30 +67,26 @@ export class RateLimiter {
     return this.usage.get(source)!;
   }
 
-  /**
-   * getNextResetTime
-   */
+  
+
   private getNextResetTime(): number {
     const now = new Date();
     const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
     return nextMonth.getTime();
   }
 
-  /**
-   * cleanOldTimestamps
-   */
+  
+
   private cleanOldTimestamps(record: UsageRecord, windowMs: number): void {
     const cutoff = Date.now() - windowMs;
     record.timestamps = record.timestamps.filter((ts) => ts > cutoff);
   }
 
-  /**
-   * resetIfNeeded
-   */
+  
+
   private resetIfNeeded(source: LeadSource, record: UsageRecord): void {
-    /**
-     * if
-     */
+    
+
     if (Date.now() >= record.resetAt) {
       record.timestamps = [];
       record.creditsUsed = 0;
@@ -102,9 +94,8 @@ export class RateLimiter {
     }
   }
 
-  /**
-   * getStatus
-   */
+  
+
   getStatus(source: LeadSource): RateLimitStatus {
     const limits = this.limits.get(source)!;
     const record = this.getOrCreateUsageRecord(source);
@@ -116,27 +107,24 @@ export class RateLimiter {
 
     let canMakeRequest = monthlyRemaining > 0;
 
-    /**
-     * if
-     */
+    
+
     if (limits.requestsPerMinute) {
       this.cleanOldTimestamps(record, 60 * 1000);
       const minuteUsed = record.timestamps.filter((ts) => ts > Date.now() - 60 * 1000).length;
       canMakeRequest = canMakeRequest && minuteUsed < limits.requestsPerMinute;
     }
 
-    /**
-     * if
-     */
+    
+
     if (limits.requestsPerDay) {
       const dayUsed = record.timestamps.filter((ts) => ts > Date.now() - 24 * 60 * 60 * 1000)
         .length;
       canMakeRequest = canMakeRequest && dayUsed < limits.requestsPerDay;
     }
 
-    /**
-     * if
-     */
+    
+
     if (limits.totalCredits && limits.creditsPerRequest) {
       const creditsRemaining = limits.totalCredits - record.creditsUsed;
       canMakeRequest = canMakeRequest && creditsRemaining >= limits.creditsPerRequest;
@@ -154,15 +142,13 @@ export class RateLimiter {
     };
   }
 
-  /**
-   * checkAndConsume
-   */
+  
+
   async checkAndConsume(source: LeadSource, credits: number = 1): Promise<boolean> {
     const status = this.getStatus(source);
 
-    /**
-     * if
-     */
+    
+
     if (!status.canMakeRequest) {
       return false;
     }
@@ -170,9 +156,8 @@ export class RateLimiter {
     const record = this.getOrCreateUsageRecord(source);
     const limits = this.limits.get(source)!;
 
-    /**
-     * if
-     */
+    
+
     if (limits.totalCredits && record.creditsUsed + credits > limits.totalCredits) {
       return false;
     }
@@ -183,17 +168,15 @@ export class RateLimiter {
     return true;
   }
 
-  /**
-   * getAllStatuses
-   */
+  
+
   getAllStatuses(): RateLimitStatus[] {
     const sources: LeadSource[] = ['HUNTER'];
     return sources.map((source) => this.getStatus(source));
   }
 
-  /**
-   * getBestSource
-   */
+  
+
   getBestSource(requiredCredits: number = 1): LeadSource | null {
     const statuses = this.getAllStatuses()
       .filter((s) => s.source !== 'MANUAL')
@@ -203,9 +186,8 @@ export class RateLimiter {
           !s.creditsRemaining || (s.creditsRemaining && s.creditsRemaining >= requiredCredits),
       );
 
-    /**
-     * if
-     */
+    
+
     if (statuses.length === 0) return null;
 
     statuses.sort((a, b) => {
@@ -217,29 +199,25 @@ export class RateLimiter {
     return statuses[0].source;
   }
 
-  /**
-   * waitForAvailability
-   */
+  
+
   async waitForAvailability(source: LeadSource, maxWaitMs: number = 60000): Promise<boolean> {
     const startTime = Date.now();
 
-    /**
-     * while
-     */
+    
+
     while (Date.now() - startTime < maxWaitMs) {
       const status = this.getStatus(source);
 
-      /**
-       * if
-       */
+      
+
       if (status.canMakeRequest) {
         return true;
       }
 
       const limits = this.limits.get(source)!;
-      /**
-       * if
-       */
+      
+
       if (limits.requestsPerMinute) {
         await new Promise((resolve) => setTimeout(resolve, 6000));
       } else {
@@ -250,9 +228,8 @@ export class RateLimiter {
     return false;
   }
 
-  /**
-   * exportState
-   */
+  
+
   exportState(): string {
     const state = Array.from(this.usage.entries()).map(([source, record]) => ({
       source,
@@ -261,17 +238,15 @@ export class RateLimiter {
     return JSON.stringify(state);
   }
 
-  /**
-   * importState
-   */
+  
+
   importState(state: string): void {
     try {
       const parsed = JSON.parse(state) as Array<{ source: LeadSource } & UsageRecord>;
       this.usage.clear();
 
-      /**
-       * for
-       */
+      
+
       for (const item of parsed) {
         const { source, ...record } = item;
         this.usage.set(source, record);

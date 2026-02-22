@@ -7,22 +7,13 @@ interface TrpcConfig {
   onUnauthorized: () => void;
 }
 
-/**
- * createUniversalTrpcClient
- */
-export const createUniversalTrpcClient = (config: TrpcConfig) => {
+export const createUniversalTrpcClient = (config: TrpcConfig): ReturnType<typeof createTRPCProxyClient<AppRouter>> => {
   const cleanBaseUrl = config.baseUrl.replace(/\/$/, '');
 
   return createTRPCProxyClient<AppRouter>({
     links: [
-      /**
-       * httpLink
-       */
       httpLink({
         url: cleanBaseUrl,
-        /**
-         * headers
-         */
         async headers() {
           const token = await config.getToken();
           return {
@@ -33,9 +24,6 @@ export const createUniversalTrpcClient = (config: TrpcConfig) => {
         fetch: async (url, options) => {
           const res = await fetch(url, options);
 
-          /**
-           * if
-           */
           if (
             res.status === 401 &&
             typeof window !== 'undefined' &&

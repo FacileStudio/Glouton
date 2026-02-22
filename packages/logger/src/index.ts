@@ -53,13 +53,11 @@ export const logger = isBrowser
 
 export default logger;
 
-/**
- * createLogger
- */
+
+
 export const createLogger = (options = {}) => {
-  /**
-   * if
-   */
+  
+
   if (isBrowser) {
     return logger;
   }

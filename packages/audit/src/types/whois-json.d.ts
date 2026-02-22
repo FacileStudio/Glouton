@@ -17,9 +17,8 @@ declare module 'whois-json' {
     timeout?: number;
   }
 
-  /**
-   * whois
-   */
+  
+
   function whois(domain: string, options?: WhoisOptions): Promise<WhoisData>;
 
   export = whois;

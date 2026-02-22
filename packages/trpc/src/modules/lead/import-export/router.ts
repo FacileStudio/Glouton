@@ -3,7 +3,6 @@ import { router, protectedProcedure } from '../../../trpc';
 import importExportService from './service';
 import { exportToCsvSchema, importFromCsvSchema } from '../schemas';
 import { resolveScope } from '../../../utils/scope';
-import { jobs } from '@repo/jobs';
 
 export const importExportRouter = router({
   exportToCsv: protectedProcedure.input(exportToCsvSchema).query(async ({ ctx, input }) => {
@@ -79,7 +78,7 @@ export const importExportRouter = router({
         },
       });
 
-      await jobs.addJob('csv-import', 'csv-import', {
+      await ctx.jobs.addJob('csv-import', 'csv-import', {
         huntSessionId: huntSession.id,
         userId: ctx.user.id,
         teamId: input.teamId || null,

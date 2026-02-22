@@ -20,9 +20,8 @@ interface Lead {
   auditedAt: Date;
 }
 
-/**
- * extractLead
- */
+
+
 async function extractLead(url: string): Promise<Lead> {
   const auditor = new WebsiteAuditor(30000, undefined, 3, 1000);
 
@@ -56,9 +55,8 @@ async function extractLead(url: string): Promise<Lead> {
   };
 }
 
-/**
- * leadExtractionExample
- */
+
+
 async function leadExtractionExample() {
   console.log('Lead Extraction Example\n');
 
@@ -74,44 +72,38 @@ async function leadExtractionExample() {
     let score = 0;
     const maxScore = 100;
 
-    /**
-     * if
-     */
+    
+
     if (lead.companyName) {
       score += 15;
       console.log('Company name found: +15');
     }
-    /**
-     * if
-     */
+    
+
     if (lead.email) {
       score += 25;
       console.log('Email found: +25');
     }
-    /**
-     * if
-     */
+    
+
     if (lead.phone) {
       score += 20;
       console.log('Phone found: +20');
     }
-    /**
-     * if
-     */
+    
+
     if (lead.technologies.length > 0) {
       score += 15;
       console.log(`Technologies found (${lead.technologies.length}): +15`);
     }
-    /**
-     * if
-     */
+    
+
     if (lead.socialMedia.linkedin || lead.socialMedia.twitter || lead.socialMedia.facebook) {
       score += 10;
       console.log('Social media found: +10');
     }
-    /**
-     * if
-     */
+    
+
     if (lead.industry) {
       score += 15;
       console.log('Industry identified: +15');
@@ -119,9 +111,8 @@ async function leadExtractionExample() {
 
     console.log(`\nTotal Score: ${score}/${maxScore}`);
 
-    /**
-     * if
-     */
+    
+
     if (score >= 70) {
       console.log('Quality: HIGH - Ready for outreach');
     } else if (score >= 40) {
@@ -134,7 +125,6 @@ async function leadExtractionExample() {
   }
 }
 
-/**
- * leadExtractionExample
- */
+
+
 leadExtractionExample();

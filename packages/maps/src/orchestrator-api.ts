@@ -46,9 +46,9 @@ export class MapsOrchestrator {
 
     const promises: Promise<void>[] = [];
 
-    // Add staggered delays to avoid hitting rate limits when multiple services run in parallel
+    
     let delayOffset = 0;
-    const STAGGER_DELAY = 500; // 500ms between starting each service
+    const STAGGER_DELAY = 500; 
 
     if (this.config.useGoogleMaps && this.googleMaps) {
       const googleMapsDelay = delayOffset;
@@ -94,7 +94,7 @@ export class MapsOrchestrator {
 
     await Promise.all(promises);
 
-    // Log summary
+    
     if (successfulProviders.length > 0) {
       console.log(`[MapsOrchestrator] Search completed. Successful providers: ${successfulProviders.join(', ')}`);
     }
@@ -103,7 +103,7 @@ export class MapsOrchestrator {
       console.log(`[MapsOrchestrator] Some providers failed: ${errors.map(e => e.message).join('; ')}`);
     }
 
-    // Only throw if ALL services failed and we have no results
+    
     if (results.length === 0 && errors.length > 0) {
       throw new Error(`All map services failed: ${errors.map(e => e.message).join('; ')}`);
     }

@@ -13,18 +13,15 @@
   $: if (dialog && open) dialog.showModal();
   $: if (dialog && !open) dialog.close();
 
-  /**
-   * close
-   */
+  
+
   function close() {
     open = false;
-    /**
-     * dispatch
-     */
+    
+
     dispatch('close');
-    /**
-     * if
-     */
+    
+
     if (onClose) onClose();
   }
 </script>

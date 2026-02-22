@@ -692,9 +692,8 @@ const TECHNOLOGY_PATTERNS: TechnologyPattern[] = [
   },
 ];
 
-/**
- * detectTechnologies
- */
+
+
 export async function detectTechnologies(
   $: CheerioAPI,
   html: string,
@@ -703,13 +702,11 @@ export async function detectTechnologies(
   const technologies: Technology[] = [];
   const detectedNames = new Set<string>();
 
-  /**
-   * for
-   */
+  
+
   for (const pattern of TECHNOLOGY_PATTERNS) {
-    /**
-     * if
-     */
+    
+
     if (detectedNames.has(pattern.name)) {
       continue;
     }
@@ -718,17 +715,14 @@ export async function detectTechnologies(
     let confidence = 0;
     let version: string | undefined;
 
-    /**
-     * if
-     */
+    
+
     if (pattern.patterns.html) {
-      /**
-       * for
-       */
+      
+
       for (const regex of pattern.patterns.html) {
-        /**
-         * if
-         */
+        
+
         if (regex.test(html)) {
           detected = true;
           confidence += 30;
@@ -737,30 +731,26 @@ export async function detectTechnologies(
       }
     }
 
-    /**
-     * if
-     */
+    
+
     if (pattern.patterns.script && pattern.patterns.script.length > 0) {
       $('script').each((_, el) => {
         const src = $(el).attr('src') || '';
         const content = $(el).html() || '';
         const scriptText = src + ' ' + content;
 
-        /**
-         * for
-         */
+        
+
         for (const regex of pattern.patterns.script!) {
-          /**
-           * if
-           */
+          
+
           if (regex.test(scriptText)) {
             detected = true;
             confidence += 40;
 
             const versionMatch = scriptText.match(/(\d+\.\d+\.\d+)/);
-            /**
-             * if
-             */
+            
+
             if (versionMatch && !version) {
               version = versionMatch[1];
             }
@@ -770,22 +760,19 @@ export async function detectTechnologies(
       });
     }
 
-    /**
-     * if
-     */
+    
+
     if (pattern.patterns.meta && pattern.patterns.meta.length > 0) {
       $('meta').each((_, el) => {
         const name = $(el).attr('name') || '';
         const content = $(el).attr('content') || '';
         const metaText = name + ' ' + content;
 
-        /**
-         * for
-         */
+        
+
         for (const regex of pattern.patterns.meta!) {
-          /**
-           * if
-           */
+          
+
           if (regex.test(metaText)) {
             detected = true;
             confidence += 30;
@@ -795,26 +782,22 @@ export async function detectTechnologies(
       });
     }
 
-    /**
-     * if
-     */
+    
+
     if (pattern.patterns.headers) {
-      /**
-       * for
-       */
+      
+
       for (const [headerName, headerRegex] of Object.entries(pattern.patterns.headers)) {
         const headerValue = headers[headerName.toLowerCase()] || '';
-        /**
-         * if
-         */
+        
+
         if (headerRegex.test(headerValue)) {
           detected = true;
           confidence += 50;
 
           const versionMatch = headerValue.match(/(\d+\.\d+\.\d+)/);
-          /**
-           * if
-           */
+          
+
           if (versionMatch && !version) {
             version = versionMatch[1];
           }
@@ -823,9 +806,8 @@ export async function detectTechnologies(
       }
     }
 
-    /**
-     * if
-     */
+    
+
     if (detected) {
       detectedNames.add(pattern.name);
       technologies.push({
@@ -841,9 +823,8 @@ export async function detectTechnologies(
   return technologies.sort((a, b) => b.confidence - a.confidence);
 }
 
-/**
- * extractVersion
- */
+
+
 export function extractVersion(text: string, technology: string): string | undefined {
   const patterns = [
     new RegExp(`${technology}[\\s\\/]*(\\d+\\.\\d+\\.\\d+)`, 'i'),
@@ -852,14 +833,12 @@ export function extractVersion(text: string, technology: string): string | undef
     /v([\d.]+)/i,
   ];
 
-  /**
-   * for
-   */
+  
+
   for (const pattern of patterns) {
     const match = text.match(pattern);
-    /**
-     * if
-     */
+    
+
     if (match && match[1]) {
       return match[1];
     }

@@ -5,13 +5,11 @@
     export let entityName: string;
     export let data: unknown[];
 
-    /**
-     * handleExport
-     */
+    
+
     function handleExport() {
-        /**
-         * downloadCSV
-         */
+        
+
         downloadCSV(data, `export-${entityName}-${new Date().toISOString().split('T')[0]}`);
         toast.push("Export réussi !", "success");
     }

@@ -8,9 +8,8 @@ export interface ScheduledJobOptions extends Omit<AddJobOptions, 'delay' | 'repe
 }
 
 export class JobScheduler {
-  /**
-   * constructor
-   */
+  
+
   constructor(private queueManager: QueueManager) {}
 
   async scheduleJob<T = any>(
@@ -21,9 +20,8 @@ export class JobScheduler {
   ) {
     const { cronExpression, every, timezone, ...jobOptions } = options;
 
-    /**
-     * if
-     */
+    
+
     if (cronExpression) {
       return this.queueManager.addJob(queueName, jobName, data, {
         ...jobOptions,
@@ -34,9 +32,8 @@ export class JobScheduler {
       });
     }
 
-    /**
-     * if
-     */
+    
+
     if (every) {
       return this.queueManager.addJob(queueName, jobName, data, {
         ...jobOptions,
@@ -60,9 +57,8 @@ export class JobScheduler {
     const delay =
       typeof timestamp === 'number' ? timestamp - Date.now() : timestamp.getTime() - Date.now();
 
-    /**
-     * if
-     */
+    
+
     if (delay < 0) {
       throw new Error('Cannot schedule job in the past');
     }
@@ -73,14 +69,12 @@ export class JobScheduler {
     });
   }
 
-  /**
-   * removeRepeatable
-   */
+  
+
   async removeRepeatable(queueName: string, jobKey: string): Promise<void> {
     const queue = this.queueManager.getQueue(queueName);
-    /**
-     * if
-     */
+    
+
     if (!queue) {
       throw new Error(`Queue ${queueName} not found`);
     }
@@ -88,14 +82,12 @@ export class JobScheduler {
     await queue.removeRepeatableByKey(jobKey);
   }
 
-  /**
-   * getRepeatableJobs
-   */
+  
+
   async getRepeatableJobs(queueName: string) {
     const queue = this.queueManager.getQueue(queueName);
-    /**
-     * if
-     */
+    
+
     if (!queue) {
       throw new Error(`Queue ${queueName} not found`);
     }

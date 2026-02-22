@@ -19,9 +19,8 @@ import { extractCompanyInfo } from './analyzers/company-info';
 export class WebsiteAuditor {
   private httpClient: HttpClient;
 
-  /**
-   * constructor
-   */
+  
+
   constructor(
     timeout: number = 30000,
     userAgent?: string,
@@ -31,9 +30,8 @@ export class WebsiteAuditor {
     this.httpClient = new HttpClient(timeout, userAgent, maxRetries, retryDelay);
   }
 
-  /**
-   * audit
-   */
+  
+
   async audit(url: string, options?: Partial<AuditOptions>): Promise<AuditResult> {
     const validatedOptions = AuditOptionsSchema.parse(options || {});
 
@@ -58,9 +56,8 @@ export class WebsiteAuditor {
     }
   }
 
-  /**
-   * auditFromHtml
-   */
+  
+
   async auditFromHtml(
     url: string,
     html: string,
@@ -82,9 +79,8 @@ export class WebsiteAuditor {
 
       const analysisPromises: Promise<void>[] = [];
 
-      /**
-       * if
-       */
+      
+
       if (validatedOptions.includeDomain) {
         analysisPromises.push(
           this.analyzeDomain(domain).then((domainInfo) => {
@@ -93,50 +89,43 @@ export class WebsiteAuditor {
         );
       }
 
-      /**
-       * if
-       */
+      
+
       if (validatedOptions.includeTechnologies) {
         analysisPromises.push(
-          /**
-           * detectTechnologies
-           */
+          
+
           detectTechnologies($, html, headers).then((technologies) => {
             result.technologies = technologies;
           })
         );
       }
 
-      /**
-       * if
-       */
+      
+
       if (validatedOptions.includeSSL) {
         analysisPromises.push(
-          /**
-           * analyzeSSL
-           */
+          
+
           analyzeSSL(domain).then((sslInfo) => {
             result.ssl = sslInfo;
           })
         );
       }
 
-      /**
-       * if
-       */
+      
+
       if (validatedOptions.includeSEO) {
         const seoData = analyzeSEO($, normalizedUrl);
         result.seo = seoData;
       }
 
-      /**
-       * if
-       */
+      
+
       if (validatedOptions.includeCompanyInfo) {
         analysisPromises.push(
-          /**
-           * extractCompanyInfo
-           */
+          
+
           extractCompanyInfo($, normalizedUrl, this.httpClient).then((companyInfo) => {
             result.companyInfo = companyInfo;
           })
@@ -151,9 +140,8 @@ export class WebsiteAuditor {
     return result;
   }
 
-  /**
-   * analyzeDomain
-   */
+  
+
   private async analyzeDomain(domain: string): Promise<DomainInfo> {
     try {
       const whoisData = await whois(domain, { follow: 3, timeout: 10000 });
@@ -162,40 +150,34 @@ export class WebsiteAuditor {
       let expiresDate: Date | undefined;
       let updatedDate: Date | undefined;
 
-      /**
-       * if
-       */
+      
+
       if (whoisData.createdDate) {
         const date = new Date(whoisData.createdDate);
-        /**
-         * if
-         */
+        
+
         if (!isNaN(date.getTime())) {
           createdDate = date;
         }
       }
 
-      /**
-       * if
-       */
+      
+
       if (whoisData.expiresDate) {
         const date = new Date(whoisData.expiresDate);
-        /**
-         * if
-         */
+        
+
         if (!isNaN(date.getTime())) {
           expiresDate = date;
         }
       }
 
-      /**
-       * if
-       */
+      
+
       if (whoisData.updatedDate) {
         const date = new Date(whoisData.updatedDate);
-        /**
-         * if
-         */
+        
+
         if (!isNaN(date.getTime())) {
           updatedDate = date;
         }
@@ -227,9 +209,8 @@ export class WebsiteAuditor {
     }
   }
 
-  /**
-   * batchAudit
-   */
+  
+
   async batchAudit(
     urls: string[],
     options?: Partial<AuditOptions>,
@@ -238,16 +219,14 @@ export class WebsiteAuditor {
     const results: AuditResult[] = [];
     const chunks: string[][] = [];
 
-    /**
-     * for
-     */
+    
+
     for (let i = 0; i < urls.length; i += concurrency) {
       chunks.push(urls.slice(i, i + concurrency));
     }
 
-    /**
-     * for
-     */
+    
+
     for (const chunk of chunks) {
       const chunkResults = await Promise.all(
         chunk.map((url) =>
@@ -264,17 +243,15 @@ export class WebsiteAuditor {
     return results;
   }
 
-  /**
-   * setRateLimitConfig
-   */
+  
+
   setRateLimitConfig(maxRequests: number, windowMs: number): void {
     this.httpClient.setRateLimitConfig({ maxRequests, windowMs });
   }
 }
 
-/**
- * auditWebsite
- */
+
+
 export async function auditWebsite(
   url: string,
   options?: Partial<AuditOptions>
@@ -288,9 +265,8 @@ export async function auditWebsite(
   return auditor.audit(url, options);
 }
 
-/**
- * auditWebsiteFromHtml
- */
+
+
 export async function auditWebsiteFromHtml(
   url: string,
   html: string,
@@ -306,9 +282,8 @@ export async function auditWebsiteFromHtml(
   return auditor.auditFromHtml(url, html, headers, options);
 }
 
-/**
- * auditWebsites
- */
+
+
 export async function auditWebsites(
   urls: string[],
   options?: Partial<AuditOptions>,

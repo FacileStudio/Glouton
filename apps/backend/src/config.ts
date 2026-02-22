@@ -2,7 +2,6 @@ import { AuthManager } from '@repo/auth';
 import { prisma } from '@repo/database';
 import { QueueManager, createJobConfig } from '@repo/jobs';
 import env from './env';
-import { events } from './services/events';
 
 const authManager = new AuthManager({
   encryptionSecret: env.ENCRYPTION_SECRET,
@@ -11,9 +10,9 @@ const authManager = new AuthManager({
 const jobs = new QueueManager(
   createJobConfig({
     host: env.REDIS_HOST,
-    port: parseInt(env.REDIS_PORT),
+    port: env.REDIS_PORT,
     password: env.REDIS_PASSWORD,
-    db: parseInt(env.REDIS_DB),
+    db: env.REDIS_DB,
   })
 );
 
@@ -22,5 +21,4 @@ export default {
   env,
   jobs,
   prisma,
-  events,
 };

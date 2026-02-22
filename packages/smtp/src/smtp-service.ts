@@ -6,9 +6,8 @@ export class SMTPService {
   private transporter: Transporter;
   private config: SMTPConfig;
 
-  /**
-   * constructor
-   */
+  
+
   constructor(config: SMTPConfig) {
     this.config = config;
     this.transporter = nodemailer.createTransport({
@@ -19,9 +18,8 @@ export class SMTPService {
     });
   }
 
-  /**
-   * sendEmail
-   */
+  
+
   async sendEmail(options: EmailOptions): Promise<void> {
     await this.transporter.sendMail({
       from: `"${this.config.from.name}" <${this.config.from.email}>`,
@@ -32,9 +30,8 @@ export class SMTPService {
     });
   }
 
-  /**
-   * verifyConnection
-   */
+  
+
   async verifyConnection(): Promise<boolean> {
     try {
       await this.transporter.verify();
@@ -45,9 +42,8 @@ export class SMTPService {
     }
   }
 
-  /**
-   * close
-   */
+  
+
   async close(): Promise<void> {
     this.transporter.close();
   }

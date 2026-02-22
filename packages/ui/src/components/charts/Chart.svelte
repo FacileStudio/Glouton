@@ -17,9 +17,8 @@
     let container: HTMLDivElement;
 
     $effect(() => {
-        /**
-         * if
-         */
+        
+
         if (container) {
             width = container.clientWidth;
         }

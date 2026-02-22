@@ -84,7 +84,7 @@ export class LocalBusinessHuntHelpers {
     const physicalAddresses = business.address ? [business.address] : [];
     const cityName = business.city || location.split(',')[0].trim() || 'Unknown';
 
-    let countryCode = (business.country || location.split(',').pop()?.trim() || '').toUpperCase();
+    let countryCode: string | null = (business.country || location.split(',').pop()?.trim() || '').toUpperCase();
     countryCode = countryCode && countryCode.length >= 2 ? countryCode : null;
 
     return {

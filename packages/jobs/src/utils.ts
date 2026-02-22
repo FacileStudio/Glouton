@@ -1,8 +1,7 @@
 import type { JobConfig } from './types';
 
-/**
- * createJobConfig
- */
+
+
 export function createJobConfig(options?: {
   host?: string;
   port?: number;
@@ -41,9 +40,8 @@ export function createJobConfig(options?: {
   };
 }
 
-/**
- * parseRedisUrl
- */
+
+
 export function parseRedisUrl(url: string): JobConfig['connection'] {
   try {
     const parsed = new URL(url);
@@ -82,16 +80,14 @@ export const CommonBackoffStrategies = {
   }),
 };
 
-/**
- * validateRedisConfiguration
- */
+
+
 export async function validateRedisConfiguration(connection: JobConfig['connection']): Promise<{ valid: boolean; warnings: string[] }> {
   const warnings: string[] = [];
 
   try {
-    /**
-     * Redis
-     */
+    
+
     const Redis = (await import('ioredis')).default;
     const redis = new Redis({
       host: connection.host,
