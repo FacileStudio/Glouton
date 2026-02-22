@@ -81,7 +81,6 @@
 
 <div class="rounded-[28px] shadow-lg p-5 space-y-3" style="background-color: #EFEAE6;">
 
-  <!-- Row 1: Search + Filters Toggle + Reset -->
   <div class="flex items-center gap-3">
     <div class="relative flex-1">
       <iconify-icon
@@ -124,11 +123,9 @@
     {/if}
   </div>
 
-  <!-- Row 2: Lead filters -->
   {#if filtersExpanded}
   <div class="flex flex-wrap items-start gap-4 pt-1">
 
-    <!-- Status -->
     <div class="flex flex-col gap-1.5">
       <span class="text-[9px] font-black uppercase tracking-widest text-neutral-400 pl-0.5">Statut</span>
       <div class="flex items-center gap-1">
@@ -150,7 +147,6 @@
 
     <div class="w-px self-stretch bg-neutral-300"></div>
 
-    <!-- Contacted -->
     <div class="flex flex-col gap-1.5">
       <span class="text-[9px] font-black uppercase tracking-widest text-neutral-400 pl-0.5">Contacté</span>
       <div class="flex items-center gap-1">
@@ -172,7 +168,6 @@
 
     <div class="w-px self-stretch bg-neutral-300"></div>
 
-    <!-- Type -->
     <div class="flex flex-col gap-1.5">
       <span class="text-[9px] font-black uppercase tracking-widest text-neutral-400 pl-0.5">Type</span>
 
@@ -195,7 +190,6 @@
 
     <div class="w-px self-stretch bg-neutral-300"></div>
 
-    <!-- Category -->
     <div class="flex flex-col gap-1.5">
       <span class="text-[9px] font-black uppercase tracking-widest text-neutral-400 pl-0.5">Catégorie</span>
       <div class="relative">
@@ -238,10 +232,8 @@
 
   </div>
 
-  <!-- Row 3: Data presence + Location filters -->
   <div class="flex flex-wrap items-start gap-4 pt-1 border-t border-neutral-300/60">
 
-    <!-- Website -->
     <div class="flex flex-col gap-1.5">
       <span class="text-[9px] font-black uppercase tracking-widest text-neutral-400 pl-0.5">Site web</span>
       <div class="flex items-center gap-1">
@@ -265,7 +257,6 @@
 
     <div class="w-px self-stretch bg-neutral-300"></div>
 
-    <!-- Social -->
     <div class="flex flex-col gap-1.5">
       <span class="text-[9px] font-black uppercase tracking-widest text-neutral-400 pl-0.5">Social</span>
       <div class="flex items-center gap-1">
@@ -289,7 +280,6 @@
 
     <div class="w-px self-stretch bg-neutral-300"></div>
 
-    <!-- Phone -->
     <div class="flex flex-col gap-1.5">
       <span class="text-[9px] font-black uppercase tracking-widest text-neutral-400 pl-0.5">Téléphone</span>
       <div class="flex items-center gap-1">
@@ -313,7 +303,6 @@
 
     <div class="w-px self-stretch bg-neutral-300"></div>
 
-    <!-- GPS -->
     <div class="flex flex-col gap-1.5">
       <span class="text-[9px] font-black uppercase tracking-widest text-neutral-400 pl-0.5">GPS</span>
       <div class="flex items-center gap-1">
@@ -337,7 +326,6 @@
 
     <div class="w-px self-stretch bg-neutral-300"></div>
 
-    <!-- Email -->
     <div class="flex flex-col gap-1.5">
       <span class="text-[9px] font-black uppercase tracking-widest text-neutral-400 pl-0.5">E-mail</span>
       <div class="flex items-center gap-1">
@@ -361,7 +349,6 @@
 
     <div class="w-px self-stretch bg-neutral-300"></div>
 
-    <!-- Location -->
     <div class="flex flex-col gap-1.5">
       <span class="text-[9px] font-black uppercase tracking-widest text-neutral-400 pl-0.5">Localisation</span>
       <div class="flex items-center gap-1.5">
