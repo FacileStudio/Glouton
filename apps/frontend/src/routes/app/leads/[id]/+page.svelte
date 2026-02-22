@@ -93,18 +93,18 @@
     createdAt: string;
   }
 
-  let lead: Lead | null = null;
-  let templates: EmailTemplate[] = [];
-  let outreachHistory: EmailOutreach[] = [];
-  let loading = true;
-  let sending = false;
-  let selectedTemplate = '';
-  let variables: Record<string, string> = {};
-  let emailPreview = { subject: '', html: '', text: '' };
-  let previewLoading = false;
-  let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-  let expandedEmails: Set<string> = new Set();
-  let isInitialLoad = true;
+  let lead = $state<Lead | null>(null);
+  let templates = $state<EmailTemplate[]>([]);
+  let outreachHistory = $state<EmailOutreach[]>([]);
+  let loading = $state(true);
+  let sending = $state(false);
+  let selectedTemplate = $state('');
+  let variables = $state<Record<string, string>>({});
+  let emailPreview = $state({ subject: '', html: '', text: '' });
+  let previewLoading = $state(false);
+  let debounceTimer = $state<ReturnType<typeof setTimeout> | null>(null);
+  let expandedEmails = $state<Set<string>>(new Set());
+  let isInitialLoad = $state(true);
 
   const leadId = $page.params.id;
 

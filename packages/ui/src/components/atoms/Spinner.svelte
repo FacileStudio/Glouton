@@ -41,7 +41,6 @@
     $: iconSize = sizeMap[size || 'md'];
 </script>
 
-<span class={spinnerClass({ size, color, class: className })} role="status">
+<span class={spinnerClass({ size, color, class: className })} role="status" aria-label="Loading">
     <iconify-icon icon="svg-spinners:blocks-shuffle-3" width={iconSize}></iconify-icon>
-    <span class="sr-only">Loading...</span>
 </span>
