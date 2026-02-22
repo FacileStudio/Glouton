@@ -104,6 +104,7 @@
   let previewLoading = false;
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
   let expandedEmails: Set<string> = new Set();
+  let isInitialLoad = true;
 
   const leadId = $page.params.id;
 
@@ -143,6 +144,7 @@
     } finally {
       console.log('[LOAD] Finally block - setting loading = false');
       loading = false;
+      isInitialLoad = false;
       console.log('[LOAD] loading is now:', loading);
     }
   }
@@ -158,7 +160,9 @@
         variables[variable] = '';
       }
     });
-    updatePreview();
+    if (!isInitialLoad) {
+      updatePreview();
+    }
   }
 
   async function updatePreview() {
@@ -193,7 +197,7 @@
   }
 
   $effect(() => {
-    if (variables && selectedTemplate && !loading) debouncedUpdatePreview();
+    if (variables && selectedTemplate && !isInitialLoad) debouncedUpdatePreview();
   });
 
   function handleTemplateChange() {
