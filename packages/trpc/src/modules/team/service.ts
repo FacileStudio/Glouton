@@ -548,11 +548,6 @@ export const teamService = {
   ) => {
     await checkTeamPermission(userId, teamId, TeamRole.ADMIN);
 
-    let encryptedPass: string | null = null;
-    if (smtpConfig.smtpPass) {
-      encryptedPass = encrypt(smtpConfig.smtpPass, encryptionKey);
-    }
-
     const updateData: any = {};
     if (smtpConfig.smtpHost !== undefined)
       updateData.smtpHost = smtpConfig.smtpHost || null;
@@ -562,7 +557,13 @@ export const teamService = {
       updateData.smtpSecure = smtpConfig.smtpSecure;
     if (smtpConfig.smtpUser !== undefined)
       updateData.smtpUser = smtpConfig.smtpUser || null;
-    if (smtpConfig.smtpPass !== undefined) updateData.smtpPass = encryptedPass;
+    if (smtpConfig.smtpPass !== undefined) {
+      if (smtpConfig.smtpPass) {
+        updateData.smtpPass = encrypt(smtpConfig.smtpPass, encryptionKey);
+      } else {
+        updateData.smtpPass = null;
+      }
+    }
     if (smtpConfig.smtpFromName !== undefined)
       updateData.smtpFromName = smtpConfig.smtpFromName || null;
     if (smtpConfig.smtpFromEmail !== undefined)
