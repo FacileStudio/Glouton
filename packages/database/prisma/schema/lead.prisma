@@ -37,10 +37,11 @@ model Lead {
   createdAt          DateTime      @default(now()) @db.Timestamptz(3)
   updatedAt          DateTime      @default(now()) @updatedAt @db.Timestamptz(3)
 
-  user               User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  team               Team?           @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team               Team?               @relation(fields: [teamId], references: [id], onDelete: Cascade)
   emailOutreaches    EmailOutreach[]
   auditSessions      AuditSession[]
+  favoritedBy        UserFavoriteLead[]
 
   @@unique([userId, email])
   @@unique([userId, domain, firstName, lastName])
@@ -65,6 +66,21 @@ model Lead {
   @@index([userId, auditedAt])
   @@index([userId, businessName])
   @@index([domain])
+}
+
+model UserFavoriteLead {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Text
+  userId    String   @db.Text
+  leadId    String   @db.Text
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, leadId])
+  @@index([userId])
+  @@index([leadId])
+  @@index([userId, createdAt])
 }
 
 model EmailOutreach {
