@@ -398,7 +398,7 @@ export default {
     }
 
     const isOwner = session.userId === userId;
-    const isTeamMember = session.teamId && session.team?.members.length > 0;
+    const isTeamMember = session.teamId && (session.team?.members?.length ?? 0) > 0;
 
     if (!isOwner && !isTeamMember) {
       throw new TRPCError({

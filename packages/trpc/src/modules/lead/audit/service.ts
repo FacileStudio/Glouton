@@ -18,6 +18,7 @@ export interface AuditContext {
   };
   events?: {
     emit: (userId: string, type: string, data?: any) => void;
+    emitToScope: (scope: { type: 'personal' | 'team'; userId: string; teamId?: string }, type: string, data?: any) => Promise<void>;
   };
   prisma: any;
 }

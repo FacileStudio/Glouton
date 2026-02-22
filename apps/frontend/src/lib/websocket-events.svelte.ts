@@ -394,8 +394,6 @@ export function setupHuntListeners(
   unsubscribers.push(
     wsEvents.on('leads-created', (data) => {
       if (data.huntSessionId) {
-        // Don't override the counts here as they're cumulative in the hunt-progress event
-        // Just show a notification for the new leads
         toast.push(data.message || `${data.count} new leads created`, 'success');
       }
     })

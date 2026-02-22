@@ -13,9 +13,6 @@
   let circle: any;
   let radiusInMeters = 5000;
 
-  /**
-   * onMount
-   */
   onMount(async () => {
     const L = await import('leaflet');
 
@@ -52,9 +49,6 @@
 
       const address = await reverseGeocode(position.lat, position.lng);
 
-      /**
-       * onLocationSelected
-       */
       onLocationSelected({
         lat: position.lat,
         lng: position.lng,
@@ -69,9 +63,6 @@
 
       const address = await reverseGeocode(lat, lng);
 
-      /**
-       * onLocationSelected
-       */
       onLocationSelected({
         lat,
         lng,
@@ -80,9 +71,6 @@
     });
 
     const initialAddress = await reverseGeocode(initialLat, initialLng);
-    /**
-     * onLocationSelected
-     */
     onLocationSelected({
       lat: initialLat,
       lng: initialLng,
@@ -90,26 +78,14 @@
     });
   });
 
-  /**
-   * setRadius
-   */
   export function setRadius(meters: number) {
     radiusInMeters = meters;
-    /**
-     * if
-     */
     if (circle) {
       circle.setRadius(meters);
     }
   }
 
-  /**
-   * setLocation
-   */
   export function setLocation(lat: number, lng: number) {
-    /**
-     * if
-     */
     if (map && marker && circle) {
       marker.setLatLng([lat, lng]);
       circle.setLatLng([lat, lng]);
@@ -117,9 +93,6 @@
     }
   }
 
-  /**
-   * reverseGeocode
-   */
   async function reverseGeocode(lat: number, lng: number): Promise<string> {
     try {
       const response = await fetch(
@@ -133,13 +106,7 @@
     }
   }
 
-  /**
-   * onDestroy
-   */
   onDestroy(() => {
-    /**
-     * if
-     */
     if (map) {
       map.remove();
     }

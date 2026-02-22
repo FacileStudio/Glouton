@@ -14,40 +14,22 @@
   $: isEmailValid = /^\S+@\S+\.\S+$/.test(email);
   $: canSubmit = mode === 'mp' ? isEmailValid : isGroupNameValid;
 
-  /**
-   * handleSubmit
-   */
   async function handleSubmit() {
-    /**
-     * if
-     */
     if (!canSubmit || loading) return;
 
     loading = true;
     serverError = "";
 
     try {
-      /**
-       * if
-       */
       if (mode === 'mp') {
         const room = await trpc.chat.startPrivateMessage.mutate({ email });
-        /**
-         * dispatch
-         */
         dispatch('created', room.id);
       } else {
         const room = await trpc.chat.createGroup.mutate({ name: groupName });
-        /**
-         * dispatch
-         */
         dispatch('created', room.id);
       }
     } catch (e: unknown) {
       const error = e as { data?: { zodError?: unknown }; message?: string };
-      /**
-       * if
-       */
       if (error.data?.zodError) {
         serverError = "Le nom doit contenir au moins 3 caractères.";
       } else {

@@ -12,13 +12,7 @@ const webStorage = {
 export const authStore = new UniversalAuthStore(
   { user: null, session: null, loading: true },
   webStorage,
-  /**
-   * async
-   */
   async () => {
-    /**
-     * if
-     */
     if (browser) {
       try {
         await trpc.auth.logout.mutate({});

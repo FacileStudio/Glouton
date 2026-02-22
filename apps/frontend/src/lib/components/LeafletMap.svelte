@@ -21,9 +21,6 @@
   let L: any;
   let markers: any[] = [];
 
-  /**
-   * onMount
-   */
   onMount(async () => {
     L = (await import('leaflet')).default;
 
@@ -50,19 +47,10 @@
       maxZoom: 19,
     }).addTo(map);
 
-    /**
-     * updateMarkers
-     */
     updateMarkers();
   });
 
-  /**
-   * updateMarkers
-   */
   function updateMarkers() {
-    /**
-     * if
-     */
     if (!map || !L) return;
 
     markers.forEach(marker => marker.remove());
@@ -96,9 +84,6 @@
 
       marker.bindPopup(popupContent);
 
-      /**
-       * if
-       */
       if (onBusinessClick) {
         marker.on('click', () => onBusinessClick?.(business));
       }
@@ -106,9 +91,6 @@
       markers.push(marker);
     });
 
-    /**
-     * if
-     */
     if (businesses.length > 0) {
       const bounds = L.latLngBounds(businesses.map(b => [b.lat, b.lng]));
       map.fitBounds(bounds, { padding: [50, 50] });
@@ -116,19 +98,10 @@
   }
 
   $: if (map && businesses) {
-    /**
-     * updateMarkers
-     */
     updateMarkers();
   }
 
-  /**
-   * onDestroy
-   */
   onDestroy(() => {
-    /**
-     * if
-     */
     if (map) {
       map.remove();
     }
