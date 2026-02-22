@@ -96,9 +96,6 @@ export default {
         escapeCSVField(lead.contacted?.toString()),
         escapeCSVField(lead.lastContactedAt?.toISOString()),
         escapeCSVField(lead.emailsSentCount?.toString()),
-        escapeCSVField(lead.emailVerified?.toString()),
-        escapeCSVField(lead.emailVerifiedAt?.toISOString()),
-        escapeCSVField(lead.emailVerificationMethod),
       ];
       csvRows.push(row.join(','));
     }
