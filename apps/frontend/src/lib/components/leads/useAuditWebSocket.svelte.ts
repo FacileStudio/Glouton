@@ -11,7 +11,6 @@ export function useAuditWebSocket(
   const unsubscribers: Array<() => void> = [];
 
   function setupWebSocketListeners() {
-    // Helper to update a single session in the list
     const updateSession = (auditSessionId: string, updates: Partial<AuditSession>) => {
       const current = getAuditSessions();
       const index = current.findIndex((s) => s.id === auditSessionId);
@@ -24,7 +23,6 @@ export function useAuditWebSocket(
       return false;
     };
 
-    // Listen for audit started
     unsubscribers.push(
       ws.on('audit-started', (data) => {
         const current = getAuditSessions();
@@ -55,7 +53,6 @@ export function useAuditWebSocket(
       })
     );
 
-    // Listen for audit progress
     unsubscribers.push(
       ws.on('audit-progress', (data) => {
         updateSession(data.auditSessionId, {
@@ -69,7 +66,6 @@ export function useAuditWebSocket(
       })
     );
 
-    // Listen for audit completion
     unsubscribers.push(
       ws.on('audit-completed', async (data) => {
         const found = updateSession(data.auditSessionId, {
@@ -88,7 +84,6 @@ export function useAuditWebSocket(
       })
     );
 
-    // Listen for audit failure
     unsubscribers.push(
       ws.on('audit-failed', (data) => {
         updateSession(data.auditSessionId, {
@@ -100,7 +95,6 @@ export function useAuditWebSocket(
       })
     );
 
-    // Listen for audit cancellation
     unsubscribers.push(
       ws.on('audit-cancelled', (data) => {
         const current = getAuditSessions();

@@ -16,13 +16,7 @@ class WebSocketClient {
   private token: string | null = null;
   public connectionState = writable<ConnectionState>('disconnected');
 
-  /**
-   * getWebSocketUrl
-   */
   private getWebSocketUrl(): string {
-    /**
-     * if
-     */
     if (!browser) {
       return '';
     }
@@ -35,35 +29,20 @@ class WebSocketClient {
     return url;
   }
 
-  /**
-   * connect
-   */
   connect(token: string) {
-    /**
-     * if
-     */
     if (!browser) return;
 
     const wsBaseUrl = this.getWebSocketUrl();
 
-    /**
-     * if
-     */
     if (!wsBaseUrl) {
       console.error('[WebSocket] Failed to get WebSocket URL');
       return;
     }
 
-    /**
-     * if
-     */
     if (this.ws && (this.ws.readyState === WebSocket.CONNECTING || this.ws.readyState === WebSocket.OPEN)) {
       return;
     }
 
-    /**
-     * if
-     */
     if (this.ws) {
       this.ws.close();
       this.ws = null;
@@ -87,14 +66,8 @@ class WebSocketClient {
           const message = JSON.parse(event.data);
 
           const handlers = this.handlers.get(message.type);
-          /**
-           * if
-           */
           if (handlers) {
             handlers.forEach((handler) => {
-              /**
-               * handler
-               */
               handler(message.data);
             });
           }
@@ -119,13 +92,7 @@ class WebSocketClient {
     }
   }
 
-  /**
-   * attemptReconnect
-   */
   private attemptReconnect() {
-    /**
-     * if
-     */
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
       this.connectionState.set('failed');
       return;
@@ -140,63 +107,33 @@ class WebSocketClient {
     this.connectionState.set('reconnecting');
 
     this.reconnectTimeout = setTimeout(() => {
-      /**
-       * if
-       */
       if (this.token) {
         this.connect(this.token);
       }
     }, delay);
   }
 
-  /**
-   * resetConnection
-   */
   resetConnection() {
     this.reconnectAttempts = 0;
-    /**
-     * if
-     */
     if (this.reconnectTimeout) {
-      /**
-       * clearTimeout
-       */
       clearTimeout(this.reconnectTimeout);
       this.reconnectTimeout = null;
     }
-    /**
-     * if
-     */
     if (this.token) {
       this.connect(this.token);
     }
   }
 
-  /**
-   * on
-   */
   on(type: string, handler: MessageHandler) {
-    /**
-     * if
-     */
     if (!this.handlers.has(type)) {
       this.handlers.set(type, new Set());
     }
     this.handlers.get(type)!.add(handler);
 
-    /**
-     * return
-     */
     return () => {
       const handlers = this.handlers.get(type);
-      /**
-       * if
-       */
       if (handlers) {
         handlers.delete(handler);
-        /**
-         * if
-         */
         if (handlers.size === 0) {
           this.handlers.delete(type);
         }
@@ -204,24 +141,12 @@ class WebSocketClient {
     };
   }
 
-  /**
-   * disconnect
-   */
   disconnect() {
-    /**
-     * if
-     */
     if (this.reconnectTimeout) {
-      /**
-       * clearTimeout
-       */
       clearTimeout(this.reconnectTimeout);
       this.reconnectTimeout = null;
     }
 
-    /**
-     * if
-     */
     if (this.ws) {
       this.ws.close();
       this.ws = null;
@@ -231,13 +156,7 @@ class WebSocketClient {
     this.reconnectAttempts = 0;
   }
 
-  /**
-   * send
-   */
   send(message: any) {
-    /**
-     * if
-     */
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(message));
     }

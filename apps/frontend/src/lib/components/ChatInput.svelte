@@ -8,17 +8,8 @@
 
   let text = "";
 
-  /**
-   * handleSubmit
-   */
   function handleSubmit() {
-    /**
-     * if
-     */
     if (!text.trim() || isSending) return;
-    /**
-     * onSendMessage
-     */
     onSendMessage(text);
     text = "";
   }

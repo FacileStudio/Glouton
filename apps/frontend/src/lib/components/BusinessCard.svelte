@@ -16,13 +16,7 @@
     distance?: number;
   };
 
-  /**
-   * openInMaps
-   */
   function openInMaps() {
-    /**
-     * if
-     */
     if (business.lat && business.lng) {
       window.open(`https://www.google.com/maps/search/?api=1&query=${business.lat},${business.lng}`, '_blank');
     } else if (business.address) {
@@ -30,13 +24,7 @@
     }
   }
 
-  /**
-   * formatDistance
-   */
   function formatDistance(km: number): string {
-    /**
-     * if
-     */
     if (km < 1) {
       return `${Math.round(km * 1000)}m`;
     }
