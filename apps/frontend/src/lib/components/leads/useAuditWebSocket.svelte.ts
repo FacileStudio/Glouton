@@ -103,7 +103,6 @@ export function useAuditWebSocket(
       })
     );
 
-    // Listen for stats changes
     unsubscribers.push(
       ws.on('stats-changed', async () => {
         await onStatsChange();

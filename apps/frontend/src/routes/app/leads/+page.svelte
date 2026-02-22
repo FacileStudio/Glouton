@@ -395,7 +395,6 @@
   class="p-6 lg:p-12 max-w-[1600px] mx-auto space-y-12 selection:text-black font-sans"
   style="background-color: #FAF7F5; selection-background-color: #FEC129;"
 >
-  <!-- Header -->
   <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
     <div class="flex items-center gap-4">
       <div class="w-16 h-16 flex items-center justify-center bg-neutral-900 rounded-2xl">
@@ -457,7 +456,6 @@
   </div>
 
   <div class="space-y-8">
-    <!-- Active Audit Banner -->
     {#if activeAudit}
       <AuditBanner
         session={activeAudit}
@@ -466,15 +464,12 @@
       />
     {/if}
 
-    <!-- Stats Cards -->
     {#if !initialLoading}
       <StatsCards {stats} />
     {/if}
 
-    <!-- Filters -->
     <FilterPanel bind:filters bind:filtersExpanded leads={leads} onReset={resetFilters} />
 
-    <!-- Sort Controls -->
     <div class="flex items-center gap-2 flex-wrap">
       {#each [
         { label: 'Date', value: 'createdAt' },
@@ -498,12 +493,10 @@
       {/each}
     </div>
 
-    <!-- Leads Map -->
     {#if !initialLoading && processedLeads.some(l => l.coordinates)}
       <LeadsMap leads={processedLeads} />
     {/if}
 
-    <!-- Leads Table/Grid -->
     <div class="rounded-2xl overflow-hidden shadow-lg" style="background-color: #EFEAE6;">
       {#if loadingData && !initialLoading}
         <div class="flex items-center justify-center py-20">
@@ -527,7 +520,6 @@
       {/if}
     </div>
 
-    <!-- Pagination -->
     {#if totalPages > 1}
       <PaginationControls
         bind:currentPage
