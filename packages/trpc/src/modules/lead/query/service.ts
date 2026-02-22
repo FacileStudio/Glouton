@@ -457,14 +457,6 @@ export default {
           id: true,
           userId: true,
           teamId: true,
-          team: {
-            select: {
-              members: {
-                where: { userId },
-                select: { userId: true }
-              }
-            }
-          }
         },
       });
 
@@ -473,7 +465,17 @@ export default {
       }
 
       const isOwner = existingLead.userId === userId;
-      const isTeamMember = existingLead.teamId && existingLead.team?.members.length > 0;
+      let isTeamMember = false;
+
+      if (existingLead.teamId) {
+        const teamMembership = await prisma.teamMember.findFirst({
+          where: {
+            teamId: existingLead.teamId,
+            userId: userId,
+          },
+        });
+        isTeamMember = !!teamMembership;
+      }
 
       if (!isOwner && !isTeamMember) {
         throw new Error('Unauthorized to delete this lead');
@@ -496,16 +498,6 @@ export default {
     try {
       const lead = await ctx.prisma.lead.findUnique({
         where: { id: leadId },
-        include: {
-          team: {
-            include: {
-              members: {
-                where: { userId: ctx.user.id },
-                select: { userId: true }
-              }
-            }
-          }
-        }
       });
 
       if (!lead) {
@@ -516,7 +508,17 @@ export default {
       }
 
       const isOwner = lead.userId === ctx.user.id;
-      const isTeamMember = lead.teamId && lead.team?.members.length > 0;
+      let isTeamMember = false;
+
+      if (lead.teamId) {
+        const teamMembership = await ctx.prisma.teamMember.findFirst({
+          where: {
+            teamId: lead.teamId,
+            userId: ctx.user.id,
+          },
+        });
+        isTeamMember = !!teamMembership;
+      }
 
       if (!isOwner && !isTeamMember) {
         throw new TRPCError({
