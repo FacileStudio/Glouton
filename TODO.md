@@ -1,3 +1,0 @@
-# TODO
-- [ ] fetch hunter.io
-- [ ] 

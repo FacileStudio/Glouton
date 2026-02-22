@@ -351,7 +351,7 @@
 
 {#if loading}
   <div class="flex flex-col items-center justify-center h-screen space-y-6" in:fade>
-    <Spinner size="xl" color="accent" />
+    <Spinner size="xl" />
   </div>
 {:else if !lead}
   <div class="flex flex-col items-center justify-center h-screen space-y-6" in:fade>
