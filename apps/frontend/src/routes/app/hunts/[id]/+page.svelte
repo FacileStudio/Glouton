@@ -338,9 +338,6 @@
 {#if loading}
   <div class="flex flex-col items-center justify-center h-full space-y-6 selection:text-black font-sans" style="background-color: #FAF7F5;" in:fade>
     <Spinner size="xl" />
-    <p class="text-[10px] font-black uppercase tracking-[0.5em] text-neutral-400">
-      Chargement des détails...
-    </p>
   </div>
 {:else if !details}
   <div class="flex flex-col items-center justify-center h-full space-y-6 selection:text-black font-sans" style="background-color: #FAF7F5;" in:fade>
