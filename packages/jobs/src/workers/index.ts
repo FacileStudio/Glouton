@@ -2,6 +2,7 @@ import { createLeadExtractionWorker } from './lead-extraction';
 import { createLocalBusinessHuntWorker } from './local-business-hunt';
 import { createLeadAuditWorker } from './lead-audit';
 import { createDomainFinderWorker } from './domain-finder';
+import { createCsvImportWorker } from './csv-import';
 
 export interface EventEmitter {
   emit: (userId: string, type: string, data?: any) => void;
@@ -15,6 +16,7 @@ export function createWorkers(events: EventEmitter) {
     'local-business-hunt': createLocalBusinessHuntWorker(events),
     'lead-audit': createLeadAuditWorker(events),
     'domain-finder': createDomainFinderWorker(events),
+    'csv-import': createCsvImportWorker(events),
   };
 }
 
@@ -23,4 +25,5 @@ export const workers = {
   'local-business-hunt': createLocalBusinessHuntWorker,
   'lead-audit': createLeadAuditWorker,
   'domain-finder': createDomainFinderWorker,
+  'csv-import': createCsvImportWorker,
 };
