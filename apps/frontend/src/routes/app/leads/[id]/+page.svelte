@@ -430,14 +430,14 @@
           <button
             onclick={toggleFavorite}
             disabled={togglingFavorite}
-            class="px-4 py-2.5 rounded-xl text-sm font-bold transition-colors flex items-center gap-2 {isFavorite ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200' : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'} disabled:opacity-50"
+            class="px-4 py-2.5 rounded-xl text-sm font-bold transition-colors flex items-center gap-2 {isFavorite ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'} disabled:opacity-50"
           >
             {#if togglingFavorite}
               <Spinner size="xs" />
             {:else}
-              <iconify-icon icon={isFavorite ? "solar:star-bold" : "solar:star-outline"} width="16"></iconify-icon>
+              <iconify-icon icon={isFavorite ? "solar:heart-broken-bold" : "solar:heart-linear"} width="16"></iconify-icon>
             {/if}
-            {isFavorite ? 'Favori' : 'Ajouter aux favoris'}
+            {isFavorite ? 'Retirer le favori' : 'Ajouter aux favoris'}
           </button>
 
           {#if lead.email}

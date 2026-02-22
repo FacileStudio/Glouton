@@ -412,9 +412,9 @@
     <div class="flex items-center gap-3">
       <a
         href="/app/leads/favorites"
-        class="bg-yellow-100 text-yellow-700 px-6 py-4 rounded-xl font-bold hover:bg-yellow-200 active:scale-95 transition-all flex items-center gap-3 shadow-lg"
+        class="bg-red-100 text-red-700 px-6 py-4 rounded-xl font-bold hover:bg-red-200 active:scale-95 transition-all flex items-center gap-3 shadow-lg"
       >
-        <iconify-icon icon="solar:star-bold" width="20"></iconify-icon>
+        <iconify-icon icon="solar:heart-bold" width="20"></iconify-icon>
         <span>Favoris</span>
       </a>
 

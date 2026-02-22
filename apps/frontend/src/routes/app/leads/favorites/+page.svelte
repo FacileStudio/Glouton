@@ -77,8 +77,8 @@
         <iconify-icon icon="solar:arrow-left-bold" width="20"></iconify-icon>
       </button>
 
-      <div class="w-16 h-16 flex items-center justify-center bg-yellow-500 rounded-2xl">
-        <iconify-icon icon="solar:star-bold" width="32" class="text-white"></iconify-icon>
+      <div class="w-16 h-16 flex items-center justify-center bg-red-500 rounded-2xl">
+        <iconify-icon icon="solar:heart-bold" width="32" class="text-white"></iconify-icon>
       </div>
       <div class="space-y-1">
         <h1 class="text-5xl font-black tracking-tight leading-none" style="color: #291334;">
@@ -126,12 +126,12 @@
         </div>
       {:else if processedLeads.length === 0}
         <div class="flex flex-col items-center justify-center py-20 space-y-4">
-          <iconify-icon icon="solar:star-outline" width="80" class="text-neutral-200"></iconify-icon>
+          <iconify-icon icon="solar:heart-linear" width="80" class="text-neutral-200"></iconify-icon>
           <p class="text-neutral-400 font-bold uppercase tracking-widest text-sm">
             Aucun lead favori
           </p>
           <p class="text-neutral-400 text-sm">
-            Ajoutez des leads � vos favoris pour les retrouver facilement ici
+            Ajoutez des leads à vos favoris pour les retrouver facilement ici
           </p>
           <button
             onclick={() => goto('/app/leads')}
