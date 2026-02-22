@@ -15,15 +15,17 @@ export async function resolveScope(
     return { type: 'personal', userId };
   }
 
-  const membership = await prisma.$queryRaw<Array<{ id: string }>>`
-    SELECT tm.id
-    FROM "TeamMember" tm
-    WHERE tm."teamId" = ${teamId}::text
-    AND tm."userId" = ${userId}::text
-    LIMIT 1
-  `;
+  const membership = await prisma.teamMember.findFirst({
+    where: {
+      teamId: teamId,
+      userId: userId,
+    },
+    select: {
+      id: true,
+    },
+  });
 
-  if (!membership || membership.length === 0) {
+  if (!membership) {
     logger.warn({ userId, teamId }, '[SCOPE] User not a member of team');
     throw new TRPCError({
       code: 'FORBIDDEN',
