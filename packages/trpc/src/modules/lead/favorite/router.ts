@@ -9,6 +9,7 @@ const toggleFavoriteSchema = z.object({
 
 const isFavoriteSchema = z.object({
   leadId: z.string().uuid('Invalid lead ID'),
+  teamId: z.string().uuid().optional(),
 });
 
 const getFavoritesSchema = z.object({
@@ -43,8 +44,9 @@ export const favoriteRouter = router({
   isFavorite: protectedProcedure
     .input(isFavoriteSchema)
     .query(async ({ ctx, input }) => {
+      const scope = await resolveScope(ctx.prisma, ctx.user.id, input.teamId);
       return await FavoriteService.isFavorite(
-        ctx.user.id,
+        scope,
         input.leadId,
         ctx.prisma
       );
