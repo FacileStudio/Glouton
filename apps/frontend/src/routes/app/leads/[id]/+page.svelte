@@ -336,7 +336,6 @@
 {#if loading}
   <div class="flex flex-col items-center justify-center h-screen space-y-6" in:fade>
     <Spinner size="xl" color="accent" />
-    <p class="text-[10px] font-black uppercase tracking-[0.5em] text-neutral-400">Chargement...</p>
   </div>
 {:else if !lead}
   <div class="flex flex-col items-center justify-center h-screen space-y-6" in:fade>
