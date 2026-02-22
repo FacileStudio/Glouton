@@ -50,6 +50,7 @@ model User {
   opportunityNotifications      UserOpportunityNotification[]
   opportunityPreferences        UserOpportunityPreferences?
   teamMembers                   TeamMember[]
+  favoritedLeads                UserFavoriteLead[]
 
   @@index([status])
   @@index([isBanned])

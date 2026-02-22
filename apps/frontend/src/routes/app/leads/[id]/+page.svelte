@@ -104,6 +104,8 @@
   let previewLoading = $state(false);
   let expandedEmails: Set<string> = $state(new Set());
   let isInitialLoad = $state(true);
+  let isFavorite = $state(false);
+  let togglingFavorite = $state(false);
 
   const leadId = $page.params.id;
 
@@ -115,15 +117,17 @@
     loading = true;
     try {
       const currentTeamId = teamId;
-      const [leadData, templatesData, historyData] = await Promise.all([
+      const [leadData, templatesData, historyData, favoriteStatus] = await Promise.all([
         trpc.lead.query.getById.query({ leadId }),
         trpc.email.getTemplates.query(),
         trpc.email.getLeadOutreach.query({ leadId, teamId: currentTeamId }),
+        trpc.lead.favorite.isFavorite.query({ leadId }),
       ]);
 
       lead = leadData;
       templates = [...templatesData];
       outreachHistory = [...historyData];
+      isFavorite = favoriteStatus.isFavorite;
 
       if (templatesData.length > 0 && !selectedTemplate) {
         selectedTemplate = templatesData[0].id;
@@ -332,6 +336,25 @@
     return lead.domain ?? '';
   }
 
+  async function toggleFavorite() {
+    if (togglingFavorite) return;
+
+    togglingFavorite = true;
+    try {
+      const result = await trpc.lead.favorite.toggle.mutate({ leadId });
+      isFavorite = result.isFavorite;
+      toast.push(
+        isFavorite ? 'Lead ajouté aux favoris' : 'Lead retiré des favoris',
+        'success'
+      );
+    } catch (error) {
+      toast.push('Échec de la mise à jour des favoris', 'error');
+      console.error(error);
+    } finally {
+      togglingFavorite = false;
+    }
+  }
+
   let technologies = $derived(lead?.technologies ?? []);
   let additionalEmails = $derived(lead?.additionalEmails ?? []);
   let phoneNumbers = $derived(lead?.phoneNumbers ?? []);
@@ -403,6 +426,19 @@
               Non contacté
             </span>
           {/if}
+
+          <button
+            onclick={toggleFavorite}
+            disabled={togglingFavorite}
+            class="px-4 py-2.5 rounded-xl text-sm font-bold transition-colors flex items-center gap-2 {isFavorite ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200' : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'} disabled:opacity-50"
+          >
+            {#if togglingFavorite}
+              <Spinner size="xs" />
+            {:else}
+              <iconify-icon icon={isFavorite ? "solar:star-bold" : "solar:star-outline"} width="16"></iconify-icon>
+            {/if}
+            {isFavorite ? 'Favori' : 'Ajouter aux favoris'}
+          </button>
 
           {#if lead.email}
             <a
