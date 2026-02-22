@@ -88,8 +88,5 @@ export const CSV_HEADERS = [
   'Contacte',
   'Derniere Date Contact',
   'Nombre Emails Envoyes',
-  'Email Verifie',
-  'Email Verifie Le',
-  'Methode Verification Email',
 ];
 

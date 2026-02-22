@@ -10,6 +10,7 @@ import {
   parseCSVJson,
   parseCSVBoolean,
 } from './csv-utils';
+import { batchImportLeads } from './batch-import';
 
 export const importExportRouter = router({
   exportToCsv: protectedProcedure.input(exportToCsvSchema).query(async ({ ctx, input }) => {
@@ -147,16 +148,6 @@ export const importExportRouter = router({
           const emailsSentCountStr = getHeaderValue('Nombre Emails Envoyes');
           const emailsSentCount = emailsSentCountStr ? parseInt(emailsSentCountStr, 10) : 0;
 
-          const rawEmailVerified = getHeaderValue('Email Verifie');
-          const emailVerified = rawEmailVerified === ''
-            ? null
-            : parseCSVBoolean(rawEmailVerified);
-
-          const rawEmailVerifiedAt = getHeaderValue('Email Verifie Le');
-          const emailVerifiedAt = rawEmailVerifiedAt ? new Date(rawEmailVerifiedAt) : null;
-
-          const emailVerificationMethod = getHeaderValue('Methode Verification Email') || null;
-
           leads.push({
             userId: ctx.user.id,
             teamId: input.teamId || null,
@@ -189,9 +180,6 @@ export const importExportRouter = router({
             contacted,
             lastContactedAt,
             emailsSentCount: isNaN(emailsSentCount) ? 0 : emailsSentCount,
-            emailVerified,
-            emailVerifiedAt,
-            emailVerificationMethod,
           });
         } catch (error) {
           errors.push(`Row ${i + 2}: ${error instanceof Error ? error.message : 'Parse error'}`);
@@ -211,39 +199,51 @@ export const importExportRouter = router({
         prisma: ctx.prisma,
       });
 
-      const result = await ctx.prisma.lead.createMany({
-        data: dedupResult.newLeads,
-        skipDuplicates: true,
-      });
-
       ctx.log.info({
         action: 'import-csv-dedup',
         totalLeads: leads.length,
         duplicatesFiltered: dedupResult.duplicatesFiltered,
-        imported: result.count,
+        newLeads: dedupResult.newLeads.length,
+      });
+
+      const batchResult = await batchImportLeads({
+        prisma: ctx.prisma,
+        logger: ctx.log,
+        leads: dedupResult.newLeads,
       });
 
       await ctx.prisma.huntSession.update({
         where: { id: huntSessionId },
         data: {
-          totalLeads: result.count,
-          successfulLeads: result.count,
-          sourceStats: { MANUAL: { leads: result.count, errors: errors.length, rateLimited: false } },
+          totalLeads: batchResult.totalImported,
+          successfulLeads: batchResult.totalImported,
+          sourceStats: {
+            MANUAL: {
+              leads: batchResult.totalImported,
+              errors: errors.length + batchResult.errors.length,
+              rateLimited: false
+            }
+          },
         },
       });
 
       ctx.log.info({
         action: 'import-csv',
         huntSessionId,
-        leadsImported: result.count,
-        errors: errors.length,
+        leadsImported: batchResult.totalImported,
+        duplicates: batchResult.totalDuplicates,
+        parseErrors: errors.length,
+        batchErrors: batchResult.errors.length,
       });
+
+      const allErrors = [...errors, ...batchResult.errors];
 
       return {
         huntSessionId,
-        imported: result.count,
-        errors,
+        imported: batchResult.totalImported,
+        errors: allErrors,
         totalRows: dataLines.length,
+        duplicates: dedupResult.duplicatesFiltered + batchResult.totalDuplicates,
       };
     } catch (error) {
       if (error instanceof TRPCError) {
