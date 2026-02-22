@@ -113,25 +113,36 @@
 
   async function loadData() {
     try {
+      console.log('[LOAD] Starting loadData');
       const [leadData, templatesData, historyData] = await Promise.all([
         trpc.lead.query.getById.query({ leadId }),
         trpc.email.getTemplates.query(),
         trpc.email.getLeadOutreach.query({ leadId, teamId }),
       ]);
 
+      console.log('[LOAD] All queries completed', { leadData, templatesData, historyData });
+
       lead = leadData;
       templates = templatesData;
       outreachHistory = historyData;
 
+      console.log('[LOAD] State updated, checking templates');
+
       if (templates.length > 0 && !selectedTemplate) {
+        console.log('[LOAD] Updating variables with first template');
         selectedTemplate = templates[0].id;
         updateVariables(templates[0]);
       }
+
+      console.log('[LOAD] About to set loading = false');
     } catch (error) {
+      console.error('[LOAD] Error occurred:', error);
       toast.push('Échec du chargement du lead', 'error');
       console.error(error);
     } finally {
+      console.log('[LOAD] Finally block - setting loading = false');
       loading = false;
+      console.log('[LOAD] loading is now:', loading);
     }
   }
 

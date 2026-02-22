@@ -122,8 +122,10 @@ export class EmailService {
   }
 
   async getLeadOutreach(leadId: string, scope: Scope, prisma: PrismaClient) {
+    logger.info({ action: 'get-lead-outreach-start', leadId, scope: scope.type });
     const emailFilter = buildEmailFilter(scope);
-    return prisma.emailOutreach.findMany({
+    logger.info({ action: 'email-filter-built', emailFilter });
+    const result = await prisma.emailOutreach.findMany({
       where: {
         ...emailFilter,
         leadId,
@@ -145,6 +147,8 @@ export class EmailService {
         createdAt: 'desc',
       },
     });
+    logger.info({ action: 'get-lead-outreach-success', leadId, count: result.length });
+    return result;
   }
 
   async getOutreachStats(scope: Scope, prisma: PrismaClient) {
