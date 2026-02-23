@@ -316,6 +316,7 @@ export class CsvImportProcessor {
     let totalDuplicates = 0;
 
     const batches = Math.ceil(leads.length / BATCH_SIZE);
+    const EVENT_BATCH_INTERVAL = 10;
 
     for (let i = 0; i < leads.length; i += BATCH_SIZE) {
       const batch = leads.slice(i, i + BATCH_SIZE);
@@ -340,19 +341,23 @@ export class CsvImportProcessor {
 
         const progress = 40 + Math.floor((batchNumber / batches) * 55);
 
-        emitter.emit('hunt-progress', {
-          huntSessionId,
-          progress,
-          totalLeads: totalImported,
-          successfulLeads: totalImported,
-          status: 'PROCESSING',
-        });
+        const shouldEmitEvent = batchNumber % EVENT_BATCH_INTERVAL === 0 || batchNumber === batches;
 
-        emitter.emit('leads-created', {
-          huntSessionId,
-          count: result.count,
-          message: `Batch ${batchNumber}/${batches}: Imported ${result.count}/${batch.length} leads (${totalDuplicates} duplicates skipped)`,
-        });
+        if (shouldEmitEvent) {
+          emitter.emit('hunt-progress', {
+            huntSessionId,
+            progress,
+            totalLeads: totalImported,
+            successfulLeads: totalImported,
+            status: 'PROCESSING',
+          });
+
+          emitter.emit('leads-created', {
+            huntSessionId,
+            count: totalImported,
+            message: `Imported ${totalImported}/${leads.length} leads (${totalDuplicates} duplicates skipped)`,
+          });
+        }
 
         await this.sessionManager.updateSession(huntSessionId, {
           totalLeads: totalImported,
