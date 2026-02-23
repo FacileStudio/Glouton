@@ -376,6 +376,13 @@
   let phoneNumbers = $derived(lead?.phoneNumbers ?? []);
   let addresses = $derived(lead?.physicalAddresses ?? []);
   let socialProfiles = $derived(lead?.socialProfiles ?? []);
+
+  $effect(() => {
+    const _ = [selectedTemplate, variables];
+    if (!isInitialLoad && selectedTemplate) {
+      updatePreview();
+    }
+  });
 </script>
 
 {#if loading}
