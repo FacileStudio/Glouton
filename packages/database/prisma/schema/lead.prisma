@@ -7,6 +7,9 @@ model Lead {
   businessType       BusinessType  @default(DOMAIN)
   domain             String?       @db.Text
   email              String?       @db.Text
+  emailVerified      Boolean?
+  emailVerifiedAt    DateTime?     @db.Timestamptz(3)
+  emailVerificationMethod String?  @db.Text
   firstName          String?       @db.Text
   lastName           String?       @db.Text
   position           String?       @db.Text
@@ -66,6 +69,7 @@ model Lead {
   @@index([userId, auditedAt])
   @@index([userId, businessName])
   @@index([domain])
+  @@index([emailVerified])
 }
 
 model UserFavoriteLead {
