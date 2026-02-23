@@ -5,6 +5,7 @@
   interface HuntSession {
     id: string;
     huntType: 'DOMAIN' | 'LOCAL_BUSINESS' | undefined;
+    sources?: string[];
     status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
     progress: number;
     totalLeads: number;
@@ -43,12 +44,19 @@
     return `Il y a ${Math.floor(mins / 1440)}j`;
   }
 
+  const isCsvImport = $derived(
+    session.sources?.includes('CSV_IMPORT') || false
+  );
+
   const isLocal = $derived(
     session.huntType === 'LOCAL_BUSINESS' ||
     (!!(session.filters?.location) && !!(session.filters?.categories))
   );
 
   const huntTitle = $derived.by(() => {
+    if (isCsvImport) {
+      return 'Import CSV';
+    }
     if (isLocal) {
       const cat = session.filters?.categories?.[0] || session.filters?.category || 'Commerce local';
       const loc = session.filters?.location || '';
@@ -132,7 +140,7 @@
             {formatTimeAgo(referenceDate)}
           </span>
           <span class="text-[10px] font-bold text-neutral-400 uppercase tracking-wide">
-            {isLocal ? 'Local' : 'Domaine'}
+            {isCsvImport ? 'CSV' : isLocal ? 'Local' : 'Domaine'}
           </span>
         </div>
       </div>
