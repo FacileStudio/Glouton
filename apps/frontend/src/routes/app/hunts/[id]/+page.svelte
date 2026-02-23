@@ -321,6 +321,7 @@
   const asBannerSession = $derived(details ? {
     id: details.id,
     huntType: details.huntType as 'DOMAIN' | 'LOCAL_BUSINESS' | undefined,
+    sources: details.sources,
     speed: 1,
     status: details.status,
     progress: details.progress,
@@ -363,14 +364,18 @@
 
         <div class="min-w-0">
           <h1 class="text-xl font-black tracking-tight text-neutral-900 truncate">
-            {#if details.huntType === 'LOCAL_BUSINESS'}
+            {#if details.sources?.includes('CSV_IMPORT')}
+              Import CSV
+            {:else if details.huntType === 'LOCAL_BUSINESS'}
               {details.filters?.location || 'Recherche locale'}
             {:else}
               {details.domain || 'Recherche large'}
             {/if}
           </h1>
           <p class="text-sm text-neutral-500 font-medium truncate">
-            {#if details.huntType === 'LOCAL_BUSINESS'}
+            {#if details.sources?.includes('CSV_IMPORT')}
+              Import depuis fichier CSV
+            {:else if details.huntType === 'LOCAL_BUSINESS'}
               {details.filters?.categories?.join(', ') || 'Commerce local'}
             {:else}
               {#if details.sources && details.sources.length > 0}

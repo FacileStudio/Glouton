@@ -54,7 +54,7 @@ export const importExportRouter = router({
       const huntData: any = {
         userId: ctx.user.id,
         huntType: 'DOMAIN',
-        sources: ['MANUAL'],
+        sources: ['CSV_IMPORT'],
         filters: {},
         status: 'PENDING',
         progress: 0,
