@@ -103,7 +103,13 @@ app.post('/internal/broadcast', async (c) => {
   }
 });
 
-app.all('/trpc/*', trpcHandler({ ...config, events }));
+app.all('/trpc/*', trpcHandler({
+  authManager: config.authManager,
+  env: config.env,
+  jobs: config.jobs,
+  prisma: config.prisma,
+  events,
+}));
 
 app.get('/', (c) => c.json({ message: "Welcome to the Glouton's API !" }));
 
