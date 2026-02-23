@@ -12,6 +12,7 @@
   import 'iconify-icon';
 
   let teamId = $derived(teamContextStore.getTeamId());
+  let settingsUrl = $derived(teamId ? `/app/teams/${teamId}/settings` : '/app/settings');
 
   interface SocialProfile {
     platform: string;
@@ -796,7 +797,7 @@
                     Vous devez configurer vos paramètres SMTP pour pouvoir envoyer des e-mails.
                   </p>
                   <button
-                    onclick={() => goto('/app/settings/team')}
+                    onclick={() => goto(settingsUrl)}
                     class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 text-white rounded-lg font-bold text-xs hover:bg-amber-700 transition-colors"
                   >
                     <iconify-icon icon="solar:settings-bold" width="14"></iconify-icon>
