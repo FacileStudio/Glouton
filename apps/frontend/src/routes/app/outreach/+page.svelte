@@ -154,7 +154,7 @@
     if (templates[0]) initVariables(templates[0], lead);
     panelLoading = true;
     try {
-      panelHistory = (await trpc.email.getLeadOutreach.query({ leadId: lead.leadId })) as EmailHistory[];
+      panelHistory = (await trpc.email.getLeadOutreach.query({ leadId: lead.leadId, teamId })) as EmailHistory[];
     } catch {
       toast.push("Échec du chargement de l'historique", 'error');
     } finally {
@@ -201,7 +201,7 @@
         variables: composeVariables,
       });
       toast.push('E-mail envoyé avec succès !', 'success');
-      panelHistory = (await trpc.email.getLeadOutreach.query({ leadId: lead.leadId })) as EmailHistory[];
+      panelHistory = (await trpc.email.getLeadOutreach.query({ leadId: lead.leadId, teamId })) as EmailHistory[];
       await loadData();
     } catch (e: any) {
       toast.push(e?.message || "Échec de l'envoi", 'error');
