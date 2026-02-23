@@ -137,7 +137,7 @@ export const teamRouter = router({
     return await teamService.getTeamSmtpConfig(
       input.teamId,
       ctx.user.id,
-      ctx.env.ENCRYPTION_SECRET
+      ctx.auth
     );
   }),
 
@@ -154,7 +154,7 @@ export const teamRouter = router({
         teamId,
         ctx.user.id,
         smtpConfig,
-        ctx.env.ENCRYPTION_SECRET
+        ctx.auth
       );
     }),
 
