@@ -2,7 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import type { Scope } from './scope';
 import { logger } from '@repo/logger';
 import { TRPCError } from '@trpc/server';
-import { decrypt } from '@repo/utils';
+import type { AuthManager } from '@repo/auth';
 
 export interface ApiKeys {
   hunterApiKey?: string;
@@ -83,7 +83,7 @@ export async function getApiKeys(
 export async function getSmtpConfig(
   prisma: PrismaClient,
   scope: Scope,
-  encryptionSecret: string
+  auth: AuthManager
 ): Promise<SmtpConfig | null> {
   if (scope.type === 'team') {
     const team = await prisma.$queryRaw<
@@ -115,7 +115,7 @@ export async function getSmtpConfig(
         teamId: scope.teamId,
         userId: scope.userId,
       }, '[SMTP] Team not found, falling back to user SMTP');
-      return getUserSmtpConfig(prisma, scope.userId, encryptionSecret);
+      return getUserSmtpConfig(prisma, scope.userId, auth);
     }
 
     const teamData = team[0];
@@ -134,8 +134,8 @@ export async function getSmtpConfig(
         host: teamData.smtpHost,
         port: teamData.smtpPort,
         secure: teamData.smtpSecure,
-        user: decrypt(teamData.smtpUser, encryptionSecret),
-        pass: decrypt(teamData.smtpPass, encryptionSecret),
+        user: teamData.smtpUser,
+        pass: auth.decryptData(teamData.smtpPass),
         fromName: teamData.smtpFromName,
         fromEmail: teamData.smtpFromEmail,
       };
@@ -145,16 +145,16 @@ export async function getSmtpConfig(
       teamId: scope.teamId,
       userId: scope.userId,
     }, '[SMTP] Team SMTP not configured, falling back to user');
-    return getUserSmtpConfig(prisma, scope.userId, encryptionSecret);
+    return getUserSmtpConfig(prisma, scope.userId, auth);
   }
 
-  return getUserSmtpConfig(prisma, scope.userId, encryptionSecret);
+  return getUserSmtpConfig(prisma, scope.userId, auth);
 }
 
 async function getUserSmtpConfig(
   prisma: PrismaClient,
   userId: string,
-  encryptionSecret: string
+  auth: AuthManager
 ): Promise<SmtpConfig | null> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -194,7 +194,7 @@ async function getUserSmtpConfig(
     port: user.smtpPort,
     secure: user.smtpSecure,
     user: user.smtpUser,
-    pass: user.smtpPass,
+    pass: auth.decryptData(user.smtpPass),
     fromName: user.smtpFromName,
     fromEmail: user.smtpFromEmail,
   };
