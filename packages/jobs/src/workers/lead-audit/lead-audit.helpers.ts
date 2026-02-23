@@ -1,5 +1,6 @@
 import { prisma } from '@repo/database';
 import { calculateLeadScore } from '../../services/scoring.utils';
+import { verifyEmail } from '../../services/email-verifier';
 import type { Lead, ProcessResult } from './lead-audit.types';
 import type { AuditResult } from '../../services/scraper.service';
 
@@ -36,16 +37,31 @@ export class LeadAuditHelpers {
     const calculatedScore = calculateLeadScore(auditData);
 
     const now = new Date();
+    const updateData: any = {
+      websiteAudit: auditData as any,
+      email: primaryEmail,
+      additionalEmails: mergedExtras,
+      score: calculatedScore,
+      auditedAt: now,
+      updatedAt: now,
+    };
+
+    if (primaryEmail && !lead.email) {
+      console.log(`[LeadAudit] New email discovered: ${primaryEmail}, verifying...`);
+      try {
+        const verification = await verifyEmail(primaryEmail);
+        updateData.emailVerified = verification.valid;
+        updateData.emailVerifiedAt = verification.checkedAt;
+        updateData.emailVerificationMethod = verification.reason;
+        console.log(`[LeadAudit] Email verification result: ${verification.reason} (valid: ${verification.valid})`);
+      } catch (error) {
+        console.error(`[LeadAudit] Email verification failed for ${primaryEmail}:`, error);
+      }
+    }
+
     await prisma.lead.update({
       where: { id: lead.id },
-      data: {
-        websiteAudit: auditData as any,
-        email: primaryEmail,
-        additionalEmails: mergedExtras,
-        score: calculatedScore,
-        auditedAt: now,
-        updatedAt: now,
-      },
+      data: updateData,
     });
   }
 
