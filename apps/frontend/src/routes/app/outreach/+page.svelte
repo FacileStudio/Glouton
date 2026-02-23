@@ -10,6 +10,7 @@
   import 'iconify-icon';
 
   let teamId = $derived(teamContextStore.getTeamId());
+  let settingsUrl = $derived(teamId ? `/app/teams/${teamId}/settings` : '/app/settings');
 
   interface OutreachLead {
     leadId: string;
@@ -343,7 +344,7 @@
           Vous devez configurer vos paramètres SMTP pour pouvoir envoyer des e-mails. Rendez-vous dans les paramètres de l'équipe pour ajouter votre configuration SMTP.
         </p>
         <button
-          onclick={() => goto('/app/settings/team')}
+          onclick={() => goto(settingsUrl)}
           class="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-xl font-bold text-sm hover:bg-amber-700 transition-colors mt-2"
         >
           <iconify-icon icon="solar:settings-bold" width="16"></iconify-icon>
