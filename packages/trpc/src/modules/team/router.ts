@@ -149,19 +149,12 @@ export const teamRouter = router({
         '[TEAM] Updating team SMTP config'
       );
 
-      const encryptionSecret = ctx.env?.ENCRYPTION_SECRET || process.env.ENCRYPTION_SECRET;
-
-      if (!encryptionSecret) {
-        ctx.log.error('[TEAM] ENCRYPTION_SECRET is undefined in both ctx.env and process.env');
-        throw new Error('Server configuration error: ENCRYPTION_SECRET is missing');
-      }
-
       const { teamId, ...smtpConfig } = input;
       return await teamService.updateTeamSmtpConfig(
         teamId,
         ctx.user.id,
         smtpConfig,
-        encryptionSecret
+        ctx.env.ENCRYPTION_SECRET
       );
     }),
 
