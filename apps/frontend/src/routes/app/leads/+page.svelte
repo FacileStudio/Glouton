@@ -237,7 +237,7 @@
   async function startAudit() {
     try {
       startingAudit = true;
-      const result = await trpc.lead.audit.start.mutate();
+      const result = await trpc.lead.audit.start.mutate({ teamId: teamId || undefined });
       toast.push('Audit démarré ! Vérification des leads pour les données manquantes...', 'success');
 
       
