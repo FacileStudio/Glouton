@@ -106,10 +106,10 @@
       </div>
       <button
         onclick={() => handleNavigate('/settings')}
-        class="w-12 h-12 flex items-center justify-center bg-white rounded-xl hover:bg-neutral-50 transition-colors border border-neutral-100"
-        title="Paramètres"
+        class="px-4 h-12 flex items-center gap-2 bg-white rounded-xl hover:bg-neutral-50 transition-colors border border-neutral-100"
       >
         <iconify-icon icon="solar:settings-bold" width="20" class="text-neutral-700"></iconify-icon>
+        <span class="text-sm font-bold text-neutral-700">Paramètres</span>
       </button>
     </div>
 
@@ -198,45 +198,7 @@
       </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div class="bg-white rounded-2xl p-8 shadow-sm border border-neutral-100">
-        <h3 class="font-black text-xl mb-4 text-neutral-900">Actions rapides</h3>
-        <div class="space-y-3">
-          <button
-            onclick={() => goto('/app/hunts/new')}
-            class="w-full flex items-center gap-3 p-4 rounded-xl bg-neutral-50 hover:bg-neutral-100 transition-colors text-left"
-          >
-            <iconify-icon icon="solar:lightning-bold" width="24" class="text-neutral-700"></iconify-icon>
-            <div>
-              <p class="font-bold text-neutral-900">Lancer une chasse</p>
-              <p class="text-xs text-neutral-500">Trouver de nouveaux leads</p>
-            </div>
-          </button>
-
-          <button
-            onclick={() => goto('/app/leads')}
-            class="w-full flex items-center gap-3 p-4 rounded-xl bg-neutral-50 hover:bg-neutral-100 transition-colors text-left"
-          >
-            <iconify-icon icon="solar:chart-square-bold" width="24" class="text-neutral-700"></iconify-icon>
-            <div>
-              <p class="font-bold text-neutral-900">Voir les leads</p>
-              <p class="text-xs text-neutral-500">Gérer vos prospects</p>
-            </div>
-          </button>
-
-          <button
-            onclick={() => handleNavigate('/members')}
-            class="w-full flex items-center gap-3 p-4 rounded-xl bg-neutral-50 hover:bg-neutral-100 transition-colors text-left"
-          >
-            <iconify-icon icon="solar:users-group-rounded-bold" width="24" class="text-neutral-700"></iconify-icon>
-            <div>
-              <p class="font-bold text-neutral-900">Gérer les membres</p>
-              <p class="text-xs text-neutral-500">Inviter et gérer l'équipe</p>
-            </div>
-          </button>
-        </div>
-      </div>
-
+    <div class="max-w-2xl">
       <div class="bg-white rounded-2xl p-8 shadow-sm border border-neutral-100">
         <h3 class="font-black text-xl mb-4 text-neutral-900">Informations</h3>
         <div class="space-y-4">
