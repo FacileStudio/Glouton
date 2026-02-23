@@ -145,12 +145,14 @@ export const teamRouter = router({
     .input(updateSmtpConfigSchema)
     .mutation(async ({ ctx, input }) => {
       ctx.log.info(
-        { userId: ctx.user.id, teamId: input.teamId, envExists: !!ctx.env, encryptionSecretExists: !!ctx.env?.ENCRYPTION_SECRET },
+        { userId: ctx.user.id, teamId: input.teamId },
         '[TEAM] Updating team SMTP config'
       );
 
-      if (!ctx.env?.ENCRYPTION_SECRET) {
-        ctx.log.error('[TEAM] ENCRYPTION_SECRET is undefined in ctx.env');
+      const encryptionSecret = ctx.env?.ENCRYPTION_SECRET || process.env.ENCRYPTION_SECRET;
+
+      if (!encryptionSecret) {
+        ctx.log.error('[TEAM] ENCRYPTION_SECRET is undefined in both ctx.env and process.env');
         throw new Error('Server configuration error: ENCRYPTION_SECRET is missing');
       }
 
@@ -159,7 +161,7 @@ export const teamRouter = router({
         teamId,
         ctx.user.id,
         smtpConfig,
-        ctx.env.ENCRYPTION_SECRET
+        encryptionSecret
       );
     }),
 
