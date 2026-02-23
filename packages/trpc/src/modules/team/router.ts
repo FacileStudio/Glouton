@@ -173,7 +173,6 @@ export const teamRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const { SMTPService } = await import('@repo/smtp');
-      const { TRPCError } = await import('@trpc/server');
 
       await checkTeamPermission(ctx.user.id, input.teamId, TeamRole.ADMIN);
 
