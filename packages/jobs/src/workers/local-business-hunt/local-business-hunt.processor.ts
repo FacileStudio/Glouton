@@ -286,10 +286,13 @@ export class LocalBusinessHuntProcessor {
     console.log(`[LocalBusinessHunt] ${leadsWithEmail.length} leads with email, ${leadsWithoutEmail.length} without`);
 
     const BATCH_SIZE = 50;
+    const EVENT_BATCH_INTERVAL = 10;
     let totalInserted = 0;
 
     for (let i = 0; i < leadsWithEmail.length; i += BATCH_SIZE) {
       const batch = leadsWithEmail.slice(i, i + BATCH_SIZE);
+      const batchNumber = Math.floor(i / BATCH_SIZE) + 1;
+      const totalBatches = Math.ceil(leadsWithEmail.length / BATCH_SIZE);
 
       try {
         const result = await prisma.lead.createMany({
@@ -304,25 +307,27 @@ export class LocalBusinessHuntProcessor {
 
       const batchProgress = Math.min(90, 50 + Math.floor(((i + batch.length) / deduplicatedLeads.length) * 40));
 
-      const batchInserted = totalInserted - (i === 0 ? 0 : totalInserted);
+      const shouldEmitEvent = batchNumber % EVENT_BATCH_INTERVAL === 0 || batchNumber === totalBatches;
 
-      emitter.emit('hunt-progress', {
-        huntSessionId,
-        progress: batchProgress,
-        totalLeads: totalInserted,
-        successfulLeads: totalInserted,
-        location,
-        category,
-        status: 'PROCESSING',
-      });
+      if (shouldEmitEvent) {
+        emitter.emit('hunt-progress', {
+          huntSessionId,
+          progress: batchProgress,
+          totalLeads: totalInserted,
+          successfulLeads: totalInserted,
+          location,
+          category,
+          status: 'PROCESSING',
+        });
 
-      emitter.emit('leads-created', {
-        huntSessionId,
-        count: batchInserted,
-        location,
-        category,
-        message: `Found ${batchInserted} new ${category} businesses in ${location}`,
-      });
+        emitter.emit('leads-created', {
+          huntSessionId,
+          count: totalInserted,
+          location,
+          category,
+          message: `Found ${totalInserted} new ${category} businesses in ${location}`,
+        });
+      }
 
       await new Promise(resolve => setTimeout(resolve, 500));
     }
@@ -330,8 +335,11 @@ export class LocalBusinessHuntProcessor {
     if (leadsWithoutEmail.length > 0) {
       console.log(`[LocalBusinessHunt] Inserting ${leadsWithoutEmail.length} leads without email`);
 
+      const totalBatchesNoEmail = Math.ceil(leadsWithoutEmail.length / BATCH_SIZE);
+
       for (let i = 0; i < leadsWithoutEmail.length; i += BATCH_SIZE) {
         const batch = leadsWithoutEmail.slice(i, i + BATCH_SIZE);
+        const batchNumber = Math.floor(i / BATCH_SIZE) + 1;
 
         try {
           const created = await prisma.lead.createMany({
@@ -341,13 +349,15 @@ export class LocalBusinessHuntProcessor {
 
           totalInserted += created.count;
 
-          if (created.count > 0) {
+          const shouldEmitEvent = batchNumber % EVENT_BATCH_INTERVAL === 0 || batchNumber === totalBatchesNoEmail;
+
+          if (created.count > 0 && shouldEmitEvent) {
             emitter.emit('leads-created', {
               huntSessionId,
-              count: created.count,
+              count: totalInserted,
               location,
               category,
-              message: `Found ${created.count} new ${category} businesses without email in ${location}`,
+              message: `Found ${totalInserted} new ${category} businesses in ${location}`,
             });
           }
         } catch (error) {
