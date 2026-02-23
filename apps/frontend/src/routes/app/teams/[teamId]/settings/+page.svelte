@@ -163,7 +163,17 @@
     if (!canManage) return;
     testingSmtp = true;
     try {
-      toast.push('Test de la configuration SMTP...', 'info');
+      const result = await trpc.team.testSmtpConfig.mutate({
+        teamId,
+        smtpHost: smtpForm.smtpHost,
+        smtpPort: smtpForm.smtpPort,
+        smtpSecure: smtpForm.smtpSecure,
+        smtpUser: smtpForm.smtpUser,
+        smtpPass: smtpForm.smtpPass,
+        smtpFromName: smtpForm.smtpFromName,
+        smtpFromEmail: smtpForm.smtpFromEmail,
+      });
+      toast.push(result.message, 'success');
     } catch (error: any) {
       toast.push(error?.message || 'Configuration SMTP invalide', 'error');
     } finally {

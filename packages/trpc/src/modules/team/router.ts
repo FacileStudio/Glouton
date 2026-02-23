@@ -1,5 +1,8 @@
 import { router, protectedProcedure } from '../../trpc';
 import teamService from './service';
+import { checkTeamPermission } from './permissions';
+import { TeamRole } from '@prisma/client';
+import { z } from 'zod';
 import {
   createTeamSchema,
   updateTeamSchema,
@@ -152,6 +155,66 @@ export const teamRouter = router({
         smtpConfig,
         ctx.env.ENCRYPTION_SECRET
       );
+    }),
+
+  testSmtpConfig: protectedProcedure
+    .input(
+      z.object({
+        teamId: z.string(),
+        smtpHost: z.string(),
+        smtpPort: z.number().int().min(1).max(65535),
+        smtpSecure: z.boolean(),
+        smtpUser: z.string(),
+        smtpPass: z.string(),
+        smtpFromName: z.string(),
+        smtpFromEmail: z.string().email(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { SMTPService } = await import('@repo/smtp');
+      const { TRPCError } = await import('@trpc/server');
+
+      await checkTeamPermission(ctx.user.id, input.teamId, TeamRole.ADMIN);
+
+      const testSmtp = new SMTPService({
+        host: input.smtpHost,
+        port: input.smtpPort,
+        secure: input.smtpSecure,
+        auth: {
+          user: input.smtpUser,
+          pass: input.smtpPass,
+        },
+        from: {
+          name: input.smtpFromName,
+          email: input.smtpFromEmail,
+        },
+      });
+
+      try {
+        const isValid = await testSmtp.verifyConnection();
+        await testSmtp.close();
+
+        if (!isValid) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'La vérification de la connexion SMTP a échoué',
+          });
+        }
+
+        return { success: true, message: 'Configuration SMTP valide' };
+      } catch (error) {
+        await testSmtp.close().catch(() => {});
+
+        if (error instanceof TRPCError) {
+          throw error;
+        }
+
+        const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: `Configuration SMTP invalide : ${errorMessage}`,
+        });
+      }
     }),
 });
 
