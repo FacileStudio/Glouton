@@ -1,7 +1,7 @@
 import { TRPCError } from '@trpc/server';
 import { prisma } from '@repo/database/prisma';
-import { encrypt, decrypt } from '@repo/utils';
 import { TeamRole, checkTeamPermission, checkTeamMembership, isTeamOwner } from './permissions';
+import type { AuthManager } from '@repo/auth';
 
 export const teamService = {
   listUserTeams: async (userId: string) => {
@@ -489,7 +489,7 @@ export const teamService = {
     return team;
   },
 
-  getTeamSmtpConfig: async (teamId: string, userId: string, encryptionKey: string) => {
+  getTeamSmtpConfig: async (teamId: string, userId: string, auth: AuthManager) => {
     await checkTeamPermission(userId, teamId, TeamRole.MEMBER);
 
     const team = await prisma.team.findUnique({
@@ -515,7 +515,7 @@ export const teamService = {
     let decryptedPass: string | null = null;
     if (team.smtpPass) {
       try {
-        decryptedPass = decrypt(team.smtpPass, encryptionKey);
+        decryptedPass = auth.decryptData(team.smtpPass);
       } catch (error) {
         decryptedPass = null;
       }
@@ -544,7 +544,7 @@ export const teamService = {
       smtpFromName?: string;
       smtpFromEmail?: string;
     },
-    encryptionKey: string
+    auth: AuthManager
   ) => {
     await checkTeamPermission(userId, teamId, TeamRole.ADMIN);
 
@@ -559,7 +559,7 @@ export const teamService = {
       updateData.smtpUser = smtpConfig.smtpUser || null;
     if (smtpConfig.smtpPass !== undefined) {
       if (smtpConfig.smtpPass) {
-        updateData.smtpPass = encrypt(smtpConfig.smtpPass, encryptionKey);
+        updateData.smtpPass = auth.encryptData(smtpConfig.smtpPass);
       } else {
         updateData.smtpPass = null;
       }

@@ -3,6 +3,7 @@ import { SMTPService, renderTemplate, type EmailTemplate } from '@repo/smtp';
 import { buildEmailFilter, buildLeadFilter, type Scope } from '../../utils/scope';
 import { getSmtpConfig } from '../../utils/api-keys';
 import { logger } from '@repo/logger';
+import type { AuthManager } from '@repo/auth';
 
 export class EmailService {
   async sendEmail(params: {
@@ -10,7 +11,7 @@ export class EmailService {
     leadId: string;
     templateId: string;
     variables: Record<string, string>;
-    encryptionSecret: string;
+    auth: AuthManager;
     prisma: PrismaClient;
   }) {
     const lead = await params.prisma.lead.findUnique({
@@ -22,7 +23,7 @@ export class EmailService {
       throw new Error('Lead not found or has no email');
     }
 
-    const smtpConfig = await getSmtpConfig(params.prisma, params.scope, params.encryptionSecret);
+    const smtpConfig = await getSmtpConfig(params.prisma, params.scope, params.auth);
 
     if (!smtpConfig) {
       const contextType = params.scope.type === 'team' ? 'team or your account' : 'your account';
