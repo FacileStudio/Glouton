@@ -111,7 +111,7 @@ export default {
 
       let favoriteUserIds: string[] = [scope.userId];
 
-      if (scope.teamId) {
+      if (scope.type === 'team') {
         const teamMembers = await prisma.teamMember.findMany({
           where: { teamId: scope.teamId },
           select: { userId: true },
@@ -197,7 +197,7 @@ export default {
     try {
       let favoriteUserIds: string[] = [scope.userId];
 
-      if (scope.teamId) {
+      if (scope.type === 'team') {
         const teamMembers = await prisma.teamMember.findMany({
           where: { teamId: scope.teamId },
           select: { userId: true },
