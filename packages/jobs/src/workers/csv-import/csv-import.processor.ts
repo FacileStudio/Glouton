@@ -173,11 +173,6 @@ export class CsvImportProcessor {
         const organization = getHeaderValue('Nom Organisation');
         const email = getHeaderValue('Email');
 
-        if (!domain && !organization && !email) {
-          errors.push(`Row ${i + 2}: Missing domain, organization name, and email`);
-          continue;
-        }
-
         const city = getHeaderValue('Ville');
         const country = getHeaderValue('Pays');
         const emailValue = email || (domain ? `contact@${domain}` : null);
@@ -218,9 +213,10 @@ export class CsvImportProcessor {
           'MANUAL',
           'GOOGLE_MAPS',
           'OPENSTREETMAP',
+          'CSV_IMPORT',
         ].includes(sourceStr)
           ? (sourceStr as LeadSource)
-          : 'MANUAL';
+          : 'CSV_IMPORT';
 
         const scoreStr = getHeaderValue('Score');
         const score = scoreStr ? parseInt(scoreStr, 10) : 50;
@@ -395,7 +391,7 @@ export class CsvImportProcessor {
       where: { id: huntSessionId },
       data: {
         sourceStats: {
-          MANUAL: {
+          CSV_IMPORT: {
             leads: imported,
             errors: parseErrors,
             duplicates,
