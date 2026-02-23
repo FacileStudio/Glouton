@@ -7,6 +7,8 @@ export {
   CommonBackoffStrategies,
   validateRedisConfiguration,
 } from './utils';
+export { verifyEmail } from './services/email-verifier';
+export type { EmailVerificationResult, VerificationReason } from './services/email-verifier';
 
 export type {
   JobConfig,

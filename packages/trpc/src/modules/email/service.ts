@@ -4,6 +4,7 @@ import { buildEmailFilter, buildLeadFilter, type Scope } from '../../utils/scope
 import { getSmtpConfig } from '../../utils/api-keys';
 import { logger } from '@repo/logger';
 import type { AuthManager } from '@repo/auth';
+import { verifyEmail } from '@repo/jobs';
 
 export class EmailService {
   async sendEmail(params: {
@@ -16,11 +17,36 @@ export class EmailService {
   }) {
     const lead = await params.prisma.lead.findUnique({
       where: { id: params.leadId },
-      select: { id: true, email: true },
+      select: { id: true, email: true, emailVerified: true },
     });
 
     if (!lead || !lead.email) {
       throw new Error('Lead not found or has no email');
+    }
+
+    if (lead.emailVerified === false) {
+      throw new Error(`Cannot send email to ${lead.email}: Email address is invalid or unreachable`);
+    }
+
+    if (lead.emailVerified === null) {
+      logger.info({ leadId: params.leadId, email: lead.email }, '[EMAIL] Verifying email before sending');
+
+      const verification = await verifyEmail(lead.email);
+
+      await params.prisma.lead.update({
+        where: { id: lead.id },
+        data: {
+          emailVerified: verification.valid,
+          emailVerifiedAt: verification.checkedAt,
+          emailVerificationMethod: verification.reason,
+        },
+      });
+
+      if (!verification.valid) {
+        throw new Error(`Cannot send email to ${lead.email}: Email verification failed (${verification.reason})`);
+      }
+
+      logger.info({ leadId: params.leadId, email: lead.email, result: verification.reason }, '[EMAIL] Email verified successfully');
     }
 
     const smtpConfig = await getSmtpConfig(params.prisma, params.scope, params.auth);
