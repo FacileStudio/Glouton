@@ -103,7 +103,7 @@ app.post('/internal/broadcast', async (c) => {
   }
 });
 
-app.all('/trpc/*', trpcHandler(config));
+app.all('/trpc/*', trpcHandler({ ...config, events }));
 
 app.get('/', (c) => c.json({ message: "Welcome to the Glouton's API !" }));
 
