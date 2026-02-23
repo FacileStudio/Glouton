@@ -58,6 +58,7 @@ enum LeadSource {
   MANUAL
   GOOGLE_MAPS
   OPENSTREETMAP
+  CSV_IMPORT
 }
 
 enum BusinessType {

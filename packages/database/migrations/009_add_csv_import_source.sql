@@ -1,0 +1,2 @@
+-- Add CSV_IMPORT to LeadSource enum
+ALTER TYPE "LeadSource" ADD VALUE IF NOT EXISTS 'CSV_IMPORT';
