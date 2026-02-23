@@ -129,56 +129,32 @@ export const teamRouter = router({
     }),
 
   getSmtpConfig: protectedProcedure.input(teamIdSchema).query(async ({ ctx, input }) => {
-    const { TRPCError } = await import('@trpc/server');
-
     ctx.log.info(
       { userId: ctx.user.id, teamId: input.teamId },
       '[TEAM] Getting team SMTP config'
     );
 
-    const encryptionSecret = ctx.env.ENCRYPTION_SECRET;
-
-    if (!encryptionSecret) {
-      ctx.log.error('[TEAM] ENCRYPTION_SECRET is undefined in ctx.env');
-      throw new TRPCError({
-        code: 'INTERNAL_SERVER_ERROR',
-        message: 'Server configuration error: ENCRYPTION_SECRET is missing',
-      });
-    }
-
     return await teamService.getTeamSmtpConfig(
       input.teamId,
       ctx.user.id,
-      encryptionSecret
+      ctx.env.ENCRYPTION_SECRET
     );
   }),
 
   updateSmtpConfig: protectedProcedure
     .input(updateSmtpConfigSchema)
     .mutation(async ({ ctx, input }) => {
-      const { TRPCError } = await import('@trpc/server');
-
       ctx.log.info(
         { userId: ctx.user.id, teamId: input.teamId },
         '[TEAM] Updating team SMTP config'
       );
-
-      const encryptionSecret = ctx.env.ENCRYPTION_SECRET;
-
-      if (!encryptionSecret) {
-        ctx.log.error('[TEAM] ENCRYPTION_SECRET is undefined in ctx.env');
-        throw new TRPCError({
-          code: 'INTERNAL_SERVER_ERROR',
-          message: 'Server configuration error: ENCRYPTION_SECRET is missing',
-        });
-      }
 
       const { teamId, ...smtpConfig } = input;
       return await teamService.updateTeamSmtpConfig(
         teamId,
         ctx.user.id,
         smtpConfig,
-        encryptionSecret
+        ctx.env.ENCRYPTION_SECRET
       );
     }),
 
