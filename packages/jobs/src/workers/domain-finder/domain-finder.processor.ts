@@ -123,6 +123,7 @@ export class DomainFinderProcessor {
   ): Promise<number> {
     let successfulLeads = 0;
     const totalToProcess = companies.length;
+    const EVENT_INTERVAL = 10;
 
     for (let i = 0; i < companies.length; i++) {
       const company = companies[i];
@@ -139,23 +140,27 @@ export class DomainFinderProcessor {
 
         const progress = Math.floor(10 + ((i + 1) / totalToProcess) * 85);
 
-        emitter.emit('domain-discovered', {
-          huntSessionId,
-          domain: company.domain,
-          organization: company.organization || null,
-          industry: company.industry || null,
-          totalDiscovered: successfulLeads,
-          progress,
-          message: `Discovered ${company.organization || company.domain}`,
-        });
+        const shouldEmitEvent = (i + 1) % EVENT_INTERVAL === 0 || i + 1 === totalToProcess;
 
-        emitter.emit('hunt-progress', {
-          huntSessionId,
-          progress,
-          successfulLeads,
-          totalLeads: totalToProcess,
-          status: 'PROCESSING',
-        });
+        if (shouldEmitEvent) {
+          emitter.emit('domain-discovered', {
+            huntSessionId,
+            domain: company.domain,
+            organization: company.organization || null,
+            industry: company.industry || null,
+            totalDiscovered: successfulLeads,
+            progress,
+            message: `Discovered ${successfulLeads} domains`,
+          });
+
+          emitter.emit('hunt-progress', {
+            huntSessionId,
+            progress,
+            successfulLeads,
+            totalLeads: totalToProcess,
+            status: 'PROCESSING',
+          });
+        }
 
         await this.sessionManager.updateSession(huntSessionId, {
           progress,
