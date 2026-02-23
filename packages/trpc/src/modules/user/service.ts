@@ -3,7 +3,6 @@ import { prisma } from '@repo/database/prisma';
 import { type AuthManager } from '@repo/auth';
 import type { UserRole } from '@repo/types';
 import { UserStatus } from '@prisma/client';
-import { encrypt, decrypt } from '@repo/utils';
 
 export const userService = {
   getProfile: async (userId: string) => {
@@ -332,7 +331,7 @@ export const userService = {
     return updatedUser;
   },
 
-  getSmtpConfig: async (userId: string, encryptionKey: string) => {
+  getSmtpConfig: async (userId: string, auth: AuthManager) => {
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -356,7 +355,7 @@ export const userService = {
     let decryptedPass: string | null = null;
     if (user.smtpPass) {
       try {
-        decryptedPass = decrypt(user.smtpPass, encryptionKey);
+        decryptedPass = auth.decryptData(user.smtpPass);
       } catch (error) {
         decryptedPass = null;
       }
@@ -384,11 +383,11 @@ export const userService = {
       smtpFromName?: string;
       smtpFromEmail?: string;
     },
-    encryptionKey: string
+    auth: AuthManager
   ) => {
     let encryptedPass: string | null = null;
     if (smtpConfig.smtpPass) {
-      encryptedPass = encrypt(smtpConfig.smtpPass, encryptionKey);
+      encryptedPass = auth.encryptData(smtpConfig.smtpPass);
     }
 
     const updatedUser = await prisma.user.update({

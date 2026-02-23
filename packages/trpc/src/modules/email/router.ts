@@ -41,7 +41,7 @@ export const emailRouter = router({
         leadId: input.leadId,
         templateId: input.templateId,
         variables: input.variables,
-        encryptionSecret: ctx.env.ENCRYPTION_SECRET,
+        auth: ctx.auth,
         prisma: ctx.prisma,
       });
     }),
