@@ -72,10 +72,6 @@
 
   <main>
     <section class="mx-auto max-w-5xl px-6 py-24 text-center">
-      <div class="mx-auto mb-8 flex size-14 items-center justify-center rounded-xl border border-border bg-background">
-        <iconify-icon icon="solar:magnet-wave-bold-duotone" width="32"></iconify-icon>
-      </div>
-
       <h1 class="text-5xl font-bold leading-tight md:text-6xl">
         Trouver. Qualifier.<br />Prospecter.
       </h1>
