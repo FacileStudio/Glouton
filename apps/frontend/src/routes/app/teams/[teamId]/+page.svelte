@@ -75,7 +75,7 @@
 
 <div
   class="p-6 lg:p-12 max-w-[1600px] mx-auto space-y-12 selection:text-black font-sans"
-  style="background-color: #FAF7F5; selection-background-color: #FEC129;"
+  style="background-color: var(--background); selection-background-color: var(--foreground);"
 >
   {#if loading}
     <div class="flex items-center justify-center py-20">
@@ -91,7 +91,7 @@
       </button>
       <div class="flex-1">
         <div class="flex items-center gap-3">
-          <h1 class="text-3xl md:text-4xl font-black tracking-tight" style="color: #291334;">
+          <h1 class="text-3xl md:text-4xl font-black tracking-tight" style="color: var(--foreground);">
             {team.name}
           </h1>
           <span class="inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold uppercase border {getRoleBadgeColor(team.userRole)}">

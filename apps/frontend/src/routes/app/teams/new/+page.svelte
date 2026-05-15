@@ -55,7 +55,7 @@
 
 <div
   class="p-6 lg:p-12 max-w-4xl mx-auto space-y-8 selection:text-black font-sans"
-  style="background-color: #FAF7F5; selection-background-color: #FEC129;"
+  style="background-color: var(--background); selection-background-color: var(--foreground);"
 >
   <div class="flex items-center gap-4">
     <button
@@ -65,7 +65,7 @@
       <iconify-icon icon="solar:arrow-left-bold" width="20" class="text-neutral-700"></iconify-icon>
     </button>
     <div>
-      <h1 class="text-3xl md:text-4xl font-black tracking-tight" style="color: #291334;">
+      <h1 class="text-3xl md:text-4xl font-black tracking-tight" style="color: var(--foreground);">
         Créer une équipe
       </h1>
       <p class="text-neutral-500 font-medium text-base mt-1">
@@ -74,7 +74,7 @@
     </div>
   </div>
 
-  <div class="p-8 md:p-10 rounded-2xl shadow-lg space-y-8" style="background-color: #EFEAE6;">
+  <div class="p-8 md:p-10 rounded-2xl shadow-lg space-y-8" style="background-color: var(--card);">
     <div class="space-y-6">
       <div class="space-y-2">
         <label for="name" class="text-sm font-bold text-neutral-700 block">
@@ -101,7 +101,7 @@
           bind:value={formData.description}
           placeholder="Décrivez l'objectif de cette équipe..."
           rows="4"
-          class="w-full px-5 py-3 rounded-2xl bg-slate-50/50 border-2 border-slate-100 focus:border-brand-gold focus:bg-white hover:bg-white transition-all duration-200 font-medium text-brand-purple placeholder:text-slate-400 outline-none resize-none"
+          class="w-full px-5 py-3 rounded-2xl bg-slate-50/50 border-2 border-slate-100 focus:border-muted focus:bg-white hover:bg-white transition-all duration-200 font-medium text-foreground placeholder:text-slate-400 outline-none resize-none"
         ></textarea>
       </div>
     </div>

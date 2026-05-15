@@ -401,7 +401,7 @@
     </button>
   </div>
 {:else}
-  <div class="min-h-screen font-sans" style="background: #FAF7F5;" in:fade>
+  <div class="min-h-screen font-sans" style="background: var(--background);" in:fade>
 
     <div class="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-neutral-200 px-6 py-4">
       <div class="max-w-[1600px] mx-auto flex items-center justify-between gap-4">
@@ -480,7 +480,7 @@
 
       <div class="lg:col-span-2 space-y-4">
 
-        <div class="rounded-3xl p-6 shadow-sm" style="background: #EFEAE6;">
+        <div class="rounded-3xl p-6 shadow-sm" style="background: var(--card);">
           <div class="flex items-start gap-4">
             <div class="w-14 h-14 rounded-2xl bg-neutral-200 flex items-center justify-center flex-shrink-0 text-xl font-black text-neutral-500">
               {(lead.firstName?.[0] || lead.businessName?.[0] || lead.companyInfo?.name?.[0] || lead.domain?.[0] || '?').toUpperCase()}
@@ -517,7 +517,7 @@
           </div>
         </div>
 
-        <div class="rounded-3xl p-6 shadow-sm space-y-3" style="background: #EFEAE6;">
+        <div class="rounded-3xl p-6 shadow-sm space-y-3" style="background: var(--card);">
           <h3 class="text-[9px] font-black uppercase tracking-widest text-neutral-400 flex items-center gap-2">
             <iconify-icon icon="solar:user-id-bold" width="14"></iconify-icon>
             Coordonnées
@@ -630,7 +630,7 @@
         </div>
 
         {#if lead.coordinates}
-          <div class="rounded-3xl overflow-hidden shadow-sm" style="background: #EFEAE6;">
+          <div class="rounded-3xl overflow-hidden shadow-sm" style="background: var(--card);">
             <div class="px-6 pt-6 pb-3 flex items-center justify-between">
               <h3 class="text-[9px] font-black uppercase tracking-widest text-neutral-400 flex items-center gap-2">
                 <iconify-icon icon="solar:map-point-bold" width="14"></iconify-icon>
@@ -657,7 +657,7 @@
         {/if}
 
         {#if socialProfiles.length > 0}
-          <div class="rounded-3xl p-6 shadow-sm" style="background: #EFEAE6;">
+          <div class="rounded-3xl p-6 shadow-sm" style="background: var(--card);">
             <h3 class="text-[9px] font-black uppercase tracking-widest text-neutral-400 mb-3 flex items-center gap-2">
               <iconify-icon icon="solar:share-bold" width="14"></iconify-icon>
               Profils sociaux
@@ -687,7 +687,7 @@
         {/if}
 
         {#if lead.companyInfo}
-          <div class="rounded-3xl p-6 shadow-sm" style="background: #EFEAE6;">
+          <div class="rounded-3xl p-6 shadow-sm" style="background: var(--card);">
             <h3 class="text-[9px] font-black uppercase tracking-widest text-neutral-400 mb-4 flex items-center gap-2">
               <iconify-icon icon="solar:buildings-2-bold" width="14"></iconify-icon>
               Entreprise
@@ -744,7 +744,7 @@
 
 
         {#if technologies.length > 0}
-          <div class="rounded-3xl p-6 shadow-sm" style="background: #EFEAE6;">
+          <div class="rounded-3xl p-6 shadow-sm" style="background: var(--card);">
             <h3 class="text-[9px] font-black uppercase tracking-widest text-neutral-400 mb-3 flex items-center gap-2">
               <iconify-icon icon="solar:code-bold" width="14"></iconify-icon>
               Stack technique
@@ -784,7 +784,7 @@
       <div class="lg:col-span-3 space-y-6" id="email-section">
 
         {#if lead.email}
-          <div class="rounded-3xl overflow-hidden shadow-sm" style="background: #EFEAE6;">
+          <div class="rounded-3xl overflow-hidden shadow-sm" style="background: var(--card);">
             <div class="px-8 py-6 bg-neutral-900 text-white">
               <h2 class="text-xl font-black tracking-tight flex items-center gap-3">
                 <iconify-icon icon="solar:letter-bold" width="24"></iconify-icon>
@@ -911,7 +911,7 @@
           </div>
         {/if}
 
-        <div class="rounded-3xl overflow-hidden shadow-sm" style="background: #EFEAE6;">
+        <div class="rounded-3xl overflow-hidden shadow-sm" style="background: var(--card);">
           <div class="px-8 py-6 border-b border-neutral-200/60 flex items-center justify-between">
             <h2 class="text-lg font-black tracking-tight flex items-center gap-3">
               <iconify-icon icon="solar:history-bold" width="22"></iconify-icon>

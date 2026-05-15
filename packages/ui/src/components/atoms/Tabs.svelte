@@ -11,15 +11,15 @@
     }
 </script>
 
-<div class={cn("grid grid-cols-2 gap-1 bg-slate-100 p-1 rounded-2xl border border-slate-200", className)}>
+<div class={cn("grid grid-cols-2 gap-1 rounded-lg border border-border bg-muted p-1", className)}>
     {#each tabs as tab (tab.value)}
         <button
             onclick={() => activeTab = tab.value}
             class={cn(
-                "px-6 py-4 rounded-xl text-base font-black transition-all uppercase flex items-center justify-center gap-3 cursor-pointer",
+                "flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors",
                 activeTab === tab.value
-                    ? "bg-white text-slate-900 shadow-sm"
-                    : "text-slate-500 hover:text-slate-700"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
             )}
         >
             {#if tab.icon}

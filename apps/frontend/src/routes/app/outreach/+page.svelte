@@ -319,14 +319,14 @@
 
 <div
   class="p-6 lg:p-12 max-w-[1600px] mx-auto space-y-10 selection:text-black font-sans"
-  style="background-color: #FAF7F5; selection-background-color: #FEC129;"
+  style="background-color: var(--background); selection-background-color: var(--foreground);"
 >
   <div class="flex items-center gap-4">
     <div class="w-16 h-16 flex items-center justify-center bg-neutral-900 rounded-2xl">
       <iconify-icon icon="solar:letter-bold" width="32" class="text-white"></iconify-icon>
     </div>
     <div class="space-y-1">
-      <h1 class="text-5xl font-black tracking-tight leading-none" style="color: #291334;">
+      <h1 class="text-5xl font-black tracking-tight leading-none" style="color: var(--foreground);">
         Prospection
       </h1>
       <p class="text-neutral-400 font-medium text-sm">Historique des e-mails, relances et réponses</p>
@@ -357,7 +357,7 @@
   <section class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
     {#if initialLoading}
       {#each Array(3) as _}
-        <div class="p-4 sm:p-6 lg:p-8 rounded-[24px] sm:rounded-2xl shadow-lg" style="background-color: #EFEAE6;">
+        <div class="p-4 sm:p-6 lg:p-8 rounded-[24px] sm:rounded-2xl shadow-lg" style="background-color: var(--card);">
           <div class="flex items-start justify-between mb-3 sm:mb-4 lg:mb-6">
             <Skeleton width="120px" height="1.5rem" rounded="md" />
             <Skeleton width="40px" height="40px" rounded="2xl" />
@@ -391,7 +391,7 @@
       ] as stat}
         <div
           class="p-4 sm:p-6 lg:p-8 rounded-[24px] sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow {stat.accent ? 'ring-2 ring-amber-300' : ''}"
-          style="background-color: #EFEAE6;"
+          style="background-color: var(--card);"
         >
           <div class="flex items-start justify-between mb-3 sm:mb-4 lg:mb-6">
             <h3 class="text-sm sm:text-base lg:text-lg font-bold text-neutral-700">{stat.label}</h3>
@@ -404,7 +404,7 @@
   </section>
 
   <!-- Filter Bar -->
-  <div class="rounded-[28px] shadow-lg p-5 space-y-4" style="background-color: #EFEAE6;">
+  <div class="rounded-[28px] shadow-lg p-5 space-y-4" style="background-color: var(--card);">
     <!-- Search -->
     <div class="relative">
       <iconify-icon
@@ -461,7 +461,7 @@
     </div>
   </div>
 
-  <section class="rounded-2xl overflow-hidden shadow-lg" style="background-color: #EFEAE6;">
+  <section class="rounded-2xl overflow-hidden shadow-lg" style="background-color: var(--card);">
 
     {#if initialLoading}
       <div class="p-8 space-y-3">

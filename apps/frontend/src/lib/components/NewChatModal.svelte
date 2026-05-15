@@ -53,10 +53,10 @@
     <div class="p-6 space-y-6">
       <div class="flex bg-slate-100 p-1.5 rounded-2xl">
         <button
-          class="flex-1 py-2.5 rounded-xl text-sm font-black transition-all cursor-pointer {mode === 'mp' ? 'bg-white shadow-sm text-brand-purple' : 'text-slate-500 hover:text-slate-700'}"
+          class="flex-1 py-2.5 rounded-xl text-sm font-black transition-all cursor-pointer {mode === 'mp' ? 'bg-white shadow-sm text-foreground' : 'text-slate-500 hover:text-slate-700'}"
           on:click={() => { mode = 'mp'; serverError = ""; }}>Direct</button>
         <button
-          class="flex-1 py-2.5 rounded-xl text-sm font-black transition-all cursor-pointer {mode === 'group' ? 'bg-white shadow-sm text-brand-purple' : 'text-slate-500 hover:text-slate-700'}"
+          class="flex-1 py-2.5 rounded-xl text-sm font-black transition-all cursor-pointer {mode === 'group' ? 'bg-white shadow-sm text-foreground' : 'text-slate-500 hover:text-slate-700'}"
           on:click={() => { mode = 'group'; serverError = ""; }}>Groupe</button>
       </div>
 
@@ -69,7 +69,7 @@
               bind:value={email}
               type="email"
               placeholder="ex: michel@design.fr"
-              class="w-full bg-slate-50 border-2 {email && !isEmailValid ? 'border-orange-200' : 'border-transparent'} rounded-2xl px-4 py-3.5 text-sm focus:bg-white focus:border-brand-gold outline-none transition-all"
+              class="w-full bg-slate-50 border-2 {email && !isEmailValid ? 'border-orange-200' : 'border-transparent'} rounded-2xl px-4 py-3.5 text-sm focus:bg-white focus:border-muted outline-none transition-all"
             />
           </div>
         {:else}
@@ -80,7 +80,7 @@
               bind:value={groupName}
               type="text"
               placeholder="ex: Projet Alpha"
-              class="w-full bg-slate-50 border-2 {groupName && !isGroupNameValid ? 'border-orange-200' : 'border-transparent'} rounded-2xl px-4 py-3.5 text-sm focus:bg-white focus:border-brand-gold outline-none transition-all"
+              class="w-full bg-slate-50 border-2 {groupName && !isGroupNameValid ? 'border-orange-200' : 'border-transparent'} rounded-2xl px-4 py-3.5 text-sm focus:bg-white focus:border-muted outline-none transition-all"
             />
             <div class="flex justify-between px-1">
                 <p class="text-[10px] font-bold {groupName.length < 3 ? 'text-slate-400' : 'text-green-500'}">
@@ -101,7 +101,7 @@
         <button
           type="submit"
           disabled={!canSubmit || loading}
-          class="w-full flex items-center justify-center gap-2 bg-brand-purple text-white py-4 rounded-2xl font-black shadow-xl shadow-brand-purple/20 hover:bg-brand-gold hover:text-brand-purple active:scale-[0.98] transition-all disabled:opacity-40 disabled:grayscale disabled:pointer-events-none"
+          class="w-full flex items-center justify-center gap-2 bg-foreground text-white py-4 rounded-2xl font-black shadow-xl shadow-foreground/20 hover:bg-muted hover:text-foreground active:scale-[0.98] transition-all disabled:opacity-40 disabled:grayscale disabled:pointer-events-none"
         >
           {#if loading}
             <iconify-icon icon="svg-spinners:blocks-shuffle-3" width="20"></iconify-icon>

@@ -186,7 +186,7 @@
 
 <div
   class="p-6 lg:p-12 max-w-[1600px] mx-auto space-y-12 selection:text-black font-sans"
-  style="background-color: #FAF7F5; selection-background-color: #FEC129;"
+  style="background-color: var(--background); selection-background-color: var(--foreground);"
 >
   {#if loading}
     <div class="flex items-center justify-center py-20">
@@ -202,7 +202,7 @@
           <iconify-icon icon="solar:arrow-left-bold" width="20" class="text-neutral-700"></iconify-icon>
         </button>
         <div>
-          <h1 class="text-3xl md:text-4xl font-black tracking-tight" style="color: #291334;">
+          <h1 class="text-3xl md:text-4xl font-black tracking-tight" style="color: var(--foreground);">
             Membres de {team.name}
           </h1>
           <p class="text-neutral-500 font-medium text-base mt-1">
@@ -234,7 +234,7 @@
       </div>
     </div>
 
-    <div class="rounded-2xl overflow-hidden shadow-lg" style="background-color: #EFEAE6;">
+    <div class="rounded-2xl overflow-hidden shadow-lg" style="background-color: var(--card);">
       {#if loadingMembers}
         <div class="flex items-center justify-center py-20">
           <Spinner size="lg" />
@@ -350,7 +350,7 @@
       <select
         id="memberRole"
         bind:value={addMemberRole}
-        class="w-full px-5 py-3 rounded-2xl bg-slate-50/50 border-2 border-slate-100 focus:border-brand-gold focus:bg-white hover:bg-white transition-all duration-200 font-medium text-brand-purple outline-none"
+        class="w-full px-5 py-3 rounded-2xl bg-slate-50/50 border-2 border-slate-100 focus:border-muted focus:bg-white hover:bg-white transition-all duration-200 font-medium text-foreground outline-none"
       >
         <option value="MEMBER">Membre</option>
         <option value="ADMIN">Admin</option>

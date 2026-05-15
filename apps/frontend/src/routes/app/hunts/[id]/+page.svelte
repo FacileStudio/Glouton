@@ -337,11 +337,11 @@
 </script>
 
 {#if loading}
-  <div class="flex flex-col items-center justify-center h-full space-y-6 selection:text-black font-sans" style="background-color: #FAF7F5;" in:fade>
+  <div class="flex flex-col items-center justify-center h-full space-y-6 selection:text-black font-sans" style="background-color: var(--background);" in:fade>
     <Spinner size="xl" />
   </div>
 {:else if !details}
-  <div class="flex flex-col items-center justify-center h-full space-y-6 selection:text-black font-sans" style="background-color: #FAF7F5;" in:fade>
+  <div class="flex flex-col items-center justify-center h-full space-y-6 selection:text-black font-sans" style="background-color: var(--background);" in:fade>
     <p class="text-[10px] font-black uppercase tracking-[0.5em] text-neutral-400">Chasse introuvable</p>
     <button onclick={() => goto('/app/hunts')} class="px-6 py-3 bg-black text-white rounded-xl font-bold hover:bg-neutral-800 transition-colors">
       Retour aux chasses
@@ -427,7 +427,7 @@
     </div>
   </div>
 
-  <div class="p-6 lg:p-12 max-w-[1800px] mx-auto space-y-8 selection:text-black font-sans" style="background-color: #FAF7F5;" in:fade>
+  <div class="p-6 lg:p-12 max-w-[1800px] mx-auto space-y-8 selection:text-black font-sans" style="background-color: var(--background);" in:fade>
 
     <div class="space-y-8 max-w-5xl mx-auto">
       {#if isProcessing && asBannerSession}

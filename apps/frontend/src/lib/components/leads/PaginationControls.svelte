@@ -33,7 +33,7 @@
 </script>
 
 {#if totalPages > 0}
-  <div class="rounded-[32px] shadow-lg px-10 py-6 flex flex-col md:flex-row justify-between items-center gap-4" style="background-color: #EFEAE6;">
+  <div class="rounded-[32px] shadow-lg px-10 py-6 flex flex-col md:flex-row justify-between items-center gap-4" style="background-color: var(--card);">
     <div class="flex items-center gap-4">
       <select
         bind:value={pageSize}

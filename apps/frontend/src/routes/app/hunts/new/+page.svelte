@@ -449,7 +449,7 @@
   </div>
 </div>
 
-<div class="min-h-screen p-6 lg:p-12" style="background-color: #FAF7F5;">
+<div class="min-h-screen p-6 lg:p-12" style="background-color: var(--background);">
   <div class="max-w-4xl mx-auto space-y-8">
 
     <Tabs
@@ -470,7 +470,7 @@
           <button
             type="button"
             onclick={() => (showPresets = !showPresets)}
-            class="text-sm font-bold text-brand-purple hover:text-brand-gold flex items-center gap-2 transition-colors"
+            class="text-sm font-bold text-foreground hover:text-muted flex items-center gap-2 transition-colors"
           >
             <iconify-icon
               icon={showPresets ? 'solar:alt-arrow-up-bold' : 'solar:alt-arrow-down-bold'}
@@ -481,12 +481,12 @@
         </div>
 
         {#if showPresets}
-          <div class="bg-brand-purple/5 border border-brand-purple/20 rounded-2xl p-6 space-y-4">
+          <div class="bg-foreground/5 border border-foreground/20 rounded-2xl p-6 space-y-4">
             <div class="flex items-center gap-3">
-              <iconify-icon icon="solar:magic-stick-3-bold" width="24" class="text-brand-purple"
+              <iconify-icon icon="solar:magic-stick-3-bold" width="24" class="text-foreground"
               ></iconify-icon>
               <div>
-                <h3 class="font-black text-lg text-brand-purple">Choisissez votre secteur d'activité</h3>
+                <h3 class="font-black text-lg text-foreground">Choisissez votre secteur d'activité</h3>
                 <p class="text-sm text-slate-600">
                   Filtres préconfigurés optimisés pour différents secteurs
                 </p>
@@ -500,21 +500,21 @@
                   onclick={() => applyPreset(preset.id)}
                   class="p-4 rounded-xl border-2 transition-all duration-200 text-left {selectedPresetId ===
                   preset.id
-                    ? 'border-brand-purple bg-brand-gold/10 shadow-md'
-                    : 'border-slate-200 hover:border-brand-gold hover:shadow-sm bg-white'}"
+                    ? 'border-foreground bg-muted/10 shadow-md'
+                    : 'border-slate-200 hover:border-muted hover:shadow-sm bg-white'}"
                 >
                   <div class="flex items-start justify-between mb-2">
-                    <iconify-icon icon={preset.icon} width="24" class="text-brand-purple"
+                    <iconify-icon icon={preset.icon} width="24" class="text-foreground"
                     ></iconify-icon>
                     {#if selectedPresetId === preset.id}
                       <iconify-icon
                         icon="solar:check-circle-bold"
                         width="20"
-                        class="text-brand-purple"
+                        class="text-foreground"
                       ></iconify-icon>
                     {/if}
                   </div>
-                  <h4 class="font-black text-sm mb-1 text-brand-purple">{preset.name}</h4>
+                  <h4 class="font-black text-sm mb-1 text-foreground">{preset.name}</h4>
                   <p class="text-xs text-slate-500 line-clamp-2">{preset.description}</p>
                 </button>
               {/each}
@@ -525,7 +525,7 @@
 
       <div class="pt-8 border-t-2 border-slate-100 space-y-6">
         <div class="flex items-center justify-between">
-          <h2 class="text-2xl font-black flex items-center gap-3 text-brand-purple">
+          <h2 class="text-2xl font-black flex items-center gap-3 text-foreground">
             <iconify-icon icon="solar:filter-bold" width="24"></iconify-icon>
             Filtres
           </h2>
@@ -559,7 +559,7 @@
             >
             <select
               bind:value={filters.type}
-              class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl font-medium focus:border-brand-gold focus:outline-none transition-all duration-200 bg-slate-50/50 hover:bg-white"
+              class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl font-medium focus:border-muted focus:outline-none transition-all duration-200 bg-slate-50/50 hover:bg-white"
             >
               <option value={undefined}>Tous les types</option>
               <option value="personal">Personnels uniquement</option>
@@ -574,7 +574,7 @@
             <div class="space-y-2">
               {#each seniorityLevels as level}
                 <label class="flex items-center gap-2">
-                  <input type="checkbox" value={level} bind:group={filters.seniority} class="w-4 h-4 accent-brand-purple" />
+                  <input type="checkbox" value={level} bind:group={filters.seniority} class="w-4 h-4 accent-foreground" />
                   <span class="text-sm font-semibold capitalize text-slate-700">{level}</span>
                 </label>
               {/each}
@@ -591,7 +591,7 @@
               <label
                 class="flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
               >
-                <input type="checkbox" value={dept} bind:group={filters.department} class="w-4 h-4 accent-brand-purple" />
+                <input type="checkbox" value={dept} bind:group={filters.department} class="w-4 h-4 accent-foreground" />
                 <span class="text-xs font-bold capitalize text-slate-700">{dept}</span>
               </label>
             {/each}
@@ -608,12 +608,12 @@
               onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addJobTitle(); } }}
               type="text"
               placeholder="ex. : PDG, DG, Responsable marketing"
-              class="flex-1 px-4 py-2 border-2 border-slate-200 rounded-xl font-medium focus:border-brand-gold focus:outline-none transition-all duration-200 bg-slate-50/50 hover:bg-white"
+              class="flex-1 px-4 py-2 border-2 border-slate-200 rounded-xl font-medium focus:border-muted focus:outline-none transition-all duration-200 bg-slate-50/50 hover:bg-white"
             />
             <button
               type="button"
               onclick={addJobTitle}
-              class="px-6 py-2 bg-brand-purple text-white rounded-xl font-bold hover:bg-brand-gold hover:text-brand-purple transition-all duration-200"
+              class="px-6 py-2 bg-foreground text-white rounded-xl font-bold hover:bg-muted hover:text-foreground transition-all duration-200"
             >
               Ajouter
             </button>
@@ -621,13 +621,13 @@
           <div class="flex flex-wrap gap-2">
             {#each filters.jobTitles as title}
               <span
-                class="px-3 py-1 bg-brand-gold/20 text-brand-purple border border-brand-gold/30 rounded-lg text-sm font-bold flex items-center gap-2"
+                class="px-3 py-1 bg-muted/20 text-foreground border border-muted/30 rounded-lg text-sm font-bold flex items-center gap-2"
               >
                 {title}
                 <button
                   type="button"
                   onclick={() => removeJobTitle(title)}
-                  class="hover:text-brand-gold transition-colors"
+                  class="hover:text-muted transition-colors"
                   aria-label="Remove {title}"
                 >
                   <iconify-icon icon="solar:close-circle-bold" width="16"></iconify-icon>
@@ -644,7 +644,7 @@
               type="button"
               onclick={() => detectLocation('auto')}
               disabled={loadingLocation}
-              class="text-sm font-bold text-brand-purple hover:text-brand-gold flex items-center gap-2 disabled:opacity-50 transition-colors"
+              class="text-sm font-bold text-foreground hover:text-muted flex items-center gap-2 disabled:opacity-50 transition-colors"
             >
               {#if loadingLocation}
                 <iconify-icon icon="svg-spinners:blocks-shuffle-3" width="16"></iconify-icon>
@@ -671,7 +671,7 @@
                 bind:value={filters.location.country}
                 type="text"
                 placeholder="e.g., US, FR, DE"
-                class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl font-medium focus:border-brand-gold focus:outline-none transition-all duration-200 bg-slate-50/50 hover:bg-white"
+                class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl font-medium focus:border-muted focus:outline-none transition-all duration-200 bg-slate-50/50 hover:bg-white"
               />
             </label>
 
@@ -689,16 +689,16 @@
                 bind:value={filters.location.city}
                 type="text"
                 placeholder="e.g., San Francisco, Paris"
-                class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl font-medium focus:border-brand-gold focus:outline-none transition-all duration-200 bg-slate-50/50 hover:bg-white"
+                class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl font-medium focus:border-muted focus:outline-none transition-all duration-200 bg-slate-50/50 hover:bg-white"
               />
             </label>
           </div>
 
           {#if loadingLocation}
-            <div class="bg-brand-purple/10 border border-brand-purple/20 rounded-xl p-4 flex items-center gap-3 mt-4">
-              <iconify-icon icon="svg-spinners:blocks-shuffle-3" width="20" class="text-brand-purple"
+            <div class="bg-foreground/10 border border-foreground/20 rounded-xl p-4 flex items-center gap-3 mt-4">
+              <iconify-icon icon="svg-spinners:blocks-shuffle-3" width="20" class="text-foreground"
               ></iconify-icon>
-              <span class="text-sm font-bold text-brand-purple">Détection de votre localisation...</span>
+              <span class="text-sm font-bold text-foreground">Détection de votre localisation...</span>
             </div>
           {/if}
         </div>
@@ -711,13 +711,13 @@
               <iconify-icon icon="solar:danger-bold" width="24" class="text-warning"
               ></iconify-icon>
               <div>
-                <h3 class="font-black text-lg mb-1 text-brand-purple">Aucune clé API configurée</h3>
+                <h3 class="font-black text-lg mb-1 text-foreground">Aucune clé API configurée</h3>
                 <p class="text-sm text-slate-700 mb-4">
                   Pour commencer à chercher des leads, vous devez configurer au moins une clé API dans vos paramètres.
                 </p>
                 <a
                   href={settingsUrl}
-                  class="inline-flex items-center gap-2 px-4 py-2 bg-brand-purple text-white rounded-xl font-bold hover:bg-brand-gold hover:text-brand-purple transition-all duration-200"
+                  class="inline-flex items-center gap-2 px-4 py-2 bg-foreground text-white rounded-xl font-bold hover:bg-muted hover:text-foreground transition-all duration-200"
                 >
                   <iconify-icon icon="solar:settings-bold" width="18"></iconify-icon>
                   Accéder aux paramètres
@@ -730,7 +730,7 @@
         <button
           onclick={startHunt}
           disabled={loading || configuredSourcesCount === 0}
-          class="w-full bg-brand-purple text-white px-8 py-4 rounded-full font-black text-lg hover:bg-brand-gold hover:text-brand-purple active:scale-95 transition-all duration-200 flex items-center justify-center gap-3 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-brand-purple/20"
+          class="w-full bg-foreground text-white px-8 py-4 rounded-full font-black text-lg hover:bg-muted hover:text-foreground active:scale-95 transition-all duration-200 flex items-center justify-center gap-3 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-foreground/20"
         >
           {#if loading}
             <iconify-icon icon="svg-spinners:blocks-shuffle-3" width="24"></iconify-icon>

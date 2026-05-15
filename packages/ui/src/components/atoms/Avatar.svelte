@@ -2,7 +2,7 @@
     import { cva, type VariantProps } from 'class-variance-authority';
 
     const avatarClass = cva(
-        "rounded-full bg-gradient-to-br flex items-center justify-center font-black text-white overflow-hidden",
+        "flex items-center justify-center overflow-hidden rounded-full border border-border bg-foreground font-semibold text-background",
         {
             variants: {
                 size: {
@@ -13,11 +13,11 @@
                     xl: "w-24 h-24 text-2xl",
                 },
                 color: {
-                    blue: "from-blue-500 to-indigo-600",
-                    purple: "from-purple-500 to-pink-600",
-                    green: "from-green-500 to-teal-600",
-                    orange: "from-orange-500 to-red-600",
-                    slate: "from-slate-500 to-slate-700",
+                    blue: "",
+                    purple: "",
+                    green: "",
+                    orange: "",
+                    slate: "",
                 }
             },
             defaultVariants: {

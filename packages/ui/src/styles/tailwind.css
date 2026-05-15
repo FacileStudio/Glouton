@@ -1,269 +1,199 @@
+@font-face {
+  font-family: 'Goga';
+  src: url('/fonts/GogaTest-Thin-BF6646d5d8040a9.otf') format('opentype');
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Goga';
+  src: url('/fonts/GogaTest-Extralight-BF6646d5d82fb83.otf') format('opentype');
+  font-weight: 200;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Goga';
+  src: url('/fonts/GogaTest-Light-BF6646d5d84c8a2.otf') format('opentype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Goga';
+  src: url('/fonts/GogaTest-Regular-BF6646d5d84f69b.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Goga';
+  src: url('/fonts/GogaTest-Medium-BF6646d5d84754e.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Goga';
+  src: url('/fonts/GogaTest-Semibold-BF6646d5d8544cf.otf') format('opentype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Goga';
+  src: url('/fonts/GogaTest-Bold-BF6646d5d83c978.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Goga';
+  src: url('/fonts/GogaTest-Extrabold-BF6646d5d7d0a2b.otf') format('opentype');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Goga';
+  src: url('/fonts/GogaTest-Black-BF6646d5d78e551.otf') format('opentype');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 @import "tailwindcss";
-@import "@fontsource/poppins/400.css";
-@import "@fontsource/poppins/600.css";
-@import "@fontsource/poppins/700.css";
-@import "./satoshi.css";
 
 @source "../../../apps/**/src/**/*.{svelte,ts,js}";
 @source "../../ui/src/**/*.{svelte,ts,js}";
 
-@theme {
-  --font-title: 'Poppins', system-ui, -apple-system, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-  --font-body: 'Satoshi', system-ui, -apple-system, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.145 0 0);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.45 0.18 27);
+  --destructive-foreground: oklch(1 0 0);
+  --success: oklch(0.45 0.12 150);
+  --warning: oklch(0.55 0.08 80);
+  --border: oklch(0.9 0 0);
+  --input: oklch(0.9 0 0);
+  --ring: oklch(0.35 0 0);
+  --radius: 0.5rem;
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.145 0 0);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.9 0 0);
+  --sidebar-ring: oklch(0.35 0 0);
+}
 
-  --color-background: #FAF7F5;
-  --color-brand-gold: #FEC129;
-  --color-brand-purple: #291334;
-
-  --color-primary: #291334;
-  --color-primary-hover: #1a0b20;
-  --color-primary-light: #FAF7F5;
-
-  --color-secondary: #f1f5f9;
-  --color-secondary-hover: #e2e8f0;
-
-  --color-danger: #f43f5e;
-  --color-danger-hover: #e11d48;
-  --color-danger-light: #fef2f2;
-
-  --color-success: #10b981;
-  --color-success-hover: #059669;
-  --color-success-light: #f0fdf4;
-
-  --color-warning: #FEC129;
-  --color-warning-hover: #e5ad1f;
-  --color-warning-light: #fffbeb;
-
-  --color-accent: #FEC129;
-  --color-accent-hover: #e5ad1f;
-  --color-accent-light: #fef9e7;
-
-  --radius-sm: 12px;
-  --radius-md: 16px;
-  --radius-lg: 24px;
-  --radius-xl: 32px;
-  --radius-2xl: 35px;
-
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
-  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+@theme inline {
+  --font-sans: 'Goga', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --font-title: 'Goga', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --font-body: 'Goga', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-brand-purple: var(--primary);
+  --color-brand-gold: var(--foreground);
+  --color-danger: var(--destructive);
+  --color-danger-hover: oklch(0.38 0.18 27);
+  --color-danger-light: oklch(0.96 0.02 27);
+  --color-success-hover: oklch(0.38 0.12 150);
+  --color-success-light: oklch(0.96 0.02 150);
+  --color-warning-hover: oklch(0.45 0.08 80);
+  --color-warning-light: oklch(0.96 0.02 80);
+  --color-primary-hover: oklch(0.205 0 0);
+  --color-primary-light: var(--muted);
+  --color-secondary-hover: oklch(0.9 0 0);
+  --color-accent-hover: oklch(0.9 0 0);
+  --color-accent-light: var(--muted);
+  --radius-sm: calc(var(--radius) * 0.75);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) * 1.25);
+  --radius-xl: calc(var(--radius) * 1.5);
+  --radius-2xl: calc(var(--radius) * 2);
 }
 
 @layer base {
   * {
+    @apply border-border outline-ring/50;
     font-synthesis: none;
   }
 
-  body {
-    font-family: var(--font-body);
-    background-color: var(--color-background);
+  html {
+    @apply font-sans bg-background text-foreground;
   }
 
-  h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-title);
-    font-weight: 900;
-    letter-spacing: -0.02em;
+  body {
+    @apply m-0 min-h-screen bg-background text-foreground;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-sans);
+    letter-spacing: 0;
   }
 
   iconify-icon {
-    font-family: var(--font-body) !important;
+    font-family: var(--font-sans) !important;
   }
 }
-
-@layer utilities {
-  .bg-primary {
-    background-color: var(--color-primary);
-  }
-
-  .bg-primary-hover {
-    background-color: var(--color-primary-hover);
-  }
-
-  .bg-primary-light {
-    background-color: var(--color-primary-light);
-  }
-
-  .text-primary {
-    color: var(--color-primary);
-  }
-
-  .text-primary-hover {
-    color: var(--color-primary-hover);
-  }
-
-  .border-primary {
-    border-color: var(--color-primary);
-  }
-
-  .bg-danger {
-    background-color: var(--color-danger);
-  }
-
-  .bg-danger-hover {
-    background-color: var(--color-danger-hover);
-  }
-
-  .bg-danger-light {
-    background-color: var(--color-danger-light);
-  }
-
-  .text-danger {
-    color: var(--color-danger);
-  }
-
-  .text-danger-hover {
-    color: var(--color-danger-hover);
-  }
-
-  .border-danger {
-    border-color: var(--color-danger);
-  }
-
-  .bg-success {
-    background-color: var(--color-success);
-  }
-
-  .bg-success-hover {
-    background-color: var(--color-success-hover);
-  }
-
-  .bg-success-light {
-    background-color: var(--color-success-light);
-  }
-
-  .text-success {
-    color: var(--color-success);
-  }
-
-  .text-success-hover {
-    color: var(--color-success-hover);
-  }
-
-  .border-success {
-    border-color: var(--color-success);
-  }
-
-  .bg-warning {
-    background-color: var(--color-warning);
-  }
-
-  .bg-warning-hover {
-    background-color: var(--color-warning-hover);
-  }
-
-  .bg-warning-light {
-    background-color: var(--color-warning-light);
-  }
-
-  .text-warning {
-    color: var(--color-warning);
-  }
-
-  .text-warning-hover {
-    color: var(--color-warning-hover);
-  }
-
-  .border-warning {
-    border-color: var(--color-warning);
-  }
-
-  .bg-accent {
-    background-color: var(--color-accent);
-  }
-
-  .bg-accent-hover {
-    background-color: var(--color-accent-hover);
-  }
-
-  .bg-accent-light {
-    background-color: var(--color-accent-light);
-  }
-
-  .text-accent {
-    color: var(--color-accent);
-  }
-
-  .text-accent-hover {
-    color: var(--color-accent-hover);
-  }
-
-  .border-accent {
-    border-color: var(--color-accent);
-  }
-
-  .bg-brand-purple {
-    background-color: var(--color-brand-purple);
-  }
-
-  .text-brand-purple {
-    color: var(--color-brand-purple);
-  }
-
-  .bg-brand-gold {
-    background-color: var(--color-brand-gold);
-  }
-
-  .text-brand-gold {
-    color: var(--color-brand-gold);
-  }
-}
-
-@keyframes fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes fade-out {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-  }
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
-}
-
-@keyframes backdrop-fade-in {
-  from {
-    opacity: 0;
-    backdrop-filter: blur(0px);
-  }
-  to {
-    opacity: 1;
-    backdrop-filter: blur(8px);
-  }
-}
-
-@keyframes backdrop-fade-out {
-  from {
-    opacity: 1;
-    backdrop-filter: blur(8px);
-  }
-  to {
-    opacity: 0;
-    backdrop-filter: blur(0px);
-  }
-}
-

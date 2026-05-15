@@ -68,7 +68,7 @@
 
 <div
   class="p-6 lg:p-12 max-w-[1600px] mx-auto space-y-12 selection:text-black font-sans"
-  style="background-color: #FAF7F5; selection-background-color: #FEC129;"
+  style="background-color: var(--background); selection-background-color: var(--foreground);"
 >
   <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
     <div class="flex items-center gap-4">
@@ -76,7 +76,7 @@
         <iconify-icon icon="solar:users-group-rounded-bold" width="32" class="text-white"></iconify-icon>
       </div>
       <div class="space-y-1">
-        <h1 class="text-5xl font-black tracking-tight leading-none" style="color: #291334;">
+        <h1 class="text-5xl font-black tracking-tight leading-none" style="color: var(--foreground);">
           Équipes
         </h1>
         <p class="text-neutral-400 font-medium text-sm">
@@ -112,7 +112,7 @@
     </div>
   {/if}
 
-  <div class="rounded-2xl overflow-hidden shadow-lg" style="background-color: #EFEAE6;">
+  <div class="rounded-2xl overflow-hidden shadow-lg" style="background-color: var(--card);">
     {#if loading}
       <div class="flex items-center justify-center py-20">
         <Spinner size="lg" />

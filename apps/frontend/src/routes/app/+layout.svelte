@@ -11,9 +11,9 @@
   let { children } = $props();
 
   const menuItems = [
-    { label: 'Chasses', icon: 'solar:lightning-bold', href: '/app/hunts' },
-    { label: 'Leads', icon: 'solar:chart-square-bold', href: '/app/leads' },
-    { label: 'Prospection', icon: 'solar:letter-bold', href: '/app/outreach' },
+    { label: 'Chasses', icon: 'solar:radar-2-bold-duotone', href: '/app/hunts' },
+    { label: 'Leads', icon: 'solar:magnet-wave-bold-duotone', href: '/app/leads' },
+    { label: 'Prospection', icon: 'solar:letter-bold-duotone', href: '/app/outreach' },
     { label: 'Équipes', icon: 'solar:users-group-rounded-bold', href: '/app/teams' },
   ];
 
@@ -67,18 +67,17 @@
   <title>{pageTitle}</title>
 </svelte:head>
 
-<div class="fixed inset-0 flex h-screen w-screen overflow-hidden bg-white">
+<div class="fixed inset-0 flex h-screen w-screen overflow-hidden bg-background text-foreground">
   <Sidebar
     items={menuItems}
     activeHref={$page.url.pathname}
     settingsHref="/app/settings"
-    logoSrc="/logo.png"
   >
     <TeamContextSwitcher slot="context-switcher" />
 
     <div
       slot="user-avatar"
-      class="flex h-full w-full items-center justify-center bg-black text-xs font-black text-white"
+      class="flex h-full w-full items-center justify-center text-xs font-semibold"
     >
       {userInitials}
     </div>
@@ -93,7 +92,7 @@
   </Sidebar>
 
   <main
-    class="relative h-full w-full flex-1 overflow-y-auto selection:bg-black selection:text-white"
+    class="relative h-full w-full flex-1 overflow-y-auto bg-background selection:bg-foreground selection:text-background"
   >
     {@render children()}
   </main>

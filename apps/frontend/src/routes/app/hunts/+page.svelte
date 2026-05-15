@@ -170,7 +170,7 @@
 {:else}
   <div
     class="p-6 lg:p-12 max-w-[1600px] mx-auto space-y-12 selection:text-black font-sans"
-    style="background-color: #FAF7F5; selection-background-color: #FEC129;"
+    style="background-color: var(--background); selection-background-color: var(--foreground);"
   >
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
       <div class="flex items-center gap-4">
@@ -178,7 +178,7 @@
           <iconify-icon icon="solar:lightning-bold" width="32" class="text-white"></iconify-icon>
         </div>
         <div class="space-y-1">
-          <h1 class="text-5xl font-black tracking-tight leading-none" style="color: #291334;">
+          <h1 class="text-5xl font-black tracking-tight leading-none" style="color: var(--foreground);">
             Chasses
           </h1>
           <p class="text-neutral-400 font-medium text-sm">Gestion des chasses aux leads</p>
@@ -198,7 +198,7 @@
       {#each [{ label: 'En attente', val: stats?.pendingHunts?.toString() || '0', icon: 'solar:history-bold-duotone', color: 'text-yellow-500' }, { label: 'En cours', val: stats?.processingHunts?.toString() || '0', icon: 'solar:rocket-2-bold-duotone', color: 'text-blue-500' }, { label: 'Terminées', val: stats?.completedHunts?.toString() || '0', icon: 'solar:check-circle-bold-duotone', color: 'text-green-500' }, { label: 'Échouées', val: stats?.failedHunts?.toString() || '0', icon: 'solar:close-circle-bold-duotone', color: 'text-red-500' }] as stat}
         <div
           class="p-4 sm:p-6 lg:p-8 rounded-[24px] sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow"
-          style="background-color: #EFEAE6;"
+          style="background-color: var(--card);"
         >
           <div class="flex items-start justify-between mb-3 sm:mb-4 lg:mb-6">
             <h3 class="text-sm sm:text-base lg:text-lg font-bold text-neutral-700">{stat.label}</h3>
@@ -210,10 +210,10 @@
     </section>
 
     {#if huntSessions.length === 0}
-      <section class="rounded-2xl overflow-hidden shadow-lg" style="background-color: #EFEAE6;">
+      <section class="rounded-2xl overflow-hidden shadow-lg" style="background-color: var(--card);">
         <div class="flex flex-col items-center justify-center py-32 px-6 space-y-6">
           <div class="w-32 h-32 bg-yellow-50 rounded-2xl flex items-center justify-center">
-            <iconify-icon icon="solar:lightning-bold-duotone" width="64" style="color: #FEC129;"
+            <iconify-icon icon="solar:lightning-bold-duotone" width="64" style="color: var(--foreground);"
             ></iconify-icon>
           </div>
           <div class="text-center space-y-3">
@@ -232,7 +232,7 @@
         </div>
       </section>
     {:else if huntSessions.filter((s) => s.status === 'FAILED').length === 0 && huntSessions.filter((s) => s.status === 'PENDING' || s.status === 'PROCESSING').length === 0 && huntSessions.filter((s) => s.status === 'COMPLETED').length === 0}
-      <section class="rounded-2xl overflow-hidden shadow-lg" style="background-color: #EFEAE6;">
+      <section class="rounded-2xl overflow-hidden shadow-lg" style="background-color: var(--card);">
         <div class="flex flex-col items-center justify-center py-32 px-6 space-y-6">
           <div class="w-32 h-32 bg-neutral-50 rounded-2xl flex items-center justify-center">
             <iconify-icon icon="solar:ghost-bold" width="64" class="text-neutral-300"
@@ -283,12 +283,12 @@
           <div class="flex items-center gap-3">
             <div
               class="w-10 h-10 rounded-xl flex items-center justify-center"
-              style="background-color: #FEC129;"
+              style="background-color: var(--foreground);"
             >
               <iconify-icon icon="solar:lightning-bold-duotone" width="20" class="text-white"
               ></iconify-icon>
             </div>
-            <h2 class="text-2xl font-black tracking-tight" style="color: #291334;">Chasses actives</h2>
+            <h2 class="text-2xl font-black tracking-tight" style="color: var(--foreground);">Chasses actives</h2>
           </div>
           <div class="flex flex-col gap-4">
             {#each huntSessions.filter((s) => s.status === 'PROCESSING') as session (session.id)}
