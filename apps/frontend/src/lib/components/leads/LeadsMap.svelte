@@ -20,7 +20,7 @@
   let { leads }: { leads: Lead[] } = $props();
 
   let expanded = $state(false);
-  let mapContainer: HTMLElement;
+  let mapContainer = $state<HTMLElement | undefined>();
   let map: any;
   let markersLayer: any;
   let mounted = false;

@@ -352,6 +352,7 @@
     <div class="max-w-[1600px] mx-auto flex items-center justify-between gap-4">
       <div class="flex items-center gap-4 min-w-0">
         <button
+          aria-label="Retour aux chasses"
           onclick={() => goto('/app/hunts')}
           class="w-10 h-10 flex-shrink-0 flex items-center justify-center bg-neutral-100 hover:bg-neutral-200 rounded-xl transition-colors"
         >

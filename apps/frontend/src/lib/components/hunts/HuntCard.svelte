@@ -146,7 +146,12 @@
       </div>
 
       <!-- Action buttons -->
-      <div class="flex items-center gap-1 flex-shrink-0" onclick={(e) => e.stopPropagation()}>
+      <div
+        class="flex items-center gap-1 flex-shrink-0"
+        role="presentation"
+        onclick={(e) => e.stopPropagation()}
+        onkeydown={(e) => e.stopPropagation()}
+      >
         {#if session.status === 'PENDING' && onCancel}
           <button
             onclick={() => onCancel!(session.id)}

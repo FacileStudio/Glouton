@@ -69,8 +69,8 @@ services:
       PORT: 3000
       DOMAIN: ${DOMAIN:?Set DOMAIN to your public URL, for example https://glouton.facile.studio}
       BACKEND_URL: http://backend:3001
-    ports:
-      - "3000:3000"
+    expose:
+      - "3000"
     depends_on:
       backend:
         condition: service_healthy

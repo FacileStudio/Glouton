@@ -14,7 +14,7 @@
 
   let hasGoogleMapsKey = $state(false);
 
-  let mapComponent: LocationPickerMap;
+  let mapComponent = $state<LocationPickerMap | undefined>();
   let showMap = $state(false);
 
   let huntType = $state<'domain' | 'local'>('domain');
@@ -410,6 +410,7 @@
     <div class="flex items-center gap-4 min-w-0">
       <a
         href="/app/hunts"
+        aria-label="Retour aux chasses"
         class="w-10 h-10 flex-shrink-0 flex items-center justify-center bg-neutral-100 hover:bg-neutral-200 rounded-xl transition-colors"
       >
         <iconify-icon icon="solar:arrow-left-bold" width="18"></iconify-icon>

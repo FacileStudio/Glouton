@@ -196,6 +196,7 @@
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
       <div class="flex items-center gap-4">
         <button
+          aria-label="Retour"
           onclick={handleBack}
           class="w-12 h-12 flex items-center justify-center bg-white rounded-xl hover:bg-neutral-50 transition-colors border border-neutral-100"
         >

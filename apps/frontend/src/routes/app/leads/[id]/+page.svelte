@@ -407,6 +407,7 @@
       <div class="max-w-[1600px] mx-auto flex items-center justify-between gap-4">
         <div class="flex items-center gap-4 min-w-0">
           <button
+            aria-label="Retour aux leads"
             onclick={() => goto('/app/leads')}
             class="w-10 h-10 flex-shrink-0 flex items-center justify-center bg-neutral-100 hover:bg-neutral-200 rounded-xl transition-colors"
           >
@@ -673,7 +674,7 @@
                   class="flex items-center gap-3 px-4 py-3 bg-white hover:bg-neutral-50 rounded-2xl transition group"
                 >
                   <div class="w-9 h-9 {meta.bg} rounded-xl flex items-center justify-center flex-shrink-0">
-                    <iconify-icon icon={meta.icon} width="20" class="{meta.color}"></iconify-icon>
+                    <iconify-icon icon={meta.icon} width="20" class={meta.color}></iconify-icon>
                   </div>
                   <div class="flex-1 min-w-0">
                     <p class="text-sm font-bold text-neutral-800">{meta.label}</p>
@@ -816,10 +817,10 @@
 
             <div class="grid grid-cols-1 xl:grid-cols-2 gap-0">
               <div class="p-8 space-y-5 border-r border-neutral-200/60">
-                <div>
-                  <label class="block text-[9px] font-black uppercase tracking-widest text-neutral-500 mb-2">
+                <label class="block">
+                  <span class="block text-[9px] font-black uppercase tracking-widest text-neutral-500 mb-2">
                     Modèle
-                  </label>
+                  </span>
                   <select
                     bind:value={selectedTemplate}
                     onchange={handleTemplateChange}
@@ -829,7 +830,7 @@
                       <option value={template.id}>{template.name}</option>
                     {/each}
                   </select>
-                </div>
+                </label>
 
                 {#if selectedTemplate}
                   {@const template = templates.find(t => t.id === selectedTemplate)}
@@ -838,17 +839,17 @@
                       <p class="text-[9px] font-black uppercase tracking-widest text-neutral-500">Variables</p>
 
                       {#each template.variables as variable}
-                        <div>
-                          <label class="block text-xs font-bold text-neutral-600 mb-1.5 capitalize">
+                        <label class="block">
+                          <span class="block text-xs font-bold text-neutral-600 mb-1.5 capitalize">
                             {variable.replace(/([A-Z])/g, ' $1').trim()}
-                          </label>
+                          </span>
                           <input
                             type="text"
                             bind:value={variables[variable]}
                             placeholder="Enter {variable.replace(/([A-Z])/g, ' $1').trim().toLowerCase()}"
                             class="w-full px-4 py-2.5 bg-white border border-neutral-300 rounded-xl text-sm font-medium outline-none focus:border-black transition placeholder:text-neutral-400"
                           />
-                        </div>
+                        </label>
                       {/each}
                     </div>
                   {/if}

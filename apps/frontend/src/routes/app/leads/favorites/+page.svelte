@@ -71,6 +71,7 @@
   <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
     <div class="flex items-center gap-4">
       <button
+        aria-label="Retour aux leads"
         onclick={() => goto('/app/leads')}
         class="w-12 h-12 flex-shrink-0 flex items-center justify-center bg-neutral-100 hover:bg-neutral-200 rounded-xl transition-colors"
       >

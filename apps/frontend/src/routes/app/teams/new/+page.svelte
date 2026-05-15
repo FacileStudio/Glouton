@@ -59,6 +59,7 @@
 >
   <div class="flex items-center gap-4">
     <button
+      aria-label="Annuler"
       onclick={handleCancel}
       class="w-12 h-12 flex items-center justify-center bg-white rounded-xl hover:bg-neutral-50 transition-colors border border-neutral-100"
     >

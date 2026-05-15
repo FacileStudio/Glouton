@@ -126,10 +126,11 @@
 </script>
 
 {#if session}
+  <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
   <div
     class="rounded-[32px] shadow-lg p-8 bg-gradient-to-r from-black to-neutral-800 text-white transition-all duration-200 {clickable ? 'cursor-pointer hover:shadow-2xl hover:-translate-y-0.5 hover:scale-[1.005]' : ''}"
     role={clickable ? 'button' : 'region'}
-    tabindex={clickable ? 0 : undefined}
+    tabindex={clickable ? 0 : -1}
     onclick={handleClick}
     onkeydown={(e) => clickable && e.key === 'Enter' && handleClick()}
   >

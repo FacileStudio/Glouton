@@ -154,7 +154,9 @@
 
   <div
     class="border-t border-neutral-100 px-5 py-3 bg-neutral-50/50 flex items-center gap-2"
+    role="presentation"
     onclick={(e) => e.stopPropagation()}
+    onkeydown={(e) => e.stopPropagation()}
   >
     {#if onRelaunch}
       <button

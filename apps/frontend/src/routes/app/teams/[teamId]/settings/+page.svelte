@@ -241,6 +241,7 @@
   {:else if team}
     <div class="flex items-center gap-4">
       <button
+        aria-label="Retour"
         onclick={handleBack}
         class="w-12 h-12 flex items-center justify-center bg-white rounded-xl hover:bg-neutral-50 transition-colors border border-neutral-100"
       >
@@ -394,6 +395,7 @@
                   {#if apiKeysForm[provider.key as keyof typeof apiKeysForm]}
                     <button
                       type="button"
+                      aria-label="Afficher ou masquer la clé API"
                       onclick={() => (showApiKeys[provider.key as keyof typeof showApiKeys] = !showApiKeys[provider.key as keyof typeof showApiKeys])}
                       class="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors"
                     >
@@ -495,6 +497,7 @@
                   {#if smtpForm.smtpPass}
                     <button
                       type="button"
+                      aria-label="Afficher ou masquer le mot de passe SMTP"
                       onclick={() => (showSmtpPass = !showSmtpPass)}
                       class="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors"
                     >
