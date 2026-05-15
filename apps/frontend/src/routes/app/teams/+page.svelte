@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import { trpc } from '$lib/trpc';
-  import { Spinner, EmptyState, Button } from '@repo/ui';
+  import { Spinner } from '@repo/ui';
   import { toast } from '@repo/utils';
   import 'iconify-icon';
 
@@ -99,24 +99,19 @@
         <Spinner size="lg" />
       </div>
     {:else if filteredTeams.length === 0}
-      <div class="p-8">
-        <EmptyState
-          title={searchQuery ? 'Aucune équipe trouvée' : 'Aucune équipe'}
-          description={searchQuery ? 'Essayez de modifier votre recherche' : 'Créez votre première équipe pour commencer'}
-          icon="solar:users-group-two-rounded-linear"
-        >
-          <div slot="action">
-            {#if !searchQuery}
-              <button
-                onclick={handleCreateTeam}
-                class="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85"
-              >
-                <iconify-icon icon="mdi:plus-circle" width="16"></iconify-icon>
-                Créer une équipe
-              </button>
-            {/if}
-          </div>
-        </EmptyState>
+      <div class="flex flex-col items-center justify-center py-16 space-y-3">
+        <iconify-icon icon="solar:users-group-two-rounded-linear" width="48" class="text-muted-foreground"></iconify-icon>
+        <p class="text-sm text-muted-foreground">
+          {searchQuery ? 'Aucune équipe trouvée' : 'Aucune équipe'}
+        </p>
+        {#if !searchQuery}
+          <button
+            onclick={handleCreateTeam}
+            class="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85"
+          >
+            Créer une équipe
+          </button>
+        {/if}
       </div>
     {:else}
       <div class="divide-y divide-border">

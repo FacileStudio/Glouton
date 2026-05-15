@@ -72,6 +72,7 @@
     items={menuItems}
     activeHref={$page.url.pathname}
     settingsHref="/app/settings"
+    userHref="/app/settings"
     logoIcon="solar:magnet-wave-bold-duotone"
   >
     <TeamContextSwitcher slot="context-switcher" />
@@ -90,6 +91,16 @@
     <span slot="user-email">
       {userEmail}
     </span>
+
+    <button
+      slot="logout"
+      type="button"
+      onclick={() => authStore.logout()}
+      class="inline-flex h-9 w-full items-center justify-start gap-2 rounded-lg px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+    >
+      <iconify-icon icon="solar:logout-2-linear" width="16"></iconify-icon>
+      Déconnexion
+    </button>
   </Sidebar>
 
   <main
