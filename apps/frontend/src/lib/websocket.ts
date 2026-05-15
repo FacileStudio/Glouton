@@ -22,9 +22,7 @@ class WebSocketClient {
     }
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-    const host = new URL(apiUrl).host;
-    const url = `${protocol}//${host}/ws`;
+    const url = `${protocol}//${window.location.host}/ws`;
 
     return url;
   }

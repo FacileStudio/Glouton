@@ -21,8 +21,7 @@ Production-ready lead generation platform with automated web scraping, intellige
 ### Prerequisites
 
 - **Bun** (latest version)
-- **PostgreSQL** (running locally or remote)
-- **Redis** (for job queue)
+- **Docker Compose** for local PostgreSQL and Redis
 
 ### Installation
 
@@ -34,8 +33,8 @@ cd Glouton
 # Install dependencies
 bun install
 
-# Set up database and schema
-bun run dev:db:setup
+# Start local infrastructure
+DOMAIN=http://localhost:3000 ENCRYPTION_SECRET=local-dev-encryption-secret-change-me docker compose up -d postgres redis
 
 # Start development servers
 bun run dev
@@ -43,25 +42,14 @@ bun run dev
 
 ### Environment Setup
 
-Copy `.env.example` to `.env` in `apps/backend/`:
+For Docker Compose deployment, only these values should be set by the deploy environment:
 
 ```bash
-# Database
-DATABASE_URL=postgresql://user@localhost:5432/myapp
-
-# Redis (Job Queue)
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_DB=0
-
-# JWT Authentication
+DOMAIN=https://glouton.facile.studio
 ENCRYPTION_SECRET=your-secret-key-min-32-chars
-
-# Server Config
-PORT=3001
-FRONTEND_URL=http://localhost:3000
-TRUSTED_ORIGINS=http://localhost:3000,http://localhost:3001,http://localhost:3002
 ```
+
+Compose wires PostgreSQL, Redis, `DATABASE_URL`, and the private frontend-to-backend proxy automatically. The browser talks only to the SvelteKit frontend; the backend stays internal.
 
 ### Usage
 
@@ -250,56 +238,7 @@ if (hasAccess(user.role, 'admin')) {
 5. Backend verifies token in tRPC context
 6. Protected procedures check `ctx.user`
 
-### 4. File Storage System
-
-**Server (`@repo/storage`)**
-
-MinIO/S3 operations:
-
-```typescript
-import { StorageService } from '@repo/storage';
-
-const storage = new StorageService({
-  endpoint: MINIO_ENDPOINT,
-  accessKeyId: MINIO_ROOT_USER,
-  secretAccessKey: MINIO_ROOT_PASSWORD,
-  bucket: MINIO_BUCKET_NAME
-});
-
-// Generate pre-signed URL (15 min expiry)
-const uploadUrl = storage.client.file(key).presign({
-  expiresIn: 900,
-  method: 'PUT'
-});
-```
-
-**Client (`@repo/storage-client`)**
-
-Direct uploads to S3:
-
-```typescript
-import { uploadFile, uploadFileSimple } from '@repo/storage-client';
-
-// Simple upload
-const url = await uploadFileSimple(file, presignedUrl);
-
-// Upload with progress
-const { url, key } = await uploadFile(file, presignedUrl, {
-  onProgress: (percent) => console.log(`${percent}%`),
-  signal: abortController.signal
-});
-```
-
-**Flow:**
-1. Client requests pre-signed URL: `trpc.media.getUploadUrl.mutate()`
-2. Server generates URL valid for 15 minutes
-3. Client uploads **directly to S3** (not through backend!)
-4. Client confirms upload: `trpc.media.updateAvatar.mutate()`
-5. Server stores metadata in database
-
-**Why direct uploads?** Reduces backend load, faster uploads, better scalability.
-
-### 5. Stripe Integration
+### 4. Stripe Integration
 
 **Setup:**
 - `@repo/stripe` - Stripe SDK wrapper
@@ -323,7 +262,7 @@ const event = stripe.webhooks.constructEvent(
 - `customer.subscription.updated`
 - `customer.subscription.deleted`
 
-### 6. Internationalization (i18n)
+### 5. Internationalization (i18n)
 
 **Package (`@repo/i18n`)**
 

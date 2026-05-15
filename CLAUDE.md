@@ -31,12 +31,12 @@ cd apps/backend && bun run dev     # Backend only (port 3001)
 cd apps/frontend && bun run dev    # Frontend only (port 5173)
 ```
 
-### Docker Services (PostgreSQL, Redis, MinIO)
+### Docker Services (PostgreSQL, Redis)
 
 ```bash
-docker-compose -f docker-compose.dev.yml up -d      # Start services
-docker-compose -f docker-compose.dev.yml down       # Stop services
-docker-compose -f docker-compose.dev.yml logs -f    # View logs
+DOMAIN=http://localhost:3000 ENCRYPTION_SECRET=local-dev-encryption-secret-change-me docker compose up -d postgres redis
+DOMAIN=http://localhost:3000 ENCRYPTION_SECRET=local-dev-encryption-secret-change-me docker compose down
+DOMAIN=http://localhost:3000 ENCRYPTION_SECRET=local-dev-encryption-secret-change-me docker compose logs -f
 ```
 
 ### Database
@@ -265,11 +265,10 @@ bun run dist/index.js
 ```
 
 **Required Environment Variables:**
-- `DATABASE_URL` - PostgreSQL connection
-- `REDIS_HOST`, `REDIS_PORT` - Redis for job queue
+- `DOMAIN` - public frontend URL, for example `https://glouton.facile.studio`
 - `ENCRYPTION_SECRET` - JWT signing (min 32 chars)
-- `FRONTEND_URL` - CORS configuration
-- `TRUSTED_ORIGINS` - CORS allowed origins
+
+Compose wires `DATABASE_URL`, Redis, and the internal frontend-to-backend proxy automatically. The backend is not exposed publicly.
 
 ## Common Issues
 
@@ -283,7 +282,7 @@ lsof -i :6379    # Redis
 
 **Redis connection issues:**
 - Ensure Docker container is running: `docker ps | grep redis`
-- Check logs: `docker-compose -f docker-compose.dev.yml logs redis`
+- Check logs: `DOMAIN=http://localhost:3000 ENCRYPTION_SECRET=local-dev-encryption-secret-change-me docker compose logs redis`
 
 **Database migrations not applied:**
 - Verify `DATABASE_URL` in `packages/database/.env`

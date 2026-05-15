@@ -3,7 +3,6 @@ import { loggerMiddleware } from './middleware/logger';
 import { prisma } from '@repo/database';
 import { validateRedisConfiguration } from '@repo/jobs';
 import { logger } from '@repo/logger';
-import corsHandler from './handlers/cors';
 import trpcHandler from './handlers/trpc';
 import {
   createLivenessHandler,
@@ -62,7 +61,6 @@ startup();
 
 const app = new Hono();
 
-app.use('*', corsHandler(env.TRUSTED_ORIGINS));
 app.use('*', loggerMiddleware);
 
 app.get('/health/live', createLivenessHandler());

@@ -2,11 +2,24 @@ import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
 import tailwindcss from '@tailwindcss/vite';
 
+const backendUrl = process.env.BACKEND_URL || 'http://localhost:3001';
+
 export default defineConfig({
   plugins: [sveltekit(), tailwindcss()],
   clearScreen: false,
   server: {
     port: Number(process.env.PORT) || 3000,
+    proxy: {
+      '/trpc': {
+        target: backendUrl,
+        changeOrigin: true,
+      },
+      '/ws': {
+        target: backendUrl,
+        changeOrigin: true,
+        ws: true,
+      },
+    },
     fs: {
       allow: ['..', '../../packages']
     }
