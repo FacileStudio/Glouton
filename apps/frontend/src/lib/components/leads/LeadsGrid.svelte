@@ -40,21 +40,9 @@
     return "À l'instant";
   }
 
-  function getScoreCircleColor(score: number): string {
-    if (score >= 70) return 'bg-green-500';
-    if (score >= 40) return 'bg-yellow-400';
-    return 'bg-orange-500';
-  }
-
-  function getStatusIcon(status: string): { icon: string; class: string } {
-    switch (status) {
-      case 'HOT':
-        return { icon: 'solar:fire-bold', class: 'text-orange-500' };
-      case 'WARM':
-        return { icon: 'solar:sun-2-bold', class: 'text-yellow-500' };
-      default:
-        return { icon: 'solar:snowflake-bold', class: 'text-blue-400' };
-    }
+  function getStatusBadge(status: Lead['status']): string {
+    if (status === 'HOT') return 'bg-destructive/10 text-destructive';
+    return 'bg-muted text-foreground';
   }
 
   function navigateToLead(leadId: string) {
@@ -70,77 +58,65 @@
   }
 </script>
 
-<div class="p-8">
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+<div class="p-6">
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
     {#each leads as lead}
       <div
         onclick={() => navigateToLead(lead.id)}
         onkeydown={(e) => e.key === 'Enter' && navigateToLead(lead.id)}
         role="button"
         tabindex="0"
-        class="rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all cursor-pointer bg-white"
+        class="rounded-xl border border-border bg-card p-4 hover:bg-muted/40 transition-colors cursor-pointer"
       >
-        <!-- Header -->
-        <div class="flex items-start justify-between mb-4">
+        <div class="flex items-start justify-between gap-3 mb-3">
           <div class="flex items-center gap-3 flex-1 min-w-0">
-            <div class="w-10 h-10 rounded-lg border border-neutral-200 bg-white flex items-center justify-center overflow-hidden flex-shrink-0 shadow-sm">
+            <div class="size-9 rounded-lg border border-border bg-background flex items-center justify-center overflow-hidden flex-shrink-0">
               <img
                 src={getFaviconUrl(lead.domain, 64)}
                 alt="{lead.domain} favicon"
-                class="w-6 h-6"
+                class="w-5 h-5"
                 loading="lazy"
                 onerror={(e) => handleFaviconError(e.currentTarget)}
               />
             </div>
-            <div class="flex items-center gap-2 min-w-0">
-              <iconify-icon icon={getStatusIcon(lead.status).icon} width="18" class="{getStatusIcon(lead.status).class} flex-shrink-0"></iconify-icon>
-              <h3 class="font-black text-neutral-900 truncate text-lg" title={getLeadTitle(lead)}>
-                {getLeadTitle(lead)}
-              </h3>
-            </div>
+            <h3 class="text-sm font-semibold text-foreground truncate" title={getLeadTitle(lead)}>
+              {getLeadTitle(lead)}
+            </h3>
           </div>
 
-          <!-- Score Circle -->
-          <div
-            class="w-10 h-10 rounded-full flex items-center justify-center text-xs font-black text-white flex-shrink-0 ml-2 {getScoreCircleColor(lead.score)}"
-            title="Score: {lead.score}"
-          >
+          <span class="text-sm font-medium text-foreground flex-shrink-0" title="Score: {lead.score}">
             {lead.score}
-          </div>
+          </span>
         </div>
 
-        <!-- Contact Status Badge -->
-        <div class="mb-4">
+        <div class="flex items-center gap-1.5 flex-wrap mb-3">
+          <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {getStatusBadge(lead.status)}">
+            {lead.status}
+          </span>
           {#if lead.contacted}
-            <span class="inline-flex items-center px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-xs font-black uppercase">
-              <iconify-icon icon="solar:check-circle-bold" width="14" class="mr-1"></iconify-icon>
+            <span class="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-foreground">
               Contacté
-            </span>
-          {:else}
-            <span class="inline-flex items-center px-3 py-1.5 bg-neutral-100 text-neutral-600 rounded-lg text-xs font-bold uppercase">
-              Non contacté
             </span>
           {/if}
         </div>
 
-        <!-- Contact Info -->
-        <div class="space-y-2 mb-4">
+        <div class="space-y-1.5 mb-3">
           {#if lead.email}
-            <div class="flex items-center gap-2 text-sm text-neutral-700 min-w-0">
-              <iconify-icon icon="solar:letter-bold" width="16" class="text-neutral-400 flex-shrink-0"></iconify-icon>
-              <span class="truncate font-medium" title={lead.email}>{lead.email}</span>
+            <div class="flex items-center gap-2 text-sm text-foreground min-w-0">
+              <iconify-icon icon="solar:letter-linear" width="14" class="text-muted-foreground flex-shrink-0"></iconify-icon>
+              <span class="truncate" title={lead.email}>{lead.email}</span>
             </div>
           {/if}
           {#if lead.firstName || lead.lastName}
-            <div class="flex items-center gap-2 text-sm text-neutral-700 min-w-0">
-              <iconify-icon icon="solar:user-bold" width="16" class="text-neutral-400 flex-shrink-0"></iconify-icon>
-              <span class="font-medium truncate">{lead.firstName || ''} {lead.lastName || ''}</span>
+            <div class="flex items-center gap-2 text-sm text-foreground min-w-0">
+              <iconify-icon icon="solar:user-linear" width="14" class="text-muted-foreground flex-shrink-0"></iconify-icon>
+              <span class="truncate">{lead.firstName || ''} {lead.lastName || ''}</span>
             </div>
           {/if}
           {#if lead.city || lead.country}
-            <div class="flex items-center gap-2 text-sm text-neutral-700 min-w-0">
-              <iconify-icon icon="solar:map-point-bold" width="16" class="text-neutral-400 flex-shrink-0"></iconify-icon>
-              <span class="font-medium truncate">
+            <div class="flex items-center gap-2 text-sm text-foreground min-w-0">
+              <iconify-icon icon="solar:map-point-linear" width="14" class="text-muted-foreground flex-shrink-0"></iconify-icon>
+              <span class="truncate">
                 {#if lead.city}{lead.city}{#if lead.country}, {/if}{/if}
                 {#if lead.country}{lead.country}{/if}
               </span>
@@ -148,14 +124,11 @@
           {/if}
         </div>
 
-        <!-- Footer with time -->
-        <div class="pt-4 border-t border-neutral-100">
-          <div class="flex items-center justify-between">
-            <span class="text-xs text-neutral-500 font-medium">
-              Ajouté {getRelativeTime(lead.createdAt)}
-            </span>
-            <iconify-icon icon="solar:arrow-right-bold" width="16" class="text-neutral-400"></iconify-icon>
-          </div>
+        <div class="pt-3 border-t border-border flex items-center justify-between">
+          <span class="text-xs text-muted-foreground">
+            {getRelativeTime(lead.createdAt)}
+          </span>
+          <iconify-icon icon="solar:arrow-right-linear" width="14" class="text-muted-foreground"></iconify-icon>
         </div>
       </div>
     {/each}

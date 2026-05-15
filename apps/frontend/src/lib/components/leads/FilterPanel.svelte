@@ -60,143 +60,133 @@
   });
 
   const statusOptions = [
-    { value: '', label: 'Tous', icon: 'solar:users-group-rounded-bold-duotone', iconClass: 'text-neutral-400' },
-    { value: 'HOT', label: 'Chaud', icon: 'solar:fire-bold-duotone', iconClass: 'text-orange-500' },
-    { value: 'WARM', label: 'Tiède', icon: 'solar:sun-2-bold-duotone', iconClass: 'text-yellow-500' },
-    { value: 'COLD', label: 'Froid', icon: 'solar:snowflake-bold-duotone', iconClass: 'text-blue-400' },
+    { value: '', label: 'Tous', icon: 'solar:users-group-rounded-linear' },
+    { value: 'HOT', label: 'Chaud', icon: 'solar:fire-linear' },
+    { value: 'WARM', label: 'Tiède', icon: 'solar:sun-2-linear' },
+    { value: 'COLD', label: 'Froid', icon: 'solar:snowflake-linear' },
   ];
 
   const contactedOptions = [
-    { value: '', label: 'Tous', icon: 'solar:users-group-rounded-bold-duotone', iconClass: 'text-neutral-400' },
-    { value: 'false', label: 'Nouveau', icon: 'solar:user-plus-bold-duotone', iconClass: 'text-violet-500' },
-    { value: 'true', label: 'Contacté', icon: 'solar:check-circle-bold-duotone', iconClass: 'text-green-500' },
+    { value: '', label: 'Tous', icon: 'solar:users-group-rounded-linear' },
+    { value: 'false', label: 'Nouveau', icon: 'solar:user-plus-linear' },
+    { value: 'true', label: 'Contacté', icon: 'solar:check-circle-linear' },
   ];
 
   const typeOptions = [
-    { value: 'all', label: 'Tous types', icon: 'solar:widget-2-bold-duotone', iconClass: 'text-neutral-400' },
-    { value: 'domain', label: 'Domaine', icon: 'solar:global-bold-duotone', iconClass: 'text-blue-500' },
-    { value: 'local', label: 'Local', icon: 'solar:map-point-bold-duotone', iconClass: 'text-rose-500' },
+    { value: 'all', label: 'Tous types', icon: 'solar:widget-2-linear' },
+    { value: 'domain', label: 'Domaine', icon: 'solar:global-linear' },
+    { value: 'local', label: 'Local', icon: 'solar:map-point-linear' },
   ];
 </script>
 
-<div class="rounded-[28px] shadow-lg p-5 space-y-3" style="background-color: var(--card);">
-
-  <div class="flex items-center gap-3">
+<div class="rounded-xl border border-border bg-card p-4 space-y-4">
+  <div class="flex items-center gap-2">
     <div class="relative flex-1">
       <iconify-icon
-        icon="solar:magnifer-bold"
-        width="18"
-        class="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none"
+        icon="solar:magnifer-linear"
+        width="16"
+        class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
       ></iconify-icon>
       <input
         type="text"
         bind:value={filters.search}
         placeholder="Rechercher par domaine, e-mail, nom, localisation..."
-        class="w-full h-12 pl-11 pr-10 bg-white rounded-2xl border border-neutral-200 focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 outline-none font-medium text-sm placeholder:text-neutral-400 transition-all"
+        class="w-full h-9 pl-9 pr-9 rounded-lg border border-input bg-background text-sm placeholder:text-muted-foreground outline-none focus:border-ring transition-colors"
       />
       {#if filters.search}
         <button
           onclick={() => (filters.search = '')}
           aria-label="Effacer la recherche"
-          class="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-black transition-colors"
+          class="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
         >
-          <iconify-icon icon="solar:close-circle-bold" width="18"></iconify-icon>
+          <iconify-icon icon="solar:close-circle-linear" width="16"></iconify-icon>
         </button>
       {/if}
     </div>
     <button
       onclick={() => (filtersExpanded = !filtersExpanded)}
       aria-label={filtersExpanded ? 'Masquer les filtres' : 'Afficher les filtres'}
-      class="h-12 px-4 rounded-2xl border transition-all font-bold text-sm flex items-center gap-2 flex-shrink-0 {filtersExpanded ? 'bg-neutral-900 text-white border-neutral-900' : 'bg-white border-neutral-200 text-neutral-600 hover:text-black hover:border-neutral-900'}"
+      class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 text-sm font-medium transition-colors hover:bg-muted flex-shrink-0"
     >
-      <iconify-icon icon={filtersExpanded ? 'solar:alt-arrow-up-bold' : 'solar:filter-bold'} width="16"></iconify-icon>
-      {filtersExpanded ? 'Masquer filtres' : 'Filtres'}
+      <iconify-icon icon={filtersExpanded ? 'solar:alt-arrow-up-linear' : 'solar:filter-linear'} width="14"></iconify-icon>
+      {filtersExpanded ? 'Masquer' : 'Filtres'}
     </button>
     {#if hasActiveFilters}
       <button
         onclick={onReset}
-        class="h-12 px-4 bg-white rounded-2xl border border-neutral-200 text-neutral-600 hover:text-black hover:border-neutral-900 transition-all font-bold text-sm flex items-center gap-2 flex-shrink-0"
+        class="inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground flex-shrink-0"
       >
-        <iconify-icon icon="solar:restart-bold" width="16"></iconify-icon>
+        <iconify-icon icon="solar:restart-linear" width="14"></iconify-icon>
         Réinitialiser
       </button>
     {/if}
   </div>
 
   {#if filtersExpanded}
-  <div class="flex flex-wrap items-start gap-4 pt-1">
+    <div class="flex flex-wrap items-start gap-4 pt-2 border-t border-border">
 
-    <div class="flex flex-col gap-1.5">
-      <span class="text-[9px] font-black uppercase tracking-widest text-neutral-400 pl-0.5">Statut</span>
-      <div class="flex items-center gap-1">
-        {#each statusOptions as opt}
-          {@const count = counts.status[opt.value as keyof typeof counts.status]}
-          <button
-            onclick={() => (filters.status = opt.value)}
-            class="h-8 pl-2 pr-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 {filters.status === opt.value
-              ? 'bg-neutral-900 text-white shadow-sm'
-              : 'bg-white text-neutral-600 border border-neutral-200 hover:border-neutral-400 hover:text-neutral-900'}"
-          >
-            <iconify-icon icon={opt.icon} width="14" class={filters.status === opt.value ? 'text-white' : opt.iconClass}></iconify-icon>
-            {opt.label}
-            <span class="text-[10px] px-1.5 py-0.5 rounded-lg font-black {filters.status === opt.value ? 'bg-white/20 text-white' : 'bg-neutral-100 text-neutral-500'}">{count}</span>
-          </button>
-        {/each}
+      <div class="flex flex-col gap-1.5">
+        <span class="text-xs text-muted-foreground">Statut</span>
+        <div class="flex items-center gap-1">
+          {#each statusOptions as opt}
+            {@const count = counts.status[opt.value as keyof typeof counts.status]}
+            <button
+              onclick={() => (filters.status = opt.value)}
+              class="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium transition-colors {filters.status === opt.value
+                ? 'bg-primary text-primary-foreground'
+                : 'border border-border bg-background text-foreground hover:bg-muted'}"
+            >
+              <iconify-icon icon={opt.icon} width="12"></iconify-icon>
+              {opt.label}
+              <span class="rounded-full px-1.5 py-0.5 text-[10px] font-medium {filters.status === opt.value ? 'bg-primary-foreground/15' : 'bg-muted text-muted-foreground'}">{count}</span>
+            </button>
+          {/each}
+        </div>
       </div>
-    </div>
 
-    <div class="w-px self-stretch bg-neutral-300"></div>
-
-    <div class="flex flex-col gap-1.5">
-      <span class="text-[9px] font-black uppercase tracking-widest text-neutral-400 pl-0.5">Contacté</span>
-      <div class="flex items-center gap-1">
-        {#each contactedOptions as opt}
-          {@const count = counts.contacted[opt.value as keyof typeof counts.contacted]}
-          <button
-            onclick={() => (filters.contacted = opt.value)}
-            class="h-8 pl-2 pr-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 {filters.contacted === opt.value
-              ? 'bg-neutral-900 text-white shadow-sm'
-              : 'bg-white text-neutral-600 border border-neutral-200 hover:border-neutral-400 hover:text-neutral-900'}"
-          >
-            <iconify-icon icon={opt.icon} width="14" class={filters.contacted === opt.value ? 'text-white' : opt.iconClass}></iconify-icon>
-            {opt.label}
-            <span class="text-[10px] px-1.5 py-0.5 rounded-lg font-black {filters.contacted === opt.value ? 'bg-white/20 text-white' : 'bg-neutral-100 text-neutral-500'}">{count}</span>
-          </button>
-        {/each}
+      <div class="flex flex-col gap-1.5">
+        <span class="text-xs text-muted-foreground">Contacté</span>
+        <div class="flex items-center gap-1">
+          {#each contactedOptions as opt}
+            {@const count = counts.contacted[opt.value as keyof typeof counts.contacted]}
+            <button
+              onclick={() => (filters.contacted = opt.value)}
+              class="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium transition-colors {filters.contacted === opt.value
+                ? 'bg-primary text-primary-foreground'
+                : 'border border-border bg-background text-foreground hover:bg-muted'}"
+            >
+              <iconify-icon icon={opt.icon} width="12"></iconify-icon>
+              {opt.label}
+              <span class="rounded-full px-1.5 py-0.5 text-[10px] font-medium {filters.contacted === opt.value ? 'bg-primary-foreground/15' : 'bg-muted text-muted-foreground'}">{count}</span>
+            </button>
+          {/each}
+        </div>
       </div>
-    </div>
 
-    <div class="w-px self-stretch bg-neutral-300"></div>
-
-    <div class="flex flex-col gap-1.5">
-      <span class="text-[9px] font-black uppercase tracking-widest text-neutral-400 pl-0.5">Type</span>
-
-      <div class="flex items-center gap-1">
-        {#each typeOptions as opt}
-          {@const count = counts.type[opt.value as keyof typeof counts.type]}
-          <button
-            onclick={() => (filters.businessType = opt.value as Filters['businessType'])}
-            class="h-8 pl-2 pr-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 {filters.businessType === opt.value
-              ? 'bg-neutral-900 text-white shadow-sm'
-              : 'bg-white text-neutral-600 border border-neutral-200 hover:border-neutral-400 hover:text-neutral-900'}"
-          >
-            <iconify-icon icon={opt.icon} width="14" class={filters.businessType === opt.value ? 'text-white' : opt.iconClass}></iconify-icon>
-            {opt.label}
-            <span class="text-[10px] px-1.5 py-0.5 rounded-lg font-black {filters.businessType === opt.value ? 'bg-white/20 text-white' : 'bg-neutral-100 text-neutral-500'}">{count}</span>
-          </button>
-        {/each}
+      <div class="flex flex-col gap-1.5">
+        <span class="text-xs text-muted-foreground">Type</span>
+        <div class="flex items-center gap-1">
+          {#each typeOptions as opt}
+            {@const count = counts.type[opt.value as keyof typeof counts.type]}
+            <button
+              onclick={() => (filters.businessType = opt.value as Filters['businessType'])}
+              class="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium transition-colors {filters.businessType === opt.value
+                ? 'bg-primary text-primary-foreground'
+                : 'border border-border bg-background text-foreground hover:bg-muted'}"
+            >
+              <iconify-icon icon={opt.icon} width="12"></iconify-icon>
+              {opt.label}
+              <span class="rounded-full px-1.5 py-0.5 text-[10px] font-medium {filters.businessType === opt.value ? 'bg-primary-foreground/15' : 'bg-muted text-muted-foreground'}">{count}</span>
+            </button>
+          {/each}
+        </div>
       </div>
-    </div>
 
-    <div class="w-px self-stretch bg-neutral-300"></div>
-
-    <div class="flex flex-col gap-1.5">
-      <span class="text-[9px] font-black uppercase tracking-widest text-neutral-400 pl-0.5">Catégorie</span>
-      <div class="relative">
-        <iconify-icon icon="solar:tag-bold-duotone" width="13" class="absolute left-2.5 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none"></iconify-icon>
+      <div class="flex flex-col gap-1.5">
+        <span class="text-xs text-muted-foreground">Catégorie</span>
         <select
           bind:value={filters.category}
-          class="h-8 w-44 pl-7 pr-3 bg-white rounded-xl border border-neutral-200 focus:border-neutral-900 outline-none font-medium text-xs text-neutral-600 transition-all appearance-none cursor-pointer"
+          class="h-8 w-44 rounded-lg border border-input bg-background px-3 text-xs text-foreground outline-none focus:border-ring transition-colors"
         >
           <option value="">Toutes les catégories</option>
           <option value="restaurant">Restaurant</option>
@@ -230,149 +220,130 @@
       </div>
     </div>
 
-  </div>
+    <div class="flex flex-wrap items-start gap-4 pt-2 border-t border-border">
 
-  <div class="flex flex-wrap items-start gap-4 pt-1 border-t border-neutral-300/60">
-
-    <div class="flex flex-col gap-1.5">
-      <span class="text-[9px] font-black uppercase tracking-widest text-neutral-400 pl-0.5">Site web</span>
-      <div class="flex items-center gap-1">
-        {#each [
-          { value: '' as const, icon: 'solar:global-bold-duotone', label: 'Tous', iconClass: 'text-neutral-400' },
-          { value: 'true' as const, icon: 'solar:check-circle-bold-duotone', label: 'Oui', iconClass: 'text-emerald-500' },
-          { value: 'false' as const, icon: 'solar:close-circle-bold-duotone', label: 'Non', iconClass: 'text-red-400' },
-        ] as opt}
-          <button
-            onclick={() => (filters.hasWebsite = opt.value)}
-            class="h-8 pl-2 pr-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 {filters.hasWebsite === opt.value
-              ? 'bg-neutral-900 text-white shadow-sm'
-              : 'bg-white text-neutral-600 border border-neutral-200 hover:border-neutral-400 hover:text-neutral-900'}"
-          >
-            <iconify-icon icon={opt.icon} width="14" class={filters.hasWebsite === opt.value ? 'text-white' : opt.iconClass}></iconify-icon>
-            {opt.label}
-          </button>
-        {/each}
+      <div class="flex flex-col gap-1.5">
+        <span class="text-xs text-muted-foreground">Site web</span>
+        <div class="flex items-center gap-1">
+          {#each [
+            { value: '' as const, icon: 'solar:global-linear', label: 'Tous' },
+            { value: 'true' as const, icon: 'solar:check-circle-linear', label: 'Oui' },
+            { value: 'false' as const, icon: 'solar:close-circle-linear', label: 'Non' },
+          ] as opt}
+            <button
+              onclick={() => (filters.hasWebsite = opt.value)}
+              class="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium transition-colors {filters.hasWebsite === opt.value
+                ? 'bg-primary text-primary-foreground'
+                : 'border border-border bg-background text-foreground hover:bg-muted'}"
+            >
+              <iconify-icon icon={opt.icon} width="12"></iconify-icon>
+              {opt.label}
+            </button>
+          {/each}
+        </div>
       </div>
-    </div>
 
-    <div class="w-px self-stretch bg-neutral-300"></div>
-
-    <div class="flex flex-col gap-1.5">
-      <span class="text-[9px] font-black uppercase tracking-widest text-neutral-400 pl-0.5">Social</span>
-      <div class="flex items-center gap-1">
-        {#each [
-          { value: '' as const, icon: 'solar:share-bold-duotone', label: 'Tous', iconClass: 'text-neutral-400' },
-          { value: 'true' as const, icon: 'solar:check-circle-bold-duotone', label: 'Oui', iconClass: 'text-emerald-500' },
-          { value: 'false' as const, icon: 'solar:close-circle-bold-duotone', label: 'Non', iconClass: 'text-red-400' },
-        ] as opt}
-          <button
-            onclick={() => (filters.hasSocial = opt.value)}
-            class="h-8 pl-2 pr-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 {filters.hasSocial === opt.value
-              ? 'bg-neutral-900 text-white shadow-sm'
-              : 'bg-white text-neutral-600 border border-neutral-200 hover:border-neutral-400 hover:text-neutral-900'}"
-          >
-            <iconify-icon icon={opt.icon} width="14" class={filters.hasSocial === opt.value ? 'text-white' : opt.iconClass}></iconify-icon>
-            {opt.label}
-          </button>
-        {/each}
+      <div class="flex flex-col gap-1.5">
+        <span class="text-xs text-muted-foreground">Social</span>
+        <div class="flex items-center gap-1">
+          {#each [
+            { value: '' as const, icon: 'solar:share-linear', label: 'Tous' },
+            { value: 'true' as const, icon: 'solar:check-circle-linear', label: 'Oui' },
+            { value: 'false' as const, icon: 'solar:close-circle-linear', label: 'Non' },
+          ] as opt}
+            <button
+              onclick={() => (filters.hasSocial = opt.value)}
+              class="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium transition-colors {filters.hasSocial === opt.value
+                ? 'bg-primary text-primary-foreground'
+                : 'border border-border bg-background text-foreground hover:bg-muted'}"
+            >
+              <iconify-icon icon={opt.icon} width="12"></iconify-icon>
+              {opt.label}
+            </button>
+          {/each}
+        </div>
       </div>
-    </div>
 
-    <div class="w-px self-stretch bg-neutral-300"></div>
-
-    <div class="flex flex-col gap-1.5">
-      <span class="text-[9px] font-black uppercase tracking-widest text-neutral-400 pl-0.5">Téléphone</span>
-      <div class="flex items-center gap-1">
-        {#each [
-          { value: '' as const, icon: 'solar:phone-bold-duotone', label: 'Tous', iconClass: 'text-neutral-400' },
-          { value: 'true' as const, icon: 'solar:check-circle-bold-duotone', label: 'Oui', iconClass: 'text-emerald-500' },
-          { value: 'false' as const, icon: 'solar:close-circle-bold-duotone', label: 'Non', iconClass: 'text-red-400' },
-        ] as opt}
-          <button
-            onclick={() => (filters.hasPhone = opt.value)}
-            class="h-8 pl-2 pr-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 {filters.hasPhone === opt.value
-              ? 'bg-neutral-900 text-white shadow-sm'
-              : 'bg-white text-neutral-600 border border-neutral-200 hover:border-neutral-400 hover:text-neutral-900'}"
-          >
-            <iconify-icon icon={opt.icon} width="14" class={filters.hasPhone === opt.value ? 'text-white' : opt.iconClass}></iconify-icon>
-            {opt.label}
-          </button>
-        {/each}
+      <div class="flex flex-col gap-1.5">
+        <span class="text-xs text-muted-foreground">Téléphone</span>
+        <div class="flex items-center gap-1">
+          {#each [
+            { value: '' as const, icon: 'solar:phone-linear', label: 'Tous' },
+            { value: 'true' as const, icon: 'solar:check-circle-linear', label: 'Oui' },
+            { value: 'false' as const, icon: 'solar:close-circle-linear', label: 'Non' },
+          ] as opt}
+            <button
+              onclick={() => (filters.hasPhone = opt.value)}
+              class="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium transition-colors {filters.hasPhone === opt.value
+                ? 'bg-primary text-primary-foreground'
+                : 'border border-border bg-background text-foreground hover:bg-muted'}"
+            >
+              <iconify-icon icon={opt.icon} width="12"></iconify-icon>
+              {opt.label}
+            </button>
+          {/each}
+        </div>
       </div>
-    </div>
 
-    <div class="w-px self-stretch bg-neutral-300"></div>
-
-    <div class="flex flex-col gap-1.5">
-      <span class="text-[9px] font-black uppercase tracking-widest text-neutral-400 pl-0.5">GPS</span>
-      <div class="flex items-center gap-1">
-        {#each [
-          { value: '' as const, icon: 'solar:map-point-bold-duotone', label: 'Tous', iconClass: 'text-neutral-400' },
-          { value: 'true' as const, icon: 'solar:check-circle-bold-duotone', label: 'Oui', iconClass: 'text-emerald-500' },
-          { value: 'false' as const, icon: 'solar:close-circle-bold-duotone', label: 'Non', iconClass: 'text-red-400' },
-        ] as opt}
-          <button
-            onclick={() => (filters.hasGps = opt.value)}
-            class="h-8 pl-2 pr-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 {filters.hasGps === opt.value
-              ? 'bg-neutral-900 text-white shadow-sm'
-              : 'bg-white text-neutral-600 border border-neutral-200 hover:border-neutral-400 hover:text-neutral-900'}"
-          >
-            <iconify-icon icon={opt.icon} width="14" class={filters.hasGps === opt.value ? 'text-white' : opt.iconClass}></iconify-icon>
-            {opt.label}
-          </button>
-        {/each}
+      <div class="flex flex-col gap-1.5">
+        <span class="text-xs text-muted-foreground">GPS</span>
+        <div class="flex items-center gap-1">
+          {#each [
+            { value: '' as const, icon: 'solar:map-point-linear', label: 'Tous' },
+            { value: 'true' as const, icon: 'solar:check-circle-linear', label: 'Oui' },
+            { value: 'false' as const, icon: 'solar:close-circle-linear', label: 'Non' },
+          ] as opt}
+            <button
+              onclick={() => (filters.hasGps = opt.value)}
+              class="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium transition-colors {filters.hasGps === opt.value
+                ? 'bg-primary text-primary-foreground'
+                : 'border border-border bg-background text-foreground hover:bg-muted'}"
+            >
+              <iconify-icon icon={opt.icon} width="12"></iconify-icon>
+              {opt.label}
+            </button>
+          {/each}
+        </div>
       </div>
-    </div>
 
-    <div class="w-px self-stretch bg-neutral-300"></div>
-
-    <div class="flex flex-col gap-1.5">
-      <span class="text-[9px] font-black uppercase tracking-widest text-neutral-400 pl-0.5">E-mail</span>
-      <div class="flex items-center gap-1">
-        {#each [
-          { value: '' as const, icon: 'solar:letter-bold-duotone', label: 'Tous', iconClass: 'text-neutral-400' },
-          { value: 'true' as const, icon: 'solar:check-circle-bold-duotone', label: 'Oui', iconClass: 'text-emerald-500' },
-          { value: 'false' as const, icon: 'solar:close-circle-bold-duotone', label: 'Non', iconClass: 'text-red-400' },
-        ] as opt}
-          <button
-            onclick={() => (filters.hasEmail = opt.value)}
-            class="h-8 pl-2 pr-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 {filters.hasEmail === opt.value
-              ? 'bg-neutral-900 text-white shadow-sm'
-              : 'bg-white text-neutral-600 border border-neutral-200 hover:border-neutral-400 hover:text-neutral-900'}"
-          >
-            <iconify-icon icon={opt.icon} width="14" class={filters.hasEmail === opt.value ? 'text-white' : opt.iconClass}></iconify-icon>
-            {opt.label}
-          </button>
-        {/each}
+      <div class="flex flex-col gap-1.5">
+        <span class="text-xs text-muted-foreground">E-mail</span>
+        <div class="flex items-center gap-1">
+          {#each [
+            { value: '' as const, icon: 'solar:letter-linear', label: 'Tous' },
+            { value: 'true' as const, icon: 'solar:check-circle-linear', label: 'Oui' },
+            { value: 'false' as const, icon: 'solar:close-circle-linear', label: 'Non' },
+          ] as opt}
+            <button
+              onclick={() => (filters.hasEmail = opt.value)}
+              class="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium transition-colors {filters.hasEmail === opt.value
+                ? 'bg-primary text-primary-foreground'
+                : 'border border-border bg-background text-foreground hover:bg-muted'}"
+            >
+              <iconify-icon icon={opt.icon} width="12"></iconify-icon>
+              {opt.label}
+            </button>
+          {/each}
+        </div>
       </div>
-    </div>
 
-    <div class="w-px self-stretch bg-neutral-300"></div>
-
-    <div class="flex flex-col gap-1.5">
-      <span class="text-[9px] font-black uppercase tracking-widest text-neutral-400 pl-0.5">Localisation</span>
-      <div class="flex items-center gap-1.5">
-        <div class="relative">
-          <iconify-icon icon="solar:global-bold" width="13" class="absolute left-2.5 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none"></iconify-icon>
+      <div class="flex flex-col gap-1.5">
+        <span class="text-xs text-muted-foreground">Localisation</span>
+        <div class="flex items-center gap-1.5">
           <input
             type="text"
             bind:value={filters.country}
             placeholder="Pays"
-            class="h-8 w-28 pl-7 pr-3 bg-white rounded-xl border border-neutral-200 focus:border-neutral-900 outline-none font-medium text-xs placeholder:text-neutral-400 transition-all"
+            class="h-8 w-28 rounded-lg border border-input bg-background px-3 text-xs placeholder:text-muted-foreground outline-none focus:border-ring transition-colors"
           />
-        </div>
-        <div class="relative">
-          <iconify-icon icon="solar:map-point-bold" width="13" class="absolute left-2.5 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none"></iconify-icon>
           <input
             type="text"
             bind:value={filters.city}
             placeholder="Ville"
-            class="h-8 w-24 pl-7 pr-3 bg-white rounded-xl border border-neutral-200 focus:border-neutral-900 outline-none font-medium text-xs placeholder:text-neutral-400 transition-all"
+            class="h-8 w-28 rounded-lg border border-input bg-background px-3 text-xs placeholder:text-muted-foreground outline-none focus:border-ring transition-colors"
           />
         </div>
       </div>
     </div>
-
-  </div>
   {/if}
 </div>

@@ -53,48 +53,42 @@
   }
 </script>
 
-<div
-  class="p-6 lg:p-12 max-w-4xl mx-auto space-y-8 selection:text-black font-sans"
-  style="background-color: var(--background); selection-background-color: var(--foreground);"
->
-  <div class="flex items-center gap-4">
+<div class="max-w-[1600px] mx-auto px-6 py-6 space-y-6">
+  <div class="flex items-center gap-3">
     <button
       aria-label="Annuler"
       onclick={handleCancel}
-      class="w-12 h-12 flex items-center justify-center bg-white rounded-xl hover:bg-neutral-50 transition-colors border border-neutral-100"
+      class="inline-flex size-8 items-center justify-center rounded-lg border border-border bg-background hover:bg-muted"
     >
-      <iconify-icon icon="solar:arrow-left-bold" width="20" class="text-neutral-700"></iconify-icon>
+      <iconify-icon icon="solar:arrow-left-linear" width="16"></iconify-icon>
     </button>
-    <div>
-      <h1 class="text-3xl md:text-4xl font-black tracking-tight" style="color: var(--foreground);">
-        Créer une équipe
-      </h1>
-      <p class="text-neutral-500 font-medium text-base mt-1">
+    <div class="space-y-1">
+      <h1 class="text-2xl font-bold tracking-tight text-foreground">Créer une équipe</h1>
+      <p class="text-sm text-muted-foreground">
         Créez une nouvelle équipe pour collaborer avec vos collègues
       </p>
     </div>
   </div>
 
-  <div class="p-8 md:p-10 rounded-2xl shadow-lg space-y-8" style="background-color: var(--card);">
-    <div class="space-y-6">
-      <div class="space-y-2">
-        <label for="name" class="text-sm font-bold text-neutral-700 block">
-          Nom de l'équipe <span class="text-red-500">*</span>
+  <div class="rounded-xl border border-border bg-card p-6 space-y-6">
+    <div class="space-y-4">
+      <div class="space-y-1.5">
+        <label for="name" class="text-sm font-medium text-foreground block">
+          Nom de l'équipe <span class="text-destructive">*</span>
         </label>
         <Input
           id="name"
           bind:value={formData.name}
           placeholder="Équipe Marketing"
           error={!!errors.name}
-          class="rounded-xl"
         />
         {#if errors.name}
-          <p class="text-red-500 text-xs font-medium">{errors.name}</p>
+          <p class="text-xs text-destructive">{errors.name}</p>
         {/if}
       </div>
 
-      <div class="space-y-2">
-        <label for="description" class="text-sm font-bold text-neutral-700 block">
+      <div class="space-y-1.5">
+        <label for="description" class="text-sm font-medium text-foreground block">
           Description (optionnel)
         </label>
         <textarea
@@ -102,43 +96,41 @@
           bind:value={formData.description}
           placeholder="Décrivez l'objectif de cette équipe..."
           rows="4"
-          class="w-full px-5 py-3 rounded-2xl bg-slate-50/50 border-2 border-slate-100 focus:border-muted focus:bg-white hover:bg-white transition-all duration-200 font-medium text-foreground placeholder:text-slate-400 outline-none resize-none"
+          class="w-full min-h-24 rounded-lg border border-input bg-background px-3 py-2 text-sm resize-none"
         ></textarea>
       </div>
     </div>
 
-    <div class="pt-6 border-t border-neutral-200 flex items-center justify-end gap-3">
-      <Button
+    <div class="pt-4 border-t border-border flex items-center justify-end gap-2">
+      <button
         onclick={handleCancel}
-        intent="secondary"
-        size="lg"
         disabled={creating}
+        class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50"
       >
         Annuler
-      </Button>
-      <Button
+      </button>
+      <button
         onclick={handleSubmit}
-        intent="primary"
-        size="lg"
         disabled={creating || !formData.name.trim()}
+        class="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85 disabled:opacity-50"
       >
         {#if creating}
           <Spinner size="sm" />
           <span>Création...</span>
         {:else}
-          <iconify-icon icon="mdi:plus-circle" width="20"></iconify-icon>
+          <iconify-icon icon="mdi:plus-circle" width="16"></iconify-icon>
           <span>Créer l'équipe</span>
         {/if}
-      </Button>
+      </button>
     </div>
   </div>
 
-  <div class="bg-blue-50 border border-blue-200 rounded-2xl p-6">
+  <div class="rounded-xl border border-border bg-card p-4">
     <div class="flex gap-3">
-      <iconify-icon icon="solar:info-circle-bold" width="24" class="text-blue-600 flex-shrink-0"></iconify-icon>
+      <iconify-icon icon="solar:info-circle-linear" width="18" class="text-muted-foreground flex-shrink-0 mt-0.5"></iconify-icon>
       <div>
-        <h3 class="font-bold text-blue-900 mb-1">À propos des équipes</h3>
-        <p class="text-blue-700 text-sm leading-relaxed">
+        <h3 class="text-sm font-semibold text-foreground mb-1">À propos des équipes</h3>
+        <p class="text-sm text-muted-foreground">
           En créant une équipe, vous deviendrez automatiquement propriétaire. Vous pourrez inviter des membres,
           configurer les clés API et les paramètres SMTP pour l'équipe.
         </p>

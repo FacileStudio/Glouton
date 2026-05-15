@@ -390,44 +390,34 @@
   style="display: none;"
 />
 
-<div
-  class="p-6 lg:p-12 max-w-[1600px] mx-auto space-y-12 selection:text-black font-sans"
-  style="background-color: var(--background); selection-background-color: var(--foreground);"
->
-  <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
-    <div class="flex items-center gap-4">
-      <div class="w-16 h-16 flex items-center justify-center bg-neutral-900 rounded-2xl">
-        <iconify-icon icon="solar:chart-square-bold" width="32" class="text-white"></iconify-icon>
-      </div>
-      <div class="space-y-1">
-        <h1 class="text-5xl font-black tracking-tight leading-none" style="color: var(--foreground);">
-          Leads
-        </h1>
-        <p class="text-neutral-400 font-medium text-sm">
-          {processedLeads.length} résultat{processedLeads.length !== 1 ? 's' : ''} trouvé{processedLeads.length !== 1 ? 's' : ''}
-        </p>
-      </div>
+<div class="max-w-[1600px] mx-auto px-6 py-6 space-y-6">
+  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-bold tracking-tight text-foreground">Leads</h1>
+      <p class="text-sm text-muted-foreground mt-1">
+        {processedLeads.length} résultat{processedLeads.length !== 1 ? 's' : ''}
+      </p>
     </div>
 
-    <div class="flex items-center gap-3">
+    <div class="flex items-center gap-2 flex-wrap">
       <a
         href="/app/leads/favorites"
-        class="bg-red-100 text-red-700 px-6 py-4 rounded-xl font-bold hover:bg-red-200 active:scale-95 transition-all flex items-center gap-3 shadow-lg"
+        class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 text-sm font-medium transition-colors hover:bg-muted"
       >
-        <iconify-icon icon="solar:heart-bold" width="20"></iconify-icon>
+        <iconify-icon icon="solar:heart-linear" width="16"></iconify-icon>
         <span>Favoris</span>
       </a>
 
       <button
         onclick={triggerFileUpload}
         disabled={importing}
-        class="bg-white text-neutral-700 px-6 py-4 rounded-xl font-bold hover:bg-neutral-50 active:scale-95 transition-all flex items-center gap-3 shadow-lg disabled:opacity-50"
+        class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50"
       >
         {#if importing}
           <Spinner size="sm" />
           Importation...
         {:else}
-          <iconify-icon icon="solar:upload-bold" width="20"></iconify-icon>
+          <iconify-icon icon="solar:upload-linear" width="16"></iconify-icon>
           <span>Importer CSV</span>
         {/if}
       </button>
@@ -435,13 +425,13 @@
       <button
         onclick={exportToCSV}
         disabled={exporting}
-        class="bg-white text-neutral-700 px-6 py-4 rounded-xl font-bold hover:bg-neutral-50 active:scale-95 transition-all flex items-center gap-3 shadow-lg disabled:opacity-50"
+        class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50"
       >
         {#if exporting}
           <Spinner size="sm" />
           Exportation...
         {:else}
-          <iconify-icon icon="solar:download-bold" width="20"></iconify-icon>
+          <iconify-icon icon="solar:download-linear" width="16"></iconify-icon>
           <span>Exporter CSV</span>
         {/if}
       </button>
@@ -449,20 +439,20 @@
       <button
         onclick={startAudit}
         disabled={startingAudit || !!activeAudit}
-        class="bg-black text-white px-8 py-4 rounded-xl font-bold hover:bg-neutral-800 active:scale-95 transition-all flex items-center gap-3 shadow-lg shadow-black/20 disabled:opacity-50"
+        class="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85 disabled:opacity-50"
       >
         {#if startingAudit}
           <Spinner size="sm" />
           Démarrage...
         {:else}
-          <iconify-icon icon="solar:shield-check-bold" width="20"></iconify-icon>
+          <iconify-icon icon="solar:shield-check-linear" width="16"></iconify-icon>
           <span>Lancer l'audit</span>
         {/if}
       </button>
     </div>
   </div>
 
-  <div class="space-y-8">
+  <div class="space-y-6">
     {#if activeAudit}
       <AuditBanner
         session={activeAudit}
@@ -477,7 +467,7 @@
 
     <FilterPanel bind:filters bind:filtersExpanded leads={leads} onReset={resetFilters} />
 
-    <div class="flex items-center gap-2 flex-wrap">
+    <div class="flex items-center gap-1.5 flex-wrap">
       {#each [
         { label: 'Date', value: 'createdAt' },
         { label: 'Score', value: 'score' },
@@ -488,14 +478,15 @@
       ] as opt}
         <button
           onclick={() => handleSort(opt.value)}
-          class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-all {sortBy === opt.value ? 'bg-black text-white shadow-md' : 'bg-white text-neutral-600 hover:bg-neutral-100 shadow-sm'}"
+          class="inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition-colors {sortBy === opt.value ? 'bg-primary text-primary-foreground' : 'border border-border bg-background text-foreground hover:bg-muted'}"
         >
           {opt.label}
-          <iconify-icon
-            icon={sortBy === opt.value ? (sortOrder === 'asc' ? 'solar:arrow-up-bold' : 'solar:arrow-down-bold') : 'solar:arrow-down-bold'}
-            width="13"
-            class={sortBy === opt.value ? '' : 'opacity-20'}
-          ></iconify-icon>
+          {#if sortBy === opt.value}
+            <iconify-icon
+              icon={sortOrder === 'asc' ? 'solar:arrow-up-linear' : 'solar:arrow-down-linear'}
+              width="12"
+            ></iconify-icon>
+          {/if}
         </button>
       {/each}
     </div>
@@ -504,15 +495,15 @@
       <LeadsMap leads={processedLeads} />
     {/if}
 
-    <div class="rounded-2xl overflow-hidden shadow-lg" style="background-color: var(--card);">
+    <div class="rounded-xl border border-border bg-card overflow-hidden">
       {#if loadingData && !initialLoading}
-        <div class="flex items-center justify-center py-20">
+        <div class="flex items-center justify-center py-16">
           <Spinner size="lg" />
         </div>
       {:else if processedLeads.length === 0}
-        <div class="flex flex-col items-center justify-center py-20 space-y-4">
-          <iconify-icon icon="solar:ghost-bold" width="80" class="text-neutral-200"></iconify-icon>
-          <p class="text-neutral-400 font-bold uppercase tracking-widest text-sm">
+        <div class="flex flex-col items-center justify-center py-16 space-y-3">
+          <iconify-icon icon="solar:ghost-linear" width="48" class="text-muted-foreground"></iconify-icon>
+          <p class="text-sm text-muted-foreground">
             {filters.search ||
             filters.status ||
             filters.contacted ||

@@ -46,7 +46,7 @@
     <div class="p-6 border-b border-slate-50 flex justify-between items-center">
       <h3 class="text-xl font-black tracking-tight text-slate-800">Nouvelle discussion</h3>
       <button on:click={() => dispatch('close')} class="text-slate-400 hover:text-red-500 transition-colors cursor-pointer" aria-label="Fermer">
-        <iconify-icon icon="solar:close-circle-bold" width="24"></iconify-icon>
+        <iconify-icon icon="solar:close-circle-linear" width="24"></iconify-icon>
       </button>
     </div>
 
@@ -93,7 +93,7 @@
 
         {#if serverError}
           <div in:fade class="p-3 rounded-xl bg-red-50 border border-red-100 flex items-center gap-3 text-red-600">
-            <iconify-icon icon="solar:danger-triangle-bold" width="20"></iconify-icon>
+            <iconify-icon icon="solar:danger-triangle-linear" width="20"></iconify-icon>
             <p class="text-xs font-bold">{serverError}</p>
           </div>
         {/if}
@@ -107,7 +107,7 @@
             <iconify-icon icon="svg-spinners:blocks-shuffle-3" width="20"></iconify-icon>
             <span>Création...</span>
           {:else}
-            <iconify-icon icon="solar:magic-stick-3-bold" width="20"></iconify-icon>
+            <iconify-icon icon="solar:magic-stick-3-linear" width="20"></iconify-icon>
             <span>Lancer la discussion</span>
           {/if}
         </button>

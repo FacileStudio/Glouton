@@ -72,88 +72,84 @@
       : 0
   );
 
-  const successRateCls = $derived(
-    successRate >= 70 ? 'text-green-600' : successRate >= 40 ? 'text-yellow-600' : 'text-red-500'
-  );
-
   const referenceDate = $derived(session.completedAt || session.startedAt || session.createdAt);
 </script>
 
 <div
-  class="group relative rounded-2xl bg-white shadow-md hover:shadow-2xl hover:-translate-y-0.5 transition-all duration-200 overflow-hidden border border-neutral-100 hover:border-neutral-200"
+  class="group rounded-xl border border-border bg-card overflow-hidden"
 >
   <button
     onclick={() => goto(`/app/hunts/${session.id}`)}
-    class="w-full p-5 text-left hover:bg-neutral-50/50 transition-colors duration-200"
+    class="w-full p-5 text-left transition-colors hover:bg-muted/40"
   >
     <div class="flex items-center gap-4">
-      <div class="flex items-center justify-center w-12 h-12 rounded-xl bg-green-50 flex-shrink-0">
+      <div class="flex items-center justify-center size-10 rounded-lg border border-border flex-shrink-0">
         <iconify-icon
-          icon={isLocal ? 'solar:map-point-bold-duotone' : 'solar:global-bold-duotone'}
-          width="24"
-          class="text-green-600"
+          icon={isLocal ? 'solar:map-point-linear' : 'solar:global-linear'}
+          width="20"
+          class="text-foreground"
         ></iconify-icon>
       </div>
 
       <div class="flex-1 min-w-0">
         <div class="flex items-center gap-2 mb-1">
-          <h3 class="font-black text-base text-neutral-900 truncate">{huntTitle}</h3>
-          <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wide bg-green-100 text-green-700 flex-shrink-0">
+          <h3 class="font-semibold text-sm text-foreground truncate">{huntTitle}</h3>
+          <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-muted text-foreground flex-shrink-0">
             Terminée
           </span>
         </div>
-        <div class="flex items-center gap-3 text-xs text-neutral-500">
-          <span class="font-bold">{formatTimeAgo(referenceDate)}</span>
+        <div class="flex items-center gap-2 text-xs text-muted-foreground">
+          <span>{formatTimeAgo(referenceDate)}</span>
           {#if session.startedAt && session.completedAt}
-            <span>•</span>
-            <span class="font-medium">Durée: {formatDuration(session.startedAt, session.completedAt)}</span>
+            <span>·</span>
+            <span>Durée: {formatDuration(session.startedAt, session.completedAt)}</span>
           {/if}
-          <span>•</span>
-          <span class="font-bold uppercase tracking-wide">{isLocal ? 'Local' : 'Domaine'}</span>
+          <span>·</span>
+          <span>{isLocal ? 'Local' : 'Domaine'}</span>
         </div>
       </div>
 
       <div class="flex items-center gap-6 flex-shrink-0">
         <div class="flex items-center gap-4">
-          <div class="text-center">
-            <div class="flex items-center gap-1.5 mb-0.5">
+          <div class="text-right">
+            <div class="flex items-center justify-end gap-1.5">
               <iconify-icon
-                icon="solar:users-group-rounded-bold-duotone"
-                width="16"
-                class="text-neutral-400"
+                icon="solar:users-group-rounded-linear"
+                width="14"
+                class="text-muted-foreground"
               ></iconify-icon>
-              <span class="text-lg font-black text-neutral-900">{displayLeads}</span>
+              <span class="text-sm font-medium text-foreground">{displayLeads}</span>
             </div>
-            <p class="text-[10px] font-bold text-neutral-400 uppercase tracking-wide">Leads</p>
+            <p class="text-xs text-muted-foreground">Leads</p>
           </div>
 
           {#if displayLeads > 0}
-            <div class="w-px h-8 bg-neutral-200"></div>
-            <div class="text-center">
-              <div class="flex items-center gap-1.5 mb-0.5">
+            <div class="w-px h-8 bg-border"></div>
+            <div class="text-right">
+              <div class="flex items-center justify-end gap-1.5">
                 <iconify-icon
-                  icon="solar:chart-2-bold-duotone"
-                  width="16"
-                  class="text-neutral-400"
+                  icon="solar:chart-2-linear"
+                  width="14"
+                  class="text-muted-foreground"
                 ></iconify-icon>
-                <span class="text-lg font-black {successRateCls}">{successRate}%</span>
+                <span class="text-sm font-medium text-foreground">{successRate}%</span>
               </div>
-              <p class="text-[10px] font-bold text-neutral-400 uppercase tracking-wide">Succès</p>
+              <p class="text-xs text-muted-foreground">Succès</p>
             </div>
           {/if}
         </div>
 
         <iconify-icon
-          icon="solar:alt-arrow-right-bold"
-          width="18"
-          class="text-neutral-300 group-hover:text-neutral-700 group-hover:translate-x-0.5 transition-all"
+          icon="solar:alt-arrow-right-linear"
+          width="16"
+          class="text-muted-foreground transition-transform group-hover:translate-x-0.5"
         ></iconify-icon>
       </div>
     </div>
   </button>
 
   <div
-    class="border-t border-neutral-100 px-5 py-3 bg-neutral-50/50 flex items-center gap-2"
+    class="border-t border-border px-5 py-3 flex items-center gap-2"
     role="presentation"
     onclick={(e) => e.stopPropagation()}
     onkeydown={(e) => e.stopPropagation()}
@@ -162,13 +158,13 @@
       <button
         onclick={() => onRelaunch!(session.id)}
         disabled={relaunching}
-        class="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-black text-white hover:bg-neutral-800 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {#if relaunching}
-          <div class="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-          Relance...
+          <div class="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+          Relance
         {:else}
-          <iconify-icon icon="solar:restart-bold" width="14"></iconify-icon>
+          <iconify-icon icon="solar:restart-linear" width="14"></iconify-icon>
           Relancer la chasse
         {/if}
       </button>
@@ -180,13 +176,13 @@
       <button
         onclick={() => onDelete!(session.id)}
         disabled={deleting}
-        class="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-neutral-500 hover:text-red-600 hover:bg-red-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        class="inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         title="Supprimer la chasse"
       >
         {#if deleting}
-          <div class="w-3 h-3 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+          <div class="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
         {:else}
-          <iconify-icon icon="solar:trash-bin-trash-bold" width="14"></iconify-icon>
+          <iconify-icon icon="solar:trash-bin-trash-linear" width="14"></iconify-icon>
           Supprimer
         {/if}
       </button>

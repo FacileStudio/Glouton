@@ -224,34 +224,31 @@
   }
 
   const tabs = [
-    { id: 'general', name: 'Général', icon: 'solar:settings-bold' },
-    { id: 'api-keys', name: 'Clés API', icon: 'solar:key-bold' },
-    { id: 'smtp', name: 'SMTP', icon: 'solar:letter-bold' },
+    { id: 'general', name: 'Général', icon: 'solar:settings-linear' },
+    { id: 'api-keys', name: 'Clés API', icon: 'solar:key-linear' },
+    { id: 'smtp', name: 'SMTP', icon: 'solar:letter-linear' },
   ];
 </script>
 
-<div
-  class="p-6 lg:p-12 max-w-6xl mx-auto space-y-8 selection:text-black font-sans pb-32"
-  style="background-color: var(--background); selection-background-color: var(--foreground);"
->
+<div class="max-w-[1600px] mx-auto px-6 py-6 space-y-6">
   {#if loading}
-    <div class="flex items-center justify-center py-20">
+    <div class="flex items-center justify-center py-16">
       <Spinner size="lg" />
     </div>
   {:else if team}
-    <div class="flex items-center gap-4">
+    <div class="flex items-center gap-3">
       <button
         aria-label="Retour"
         onclick={handleBack}
-        class="w-12 h-12 flex items-center justify-center bg-white rounded-xl hover:bg-neutral-50 transition-colors border border-neutral-100"
+        class="inline-flex size-8 items-center justify-center rounded-lg border border-border bg-background hover:bg-muted"
       >
-        <iconify-icon icon="solar:arrow-left-bold" width="20" class="text-neutral-700"></iconify-icon>
+        <iconify-icon icon="solar:arrow-left-linear" width="16"></iconify-icon>
       </button>
-      <div>
-        <h1 class="text-3xl md:text-4xl font-black tracking-tight" style="color: var(--foreground);">
+      <div class="space-y-1">
+        <h1 class="text-2xl font-bold tracking-tight text-foreground">
           Paramètres de {team.name}
         </h1>
-        <p class="text-neutral-500 font-medium text-base mt-1">
+        <p class="text-sm text-muted-foreground">
           Gérez les paramètres de votre équipe
         </p>
       </div>
@@ -263,17 +260,17 @@
       </Alert>
     {/if}
 
-    <div class="rounded-2xl shadow-lg p-2" style="background-color: var(--card);">
-      <div class="grid grid-cols-3 gap-2">
+    <div class="rounded-xl border border-border bg-card p-1">
+      <div class="grid grid-cols-3 gap-1">
         {#each tabs as tab (tab.id)}
           <button
             onclick={() => (activeTab = tab.id)}
-            class="flex items-center justify-center gap-2.5 px-5 py-3.5 rounded-xl font-bold text-sm transition-all duration-200
+            class="inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium transition-colors
             {activeTab === tab.id
-              ? 'bg-foreground text-white shadow-md'
-              : 'text-slate-600 hover:text-foreground hover:bg-slate-50'}"
+              ? 'bg-muted text-foreground'
+              : 'text-muted-foreground hover:bg-muted hover:text-foreground'}"
           >
-            <iconify-icon icon={tab.icon} width="20"></iconify-icon>
+            <iconify-icon icon={tab.icon} width="16"></iconify-icon>
             {tab.name}
           </button>
         {/each}
@@ -281,16 +278,16 @@
     </div>
 
     {#if activeTab === 'general'}
-      <div in:fade={{ duration: 300 }} class="space-y-6">
-        <div class="p-8 md:p-10 rounded-2xl shadow-lg" style="background-color: var(--card);">
-          <div class="mb-8">
-            <h2 class="text-2xl font-black mb-2" style="color: var(--foreground);">Informations générales</h2>
-            <p class="text-neutral-500 text-sm">Modifiez les informations de base de votre équipe</p>
+      <div in:fade={{ duration: 200 }} class="space-y-6">
+        <div class="rounded-xl border border-border bg-card p-6">
+          <div class="mb-6">
+            <h2 class="text-lg font-semibold text-foreground">Informations générales</h2>
+            <p class="text-sm text-muted-foreground mt-1">Modifiez les informations de base de votre équipe</p>
           </div>
 
-          <div class="space-y-6">
-            <div class="space-y-2">
-              <label for="name" class="text-sm font-bold text-neutral-700 block">
+          <div class="space-y-4">
+            <div class="space-y-1.5">
+              <label for="name" class="text-sm font-medium text-foreground block">
                 Nom de l'équipe
               </label>
               <Input
@@ -298,12 +295,11 @@
                 bind:value={generalForm.name}
                 disabled={!canManage}
                 placeholder="Équipe Marketing"
-                class="rounded-xl"
               />
             </div>
 
-            <div class="space-y-2">
-              <label for="description" class="text-sm font-bold text-neutral-700 block">
+            <div class="space-y-1.5">
+              <label for="description" class="text-sm font-medium text-foreground block">
                 Description
               </label>
               <textarea
@@ -312,73 +308,72 @@
                 disabled={!canManage}
                 placeholder="Décrivez l'objectif de cette équipe..."
                 rows="4"
-                class="w-full px-5 py-3 rounded-2xl bg-slate-50/50 border-2 border-slate-100 focus:border-muted focus:bg-white hover:bg-white transition-all duration-200 font-medium text-foreground placeholder:text-slate-400 outline-none resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+                class="w-full min-h-24 rounded-lg border border-input bg-background px-3 py-2 text-sm resize-none disabled:opacity-50 disabled:cursor-not-allowed"
               ></textarea>
             </div>
           </div>
 
           {#if canManage}
-            <div class="flex justify-end pt-8 mt-8 border-t border-neutral-100">
-              <Button
+            <div class="flex justify-end pt-6 mt-6 border-t border-border">
+              <button
                 onclick={handleUpdateGeneral}
                 disabled={saving || !hasGeneralChanges}
-                class="px-6 bg-black text-white hover:bg-neutral-800 disabled:opacity-50"
+                class="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85 disabled:opacity-50"
               >
                 {#if saving}
                   <Spinner size="sm" />
                   <span>Enregistrement...</span>
                 {:else}
-                  <iconify-icon icon="solar:diskette-bold" width="18"></iconify-icon>
+                  <iconify-icon icon="solar:diskette-linear" width="16"></iconify-icon>
                   <span>Enregistrer</span>
                 {/if}
-              </Button>
+              </button>
             </div>
           {/if}
         </div>
 
         {#if isOwner}
-          <div class="rounded-2xl border-2 border-red-200 shadow-lg p-8 md:p-10" style="background-color: var(--card);">
-            <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div class="rounded-xl border border-border bg-card p-6">
+            <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
               <div>
-                <h3 class="text-red-600 font-black text-xl mb-2 flex items-center gap-2">
-                  <iconify-icon icon="solar:danger-triangle-bold" width="24"></iconify-icon>
+                <h3 class="text-lg font-semibold text-foreground flex items-center gap-2">
+                  <iconify-icon icon="solar:danger-triangle-linear" width="18"></iconify-icon>
                   Zone de danger
                 </h3>
-                <p class="text-neutral-600 text-sm leading-relaxed max-w-md">
+                <p class="text-sm text-muted-foreground mt-1 max-w-md">
                   La suppression de cette équipe est définitive. Toutes les données associées seront effacées immédiatement.
                 </p>
               </div>
-              <Button
+              <button
                 onclick={() => { deleteModalOpen = true; deleteConfirmationText = ''; }}
-                intent="danger"
-                class="flex-shrink-0"
+                class="inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors flex-shrink-0"
               >
-                <iconify-icon icon="solar:trash-bin-trash-bold" width="20"></iconify-icon>
+                <iconify-icon icon="solar:trash-bin-trash-linear" width="16"></iconify-icon>
                 Supprimer l'équipe
-              </Button>
+              </button>
             </div>
           </div>
         {/if}
       </div>
     {:else if activeTab === 'api-keys'}
-      <div in:fade={{ duration: 300 }}>
-        <div class="p-8 md:p-10 rounded-2xl shadow-lg" style="background-color: var(--card);">
-          <div class="mb-8">
-            <h2 class="text-2xl font-black mb-2" style="color: var(--foreground);">Clés API</h2>
-            <p class="text-neutral-500 text-sm">Configurez les clés API pour les sources de leads de l'équipe</p>
+      <div in:fade={{ duration: 200 }}>
+        <div class="rounded-xl border border-border bg-card p-6">
+          <div class="mb-6">
+            <h2 class="text-lg font-semibold text-foreground">Clés API</h2>
+            <p class="text-sm text-muted-foreground mt-1">Configurez les clés API pour les sources de leads de l'équipe</p>
           </div>
 
-          <div class="space-y-6">
+          <div class="space-y-4">
             {#each [
               { key: 'hunterApiKey', label: 'Hunter.io', url: 'https://hunter.io/api' },
               { key: 'googleMapsApiKey', label: 'Google Maps', url: 'https://console.cloud.google.com' },
             ] as provider}
-              <div class="space-y-2">
-                <label for={provider.key} class="text-sm font-bold text-neutral-700 flex items-center gap-2">
+              <div class="space-y-1.5">
+                <label for={provider.key} class="text-sm font-medium text-foreground flex items-center gap-2">
                   {provider.label}
                   {#if apiKeysForm[provider.key as keyof typeof apiKeysForm]}
-                    <span class="text-xs font-bold text-green-600 flex items-center gap-1 px-2 py-0.5 bg-green-50 rounded-full">
-                      <iconify-icon icon="solar:check-circle-bold" width="12"></iconify-icon>
+                    <span class="rounded-full bg-muted text-foreground px-2.5 py-0.5 text-xs font-medium flex items-center gap-1">
+                      <iconify-icon icon="solar:check-circle-linear" width="12"></iconify-icon>
                       Configuré
                     </span>
                   {/if}
@@ -390,101 +385,98 @@
                     bind:value={apiKeysForm[provider.key as keyof typeof apiKeysForm]}
                     disabled={!canManage}
                     placeholder={`Entrez votre clé API ${provider.label}`}
-                    class="rounded-xl font-mono pr-10"
+                    class="font-mono pr-10"
                   />
                   {#if apiKeysForm[provider.key as keyof typeof apiKeysForm]}
                     <button
                       type="button"
                       aria-label="Afficher ou masquer la clé API"
                       onclick={() => (showApiKeys[provider.key as keyof typeof showApiKeys] = !showApiKeys[provider.key as keyof typeof showApiKeys])}
-                      class="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors"
+                      class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                     >
                       <iconify-icon
-                        icon={showApiKeys[provider.key as keyof typeof showApiKeys] ? 'solar:eye-bold' : 'solar:eye-closed-bold'}
-                        width="20"
+                        icon={showApiKeys[provider.key as keyof typeof showApiKeys] ? 'solar:eye-linear' : 'solar:eye-closed-linear'}
+                        width="16"
                       ></iconify-icon>
                     </button>
                   {/if}
                 </div>
-                <p class="text-xs text-neutral-500">
-                  Obtenez votre clé sur <a href={provider.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-neutral-900">{provider.url}</a>
+                <p class="text-xs text-muted-foreground">
+                  Obtenez votre clé sur <a href={provider.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-foreground">{provider.url}</a>
                 </p>
               </div>
             {/each}
           </div>
 
           {#if canManage}
-            <div class="flex justify-end pt-8 mt-8 border-t border-neutral-100">
-              <Button
+            <div class="flex justify-end pt-6 mt-6 border-t border-border">
+              <button
                 onclick={handleUpdateApiKeys}
                 disabled={saving || !hasApiKeysChanges}
-                class="px-6 bg-black text-white hover:bg-neutral-800 disabled:opacity-50"
+                class="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85 disabled:opacity-50"
               >
                 {#if saving}
                   <Spinner size="sm" />
                   <span>Enregistrement...</span>
                 {:else}
-                  <iconify-icon icon="solar:diskette-bold" width="18"></iconify-icon>
+                  <iconify-icon icon="solar:diskette-linear" width="16"></iconify-icon>
                   <span>Enregistrer</span>
                 {/if}
-              </Button>
+              </button>
             </div>
           {/if}
         </div>
       </div>
     {:else if activeTab === 'smtp'}
-      <div in:fade={{ duration: 300 }}>
-        <div class="p-8 md:p-10 rounded-2xl shadow-lg" style="background-color: var(--card);">
-          <div class="mb-8">
-            <h2 class="text-2xl font-black mb-2" style="color: var(--foreground);">Configuration SMTP</h2>
-            <p class="text-neutral-500 text-sm">Configurez le serveur SMTP pour l'envoi d'emails de l'équipe</p>
+      <div in:fade={{ duration: 200 }}>
+        <div class="rounded-xl border border-border bg-card p-6">
+          <div class="mb-6">
+            <h2 class="text-lg font-semibold text-foreground">Configuration SMTP</h2>
+            <p class="text-sm text-muted-foreground mt-1">Configurez le serveur SMTP pour l'envoi d'emails de l'équipe</p>
           </div>
 
-          <div class="space-y-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div class="space-y-2">
-                <label for="smtpHost" class="text-sm font-bold text-neutral-700 block">Hôte SMTP</label>
+          <div class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="space-y-1.5">
+                <label for="smtpHost" class="text-sm font-medium text-foreground block">Hôte SMTP</label>
                 <Input
                   id="smtpHost"
                   bind:value={smtpForm.smtpHost}
                   disabled={!canManage}
                   placeholder="smtp.gmail.com"
-                  class="rounded-xl"
                 />
               </div>
-              <div class="space-y-2">
-                <label for="smtpPort" class="text-sm font-bold text-neutral-700 block">Port SMTP</label>
+              <div class="space-y-1.5">
+                <label for="smtpPort" class="text-sm font-medium text-foreground block">Port SMTP</label>
                 <Input
                   id="smtpPort"
                   type="number"
                   bind:value={smtpForm.smtpPort}
                   disabled={!canManage}
                   placeholder="587"
-                  class="rounded-xl"
                 />
               </div>
             </div>
 
-            <div class="space-y-2">
-              <label class="text-sm font-bold text-neutral-700 flex items-center gap-2">
+            <div class="space-y-1.5">
+              <label class="text-sm font-medium text-foreground flex items-center gap-2">
                 <Toggle bind:checked={smtpForm.smtpSecure} disabled={!canManage} />
                 Utiliser SSL/TLS (port 465)
               </label>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div class="space-y-2">
-                <label for="smtpUser" class="text-sm font-bold text-neutral-700 block">Nom d'utilisateur</label>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="space-y-1.5">
+                <label for="smtpUser" class="text-sm font-medium text-foreground block">Nom d'utilisateur</label>
                 <Input
                   id="smtpUser"
                   bind:value={smtpForm.smtpUser}
                   disabled={!canManage}
                   placeholder="votre@email.com"
-                  class="rounded-xl"
                 />
               </div>
-              <div class="space-y-2">
-                <label for="smtpPass" class="text-sm font-bold text-neutral-700 block">Mot de passe</label>
+              <div class="space-y-1.5">
+                <label for="smtpPass" class="text-sm font-medium text-foreground block">Mot de passe</label>
                 <div class="relative">
                   <Input
                     id="smtpPass"
@@ -492,18 +484,18 @@
                     bind:value={smtpForm.smtpPass}
                     disabled={!canManage}
                     placeholder="••••••••"
-                    class="rounded-xl pr-10"
+                    class="pr-10"
                   />
                   {#if smtpForm.smtpPass}
                     <button
                       type="button"
                       aria-label="Afficher ou masquer le mot de passe SMTP"
                       onclick={() => (showSmtpPass = !showSmtpPass)}
-                      class="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors"
+                      class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                     >
                       <iconify-icon
-                        icon={showSmtpPass ? 'solar:eye-bold' : 'solar:eye-closed-bold'}
-                        width="20"
+                        icon={showSmtpPass ? 'solar:eye-linear' : 'solar:eye-closed-linear'}
+                        width="16"
                       ></iconify-icon>
                     </button>
                   {/if}
@@ -511,60 +503,57 @@
               </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div class="space-y-2">
-                <label for="smtpFromName" class="text-sm font-bold text-neutral-700 block">Nom de l'expéditeur</label>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="space-y-1.5">
+                <label for="smtpFromName" class="text-sm font-medium text-foreground block">Nom de l'expéditeur</label>
                 <Input
                   id="smtpFromName"
                   bind:value={smtpForm.smtpFromName}
                   disabled={!canManage}
                   placeholder="Votre Équipe"
-                  class="rounded-xl"
                 />
               </div>
-              <div class="space-y-2">
-                <label for="smtpFromEmail" class="text-sm font-bold text-neutral-700 block">Email de l'expéditeur</label>
+              <div class="space-y-1.5">
+                <label for="smtpFromEmail" class="text-sm font-medium text-foreground block">Email de l'expéditeur</label>
                 <Input
                   id="smtpFromEmail"
                   type="email"
                   bind:value={smtpForm.smtpFromEmail}
                   disabled={!canManage}
                   placeholder="equipe@votredomain.com"
-                  class="rounded-xl"
                 />
               </div>
             </div>
           </div>
 
           {#if canManage}
-            <div class="flex flex-col md:flex-row gap-3 justify-end pt-8 mt-8 border-t border-neutral-100">
-              <Button
+            <div class="flex flex-col md:flex-row gap-2 justify-end pt-6 mt-6 border-t border-border">
+              <button
                 onclick={handleTestSmtp}
                 disabled={testingSmtp || saving}
-                intent="secondary"
-                class="min-w-[220px]"
+                class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50"
               >
                 {#if testingSmtp}
                   <Spinner size="sm" />
                   <span>Test en cours...</span>
                 {:else}
-                  <iconify-icon icon="solar:test-tube-bold" width="18"></iconify-icon>
+                  <iconify-icon icon="solar:test-tube-linear" width="16"></iconify-icon>
                   <span>Tester la configuration</span>
                 {/if}
-              </Button>
-              <Button
+              </button>
+              <button
                 onclick={handleUpdateSmtp}
                 disabled={saving || !hasSmtpChanges}
-                class="px-6 bg-black text-white hover:bg-neutral-800 disabled:opacity-50"
+                class="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85 disabled:opacity-50"
               >
                 {#if saving}
                   <Spinner size="sm" />
                   <span>Enregistrement...</span>
                 {:else}
-                  <iconify-icon icon="solar:diskette-bold" width="18"></iconify-icon>
+                  <iconify-icon icon="solar:diskette-linear" width="16"></iconify-icon>
                   <span>Enregistrer</span>
                 {/if}
-              </Button>
+              </button>
             </div>
           {/if}
         </div>
@@ -576,21 +565,18 @@
 {#if deleteModalOpen}
   <div
     transition:fade={{ duration: 150 }}
-    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-900/60 backdrop-blur-sm"
+    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm"
   >
-    <div class="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl space-y-6">
-      <div class="space-y-2 text-center">
-        <div class="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto text-red-500 mb-4">
-          <iconify-icon icon="solar:bomb-bold-duotone" width="32"></iconify-icon>
-        </div>
-        <h3 class="text-2xl font-black tracking-tight text-neutral-900">Supprimer l'équipe ?</h3>
-        <p class="text-neutral-500 font-medium">
+    <div class="rounded-xl border border-border bg-card p-6 max-w-md w-full space-y-4">
+      <div class="space-y-1">
+        <h3 class="text-lg font-semibold text-foreground">Supprimer l'équipe ?</h3>
+        <p class="text-sm text-muted-foreground">
           Cette action est définitive. Toutes les données de l'équipe seront supprimées.
         </p>
       </div>
 
-      <div class="bg-neutral-50 p-4 rounded-2xl border border-neutral-200">
-        <label for="deleteConfirm" class="text-xs font-bold text-neutral-500 uppercase tracking-wide block mb-2">
+      <div class="space-y-1.5">
+        <label for="deleteConfirm" class="text-sm font-medium text-foreground block">
           Tapez "DELETE" pour confirmer
         </label>
         <input
@@ -598,21 +584,21 @@
           type="text"
           bind:value={deleteConfirmationText}
           placeholder="DELETE"
-          class="w-full text-center font-black tracking-widest p-3 rounded-xl border-neutral-300 focus:border-red-500 focus:ring-red-500/20 uppercase"
+          class="w-full h-9 rounded-lg border border-input bg-background px-3 text-sm"
         />
       </div>
 
-      <div class="grid grid-cols-2 gap-3">
+      <div class="flex items-center justify-end gap-2">
         <button
           onclick={() => (deleteModalOpen = false)}
-          class="px-4 py-3 rounded-xl font-bold bg-neutral-100 hover:bg-neutral-200 text-neutral-900 transition-colors"
+          class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 text-sm font-medium transition-colors hover:bg-muted"
         >
           Annuler
         </button>
         <button
           onclick={handleDeleteTeam}
           disabled={deleteConfirmationText !== 'DELETE' || deleting}
-          class="px-4 py-3 rounded-xl font-bold bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          class="inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors disabled:opacity-50"
         >
           {deleting ? 'Suppression...' : 'Confirmer'}
         </button>

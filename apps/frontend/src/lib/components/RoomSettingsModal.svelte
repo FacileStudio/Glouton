@@ -59,7 +59,7 @@
       <button on:click={() => dispatch('close')} class="w-12 h-12 flex items-center justify-center bg-white rounded-2xl shadow-sm hover:text-red-500 transition-colors"
         aria-label="Close"
       >
-        <iconify-icon icon="solar:close-circle-bold" width="28"></iconify-icon>
+        <iconify-icon icon="solar:close-circle-linear" width="28"></iconify-icon>
       </button>
     </div>
 
@@ -93,7 +93,7 @@
               {#if isAdmin && p.userId !== currentUserId}
                 <button on:click={() => kickMember(p.userId)} class="text-red-400 hover:text-red-600 p-2"
                 aria-label="Remove member">
-                  <iconify-icon icon="solar:user-minus-bold" width="20"></iconify-icon>
+                  <iconify-icon icon="solar:user-minus-linear" width="20"></iconify-icon>
                 </button>
               {/if}
             </div>
@@ -104,13 +104,13 @@
       <section class="pt-4 border-t border-slate-100 flex flex-col sm:flex-row gap-3">
         <button on:click={leaveRoom}
           class="flex-1 flex items-center justify-center gap-2 py-4 rounded-2xl font-black text-sm text-red-500 bg-red-50 hover:bg-red-100 transition-all">
-          <iconify-icon icon="solar:exit-bold"></iconify-icon>
+          <iconify-icon icon="solar:exit-linear"></iconify-icon>
           Leave
         </button>
         {#if isAdmin}
           <button on:click={deleteRoom}
             class="flex-1 flex items-center justify-center gap-2 py-4 rounded-2xl font-black text-sm text-slate-500 border-2 border-slate-100 hover:border-red-500 hover:text-red-500 transition-all">
-            <iconify-icon icon="solar:trash-bin-trash-bold"></iconify-icon>
+            <iconify-icon icon="solar:trash-bin-trash-linear"></iconify-icon>
             Delete
           </button>
         {/if}

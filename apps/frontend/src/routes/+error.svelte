@@ -7,84 +7,53 @@
   $: status = $page.status;
   $: message = $page.error?.message || 'Something went wrong';
 
-  
-
   function goHome() {
-    
-
     goto(resolve('/'));
   }
-
-  
 
   function goBack() {
     window.history.back();
   }
 </script>
 
-<div class="min-h-screen bg-white flex items-center justify-center px-4">
-  <div class="max-w-2xl w-full text-center">
-    <div class="mb-8 relative">
-      <div class="absolute inset-0 flex items-center justify-center opacity-10">
-        <iconify-icon icon="solar:danger-triangle-bold" width="400" class="text-primary"
-        ></iconify-icon>
-      </div>
+<div class="flex min-h-screen items-center justify-center bg-background px-6 text-foreground">
+  <div class="mx-auto w-full max-w-md text-center">
+    <p class="text-sm text-muted-foreground">Erreur {status}</p>
+    <h1 class="mt-2 text-5xl font-bold tracking-tight md:text-6xl">
+      {#if status === 404}
+        Page introuvable
+      {:else if status === 500}
+        Erreur interne
+      {:else}
+        Une erreur est survenue
+      {/if}
+    </h1>
 
-      <div class="relative z-10">
-        <h1 class="text-9xl font-bold text-primary mb-4 animate-pulse">
-          {status}
-        </h1>
+    <p class="mx-auto mt-4 max-w-sm text-sm leading-relaxed text-muted-foreground">
+      {#if status === 404}
+        La page demandée n'existe pas ou a été déplacée.
+      {:else if status === 500}
+        Nos serveurs rencontrent un souci. Réessayez dans quelques instants.
+      {:else}
+        {message}
+      {/if}
+    </p>
 
-        <div class="flex items-center justify-center gap-3 mb-6">
-          <div class="h-1 w-16 bg-primary rounded-full"></div>
-          <iconify-icon icon="solar:danger-circle-bold" width="32" class="text-primary"
-          ></iconify-icon>
-          <div class="h-1 w-16 bg-primary rounded-full"></div>
-        </div>
-
-        <h2 class="text-3xl font-bold text-gray-800 mb-4">
-          {#if status === 404}
-            Page Introuvable
-          {:else if status === 500}
-            Erreur Interne du Serveur
-          {:else}
-            Oups ! Une erreur s'est produite
-          {/if}
-        </h2>
-
-        <p class="text-lg text-gray-600 mb-8 max-w-md mx-auto">
-          {#if status === 404}
-            La page que vous recherchez semble s'être perdue dans le vide numérique. Revenons sur la bonne voie.
-          {:else if status === 500}
-            Nos serveurs traversent un moment difficile. On s'en occupe ! Veuillez réessayer dans quelques instants.
-          {:else}
-            {message}
-          {/if}
-        </p>
-
-        <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
-          <button
-            on:click={goHome}
-            class="group relative px-8 py-3 bg-primary text-white font-semibold rounded-lg shadow-lg hover:bg-primary-hover transition-all duration-200 hover:scale-105 active:scale-95 flex items-center gap-2 cursor-pointer"
-          >
-            <iconify-icon icon="solar:home-2-bold" width="20"></iconify-icon>
-            <span>Accueil</span>
-            <iconify-icon
-              icon="solar:arrow-right-bold"
-              width="20"
-              class="group-hover:translate-x-1 transition-transform"
-            ></iconify-icon>
-          </button>
-
-          <button
-            on:click={goBack}
-            class="px-8 py-3 bg-white text-primary font-semibold rounded-lg shadow-md hover:shadow-lg border-2 border-primary transition-all duration-200 hover:scale-105 active:scale-95 flex items-center gap-2 cursor-pointer"
-          >
-            <iconify-icon icon="solar:arrow-left-bold" width="20"></iconify-icon>
-            <span>Retour</span>
-          </button>
-        </div>
-      </div>
+    <div class="mt-8 flex flex-col items-center justify-center gap-2 sm:flex-row">
+      <button
+        on:click={goHome}
+        class="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85"
+      >
+        <iconify-icon icon="solar:home-2-linear" width="16"></iconify-icon>
+        Accueil
+      </button>
+      <button
+        on:click={goBack}
+        class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 text-sm font-medium transition-colors hover:bg-muted"
+      >
+        <iconify-icon icon="solar:arrow-left-linear" width="16"></iconify-icon>
+        Retour
+      </button>
     </div>
   </div>
 </div>

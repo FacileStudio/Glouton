@@ -5,17 +5,17 @@
 
   const features = [
     {
-      icon: 'solar:radar-2-bold-duotone',
+      icon: 'solar:radar-2-linear',
       title: 'Chercher les bonnes pistes',
       desc: 'Lancez des chasses sur domaines, zones locales ou sources spécialisées, puis laissez Glouton ranger les résultats.'
     },
     {
-      icon: 'solar:chart-2-bold-duotone',
+      icon: 'solar:chart-2-linear',
       title: 'Qualifier sans bruit',
       desc: 'Score, statut, coordonnées, signaux techniques et contexte commercial sont regroupés dans une seule fiche exploitable.'
     },
     {
-      icon: 'solar:letter-bold-duotone',
+      icon: 'solar:letter-linear',
       title: 'Préparer la prospection',
       desc: 'Suivez les contacts, les relances et les opportunités prêtes à partir sans transformer le CRM en tableur hanté.'
     }
@@ -72,24 +72,24 @@
 
   <main>
     <section class="mx-auto max-w-5xl px-6 py-24 text-center">
-      <h1 class="text-5xl font-bold leading-tight md:text-6xl">
+      <h1 class="text-5xl font-bold tracking-tight md:text-6xl">
         Trouver. Qualifier.<br />Prospecter.
       </h1>
       <p class="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
         Glouton transforme les recherches commerciales en pistes propres, priorisées et prêtes à contacter.
       </p>
 
-      <div class="mt-10 flex flex-col justify-center gap-3 sm:flex-row">
+      <div class="mt-10 flex flex-col justify-center gap-2 sm:flex-row">
         <a
           href={resolve($authStore.session ? '/app/leads' : '/register')}
-          class="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85"
+          class="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85"
         >
           {$authStore.session ? "Ouvrir l'app" : 'Créer un compte'}
           <iconify-icon icon="solar:arrow-right-linear" width="16"></iconify-icon>
         </a>
         <a
           href={resolve('/login')}
-          class="inline-flex h-10 items-center justify-center rounded-lg border border-border bg-background px-4 text-sm font-medium transition-colors hover:bg-muted"
+          class="inline-flex h-9 items-center justify-center rounded-lg border border-border bg-background px-4 text-sm font-medium transition-colors hover:bg-muted"
         >
           Connexion
         </a>

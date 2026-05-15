@@ -46,19 +46,9 @@
     return "À l'instant";
   }
 
-  function getScoreCircleColor(score: number): string {
-    if (score >= 70) return 'bg-green-500';
-    if (score >= 40) return 'bg-yellow-400';
-    return 'bg-orange-500';
-  }
-
-  function getStatusIcon(status: Lead['status']): { icon: string; class: string } {
-    const icons = {
-      HOT: { icon: 'solar:fire-bold', class: 'text-orange-500' },
-      WARM: { icon: 'solar:sun-2-bold', class: 'text-yellow-500' },
-      COLD: { icon: 'solar:snowflake-bold', class: 'text-blue-400' },
-    };
-    return icons[status];
+  function getStatusBadge(status: Lead['status']): string {
+    if (status === 'HOT') return 'bg-destructive/10 text-destructive';
+    return 'bg-muted text-foreground';
   }
 
   function navigateToLead(leadId: string) {
@@ -77,78 +67,76 @@
 <div class="overflow-x-auto">
   <table class="w-full text-left border-collapse">
     <thead>
-      <tr class="bg-white border-b-2 border-neutral-200">
+      <tr class="border-b border-border">
         <th
           onclick={() => onSort('domain')}
-          class="px-8 py-4 text-xs font-bold uppercase tracking-wide text-neutral-500 cursor-pointer hover:text-black transition"
+          class="px-6 py-3 text-xs font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
         >
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-1.5">
             <span>Cible</span>
             {#if sortBy === 'domain'}
-              <iconify-icon icon="solar:sort-{sortOrder === 'asc' ? 'from-bottom' : 'from-top'}-bold" width="14"></iconify-icon>
+              <iconify-icon icon="solar:sort-{sortOrder === 'asc' ? 'from-bottom' : 'from-top'}-bold" width="12"></iconify-icon>
             {/if}
           </div>
         </th>
         <th
           onclick={() => onSort('email')}
-          class="px-8 py-4 text-xs font-bold uppercase tracking-wide text-neutral-500 cursor-pointer hover:text-black transition"
+          class="px-6 py-3 text-xs font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
         >
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-1.5">
             <span>Contact</span>
-
             {#if sortBy === 'email'}
-              <iconify-icon icon="solar:sort-{sortOrder === 'asc' ? 'from-bottom' : 'from-top'}-bold" width="14"></iconify-icon>
+              <iconify-icon icon="solar:sort-{sortOrder === 'asc' ? 'from-bottom' : 'from-top'}-bold" width="12"></iconify-icon>
             {/if}
           </div>
         </th>
         <th
           onclick={() => onSort('city')}
-          class="px-8 py-4 text-xs font-bold uppercase tracking-wide text-neutral-500 cursor-pointer hover:text-black transition"
+          class="px-6 py-3 text-xs font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
         >
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-1.5">
             <span>Localisation</span>
             {#if sortBy === 'city' || sortBy === 'country'}
-              <iconify-icon icon="solar:sort-{sortOrder === 'asc' ? 'from-bottom' : 'from-top'}-bold" width="14"></iconify-icon>
+              <iconify-icon icon="solar:sort-{sortOrder === 'asc' ? 'from-bottom' : 'from-top'}-bold" width="12"></iconify-icon>
             {/if}
           </div>
         </th>
-        <th class="px-8 py-4 text-xs font-bold uppercase tracking-wide text-neutral-500">
+        <th class="px-6 py-3 text-xs font-medium text-muted-foreground">
           Statut
         </th>
         <th
           onclick={() => onSort('score')}
-          class="px-8 py-4 text-xs font-bold uppercase tracking-wide text-neutral-500 cursor-pointer hover:text-black transition"
+          class="px-6 py-3 text-xs font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
         >
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-1.5">
             <span>Score</span>
             {#if sortBy === 'score'}
-              <iconify-icon icon="solar:sort-{sortOrder === 'asc' ? 'from-bottom' : 'from-top'}-bold" width="14"></iconify-icon>
+              <iconify-icon icon="solar:sort-{sortOrder === 'asc' ? 'from-bottom' : 'from-top'}-bold" width="12"></iconify-icon>
             {/if}
           </div>
         </th>
         <th
           onclick={() => onSort('createdAt')}
-          class="px-8 py-4 text-xs font-bold uppercase tracking-wide text-neutral-500 cursor-pointer hover:text-black transition"
+          class="px-6 py-3 text-xs font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
         >
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-1.5">
             <span>Ajouté</span>
             {#if sortBy === 'createdAt'}
-              <iconify-icon icon="solar:sort-{sortOrder === 'asc' ? 'from-bottom' : 'from-top'}-bold" width="14"></iconify-icon>
+              <iconify-icon icon="solar:sort-{sortOrder === 'asc' ? 'from-bottom' : 'from-top'}-bold" width="12"></iconify-icon>
             {/if}
           </div>
         </th>
       </tr>
     </thead>
-    <tbody class="divide-y divide-neutral-100">
+    <tbody>
       {#each leads as lead}
         <tr
           onclick={() => navigateToLead(lead.id)}
-          class="hover:bg-neutral-50/80 transition-all cursor-pointer"
+          class="border-b border-border last:border-0 hover:bg-muted/40 transition-colors cursor-pointer"
         >
-          <!-- Target (Domain) -->
-          <td class="px-8 py-4">
+          <td class="px-6 py-3">
             <div class="flex items-center gap-3">
-              <div class="w-9 h-9 rounded-lg border border-neutral-200 bg-white flex items-center justify-center overflow-hidden flex-shrink-0 shadow-sm">
+              <div class="size-8 rounded-lg border border-border bg-background flex items-center justify-center overflow-hidden flex-shrink-0">
                 <img
                   src={getFaviconUrl(lead.domain, 64)}
                   alt="{lead.domain} favicon"
@@ -157,32 +145,27 @@
                   onerror={(e) => handleFaviconError(e.currentTarget)}
                 />
               </div>
-              <div class="min-w-0 flex items-center gap-2">
-                <iconify-icon icon={getStatusIcon(lead.status).icon} width="16" class="{getStatusIcon(lead.status).class} flex-shrink-0"></iconify-icon>
-                <span class="text-neutral-900 font-bold text-sm truncate max-w-[160px] block" title={getLeadTitle(lead)}>
-                  {getLeadTitle(lead)}
-                </span>
-              </div>
+              <span class="text-sm font-medium text-foreground truncate max-w-[180px]" title={getLeadTitle(lead)}>
+                {getLeadTitle(lead)}
+              </span>
             </div>
           </td>
 
-          <!-- Contact -->
-          <td class="px-8 py-4">
+          <td class="px-6 py-3">
             <div class="text-sm min-w-0">
               {#if lead.email}
-                <div class="text-neutral-900 font-medium truncate max-w-[180px]" title={lead.email}>{lead.email}</div>
+                <div class="text-foreground truncate max-w-[180px]" title={lead.email}>{lead.email}</div>
               {/if}
               {#if lead.firstName || lead.lastName}
-                <div class="text-neutral-500 text-xs truncate max-w-[180px]">
+                <div class="text-xs text-muted-foreground truncate max-w-[180px]">
                   {lead.firstName || ''} {lead.lastName || ''}
                 </div>
               {/if}
             </div>
           </td>
 
-          <!-- Location -->
-          <td class="px-8 py-4">
-            <div class="text-sm text-neutral-700 font-medium truncate max-w-[140px]">
+          <td class="px-6 py-3">
+            <div class="text-sm text-foreground truncate max-w-[160px]">
               {#if lead.city && lead.country}
                 {lead.city}, {lead.country}
               {:else if lead.city}
@@ -190,37 +173,31 @@
               {:else if lead.country}
                 {lead.country}
               {:else}
-                <span class="text-neutral-400">—</span>
+                <span class="text-muted-foreground">—</span>
               {/if}
             </div>
           </td>
 
-          <!-- Status (Contacted) -->
-          <td class="px-8 py-4">
-            {#if lead.contacted}
-              <span class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-bold bg-green-100 text-green-700">
-                <iconify-icon icon="solar:check-circle-bold" width="14" class="mr-1"></iconify-icon>
-                Contacté
+          <td class="px-6 py-3">
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {getStatusBadge(lead.status)}">
+                {lead.status}
               </span>
-            {:else}
-              <span class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-bold bg-neutral-100 text-neutral-600">
-                Non contacté
-              </span>
-            {/if}
-          </td>
-
-          <!-- Score Circle -->
-          <td class="px-8 py-4">
-            <div
-              class="w-10 h-10 rounded-full flex items-center justify-center text-xs font-black text-white {getScoreCircleColor(lead.score)}"
-              title="Score: {lead.score}"
-            >
-              {lead.score}
+              {#if lead.contacted}
+                <span class="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-foreground">
+                  Contacté
+                </span>
+              {/if}
             </div>
           </td>
 
-          <!-- Time -->
-          <td class="px-8 py-4 text-sm text-neutral-500 font-medium whitespace-nowrap">
+          <td class="px-6 py-3">
+            <span class="text-sm font-medium text-foreground" title="Score: {lead.score}">
+              {lead.score}
+            </span>
+          </td>
+
+          <td class="px-6 py-3 text-sm text-muted-foreground whitespace-nowrap">
             {getRelativeTime(lead.createdAt)}
           </td>
         </tr>

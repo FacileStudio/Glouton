@@ -265,22 +265,13 @@
   }
 
   function getStatusColor(status: string): string {
-    switch (status) {
-      case 'SENT': return 'bg-blue-100 text-blue-700';
-      case 'OPENED': return 'bg-purple-100 text-purple-700';
-      case 'REPLIED': return 'bg-green-100 text-green-700';
-      case 'FAILED': return 'bg-red-100 text-red-700';
-      default: return 'bg-neutral-100 text-neutral-700';
-    }
+    if (status === 'FAILED') return 'bg-destructive/10 text-destructive';
+    return 'bg-muted text-foreground';
   }
 
   function getPriorityColor(status: Lead['status']): string {
-    const colors = {
-      HOT: 'bg-orange-100 text-orange-700',
-      WARM: 'bg-yellow-100 text-yellow-700',
-      COLD: 'bg-blue-100 text-blue-700',
-    };
-    return colors[status];
+    if (status === 'HOT') return 'bg-destructive/10 text-destructive';
+    return 'bg-muted text-foreground';
   }
 
   function toggleEmailExpansion(emailId: string) {
@@ -301,33 +292,34 @@
 
   function getSocialMeta(platform: string): SocialMeta {
     const p = platform.toLowerCase();
-    if (p.includes('linkedin')) return { icon: 'mdi:linkedin', color: 'text-[#0A66C2]', bg: 'bg-[#E8F0FE]', label: 'LinkedIn' };
-    if (p.includes('instagram')) return { icon: 'mdi:instagram', color: 'text-[#E1306C]', bg: 'bg-[#FDE8EF]', label: 'Instagram' };
-    if (p.includes('facebook')) return { icon: 'mdi:facebook', color: 'text-[#1877F2]', bg: 'bg-[#E7F0FD]', label: 'Facebook' };
-    if (p.includes('twitter') || p.includes('x.com') || p === 'x') return { icon: 'ri:twitter-x-fill', color: 'text-neutral-900', bg: 'bg-neutral-100', label: 'X / Twitter' };
-    if (p.includes('tiktok')) return { icon: 'ic:baseline-tiktok', color: 'text-neutral-900', bg: 'bg-neutral-100', label: 'TikTok' };
-    if (p.includes('youtube')) return { icon: 'mdi:youtube', color: 'text-[#FF0000]', bg: 'bg-[#FFE8E8]', label: 'YouTube' };
-    if (p.includes('github')) return { icon: 'mdi:github', color: 'text-neutral-900', bg: 'bg-neutral-100', label: 'GitHub' };
-    if (p.includes('pinterest')) return { icon: 'mdi:pinterest', color: 'text-[#E60023]', bg: 'bg-[#FFE8EA]', label: 'Pinterest' };
-    if (p.includes('snapchat')) return { icon: 'mdi:snapchat', color: 'text-yellow-500', bg: 'bg-yellow-50', label: 'Snapchat' };
-    if (p.includes('medium')) return { icon: 'mdi:medium', color: 'text-neutral-900', bg: 'bg-neutral-100', label: 'Medium' };
-    if (p.includes('whatsapp')) return { icon: 'mdi:whatsapp', color: 'text-[#25D366]', bg: 'bg-[#E8FDF1]', label: 'WhatsApp' };
-    if (p.includes('telegram')) return { icon: 'mdi:telegram', color: 'text-[#0088CC]', bg: 'bg-[#E6F5FF]', label: 'Telegram' };
-    if (p.includes('discord')) return { icon: 'ic:baseline-discord', color: 'text-[#5865F2]', bg: 'bg-[#EDEFFE]', label: 'Discord' };
-    if (p.includes('reddit')) return { icon: 'mdi:reddit', color: 'text-[#FF4500]', bg: 'bg-[#FFE9E0]', label: 'Reddit' };
-    if (p.includes('threads')) return { icon: 'ri:threads-fill', color: 'text-neutral-900', bg: 'bg-neutral-100', label: 'Threads' };
-    if (p.includes('mastodon')) return { icon: 'mdi:mastodon', color: 'text-[#6364FF]', bg: 'bg-[#EDEDFF]', label: 'Mastodon' };
-    if (p.includes('bluesky') || p.includes('bsky')) return { icon: 'simple-icons:bluesky', color: 'text-[#0085FF]', bg: 'bg-[#E5F2FF]', label: 'Bluesky' };
-    if (p.includes('vimeo')) return { icon: 'mdi:vimeo', color: 'text-[#1AB7EA]', bg: 'bg-[#E6F7FC]', label: 'Vimeo' };
-    if (p.includes('behance')) return { icon: 'mdi:behance', color: 'text-[#1769FF]', bg: 'bg-[#E6EEFF]', label: 'Behance' };
-    if (p.includes('dribbble')) return { icon: 'mdi:dribbble', color: 'text-[#EA4C89]', bg: 'bg-[#FDEAF2]', label: 'Dribbble' };
-    if (p.includes('spotify')) return { icon: 'mdi:spotify', color: 'text-[#1DB954]', bg: 'bg-[#E8F5ED]', label: 'Spotify' };
-    if (p.includes('soundcloud')) return { icon: 'mdi:soundcloud', color: 'text-[#FF5500]', bg: 'bg-[#FFE9E0]', label: 'SoundCloud' };
-    if (p.includes('slack')) return { icon: 'mdi:slack', color: 'text-[#4A154B]', bg: 'bg-[#F3E6F4]', label: 'Slack' };
-    if (p.includes('yelp')) return { icon: 'mdi:yelp', color: 'text-[#FF1A1A]', bg: 'bg-[#FFE6E6]', label: 'Yelp' };
-    if (p.includes('tripadvisor')) return { icon: 'mdi:tripadvisor', color: 'text-[#00AF87]', bg: 'bg-[#E6F7F3]', label: 'TripAdvisor' };
-    if (p.includes('twitch')) return { icon: 'mdi:twitch', color: 'text-[#9146FF]', bg: 'bg-[#F0EBFF]', label: 'Twitch' };
-    return { icon: 'mdi:link-variant', color: 'text-neutral-600', bg: 'bg-neutral-100', label: platform };
+    const base = { color: 'text-foreground', bg: 'bg-muted' };
+    if (p.includes('linkedin')) return { ...base, icon: 'mdi:linkedin', label: 'LinkedIn' };
+    if (p.includes('instagram')) return { ...base, icon: 'mdi:instagram', label: 'Instagram' };
+    if (p.includes('facebook')) return { ...base, icon: 'mdi:facebook', label: 'Facebook' };
+    if (p.includes('twitter') || p.includes('x.com') || p === 'x') return { ...base, icon: 'ri:twitter-x-fill', label: 'X / Twitter' };
+    if (p.includes('tiktok')) return { ...base, icon: 'ic:baseline-tiktok', label: 'TikTok' };
+    if (p.includes('youtube')) return { ...base, icon: 'mdi:youtube', label: 'YouTube' };
+    if (p.includes('github')) return { ...base, icon: 'mdi:github', label: 'GitHub' };
+    if (p.includes('pinterest')) return { ...base, icon: 'mdi:pinterest', label: 'Pinterest' };
+    if (p.includes('snapchat')) return { ...base, icon: 'mdi:snapchat', label: 'Snapchat' };
+    if (p.includes('medium')) return { ...base, icon: 'mdi:medium', label: 'Medium' };
+    if (p.includes('whatsapp')) return { ...base, icon: 'mdi:whatsapp', label: 'WhatsApp' };
+    if (p.includes('telegram')) return { ...base, icon: 'mdi:telegram', label: 'Telegram' };
+    if (p.includes('discord')) return { ...base, icon: 'ic:baseline-discord', label: 'Discord' };
+    if (p.includes('reddit')) return { ...base, icon: 'mdi:reddit', label: 'Reddit' };
+    if (p.includes('threads')) return { ...base, icon: 'ri:threads-fill', label: 'Threads' };
+    if (p.includes('mastodon')) return { ...base, icon: 'mdi:mastodon', label: 'Mastodon' };
+    if (p.includes('bluesky') || p.includes('bsky')) return { ...base, icon: 'simple-icons:bluesky', label: 'Bluesky' };
+    if (p.includes('vimeo')) return { ...base, icon: 'mdi:vimeo', label: 'Vimeo' };
+    if (p.includes('behance')) return { ...base, icon: 'mdi:behance', label: 'Behance' };
+    if (p.includes('dribbble')) return { ...base, icon: 'mdi:dribbble', label: 'Dribbble' };
+    if (p.includes('spotify')) return { ...base, icon: 'mdi:spotify', label: 'Spotify' };
+    if (p.includes('soundcloud')) return { ...base, icon: 'mdi:soundcloud', label: 'SoundCloud' };
+    if (p.includes('slack')) return { ...base, icon: 'mdi:slack', label: 'Slack' };
+    if (p.includes('yelp')) return { ...base, icon: 'mdi:yelp', label: 'Yelp' };
+    if (p.includes('tripadvisor')) return { ...base, icon: 'mdi:tripadvisor', label: 'TripAdvisor' };
+    if (p.includes('twitch')) return { ...base, icon: 'mdi:twitch', label: 'Twitch' };
+    return { ...base, icon: 'mdi:link-variant', label: platform };
   }
 
   function getSocialIcon(platform: string): string {
@@ -386,67 +378,67 @@
 </script>
 
 {#if loading}
-  <div class="flex flex-col items-center justify-center h-screen space-y-6" in:fade>
+  <div class="flex flex-col items-center justify-center h-screen space-y-4" in:fade>
     <Spinner size="xl" />
   </div>
 {:else if !lead}
-  <div class="flex flex-col items-center justify-center h-screen space-y-6" in:fade>
-    <iconify-icon icon="solar:close-circle-bold" width="64" class="text-red-400"></iconify-icon>
-    <p class="text-lg font-black uppercase tracking-wide text-neutral-600">Lead introuvable</p>
+  <div class="flex flex-col items-center justify-center h-screen space-y-4" in:fade>
+    <iconify-icon icon="solar:close-circle-linear" width="48" class="text-muted-foreground"></iconify-icon>
+    <p class="text-sm font-medium text-foreground">Lead introuvable</p>
     <button
       onclick={() => goto('/app/leads')}
-      class="px-6 py-3 bg-black text-white rounded-xl font-bold hover:bg-neutral-800"
+      class="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85"
     >
       Retour aux leads
     </button>
   </div>
 {:else}
-  <div class="min-h-screen font-sans" style="background: var(--background);" in:fade>
+  <div in:fade>
 
-    <div class="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-neutral-200 px-6 py-4">
+    <div class="sticky top-0 z-20 bg-background/95 backdrop-blur border-b border-border px-6 py-3">
       <div class="max-w-[1600px] mx-auto flex items-center justify-between gap-4">
-        <div class="flex items-center gap-4 min-w-0">
+        <div class="flex items-center gap-3 min-w-0">
           <button
             aria-label="Retour aux leads"
             onclick={() => goto('/app/leads')}
-            class="w-10 h-10 flex-shrink-0 flex items-center justify-center bg-neutral-100 hover:bg-neutral-200 rounded-xl transition-colors"
+            class="inline-flex size-8 items-center justify-center rounded-lg border border-border bg-background hover:bg-muted transition-colors"
           >
-            <iconify-icon icon="solar:arrow-left-bold" width="18"></iconify-icon>
+            <iconify-icon icon="solar:arrow-left-linear" width="16"></iconify-icon>
           </button>
 
-          <div class="w-10 h-10 flex-shrink-0 rounded-xl border border-neutral-200 bg-white flex items-center justify-center overflow-hidden shadow-sm">
+          <div class="size-8 flex-shrink-0 rounded-lg border border-border bg-background flex items-center justify-center overflow-hidden">
             <img
               src={getFaviconUrl(lead.domain ?? '', 64)}
               alt="{lead.domain ?? ''} favicon"
-              class="w-6 h-6"
+              class="w-5 h-5"
               loading="lazy"
               onerror={(e) => handleFaviconError(e.currentTarget)}
             />
           </div>
 
           <div class="min-w-0">
-            <h1 class="text-xl font-black tracking-tight text-neutral-900 truncate">{getDisplayName(lead)}</h1>
+            <h1 class="text-lg font-semibold text-foreground truncate">{getDisplayName(lead)}</h1>
             {#if (lead.firstName || lead.lastName) && lead.domain}
-              <p class="text-sm text-neutral-500 font-medium truncate">{lead.domain}{lead.position ? ` · ${lead.position}` : ''}</p>
+              <p class="text-xs text-muted-foreground truncate">{lead.domain}{lead.position ? ` · ${lead.position}` : ''}</p>
             {:else if lead.position}
-              <p class="text-sm text-neutral-500 font-medium truncate">{lead.position}</p>
+              <p class="text-xs text-muted-foreground truncate">{lead.position}</p>
             {/if}
           </div>
         </div>
 
-        <div class="flex items-center gap-3 flex-shrink-0">
-          <span class="px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wide {getPriorityColor(lead.status)}">
+        <div class="flex items-center gap-2 flex-shrink-0">
+          <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {getPriorityColor(lead.status)}">
             {lead.status}
           </span>
 
           {#if lead.contacted}
-            <span class="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-xs font-black uppercase flex items-center gap-1.5">
-              <iconify-icon icon="solar:check-circle-bold" width="14"></iconify-icon>
+            <span class="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-foreground gap-1">
+              <iconify-icon icon="solar:check-circle-linear" width="12"></iconify-icon>
               Contacté
             </span>
           {:else}
-            <span class="px-3 py-1.5 bg-amber-100 text-amber-700 rounded-lg text-xs font-black uppercase flex items-center gap-1.5">
-              <iconify-icon icon="solar:clock-circle-bold" width="14"></iconify-icon>
+            <span class="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground gap-1">
+              <iconify-icon icon="solar:clock-circle-linear" width="12"></iconify-icon>
               Non contacté
             </span>
           {/if}
@@ -454,22 +446,22 @@
           <button
             onclick={toggleFavorite}
             disabled={togglingFavorite}
-            class="px-4 py-2.5 rounded-xl text-sm font-bold transition-colors flex items-center gap-2 {isFavorite ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'} disabled:opacity-50"
+            class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50"
           >
             {#if togglingFavorite}
               <Spinner size="xs" />
             {:else}
-              <iconify-icon icon={isFavorite ? "solar:heart-broken-bold" : "solar:heart-linear"} width="16"></iconify-icon>
+              <iconify-icon icon={isFavorite ? "solar:heart-broken-linear" : "solar:heart-linear"} width="16"></iconify-icon>
             {/if}
-            {isFavorite ? 'Retirer le favori' : 'Ajouter aux favoris'}
+            {isFavorite ? 'Retirer favori' : 'Ajouter favori'}
           </button>
 
           {#if lead.email}
             <a
               href="#email-section"
-              class="px-5 py-2.5 bg-black text-white rounded-xl text-sm font-bold hover:bg-neutral-800 transition-colors flex items-center gap-2"
+              class="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85"
             >
-              <iconify-icon icon="solar:letter-bold" width="16"></iconify-icon>
+              <iconify-icon icon="solar:letter-linear" width="16"></iconify-icon>
               Envoyer un e-mail
             </a>
           {/if}
@@ -477,114 +469,114 @@
       </div>
     </div>
 
-    <div class="max-w-[1600px] mx-auto p-6 grid grid-cols-1 lg:grid-cols-5 gap-6">
+    <div class="max-w-[1600px] mx-auto px-6 py-6 grid grid-cols-1 lg:grid-cols-5 gap-6">
 
-      <div class="lg:col-span-2 space-y-4">
+      <div class="lg:col-span-2 space-y-6">
 
-        <div class="rounded-3xl p-6 shadow-sm" style="background: var(--card);">
+        <div class="rounded-xl border border-border bg-card p-6">
           <div class="flex items-start gap-4">
-            <div class="w-14 h-14 rounded-2xl bg-neutral-200 flex items-center justify-center flex-shrink-0 text-xl font-black text-neutral-500">
+            <div class="size-12 rounded-lg bg-muted flex items-center justify-center flex-shrink-0 text-lg font-semibold text-muted-foreground">
               {(lead.firstName?.[0] || lead.businessName?.[0] || lead.companyInfo?.name?.[0] || lead.domain?.[0] || '?').toUpperCase()}
             </div>
             <div class="flex-1 min-w-0">
-              <h2 class="text-xl font-black text-neutral-900 truncate">{getDisplayName(lead)}</h2>
+              <h2 class="text-lg font-semibold text-foreground truncate">{getDisplayName(lead)}</h2>
               {#if lead.position}
-                <p class="text-sm font-semibold text-neutral-600 mt-0.5">{lead.position}</p>
+                <p class="text-sm text-muted-foreground mt-0.5">{lead.position}</p>
               {/if}
               {#if lead.department}
-                <p class="text-xs text-neutral-500 mt-0.5">{lead.department}</p>
+                <p class="text-xs text-muted-foreground mt-0.5">{lead.department}</p>
               {/if}
               <div class="flex items-center gap-2 mt-3">
-                <div class="flex-1 h-1.5 bg-neutral-200 rounded-full overflow-hidden">
+                <div class="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
                   <div
-                    class="h-full transition-all {lead.score >= 70 ? 'bg-green-500' : lead.score >= 40 ? 'bg-yellow-400' : 'bg-orange-400'}"
+                    class="h-full bg-foreground transition-all"
                     style="width: {Math.min(lead.score, 100)}%"
                   ></div>
                 </div>
-                <span class="text-xs font-black text-neutral-700">{lead.score}/100</span>
+                <span class="text-xs font-medium text-foreground">{lead.score}/100</span>
               </div>
             </div>
           </div>
 
-          <div class="mt-4 pt-4 border-t border-neutral-200/60 grid grid-cols-2 gap-3">
+          <div class="mt-4 pt-4 border-t border-border grid grid-cols-2 gap-3">
             <div>
-              <p class="text-[9px] font-black uppercase tracking-widest text-neutral-400">E-mails envoyés</p>
-              <p class="text-2xl font-black text-neutral-900 mt-0.5">{lead.emailsSentCount}</p>
+              <p class="text-xs text-muted-foreground">E-mails envoyés</p>
+              <p class="text-xl font-semibold text-foreground mt-0.5">{lead.emailsSentCount}</p>
             </div>
             <div>
-              <p class="text-[9px] font-black uppercase tracking-widest text-neutral-400">Dernier contact</p>
-              <p class="text-xs font-bold text-neutral-700 mt-0.5">{lead.lastContactedAt ? formatDate(lead.lastContactedAt) : '—'}</p>
+              <p class="text-xs text-muted-foreground">Dernier contact</p>
+              <p class="text-sm text-foreground mt-0.5">{lead.lastContactedAt ? formatDate(lead.lastContactedAt) : '—'}</p>
             </div>
           </div>
         </div>
 
-        <div class="rounded-3xl p-6 shadow-sm space-y-3" style="background: var(--card);">
-          <h3 class="text-[9px] font-black uppercase tracking-widest text-neutral-400 flex items-center gap-2">
-            <iconify-icon icon="solar:user-id-bold" width="14"></iconify-icon>
+        <div class="rounded-xl border border-border bg-card p-6 space-y-3">
+          <h3 class="text-lg font-semibold text-foreground flex items-center gap-2">
+            <iconify-icon icon="solar:user-id-linear" width="18"></iconify-icon>
             Coordonnées
           </h3>
 
           {#if lead.email}
             <a
               href="mailto:{lead.email}"
-              class="flex items-center gap-3 px-4 py-3 bg-white hover:bg-neutral-50 rounded-2xl transition group"
+              class="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border bg-background hover:bg-muted transition-colors"
             >
-              <div class="w-8 h-8 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                <iconify-icon icon="solar:letter-bold" width="16" class="text-blue-600"></iconify-icon>
+              <div class="inline-flex size-8 items-center justify-center rounded-lg bg-muted text-foreground flex-shrink-0">
+                <iconify-icon icon="solar:letter-linear" width="14"></iconify-icon>
               </div>
               <div class="flex-1 min-w-0">
-                <p class="text-[9px] font-black uppercase tracking-widest text-neutral-400">E-mail principal</p>
-                <p class="text-sm font-bold text-blue-600 truncate group-hover:text-blue-800">{lead.email}</p>
+                <p class="text-xs text-muted-foreground">E-mail principal</p>
+                <p class="text-sm text-foreground truncate">{lead.email}</p>
               </div>
               {#if lead.emailVerified === true}
-                <span title="Email vérifié le {lead.emailVerifiedAt ? formatDate(lead.emailVerifiedAt) : ''}" class="flex-shrink-0 flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 rounded-lg text-[9px] font-black uppercase">
-                  <iconify-icon icon="solar:check-circle-bold" width="12"></iconify-icon>
+                <span title="Email vérifié le {lead.emailVerifiedAt ? formatDate(lead.emailVerifiedAt) : ''}" class="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-foreground flex-shrink-0">
+                  <iconify-icon icon="solar:check-circle-linear" width="12"></iconify-icon>
                   Vérifié
                 </span>
               {:else if lead.emailVerified === false}
-                <span title="Email invalide ({lead.emailVerificationMethod ?? ''})" class="flex-shrink-0 flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 rounded-lg text-[9px] font-black uppercase">
-                  <iconify-icon icon="solar:close-circle-bold" width="12"></iconify-icon>
+                <span title="Email invalide ({lead.emailVerificationMethod ?? ''})" class="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive flex-shrink-0">
+                  <iconify-icon icon="solar:close-circle-linear" width="12"></iconify-icon>
                   Invalide
                 </span>
               {:else}
-                <span class="flex-shrink-0 flex items-center gap-1 px-2 py-0.5 bg-neutral-100 text-neutral-400 rounded-lg text-[9px] font-black uppercase">
-                  <iconify-icon icon="solar:question-circle-bold" width="12"></iconify-icon>
+                <span class="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground flex-shrink-0">
+                  <iconify-icon icon="solar:question-circle-linear" width="12"></iconify-icon>
                   Non vérifié
                 </span>
               {/if}
-              <iconify-icon icon="solar:arrow-right-up-bold" width="14" class="text-neutral-400 flex-shrink-0"></iconify-icon>
+              <iconify-icon icon="solar:arrow-right-up-linear" width="14" class="text-muted-foreground flex-shrink-0"></iconify-icon>
             </a>
           {/if}
 
           {#each additionalEmails as email, i}
             <a
               href="mailto:{email}"
-              class="flex items-center gap-3 px-4 py-3 bg-white hover:bg-neutral-50 rounded-2xl transition group"
+              class="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border bg-background hover:bg-muted transition-colors"
             >
-              <div class="w-8 h-8 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
-                <iconify-icon icon="solar:letter-outline" width="16" class="text-blue-500"></iconify-icon>
+              <div class="inline-flex size-8 items-center justify-center rounded-lg bg-muted text-foreground flex-shrink-0">
+                <iconify-icon icon="solar:letter-outline" width="14"></iconify-icon>
               </div>
               <div class="flex-1 min-w-0">
-                <p class="text-[9px] font-black uppercase tracking-widest text-neutral-400">Email {i + 2}</p>
-                <p class="text-sm font-medium text-blue-600 truncate group-hover:text-blue-800">{email}</p>
+                <p class="text-xs text-muted-foreground">Email {i + 2}</p>
+                <p class="text-sm text-foreground truncate">{email}</p>
               </div>
-              <iconify-icon icon="solar:arrow-right-up-bold" width="14" class="text-neutral-400 flex-shrink-0"></iconify-icon>
+              <iconify-icon icon="solar:arrow-right-up-linear" width="14" class="text-muted-foreground flex-shrink-0"></iconify-icon>
             </a>
           {/each}
 
           {#each phoneNumbers as phone}
             <a
               href="tel:{phone}"
-              class="flex items-center gap-3 px-4 py-3 bg-white hover:bg-neutral-50 rounded-2xl transition group"
+              class="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border bg-background hover:bg-muted transition-colors"
             >
-              <div class="w-8 h-8 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                <iconify-icon icon="solar:phone-bold" width="16" class="text-green-600"></iconify-icon>
+              <div class="inline-flex size-8 items-center justify-center rounded-lg bg-muted text-foreground flex-shrink-0">
+                <iconify-icon icon="solar:phone-linear" width="14"></iconify-icon>
               </div>
               <div class="flex-1 min-w-0">
-                <p class="text-[9px] font-black uppercase tracking-widest text-neutral-400">Téléphone</p>
-                <p class="text-sm font-bold text-green-700 truncate group-hover:text-green-900">{phone}</p>
+                <p class="text-xs text-muted-foreground">Téléphone</p>
+                <p class="text-sm text-foreground truncate">{phone}</p>
               </div>
-              <iconify-icon icon="solar:arrow-right-up-bold" width="14" class="text-neutral-400 flex-shrink-0"></iconify-icon>
+              <iconify-icon icon="solar:arrow-right-up-linear" width="14" class="text-muted-foreground flex-shrink-0"></iconify-icon>
             </a>
           {/each}
 
@@ -593,27 +585,27 @@
               href="https://{lead.domain}"
               target="_blank"
               rel="noopener noreferrer"
-              class="flex items-center gap-3 px-4 py-3 bg-white hover:bg-neutral-50 rounded-2xl transition group"
+              class="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border bg-background hover:bg-muted transition-colors"
             >
-              <div class="w-8 h-8 bg-purple-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                <iconify-icon icon="solar:global-bold" width="16" class="text-purple-600"></iconify-icon>
+              <div class="inline-flex size-8 items-center justify-center rounded-lg bg-muted text-foreground flex-shrink-0">
+                <iconify-icon icon="solar:global-linear" width="14"></iconify-icon>
               </div>
               <div class="flex-1 min-w-0">
-                <p class="text-[9px] font-black uppercase tracking-widest text-neutral-400">Site web</p>
-                <p class="text-sm font-bold text-purple-600 truncate group-hover:text-purple-800">{lead.domain}</p>
+                <p class="text-xs text-muted-foreground">Site web</p>
+                <p class="text-sm text-foreground truncate">{lead.domain}</p>
               </div>
-              <iconify-icon icon="solar:arrow-right-up-bold" width="14" class="text-neutral-400 flex-shrink-0"></iconify-icon>
+              <iconify-icon icon="solar:arrow-right-up-linear" width="14" class="text-muted-foreground flex-shrink-0"></iconify-icon>
             </a>
           {/if}
 
           {#if lead.city || lead.country}
-            <div class="flex items-center gap-3 px-4 py-3 bg-white rounded-2xl">
-              <div class="w-8 h-8 bg-orange-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                <iconify-icon icon="solar:map-point-bold" width="16" class="text-orange-600"></iconify-icon>
+            <div class="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border bg-background">
+              <div class="inline-flex size-8 items-center justify-center rounded-lg bg-muted text-foreground flex-shrink-0">
+                <iconify-icon icon="solar:map-point-linear" width="14"></iconify-icon>
               </div>
               <div class="flex-1 min-w-0">
-                <p class="text-[9px] font-black uppercase tracking-widest text-neutral-400">Localisation</p>
-                <p class="text-sm font-bold text-neutral-800 truncate">
+                <p class="text-xs text-muted-foreground">Localisation</p>
+                <p class="text-sm text-foreground truncate">
                   {[lead.city, lead.country].filter(Boolean).join(', ')}
                 </p>
               </div>
@@ -621,9 +613,9 @@
           {/if}
 
           {#if !lead.email && additionalEmails.length === 0 && phoneNumbers.length === 0}
-            <div class="px-4 py-3 bg-red-50 border border-red-100 rounded-2xl">
-              <p class="text-xs font-bold text-red-600 flex items-center gap-2">
-                <iconify-icon icon="solar:danger-triangle-bold" width="14"></iconify-icon>
+            <div class="rounded-lg border border-border bg-destructive/10 px-3 py-2.5">
+              <p class="text-xs text-destructive flex items-center gap-2">
+                <iconify-icon icon="solar:danger-triangle-linear" width="14"></iconify-icon>
                 Aucune information de contact disponible
               </p>
             </div>
@@ -631,20 +623,20 @@
         </div>
 
         {#if lead.coordinates}
-          <div class="rounded-3xl overflow-hidden shadow-sm" style="background: var(--card);">
-            <div class="px-6 pt-6 pb-3 flex items-center justify-between">
-              <h3 class="text-[9px] font-black uppercase tracking-widest text-neutral-400 flex items-center gap-2">
-                <iconify-icon icon="solar:map-point-bold" width="14"></iconify-icon>
-                Localisation sur la carte
+          <div class="rounded-xl border border-border bg-card overflow-hidden">
+            <div class="px-6 pt-6 pb-3 flex items-center justify-between gap-3">
+              <h3 class="text-lg font-semibold text-foreground flex items-center gap-2">
+                <iconify-icon icon="solar:map-point-linear" width="18"></iconify-icon>
+                Localisation
               </h3>
               <a
                 href={getGoogleMapsCoordsUrl(lead.coordinates.lat, lead.coordinates.lng)}
                 target="_blank"
                 rel="noopener noreferrer"
-                class="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-neutral-50 border border-neutral-200 rounded-xl text-[10px] font-black uppercase tracking-wide text-neutral-700 transition"
+                class="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-3 text-xs font-medium transition-colors hover:bg-muted"
               >
-                <iconify-icon icon="solar:map-arrow-right-bold" width="12" class="text-orange-500"></iconify-icon>
-                Ouvrir dans Google Maps
+                <iconify-icon icon="solar:map-arrow-right-linear" width="12"></iconify-icon>
+                Google Maps
               </a>
             </div>
             <div class="px-3 pb-3 h-56">
@@ -658,11 +650,11 @@
         {/if}
 
         {#if socialProfiles.length > 0}
-          <div class="rounded-3xl p-6 shadow-sm" style="background: var(--card);">
-            <h3 class="text-[9px] font-black uppercase tracking-widest text-neutral-400 mb-3 flex items-center gap-2">
-              <iconify-icon icon="solar:share-bold" width="14"></iconify-icon>
+          <div class="rounded-xl border border-border bg-card p-6">
+            <h3 class="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
+              <iconify-icon icon="solar:share-linear" width="18"></iconify-icon>
               Profils sociaux
-              <span class="ml-auto text-[9px] font-black px-2 py-0.5 bg-neutral-200 rounded-lg">{socialProfiles.length}</span>
+              <span class="ml-auto rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-foreground">{socialProfiles.length}</span>
             </h3>
             <div class="space-y-2">
               {#each socialProfiles as profile}
@@ -671,16 +663,16 @@
                   href={profile.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="flex items-center gap-3 px-4 py-3 bg-white hover:bg-neutral-50 rounded-2xl transition group"
+                  class="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border bg-background hover:bg-muted transition-colors group"
                 >
-                  <div class="w-9 h-9 {meta.bg} rounded-xl flex items-center justify-center flex-shrink-0">
-                    <iconify-icon icon={meta.icon} width="20" class={meta.color}></iconify-icon>
+                  <div class="inline-flex size-8 items-center justify-center rounded-lg {meta.bg} {meta.color} flex-shrink-0">
+                    <iconify-icon icon={meta.icon} width="16"></iconify-icon>
                   </div>
                   <div class="flex-1 min-w-0">
-                    <p class="text-sm font-bold text-neutral-800">{meta.label}</p>
-                    <p class="text-[10px] text-neutral-400 truncate font-medium">{profile.url.replace(/^https?:\/\//, '').replace(/\/$/, '')}</p>
+                    <p class="text-sm font-medium text-foreground">{meta.label}</p>
+                    <p class="text-xs text-muted-foreground truncate">{profile.url.replace(/^https?:\/\//, '').replace(/\/$/, '')}</p>
                   </div>
-                  <iconify-icon icon="solar:arrow-right-up-bold" width="14" class="text-neutral-400 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"></iconify-icon>
+                  <iconify-icon icon="solar:arrow-right-up-linear" width="14" class="text-muted-foreground flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"></iconify-icon>
                 </a>
               {/each}
             </div>
@@ -688,55 +680,55 @@
         {/if}
 
         {#if lead.companyInfo}
-          <div class="rounded-3xl p-6 shadow-sm" style="background: var(--card);">
-            <h3 class="text-[9px] font-black uppercase tracking-widest text-neutral-400 mb-4 flex items-center gap-2">
-              <iconify-icon icon="solar:buildings-2-bold" width="14"></iconify-icon>
+          <div class="rounded-xl border border-border bg-card p-6">
+            <h3 class="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+              <iconify-icon icon="solar:buildings-2-linear" width="18"></iconify-icon>
               Entreprise
             </h3>
             <div class="space-y-3">
               {#if lead.companyInfo.name}
                 <div>
-                  <p class="text-[9px] font-black uppercase tracking-widest text-neutral-400">Nom</p>
-                  <p class="font-bold text-neutral-900 mt-0.5">{lead.companyInfo.name}</p>
+                  <p class="text-xs text-muted-foreground">Nom</p>
+                  <p class="text-sm font-medium text-foreground mt-0.5">{lead.companyInfo.name}</p>
                 </div>
               {/if}
               <div class="grid grid-cols-2 gap-3">
                 {#if lead.companyInfo.industry}
                   <div>
-                    <p class="text-[9px] font-black uppercase tracking-widest text-neutral-400">Secteur</p>
-                    <p class="text-sm font-semibold text-neutral-800 mt-0.5">{lead.companyInfo.industry}</p>
+                    <p class="text-xs text-muted-foreground">Secteur</p>
+                    <p class="text-sm text-foreground mt-0.5">{lead.companyInfo.industry}</p>
                   </div>
                 {/if}
                 {#if lead.companyInfo.size}
                   <div>
-                    <p class="text-[9px] font-black uppercase tracking-widest text-neutral-400">Taille</p>
-                    <p class="text-sm font-semibold text-neutral-800 mt-0.5">{lead.companyInfo.size}</p>
+                    <p class="text-xs text-muted-foreground">Taille</p>
+                    <p class="text-sm text-foreground mt-0.5">{lead.companyInfo.size}</p>
                   </div>
                 {/if}
                 {#if lead.companyInfo.founded}
                   <div>
-                    <p class="text-[9px] font-black uppercase tracking-widest text-neutral-400">Fondée en</p>
-                    <p class="text-sm font-semibold text-neutral-800 mt-0.5">{lead.companyInfo.founded}</p>
+                    <p class="text-xs text-muted-foreground">Fondée en</p>
+                    <p class="text-sm text-foreground mt-0.5">{lead.companyInfo.founded}</p>
                   </div>
                 {/if}
               </div>
               {#if lead.companyInfo.website}
                 <div>
-                  <p class="text-[9px] font-black uppercase tracking-widest text-neutral-400">Site web</p>
+                  <p class="text-xs text-muted-foreground">Site web</p>
                   <a
                     href={lead.companyInfo.website}
                     target="_blank"
                     rel="noopener noreferrer"
-                    class="text-sm font-semibold text-blue-600 hover:text-blue-800 underline break-all mt-0.5 block"
+                    class="text-sm text-foreground hover:underline break-all mt-0.5 block"
                   >
                     {lead.companyInfo.website}
                   </a>
                 </div>
               {/if}
               {#if lead.companyInfo.description}
-                <div class="pt-2 border-t border-neutral-200/60">
-                  <p class="text-[9px] font-black uppercase tracking-widest text-neutral-400 mb-1">À propos</p>
-                  <p class="text-sm text-neutral-700 leading-relaxed">{lead.companyInfo.description}</p>
+                <div class="pt-3 border-t border-border">
+                  <p class="text-xs text-muted-foreground mb-1">À propos</p>
+                  <p class="text-sm text-foreground leading-relaxed">{lead.companyInfo.description}</p>
                 </div>
               {/if}
             </div>
@@ -745,14 +737,14 @@
 
 
         {#if technologies.length > 0}
-          <div class="rounded-3xl p-6 shadow-sm" style="background: var(--card);">
-            <h3 class="text-[9px] font-black uppercase tracking-widest text-neutral-400 mb-3 flex items-center gap-2">
-              <iconify-icon icon="solar:code-bold" width="14"></iconify-icon>
+          <div class="rounded-xl border border-border bg-card p-6">
+            <h3 class="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
+              <iconify-icon icon="solar:code-linear" width="18"></iconify-icon>
               Stack technique
             </h3>
-            <div class="flex flex-wrap gap-2">
+            <div class="flex flex-wrap gap-1.5">
               {#each technologies as tech}
-                <span class="px-3 py-1.5 bg-white border border-neutral-200 rounded-lg text-xs font-bold text-neutral-700 shadow-sm">
+                <span class="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-foreground">
                   {tech}
                 </span>
               {/each}
@@ -761,20 +753,20 @@
         {/if}
 
         {#if lead.scrapedAt || lead.auditedAt}
-          <div class="rounded-2xl px-5 py-4 border border-neutral-200 bg-white/50">
+          <div class="rounded-xl border border-border bg-card px-5 py-4">
             <div class="space-y-2">
               {#if lead.scrapedAt}
-                <div class="flex items-center gap-2 text-xs text-neutral-500">
-                  <iconify-icon icon="solar:refresh-bold" width="14"></iconify-icon>
+                <div class="flex items-center gap-2 text-xs text-muted-foreground">
+                  <iconify-icon icon="solar:refresh-linear" width="14"></iconify-icon>
                   <span>Collecté :</span>
-                  <span class="font-bold text-neutral-700">{formatDate(lead.scrapedAt)}</span>
+                  <span class="text-foreground font-medium">{formatDate(lead.scrapedAt)}</span>
                 </div>
               {/if}
               {#if lead.auditedAt}
-                <div class="flex items-center gap-2 text-xs text-neutral-500">
-                  <iconify-icon icon="solar:shield-check-bold" width="14"></iconify-icon>
+                <div class="flex items-center gap-2 text-xs text-muted-foreground">
+                  <iconify-icon icon="solar:shield-check-linear" width="14"></iconify-icon>
                   <span>Audité :</span>
-                  <span class="font-bold text-neutral-700">{formatDate(lead.auditedAt)}</span>
+                  <span class="text-foreground font-medium">{formatDate(lead.auditedAt)}</span>
                 </div>
               {/if}
             </div>
@@ -785,30 +777,30 @@
       <div class="lg:col-span-3 space-y-6" id="email-section">
 
         {#if lead.email}
-          <div class="rounded-3xl overflow-hidden shadow-sm" style="background: var(--card);">
-            <div class="px-8 py-6 bg-neutral-900 text-white">
-              <h2 class="text-xl font-black tracking-tight flex items-center gap-3">
-                <iconify-icon icon="solar:letter-bold" width="24"></iconify-icon>
+          <div class="rounded-xl border border-border bg-card overflow-hidden">
+            <div class="px-6 py-5 border-b border-border">
+              <h2 class="text-lg font-semibold text-foreground flex items-center gap-2">
+                <iconify-icon icon="solar:letter-linear" width="20"></iconify-icon>
                 Prospection par e-mail
               </h2>
-              <p class="text-neutral-400 text-sm mt-1 font-medium">
-                Envoi à <span class="text-white font-bold">{lead.email}</span>
+              <p class="text-sm text-muted-foreground mt-1">
+                Envoi à <span class="text-foreground font-medium">{lead.email}</span>
               </p>
             </div>
 
             {#if !checkingSmtp && !smtpConfigured}
-              <div class="mx-8 mt-6 rounded-xl bg-amber-50 border border-amber-200 p-4 flex items-start gap-3">
-                <iconify-icon icon="solar:danger-triangle-bold" width="20" class="text-amber-600 flex-shrink-0"></iconify-icon>
+              <div class="mx-6 mt-4 rounded-lg border border-border bg-muted/40 p-4 flex items-start gap-3">
+                <iconify-icon icon="solar:danger-triangle-linear" width="18" class="text-muted-foreground flex-shrink-0"></iconify-icon>
                 <div class="flex-1">
-                  <p class="text-sm font-bold text-amber-900 mb-1">Configuration SMTP manquante</p>
-                  <p class="text-xs text-amber-700 leading-relaxed mb-2">
+                  <p class="text-sm font-medium text-foreground mb-1">Configuration SMTP manquante</p>
+                  <p class="text-xs text-muted-foreground leading-relaxed mb-2">
                     Vous devez configurer vos paramètres SMTP pour pouvoir envoyer des e-mails.
                   </p>
                   <button
                     onclick={() => goto(settingsUrl)}
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 text-white rounded-lg font-bold text-xs hover:bg-amber-700 transition-colors"
+                    class="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-primary px-3 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/85"
                   >
-                    <iconify-icon icon="solar:settings-bold" width="14"></iconify-icon>
+                    <iconify-icon icon="solar:settings-linear" width="14"></iconify-icon>
                     Configurer SMTP
                   </button>
                 </div>
@@ -816,15 +808,15 @@
             {/if}
 
             <div class="grid grid-cols-1 xl:grid-cols-2 gap-0">
-              <div class="p-8 space-y-5 border-r border-neutral-200/60">
+              <div class="p-6 space-y-4 xl:border-r border-border">
                 <label class="block">
-                  <span class="block text-[9px] font-black uppercase tracking-widest text-neutral-500 mb-2">
+                  <span class="block text-xs text-muted-foreground mb-1.5">
                     Modèle
                   </span>
                   <select
                     bind:value={selectedTemplate}
                     onchange={handleTemplateChange}
-                    class="w-full px-4 py-3 bg-white border border-neutral-300 rounded-xl font-semibold text-sm outline-none focus:border-black transition"
+                    class="w-full h-9 rounded-lg border border-input bg-background px-3 text-sm outline-none focus:border-ring transition-colors"
                   >
                     {#each templates as template}
                       <option value={template.id}>{template.name}</option>
@@ -836,18 +828,18 @@
                   {@const template = templates.find(t => t.id === selectedTemplate)}
                   {#if template && template.variables.length > 0}
                     <div class="space-y-3">
-                      <p class="text-[9px] font-black uppercase tracking-widest text-neutral-500">Variables</p>
+                      <p class="text-xs text-muted-foreground">Variables</p>
 
                       {#each template.variables as variable}
                         <label class="block">
-                          <span class="block text-xs font-bold text-neutral-600 mb-1.5 capitalize">
+                          <span class="block text-xs text-muted-foreground mb-1.5 capitalize">
                             {variable.replace(/([A-Z])/g, ' $1').trim()}
                           </span>
                           <input
                             type="text"
                             bind:value={variables[variable]}
-                            placeholder="Enter {variable.replace(/([A-Z])/g, ' $1').trim().toLowerCase()}"
-                            class="w-full px-4 py-2.5 bg-white border border-neutral-300 rounded-xl text-sm font-medium outline-none focus:border-black transition placeholder:text-neutral-400"
+                            placeholder={variable.replace(/([A-Z])/g, ' $1').trim().toLowerCase()}
+                            class="w-full h-9 rounded-lg border border-input bg-background px-3 text-sm placeholder:text-muted-foreground outline-none focus:border-ring transition-colors"
                           />
                         </label>
                       {/each}
@@ -858,130 +850,130 @@
                 <button
                   onclick={sendEmail}
                   disabled={sending || !selectedTemplate || !smtpConfigured}
-                  class="w-full bg-black text-white px-6 py-4 rounded-xl font-bold hover:bg-neutral-800 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  class="w-full inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {#if sending}
                     <Spinner size="sm" color="white" />
                     Envoi...
                   {:else}
-                    <iconify-icon icon="solar:rocket-2-bold" width="18"></iconify-icon>
+                    <iconify-icon icon="solar:rocket-2-linear" width="16"></iconify-icon>
                     Envoyer l'e-mail
                   {/if}
                 </button>
               </div>
 
-              <div class="p-8 space-y-4">
+              <div class="p-6 space-y-3 border-t xl:border-t-0 border-border">
                 <div class="flex items-center justify-between">
-                  <p class="text-[9px] font-black uppercase tracking-widest text-neutral-500">Aperçu en direct</p>
+                  <p class="text-xs text-muted-foreground">Aperçu en direct</p>
                   {#if previewLoading}
-                    <div class="flex items-center gap-1.5 text-xs text-neutral-400">
+                    <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
                       <Spinner size="xs" color="neutral" />
                       Mise à jour
                     </div>
                   {:else}
-                    <span class="text-[9px] font-bold text-neutral-400 bg-neutral-200 px-2 py-0.5 rounded">EN DIRECT</span>
+                    <span class="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-foreground">EN DIRECT</span>
                   {/if}
                 </div>
 
                 {#if emailPreview.subject || emailPreview.html}
-                  <div class="border border-neutral-200 rounded-2xl overflow-hidden bg-white shadow-sm" class:opacity-60={previewLoading}>
-                    <div class="bg-neutral-50 border-b border-neutral-200 px-5 py-3">
-                      <p class="text-[9px] font-black uppercase tracking-widest text-neutral-400 mb-1">Objet</p>
-                      <p class="font-bold text-sm text-neutral-900">{emailPreview.subject || '—'}</p>
+                  <div class="rounded-lg border border-border bg-background overflow-hidden" class:opacity-60={previewLoading}>
+                    <div class="border-b border-border bg-muted/40 px-4 py-2.5">
+                      <p class="text-xs text-muted-foreground mb-0.5">Objet</p>
+                      <p class="text-sm font-medium text-foreground">{emailPreview.subject || '—'}</p>
                     </div>
-                    <div class="p-5 max-h-[500px] overflow-y-auto">
+                    <div class="p-4 max-h-[500px] overflow-y-auto">
                       <div class="email-preview">
-                        {@html emailPreview.html || '<p class="text-neutral-400 italic text-sm">Fill in the variables to see the preview...</p>'}
+                        {@html emailPreview.html || '<p class="text-muted-foreground italic text-sm">Fill in the variables to see the preview...</p>'}
                       </div>
                     </div>
                   </div>
                 {:else}
-                  <div class="border-2 border-dashed border-neutral-200 rounded-2xl p-12 text-center bg-neutral-50/50">
-                    <iconify-icon icon="solar:document-bold" width="48" class="text-neutral-300 mb-3"></iconify-icon>
-                    <p class="text-sm font-bold text-neutral-400">Sélectionnez un modèle pour l'aperçu</p>
+                  <div class="rounded-lg border border-dashed border-border p-10 text-center">
+                    <iconify-icon icon="solar:document-linear" width="32" class="text-muted-foreground mb-2"></iconify-icon>
+                    <p class="text-sm text-muted-foreground">Sélectionnez un modèle pour l'aperçu</p>
                   </div>
                 {/if}
               </div>
             </div>
           </div>
         {:else}
-          <div class="rounded-3xl p-8 border-2 border-dashed border-neutral-300 text-center">
-            <iconify-icon icon="solar:letter-bold" width="48" class="text-neutral-300 mb-3"></iconify-icon>
-            <h3 class="text-lg font-black text-neutral-500">Aucune adresse e-mail</h3>
-            <p class="text-sm text-neutral-400 mt-1">La prospection par e-mail n'est pas disponible pour ce lead.</p>
+          <div class="rounded-xl border border-dashed border-border p-8 text-center">
+            <iconify-icon icon="solar:letter-linear" width="32" class="text-muted-foreground mb-2"></iconify-icon>
+            <h3 class="text-sm font-medium text-foreground">Aucune adresse e-mail</h3>
+            <p class="text-sm text-muted-foreground mt-1">La prospection par e-mail n'est pas disponible pour ce lead.</p>
           </div>
         {/if}
 
-        <div class="rounded-3xl overflow-hidden shadow-sm" style="background: var(--card);">
-          <div class="px-8 py-6 border-b border-neutral-200/60 flex items-center justify-between">
-            <h2 class="text-lg font-black tracking-tight flex items-center gap-3">
-              <iconify-icon icon="solar:history-bold" width="22"></iconify-icon>
+        <div class="rounded-xl border border-border bg-card overflow-hidden">
+          <div class="px-6 py-4 border-b border-border flex items-center justify-between">
+            <h2 class="text-lg font-semibold text-foreground flex items-center gap-2">
+              <iconify-icon icon="solar:history-linear" width="18"></iconify-icon>
               Historique des e-mails
             </h2>
-            <span class="text-xs font-bold text-neutral-500 bg-white px-3 py-1.5 rounded-lg">
+            <span class="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-foreground">
               {outreachHistory.length} e-mail{outreachHistory.length !== 1 ? 's' : ''}
             </span>
           </div>
 
           <div class="p-6">
             {#if outreachHistory.length === 0}
-              <div class="py-12 text-center">
-                <iconify-icon icon="solar:inbox-line-bold" width="56" class="text-neutral-300 mb-3"></iconify-icon>
-                <p class="text-sm font-bold text-neutral-400 uppercase tracking-widest">Aucun e-mail envoyé</p>
+              <div class="py-10 text-center">
+                <iconify-icon icon="solar:inbox-line-linear" width="40" class="text-muted-foreground mb-2"></iconify-icon>
+                <p class="text-sm text-muted-foreground">Aucun e-mail envoyé</p>
               </div>
             {:else}
-              <div class="space-y-3">
+              <div class="space-y-2">
                 {#each outreachHistory as email}
-                  <div class="bg-white rounded-2xl border border-neutral-200 overflow-hidden hover:border-neutral-300 transition-colors" in:fade>
+                  <div class="rounded-lg border border-border bg-background overflow-hidden" in:fade>
                     <button
                       onclick={() => toggleEmailExpansion(email.id)}
-                      class="w-full px-6 py-4 text-left hover:bg-neutral-50 transition-colors"
+                      class="w-full px-4 py-3 text-left hover:bg-muted/40 transition-colors"
                     >
                       <div class="flex items-center justify-between gap-3">
                         <div class="flex-1 min-w-0">
-                          <p class="font-bold text-sm text-neutral-900 truncate">{email.subject}</p>
-                          <p class="text-xs text-neutral-500 mt-1 flex items-center gap-1.5">
-                            <iconify-icon icon="solar:calendar-bold" width="12"></iconify-icon>
+                          <p class="text-sm font-medium text-foreground truncate">{email.subject}</p>
+                          <p class="text-xs text-muted-foreground mt-0.5 flex items-center gap-1.5">
+                            <iconify-icon icon="solar:calendar-linear" width="12"></iconify-icon>
                             {formatDate(email.sentAt || email.createdAt)}
                           </p>
                         </div>
                         <div class="flex items-center gap-2 flex-shrink-0">
-                          <span class="px-2.5 py-1 rounded-lg text-[10px] font-bold {getStatusColor(email.status)}">
+                          <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {getStatusColor(email.status)}">
                             {email.status}
                           </span>
                           <iconify-icon
-                            icon={expandedEmails.has(email.id) ? "solar:alt-arrow-up-bold" : "solar:alt-arrow-down-bold"}
-                            width="16"
-                            class="text-neutral-400"
+                            icon={expandedEmails.has(email.id) ? "solar:alt-arrow-up-linear" : "solar:alt-arrow-down-linear"}
+                            width="14"
+                            class="text-muted-foreground"
                           ></iconify-icon>
                         </div>
                       </div>
                     </button>
 
                     {#if expandedEmails.has(email.id)}
-                      <div class="border-t border-neutral-100 px-6 py-4 bg-neutral-50/50 space-y-4" in:fly={{ y: -8, duration: 150 }}>
+                      <div class="border-t border-border px-4 py-3 bg-muted/40 space-y-3" in:fly={{ y: -8, duration: 150 }}>
                         {#if email.error}
-                          <div class="flex items-start gap-2 px-4 py-3 bg-red-50 border border-red-100 rounded-xl">
-                            <iconify-icon icon="solar:danger-triangle-bold" width="16" class="text-red-500 flex-shrink-0 mt-0.5"></iconify-icon>
-                            <p class="text-xs font-medium text-red-600">{email.error}</p>
+                          <div class="flex items-start gap-2 px-3 py-2.5 rounded-lg border border-border bg-destructive/10">
+                            <iconify-icon icon="solar:danger-triangle-linear" width="14" class="text-destructive flex-shrink-0 mt-0.5"></iconify-icon>
+                            <p class="text-xs text-destructive">{email.error}</p>
                           </div>
                         {/if}
 
                         <div>
-                          <p class="text-[9px] font-black uppercase tracking-widest text-neutral-400 mb-2">Contenu de l'e-mail</p>
-                          <div class="bg-white rounded-xl border border-neutral-200 p-4">
-                            <p class="text-sm text-neutral-800 whitespace-pre-wrap leading-relaxed">{email.textBody || 'Aucun contenu'}</p>
+                          <p class="text-xs text-muted-foreground mb-1.5">Contenu de l'e-mail</p>
+                          <div class="rounded-lg border border-border bg-background p-3">
+                            <p class="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{email.textBody || 'Aucun contenu'}</p>
                           </div>
                         </div>
 
                         {#if email.variables && Object.keys(email.variables).length > 0}
                           <div>
-                            <p class="text-[9px] font-black uppercase tracking-widest text-neutral-400 mb-2">Variables utilisées</p>
+                            <p class="text-xs text-muted-foreground mb-1.5">Variables utilisées</p>
                             <div class="grid grid-cols-2 gap-2">
                               {#each Object.entries(email.variables) as [key, value]}
-                                <div class="bg-white rounded-lg border border-neutral-200 px-3 py-2">
-                                  <p class="text-[9px] font-black uppercase tracking-widest text-neutral-400">{key}</p>
-                                  <p class="text-sm text-neutral-800 font-medium mt-0.5">{value}</p>
+                                <div class="rounded-lg border border-border bg-background px-3 py-2">
+                                  <p class="text-xs text-muted-foreground">{key}</p>
+                                  <p class="text-sm text-foreground mt-0.5">{value}</p>
                                 </div>
                               {/each}
                             </div>

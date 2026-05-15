@@ -63,55 +63,44 @@
   let processedLeads = $derived(leads);
 </script>
 
-<div
-  class="min-h-screen selection:text-black font-sans"
-  style="background-color: var(--background); selection-background-color: var(--foreground);"
->
-  <div class="p-6 lg:p-12 max-w-[1600px] mx-auto space-y-12">
-  <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
-    <div class="flex items-center gap-4">
-      <button
-        aria-label="Retour aux leads"
-        onclick={() => goto('/app/leads')}
-        class="w-12 h-12 flex-shrink-0 flex items-center justify-center bg-neutral-100 hover:bg-neutral-200 rounded-xl transition-colors"
-      >
-        <iconify-icon icon="solar:arrow-left-bold" width="20"></iconify-icon>
-      </button>
-
-      <div class="w-16 h-16 flex items-center justify-center bg-red-500 rounded-2xl">
-        <iconify-icon icon="solar:heart-bold" width="32" class="text-white"></iconify-icon>
-      </div>
-      <div class="space-y-1">
-        <h1 class="text-5xl font-black tracking-tight leading-none" style="color: var(--foreground);">
-          Favoris
-        </h1>
-        <p class="text-neutral-400 font-medium text-sm">
-          {processedLeads.length} lead{processedLeads.length !== 1 ? 's' : ''} favori{processedLeads.length !== 1 ? 's' : ''}
-        </p>
-      </div>
+<div class="max-w-[1600px] mx-auto px-6 py-6 space-y-6">
+  <div class="flex items-center gap-3">
+    <button
+      aria-label="Retour aux leads"
+      onclick={() => goto('/app/leads')}
+      class="inline-flex size-8 items-center justify-center rounded-lg border border-border bg-background hover:bg-muted transition-colors"
+    >
+      <iconify-icon icon="solar:arrow-left-linear" width="16"></iconify-icon>
+    </button>
+    <div>
+      <h1 class="text-2xl font-bold tracking-tight text-foreground">Favoris</h1>
+      <p class="text-sm text-muted-foreground mt-1">
+        {processedLeads.length} lead{processedLeads.length !== 1 ? 's' : ''} favori{processedLeads.length !== 1 ? 's' : ''}
+      </p>
     </div>
   </div>
 
-  <div class="space-y-8">
-    <div class="flex items-center gap-2 flex-wrap">
+  <div class="space-y-6">
+    <div class="flex items-center gap-1.5 flex-wrap">
       {#each [
         { label: 'Date', value: 'createdAt' },
         { label: 'Score', value: 'score' },
         { label: 'Domaine', value: 'domain' },
         { label: 'E-mail', value: 'email' },
         { label: 'Localisation', value: 'city' },
-        { label: 'Priorit�', value: 'status' },
+        { label: 'Priorité', value: 'status' },
       ] as opt}
         <button
           onclick={() => handleSort(opt.value)}
-          class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-all {sortBy === opt.value ? 'bg-black text-white shadow-md' : 'bg-white text-neutral-600 hover:bg-neutral-100 shadow-sm'}"
+          class="inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition-colors {sortBy === opt.value ? 'bg-primary text-primary-foreground' : 'border border-border bg-background text-foreground hover:bg-muted'}"
         >
           {opt.label}
-          <iconify-icon
-            icon={sortBy === opt.value ? (sortOrder === 'asc' ? 'solar:arrow-up-bold' : 'solar:arrow-down-bold') : 'solar:arrow-down-bold'}
-            width="13"
-            class={sortBy === opt.value ? '' : 'opacity-20'}
-          ></iconify-icon>
+          {#if sortBy === opt.value}
+            <iconify-icon
+              icon={sortOrder === 'asc' ? 'solar:arrow-up-linear' : 'solar:arrow-down-linear'}
+              width="12"
+            ></iconify-icon>
+          {/if}
         </button>
       {/each}
     </div>
@@ -120,23 +109,21 @@
       <LeadsMap leads={processedLeads} />
     {/if}
 
-    <div class="rounded-2xl overflow-hidden shadow-lg" style="background-color: var(--card);">
+    <div class="rounded-xl border border-border bg-card overflow-hidden">
       {#if loading}
-        <div class="flex items-center justify-center py-20">
+        <div class="flex items-center justify-center py-16">
           <Spinner size="lg" />
         </div>
       {:else if processedLeads.length === 0}
-        <div class="flex flex-col items-center justify-center py-20 space-y-4">
-          <iconify-icon icon="solar:heart-linear" width="80" class="text-neutral-200"></iconify-icon>
-          <p class="text-neutral-400 font-bold uppercase tracking-widest text-sm">
-            Aucun lead favori
-          </p>
-          <p class="text-neutral-400 text-sm">
+        <div class="flex flex-col items-center justify-center py-16 space-y-3">
+          <iconify-icon icon="solar:heart-linear" width="48" class="text-muted-foreground"></iconify-icon>
+          <p class="text-sm font-medium text-foreground">Aucun lead favori</p>
+          <p class="text-sm text-muted-foreground">
             Ajoutez des leads à vos favoris pour les retrouver facilement ici
           </p>
           <button
             onclick={() => goto('/app/leads')}
-            class="mt-4 px-6 py-3 bg-black text-white rounded-xl font-bold hover:bg-neutral-800 transition-colors"
+            class="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85 mt-2"
           >
             Voir tous les leads
           </button>
@@ -155,6 +142,5 @@
         onPageChange={handlePageChange}
       />
     {/if}
-  </div>
   </div>
 </div>

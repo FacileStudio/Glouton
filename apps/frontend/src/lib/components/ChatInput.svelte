@@ -30,7 +30,7 @@
 
   <form on:submit|preventDefault={handleSubmit} class="bg-slate-100/80 backdrop-blur-sm p-2 rounded-[30px] flex items-center gap-2 border border-white shadow-inner focus-within:ring-2 focus-within:ring-muted/20 transition-all">
     <button type="button" class="w-11 h-11 flex items-center justify-center text-slate-400 hover:text-foreground cursor-pointer" aria-label="Attacher">
-      <iconify-icon icon="solar:paperclip-2-bold" width="24"></iconify-icon>
+      <iconify-icon icon="solar:paperclip-2-linear" width="24"></iconify-icon>
     </button>
     <input
       bind:value={text}
@@ -40,7 +40,7 @@
       class="flex-1 bg-transparent border-none px-2 py-3 text-sm outline-none text-slate-800 font-medium disabled:opacity-50"
     />
     <button type="submit" disabled={!text.trim() || isSending} class="bg-foreground text-white w-11 h-11 rounded-[22px] shadow-lg flex items-center justify-center hover:scale-105 hover:bg-muted hover:text-foreground active:scale-95 transition-all disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed" aria-label="Envoyer">
-      <iconify-icon icon={isSending ? "svg-spinners:blocks-shuffle-3" : "solar:rocket-bold"} width="20"></iconify-icon>
+      <iconify-icon icon={isSending ? "svg-spinners:blocks-shuffle-3" : "solar:rocket-linear"} width="20"></iconify-icon>
     </button>
   </form>
 </div>

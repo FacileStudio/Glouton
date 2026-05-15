@@ -62,15 +62,8 @@
     }
   }
 
-  function getRoleBadgeColor(role: string) {
-    switch (role) {
-      case 'OWNER':
-        return 'bg-red-100 text-red-700 border-red-200';
-      case 'ADMIN':
-        return 'bg-blue-100 text-blue-700 border-blue-200';
-      default:
-        return 'bg-neutral-100 text-neutral-700 border-neutral-200';
-    }
+  function getRoleBadgeColor(_role: string) {
+    return 'bg-muted text-foreground';
   }
 
   function getRoleLabel(role: string) {
@@ -184,41 +177,38 @@
   }
 </script>
 
-<div
-  class="p-6 lg:p-12 max-w-[1600px] mx-auto space-y-12 selection:text-black font-sans"
-  style="background-color: var(--background); selection-background-color: var(--foreground);"
->
+<div class="max-w-[1600px] mx-auto px-6 py-6 space-y-6">
   {#if loading}
-    <div class="flex items-center justify-center py-20">
+    <div class="flex items-center justify-center py-16">
       <Spinner size="lg" />
     </div>
   {:else if team}
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
-      <div class="flex items-center gap-4">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
         <button
           aria-label="Retour"
           onclick={handleBack}
-          class="w-12 h-12 flex items-center justify-center bg-white rounded-xl hover:bg-neutral-50 transition-colors border border-neutral-100"
+          class="inline-flex size-8 items-center justify-center rounded-lg border border-border bg-background hover:bg-muted"
         >
-          <iconify-icon icon="solar:arrow-left-bold" width="20" class="text-neutral-700"></iconify-icon>
+          <iconify-icon icon="solar:arrow-left-linear" width="16"></iconify-icon>
         </button>
-        <div>
-          <h1 class="text-3xl md:text-4xl font-black tracking-tight" style="color: var(--foreground);">
+        <div class="space-y-1">
+          <h1 class="text-2xl font-bold tracking-tight text-foreground">
             Membres de {team.name}
           </h1>
-          <p class="text-neutral-500 font-medium text-base mt-1">
+          <p class="text-sm text-muted-foreground">
             {members.length} membre{members.length !== 1 ? 's' : ''}
           </p>
         </div>
       </div>
 
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2">
         {#if !isOwner}
           <button
             onclick={() => (leaveConfirmModalOpen = true)}
-            class="bg-red-100 text-red-700 px-6 py-4 rounded-xl font-bold hover:bg-red-200 active:scale-95 transition-all flex items-center gap-3 border border-red-200"
+            class="inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
           >
-            <iconify-icon icon="solar:logout-2-bold" width="20"></iconify-icon>
+            <iconify-icon icon="solar:logout-2-linear" width="16"></iconify-icon>
             <span>Quitter l'équipe</span>
           </button>
         {/if}
@@ -226,100 +216,101 @@
         {#if canManage}
           <button
             onclick={() => (addMemberModalOpen = true)}
-            class="bg-black text-white px-8 py-4 rounded-xl font-bold hover:bg-neutral-800 active:scale-95 transition-all flex items-center gap-3 shadow-lg shadow-black/20"
+            class="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85"
           >
-            <iconify-icon icon="mdi:account-plus" width="20"></iconify-icon>
+            <iconify-icon icon="mdi:account-plus" width="16"></iconify-icon>
             <span>Ajouter un membre</span>
           </button>
         {/if}
       </div>
     </div>
 
-    <div class="rounded-2xl overflow-hidden shadow-lg" style="background-color: var(--card);">
+    <div class="rounded-xl border border-border bg-card overflow-hidden">
       {#if loadingMembers}
-        <div class="flex items-center justify-center py-20">
+        <div class="flex items-center justify-center py-16">
           <Spinner size="lg" />
         </div>
       {:else if members.length === 0}
-        <div class="p-12">
+        <div class="p-8">
           <EmptyState
             title="Aucun membre"
             description="Ajoutez des membres pour collaborer sur cette équipe"
-            icon="solar:users-group-rounded-bold"
+            icon="solar:users-group-rounded-linear"
           >
             <div slot="action">
               {#if canManage}
-                <Button onclick={() => (addMemberModalOpen = true)} intent="primary" size="lg">
-                  <iconify-icon icon="mdi:account-plus" width="20"></iconify-icon>
+                <button
+                  onclick={() => (addMemberModalOpen = true)}
+                  class="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85"
+                >
+                  <iconify-icon icon="mdi:account-plus" width="16"></iconify-icon>
                   Ajouter un membre
-                </Button>
+                </button>
               {/if}
             </div>
           </EmptyState>
         </div>
       {:else}
-        <div class="p-8">
-          <div class="space-y-4">
-            {#each members as member (member.id)}
-              <div class="bg-white rounded-2xl p-6 shadow-sm border border-neutral-100 flex items-center justify-between gap-4">
-                <div class="flex items-center gap-4 flex-1 min-w-0">
-                  <div class="w-12 h-12 bg-neutral-900 rounded-xl flex items-center justify-center text-white font-black text-sm flex-shrink-0">
-                    {getInitials(member.firstName, member.lastName, member.email)}
-                  </div>
-
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-3 mb-1">
-                      <h3 class="font-bold text-neutral-900 truncate">
-                        {#if member.firstName && member.lastName}
-                          {member.firstName} {member.lastName}
-                        {:else if member.firstName}
-                          {member.firstName}
-                        {:else}
-                          {member.email}
-                        {/if}
-                      </h3>
-                      <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold uppercase border flex-shrink-0 {getRoleBadgeColor(member.role)}">
-                        {getRoleLabel(member.role)}
-                      </span>
-                    </div>
-                    <p class="text-sm text-neutral-500 truncate">{member.email}</p>
-                    <p class="text-xs text-neutral-400 mt-1">
-                      Rejoint le {new Date(member.joinedAt).toLocaleDateString('fr-FR')}
-                    </p>
-                  </div>
+        <div class="divide-y divide-border">
+          {#each members as member (member.id)}
+            <div class="px-4 py-3 flex items-center justify-between gap-3">
+              <div class="flex items-center gap-3 flex-1 min-w-0">
+                <div class="size-9 rounded-lg border border-border bg-background flex items-center justify-center text-foreground text-sm font-medium flex-shrink-0">
+                  {getInitials(member.firstName, member.lastName, member.email)}
                 </div>
 
-                <div class="flex items-center gap-2 flex-shrink-0">
-                  {#if isOwner && member.role !== 'OWNER'}
-                    <select
-                      value={member.role}
-                      onchange={(e) => handleUpdateRole(member, e.currentTarget.value as 'ADMIN' | 'MEMBER')}
-                      disabled={updatingRoleMemberId === member.userId}
-                      class="px-3 py-2 rounded-xl border border-neutral-200 text-sm font-medium bg-white hover:bg-neutral-50 transition-colors disabled:opacity-50"
-                    >
-                      <option value="MEMBER">Membre</option>
-                      <option value="ADMIN">Admin</option>
-                    </select>
-                  {/if}
-
-                  {#if canManage && member.role !== 'OWNER'}
-                    <button
-                      onclick={() => openRemoveConfirm(member)}
-                      disabled={removingMemberId === member.userId}
-                      class="w-10 h-10 flex items-center justify-center rounded-xl text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
-                      aria-label="Retirer le membre"
-                    >
-                      {#if removingMemberId === member.userId}
-                        <Spinner size="sm" />
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 mb-0.5">
+                    <h3 class="text-sm font-medium text-foreground truncate">
+                      {#if member.firstName && member.lastName}
+                        {member.firstName} {member.lastName}
+                      {:else if member.firstName}
+                        {member.firstName}
                       {:else}
-                        <iconify-icon icon="solar:trash-bin-trash-bold" width="20"></iconify-icon>
+                        {member.email}
                       {/if}
-                    </button>
-                  {/if}
+                    </h3>
+                    <span class="rounded-full px-2.5 py-0.5 text-xs font-medium flex-shrink-0 {getRoleBadgeColor(member.role)}">
+                      {getRoleLabel(member.role)}
+                    </span>
+                  </div>
+                  <p class="text-xs text-muted-foreground truncate">{member.email}</p>
+                  <p class="text-xs text-muted-foreground mt-0.5">
+                    Rejoint le {new Date(member.joinedAt).toLocaleDateString('fr-FR')}
+                  </p>
                 </div>
               </div>
-            {/each}
-          </div>
+
+              <div class="flex items-center gap-2 flex-shrink-0">
+                {#if isOwner && member.role !== 'OWNER'}
+                  <select
+                    value={member.role}
+                    onchange={(e) => handleUpdateRole(member, e.currentTarget.value as 'ADMIN' | 'MEMBER')}
+                    disabled={updatingRoleMemberId === member.userId}
+                    class="h-9 rounded-lg border border-input bg-background px-3 text-sm disabled:opacity-50"
+                  >
+                    <option value="MEMBER">Membre</option>
+                    <option value="ADMIN">Admin</option>
+                  </select>
+                {/if}
+
+                {#if canManage && member.role !== 'OWNER'}
+                  <button
+                    onclick={() => openRemoveConfirm(member)}
+                    disabled={removingMemberId === member.userId}
+                    class="inline-flex size-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors disabled:opacity-50"
+                    aria-label="Retirer le membre"
+                  >
+                    {#if removingMemberId === member.userId}
+                      <Spinner size="sm" />
+                    {:else}
+                      <iconify-icon icon="solar:trash-bin-trash-linear" width="16"></iconify-icon>
+                    {/if}
+                  </button>
+                {/if}
+              </div>
+            </div>
+          {/each}
         </div>
       {/if}
     </div>
@@ -327,9 +318,9 @@
 </div>
 
 <Modal bind:open={addMemberModalOpen} title="Ajouter un membre">
-  <div class="space-y-6">
-    <div class="space-y-2">
-      <label for="memberEmail" class="text-sm font-bold text-neutral-700 block">
+  <div class="space-y-4">
+    <div class="space-y-1.5">
+      <label for="memberEmail" class="text-sm font-medium text-foreground block">
         Adresse email
       </label>
       <Input
@@ -337,55 +328,50 @@
         type="email"
         bind:value={addMemberEmail}
         placeholder="membre@exemple.com"
-        class="rounded-xl"
       />
-      <p class="text-xs text-neutral-500">
+      <p class="text-xs text-muted-foreground">
         L'utilisateur doit avoir un compte Glouton
       </p>
     </div>
 
-    <div class="space-y-2">
-      <label for="memberRole" class="text-sm font-bold text-neutral-700 block">
+    <div class="space-y-1.5">
+      <label for="memberRole" class="text-sm font-medium text-foreground block">
         Rôle
       </label>
       <select
         id="memberRole"
         bind:value={addMemberRole}
-        class="w-full px-5 py-3 rounded-2xl bg-slate-50/50 border-2 border-slate-100 focus:border-muted focus:bg-white hover:bg-white transition-all duration-200 font-medium text-foreground outline-none"
+        class="w-full h-9 rounded-lg border border-input bg-background px-3 text-sm"
       >
         <option value="MEMBER">Membre</option>
         <option value="ADMIN">Admin</option>
       </select>
-      <p class="text-xs text-neutral-500">
+      <p class="text-xs text-muted-foreground">
         Les admins peuvent gérer les membres et les paramètres
       </p>
     </div>
 
-    <div class="flex items-center gap-3 pt-4">
-      <Button
+    <div class="flex items-center justify-end gap-2 pt-2">
+      <button
         onclick={() => { addMemberModalOpen = false; addMemberEmail = ''; }}
-        intent="secondary"
-        size="lg"
-        class="flex-1"
         disabled={addingMember}
+        class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50"
       >
         Annuler
-      </Button>
-      <Button
+      </button>
+      <button
         onclick={handleAddMember}
-        intent="primary"
-        size="lg"
-        class="flex-1"
         disabled={addingMember || !addMemberEmail.trim()}
+        class="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85 disabled:opacity-50"
       >
         {#if addingMember}
           <Spinner size="sm" />
           <span>Ajout...</span>
         {:else}
-          <iconify-icon icon="mdi:account-plus" width="20"></iconify-icon>
+          <iconify-icon icon="mdi:account-plus" width="16"></iconify-icon>
           <span>Ajouter</span>
         {/if}
-      </Button>
+      </button>
     </div>
   </div>
 </Modal>
@@ -393,30 +379,27 @@
 {#if removeConfirmModalOpen && memberToRemove}
   <div
     transition:fade={{ duration: 150 }}
-    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-900/60 backdrop-blur-sm"
+    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm"
   >
-    <div class="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl space-y-6">
-      <div class="space-y-2 text-center">
-        <div class="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto text-red-500 mb-4">
-          <iconify-icon icon="solar:user-cross-bold" width="32"></iconify-icon>
-        </div>
-        <h3 class="text-2xl font-black tracking-tight text-neutral-900">Retirer ce membre ?</h3>
-        <p class="text-neutral-500 font-medium">
+    <div class="rounded-xl border border-border bg-card p-6 max-w-md w-full space-y-4">
+      <div class="space-y-1">
+        <h3 class="text-lg font-semibold text-foreground">Retirer ce membre ?</h3>
+        <p class="text-sm text-muted-foreground">
           {memberToRemove.firstName || memberToRemove.email} sera retiré de l'équipe et perdra l'accès aux ressources partagées.
         </p>
       </div>
 
-      <div class="grid grid-cols-2 gap-3">
+      <div class="flex items-center justify-end gap-2">
         <button
           onclick={() => { removeConfirmModalOpen = false; memberToRemove = null; }}
-          class="px-4 py-3 rounded-xl font-bold bg-neutral-100 hover:bg-neutral-200 text-neutral-900 transition-colors"
+          class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 text-sm font-medium transition-colors hover:bg-muted"
         >
           Annuler
         </button>
         <button
           onclick={handleRemoveMember}
           disabled={!!removingMemberId}
-          class="px-4 py-3 rounded-xl font-bold bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          class="inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors disabled:opacity-50"
         >
           {removingMemberId ? 'Retrait...' : 'Retirer'}
         </button>
@@ -428,30 +411,27 @@
 {#if leaveConfirmModalOpen}
   <div
     transition:fade={{ duration: 150 }}
-    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-900/60 backdrop-blur-sm"
+    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm"
   >
-    <div class="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl space-y-6">
-      <div class="space-y-2 text-center">
-        <div class="w-16 h-16 bg-orange-50 rounded-full flex items-center justify-center mx-auto text-orange-500 mb-4">
-          <iconify-icon icon="solar:logout-2-bold" width="32"></iconify-icon>
-        </div>
-        <h3 class="text-2xl font-black tracking-tight text-neutral-900">Quitter l'équipe ?</h3>
-        <p class="text-neutral-500 font-medium">
+    <div class="rounded-xl border border-border bg-card p-6 max-w-md w-full space-y-4">
+      <div class="space-y-1">
+        <h3 class="text-lg font-semibold text-foreground">Quitter l'équipe ?</h3>
+        <p class="text-sm text-muted-foreground">
           Vous perdrez l'accès aux ressources de cette équipe. Vous pourrez être réinvité par un administrateur.
         </p>
       </div>
 
-      <div class="grid grid-cols-2 gap-3">
+      <div class="flex items-center justify-end gap-2">
         <button
           onclick={() => (leaveConfirmModalOpen = false)}
-          class="px-4 py-3 rounded-xl font-bold bg-neutral-100 hover:bg-neutral-200 text-neutral-900 transition-colors"
+          class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 text-sm font-medium transition-colors hover:bg-muted"
         >
           Annuler
         </button>
         <button
           onclick={handleLeaveTeam}
           disabled={leavingTeam}
-          class="px-4 py-3 rounded-xl font-bold bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          class="inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors disabled:opacity-50"
         >
           {leavingTeam ? 'Départ...' : 'Quitter'}
         </button>

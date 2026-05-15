@@ -14,7 +14,7 @@
       aria-label="Nouvelle discussion"
       title="Nouvelle discussion"
     >
-      <iconify-icon icon="solar:pen-new-square-bold" width="20"></iconify-icon>
+      <iconify-icon icon="solar:pen-new-square-linear" width="20"></iconify-icon>
     </button>
   </div>
 

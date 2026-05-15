@@ -66,11 +66,11 @@
   }
 </script>
 
-<main class="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-  <div class="max-w-md w-full space-y-8">
-    <div class="text-center">
-      <h1 class="text-4xl font-bold text-gray-900">Premium Membership</h1>
-      <p class="mt-2 text-gray-600">Débloquez les fonctionnalités exclusives !</p>
+<div class="max-w-[1600px] mx-auto px-6 py-6">
+  <div class="max-w-md mx-auto space-y-6">
+    <div class="space-y-1 text-center">
+      <h1 class="text-2xl font-bold tracking-tight text-foreground">Premium Membership</h1>
+      <p class="text-sm text-muted-foreground">Débloquez les fonctionnalités exclusives</p>
     </div>
 
     {#if canceled}
@@ -82,30 +82,28 @@
     {#if pageLoading}
       <div class="text-center py-12">
         <Spinner size="lg" />
-        <p class="mt-2 text-gray-500 text-sm">Vérification de votre statut...</p>
+        <p class="mt-2 text-sm text-muted-foreground">Vérification de votre statut...</p>
       </div>
     {:else if subscriptionStatus}
-      <Card padding="lg" rounded="xl" shadow="lg" class="space-y-6">
+      <div class="rounded-xl border border-border bg-card p-6 space-y-5">
 
         {#if subscriptionStatus.isPremium}
           <div class="text-center space-y-2">
-            <span class="inline-flex items-center justify-center p-3 bg-green-100 rounded-full mb-2">
-               <iconify-icon icon="solar:verified-check-bold" class="text-green-600" width="32"></iconify-icon>
-            </span>
-            <h2 class="text-2xl font-bold text-gray-900">Vous êtes Premium !</h2>
+            <iconify-icon icon="solar:verified-check-linear" class="text-foreground" width="32"></iconify-icon>
+            <h2 class="text-lg font-semibold text-foreground">Vous êtes Premium</h2>
           </div>
 
-          <div class="bg-gray-50 rounded-lg p-4 text-sm space-y-2 text-gray-700">
+          <div class="rounded-lg border border-border bg-muted/50 p-4 text-sm space-y-2 text-foreground">
             {#if subscriptionStatus.subscription?.status}
-              <div class="flex justify-between border-b border-gray-200 pb-2">
-                <span>Statut</span>
-                <span class="font-bold capitalize">{subscriptionStatus.subscription.status}</span>
+              <div class="flex justify-between border-b border-border pb-2">
+                <span class="text-muted-foreground">Statut</span>
+                <span class="font-medium capitalize">{subscriptionStatus.subscription.status}</span>
               </div>
             {/if}
 
             {#if subscriptionStatus.subscription?.currentPeriodEnd}
               <div class="flex justify-between pt-1">
-                <span>Renouvellement</span>
+                <span class="text-muted-foreground">Renouvellement</span>
                 <span class="font-medium">
                   {new Date(subscriptionStatus.subscription.currentPeriodEnd).toLocaleDateString()}
                 </span>
@@ -113,45 +111,45 @@
             {/if}
           </div>
 
-          <Button
+          <button
             onclick={handleManageSubscription}
             disabled={actionLoading}
-            class="w-full"
+            class="inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85 disabled:opacity-50"
           >
             {#if actionLoading}
-              <iconify-icon icon="line-md:loading-loop" width="20"></iconify-icon>
+              <iconify-icon icon="line-md:loading-loop" width="16"></iconify-icon>
             {:else}
-              <iconify-icon icon="solar:settings-bold" width="20"></iconify-icon>
+              <iconify-icon icon="solar:settings-linear" width="16"></iconify-icon>
             {/if}
             Gérer mon abonnement
-          </Button>
+          </button>
 
         {:else}
-          <div class="p-4 bg-indigo-50 rounded-lg">
-            <ul class="space-y-2 text-gray-700 text-sm">
-              <li class="flex gap-2 items-center"><iconify-icon icon="solar:check-circle-bold" class="text-green-500"></iconify-icon> Accès illimité</li>
-              <li class="flex gap-2 items-center"><iconify-icon icon="solar:check-circle-bold" class="text-green-500"></iconify-icon> Support prioritaire</li>
+          <div class="rounded-lg border border-border bg-muted/50 p-4">
+            <ul class="space-y-2 text-foreground text-sm">
+              <li class="flex gap-2 items-center"><iconify-icon icon="solar:check-circle-linear" class="text-muted-foreground"></iconify-icon> Accès illimité</li>
+              <li class="flex gap-2 items-center"><iconify-icon icon="solar:check-circle-linear" class="text-muted-foreground"></iconify-icon> Support prioritaire</li>
             </ul>
           </div>
 
-          <Button
+          <button
             onclick={handleBecomePremium}
             disabled={actionLoading}
-            class="w-full"
+            class="inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85 disabled:opacity-50"
           >
             {#if actionLoading}
-              <iconify-icon icon="line-md:loading-loop" width="24"></iconify-icon>
+              <iconify-icon icon="line-md:loading-loop" width="16"></iconify-icon>
             {:else}
-              <iconify-icon icon="solar:star-bold" width="20" class="text-yellow-400"></iconify-icon>
+              <iconify-icon icon="solar:star-linear" width="16"></iconify-icon>
               Devenir Premium
             {/if}
-          </Button>
+          </button>
         {/if}
 
-        <a href={resolve('/')} class="block text-center text-gray-500 text-sm hover:text-gray-900 mt-4 flex items-center justify-center gap-1">
-          <iconify-icon icon="solar:arrow-left-linear"></iconify-icon> Retour
+        <a href={resolve('/')} class="inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
+          <iconify-icon icon="solar:arrow-left-linear" width="16"></iconify-icon> Retour
         </a>
-      </Card>
+      </div>
     {/if}
   </div>
-</main>
+</div>

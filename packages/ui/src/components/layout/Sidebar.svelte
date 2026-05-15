@@ -13,20 +13,20 @@
 <aside
   class="sticky top-0 flex h-screen w-60 flex-col border-r border-border bg-background selection:bg-foreground selection:text-background"
 >
-  <div class="px-5 pt-8 pb-6">
-    <div class="flex items-center gap-3">
+  <div class="px-4 pt-6 pb-4">
+    <div class="flex items-center gap-2">
       {#if logoSrc}
-        <img src={logoSrc} alt="Glouton" class="h-7 w-7" />
+        <img src={logoSrc} alt="Glouton" class="h-[22px] w-[22px]" />
       {:else}
-        <iconify-icon icon={logoIcon} width="28" class="text-foreground"></iconify-icon>
+        <iconify-icon icon={logoIcon} width="22" class="text-foreground"></iconify-icon>
       {/if}
-      <h1 class="text-2xl font-bold leading-none text-foreground">
+      <h1 class="text-base font-semibold leading-none text-foreground">
         Glouton
       </h1>
     </div>
   </div>
 
-  <div class="mb-4 px-3">
+  <div class="mb-3 px-3">
     <slot name="context-switcher" />
   </div>
 
@@ -35,12 +35,12 @@
       <a
         href={resolvePath(item.href)}
         data-sveltekit-reload
-        class="group relative flex items-center gap-3 rounded-md px-3 py-2.5 text-sm transition-colors
+        class="flex h-9 items-center gap-2 rounded-lg px-3 text-sm transition-colors
         {activeHref.startsWith(item.href)
-          ? 'bg-foreground text-background font-medium'
+          ? 'bg-muted text-foreground font-medium'
           : 'text-muted-foreground hover:bg-muted hover:text-foreground'}"
       >
-        <iconify-icon icon={item.icon} width="18"
+        <iconify-icon icon={item.icon} width="16"
         ></iconify-icon>
 
         <span>
@@ -50,25 +50,21 @@
     {/each}
   </nav>
 
-  <div class="mt-auto space-y-3 border-t border-border p-4">
-    <div
-      class="rounded-lg border border-border bg-muted/40 p-2.5"
-    >
-      <div class="flex items-center gap-3">
-        <div
-          class="flex h-9 w-9 flex-shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-foreground text-background"
-        >
-          <slot name="user-avatar" />
-        </div>
+  <div class="mt-auto space-y-2 border-t border-border p-3">
+    <div class="flex items-center gap-2.5 px-1 py-1">
+      <div
+        class="flex h-8 w-8 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted text-foreground"
+      >
+        <slot name="user-avatar" />
+      </div>
 
-        <div class="flex-1 min-w-0">
-          <p class="truncate text-sm font-medium text-foreground">
-            <slot name="user-name" />
-          </p>
-          <p class="truncate text-xs text-muted-foreground">
-            <slot name="user-email">operator@glouton.app</slot>
-          </p>
-        </div>
+      <div class="flex-1 min-w-0">
+        <p class="truncate text-sm font-medium text-foreground leading-tight">
+          <slot name="user-name" />
+        </p>
+        <p class="truncate text-xs text-muted-foreground leading-tight">
+          <slot name="user-email">operator@glouton.app</slot>
+        </p>
       </div>
     </div>
 
@@ -76,12 +72,12 @@
       <a
         href={resolvePath(settingsHref)}
         data-sveltekit-reload
-        class="group flex items-center gap-3 rounded-md px-3 py-2.5 text-sm transition-colors
+        class="flex h-9 items-center gap-2 rounded-lg px-3 text-sm transition-colors
         {settingsHref && activeHref.startsWith(settingsHref)
-          ? 'bg-foreground text-background font-medium'
+          ? 'bg-muted text-foreground font-medium'
           : 'text-muted-foreground hover:bg-muted hover:text-foreground'}"
       >
-        <iconify-icon icon="solar:settings-bold" width="18"></iconify-icon>
+        <iconify-icon icon="solar:settings-linear" width="16"></iconify-icon>
         <span>Paramètres</span>
       </a>
     {/if}

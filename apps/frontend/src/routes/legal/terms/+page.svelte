@@ -2,49 +2,51 @@
   import { resolve } from '$app/paths';
 </script>
 
-<div class="min-h-screen bg-white text-black font-sans selection:bg-black selection:text-white">
-  <nav
-    class="fixed top-0 w-full flex items-center justify-between px-6 py-4 z-[100] bg-white/80 backdrop-blur-md border-b border-gray-100"
-  >
-    <a href={resolve('/')} class="text-xl font-black uppercase tracking-tighter">Monorepo.</a>
-    <a href={resolve('/')} class="text-sm font-bold hover:opacity-50 transition flex items-center gap-2">
-      <iconify-icon icon="solar:arrow-left-bold" width="16"></iconify-icon> Back Home
-    </a>
+<div class="min-h-screen bg-background text-foreground">
+  <nav class="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur">
+    <div class="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
+      <a href={resolve('/')} class="flex items-center gap-3">
+        <iconify-icon icon="solar:magnet-wave-bold-duotone" width="24"></iconify-icon>
+        <span class="text-lg font-bold">Glouton</span>
+      </a>
+      <a
+        href={resolve('/')}
+        class="inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+      >
+        <iconify-icon icon="solar:arrow-left-linear" width="16"></iconify-icon>
+        Retour
+      </a>
+    </div>
   </nav>
 
-  <main class="pt-40 pb-24 px-6 max-w-3xl mx-auto">
-    <span class="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400"
-      >Legal Document</span
-    >
-    <h1 class="text-5xl md:text-7xl font-black uppercase tracking-tighter mb-4">
-      Terms of <br /> Service.
-    </h1>
-    <p class="text-neutral-500 font-medium mb-12 text-sm">Effective Date: February 5, 2026</p>
+  <main class="mx-auto max-w-3xl px-6 py-20">
+    <p class="text-sm text-muted-foreground">Document légal</p>
+    <h1 class="mt-2 text-5xl font-bold tracking-tight md:text-6xl">Conditions</h1>
+    <p class="mt-3 text-sm text-muted-foreground">Date d'effet : 5 février 2026</p>
 
-    <div class="space-y-12 text-neutral-800 leading-relaxed">
+    <div class="mt-12 space-y-10 leading-relaxed">
       <section>
-        <h2 class="text-2xl font-black uppercase tracking-tight mb-4">1. Agreement to Terms</h2>
-        <p>
-          By accessing Monorepo Template, you agree to be bound by these Terms of Service and all
-          applicable laws and regulations.
+        <h2 class="text-3xl font-bold">1. Acceptation des conditions</h2>
+        <p class="mt-3 text-sm leading-relaxed text-muted-foreground">
+          En accédant à Glouton, vous acceptez d'être lié par ces conditions de service ainsi que par
+          l'ensemble des lois et règlements applicables.
         </p>
       </section>
 
       <section>
-        <h2 class="text-2xl font-black uppercase tracking-tight mb-4">2. Use License</h2>
-        <p>
-          Permission is granted to temporarily download one copy of the materials for personal,
-          non-commercial transitory viewing only. This is the grant of a license, not a transfer of
-          title.
+        <h2 class="text-3xl font-bold">2. Licence d'utilisation</h2>
+        <p class="mt-3 text-sm leading-relaxed text-muted-foreground">
+          Une autorisation est accordée pour télécharger temporairement une copie des contenus à des fins
+          personnelles et non commerciales. Il s'agit d'une licence, non d'un transfert de propriété.
         </p>
       </section>
 
       <section>
-        <h2 class="text-2xl font-black uppercase tracking-tight mb-4">3. Disclaimer</h2>
-        <p>
-          The materials on Monorepo Template are provided on an 'as is' basis. We make no
-          warranties, expressed or implied, and hereby disclaim and negate all other warranties
-          including, without limitation, implied warranties or conditions of merchantability.
+        <h2 class="text-3xl font-bold">3. Avertissement</h2>
+        <p class="mt-3 text-sm leading-relaxed text-muted-foreground">
+          Les contenus de Glouton sont fournis « en l'état ». Nous ne donnons aucune garantie, expresse ou
+          implicite, et déclinons toutes les autres garanties incluant, sans limitation, les garanties
+          implicites de qualité marchande.
         </p>
       </section>
     </div>

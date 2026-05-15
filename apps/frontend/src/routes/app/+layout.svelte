@@ -11,10 +11,10 @@
   let { children } = $props();
 
   const menuItems = [
-    { label: 'Chasses', icon: 'solar:radar-2-bold-duotone', href: '/app/hunts' },
+    { label: 'Chasses', icon: 'solar:radar-2-linear', href: '/app/hunts' },
     { label: 'Leads', icon: 'solar:magnet-wave-bold-duotone', href: '/app/leads' },
-    { label: 'Prospection', icon: 'solar:letter-bold-duotone', href: '/app/outreach' },
-    { label: 'Équipes', icon: 'solar:users-group-rounded-bold', href: '/app/teams' },
+    { label: 'Prospection', icon: 'solar:letter-linear', href: '/app/outreach' },
+    { label: 'Équipes', icon: 'solar:users-group-rounded-linear', href: '/app/teams' },
   ];
 
   let userInitials = $derived($authStore.user?.firstName?.[0] || 'U');
@@ -72,6 +72,7 @@
     items={menuItems}
     activeHref={$page.url.pathname}
     settingsHref="/app/settings"
+    logoIcon="solar:magnet-wave-bold-duotone"
   >
     <TeamContextSwitcher slot="context-switcher" />
 

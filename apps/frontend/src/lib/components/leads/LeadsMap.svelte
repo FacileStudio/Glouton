@@ -34,9 +34,8 @@
   }
 
   function getStatusColor(status?: string): string {
-    if (status === 'HOT') return '#F97316';
-    if (status === 'WARM') return '#EAB308';
-    return '#6B7280';
+    if (status === 'HOT') return '#000000';
+    return '#737373';
   }
 
   function makePinSvg(color: string): string {
@@ -88,9 +87,9 @@
 
       marker.bindPopup(`
         <div style="min-width:160px;font-family:sans-serif;">
-          <p style="font-weight:800;font-size:13px;margin:0 0 2px">${name}</p>
-          ${location ? `<p style="font-size:11px;color:#6b7280;margin:0 0 6px">${location}</p>` : ''}
-          <a href="/app/leads/${lead.id}" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:#F97316;text-decoration:none;">
+          <p style="font-weight:600;font-size:13px;margin:0 0 2px">${name}</p>
+          ${location ? `<p style="font-size:11px;color:#737373;margin:0 0 6px">${location}</p>` : ''}
+          <a href="/app/leads/${lead.id}" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:500;color:#000000;text-decoration:none;">
             View lead →
           </a>
         </div>
@@ -135,32 +134,36 @@
 </script>
 
 {#if leadsWithCoords.length > 0}
-  <div class="rounded-[32px] overflow-hidden shadow-lg transition-all duration-300" style="background-color: var(--card);">
+  <div class="rounded-xl border border-border bg-card overflow-hidden">
     <button
       onclick={toggleExpand}
-      class="w-full flex items-center justify-between px-8 py-6 hover:bg-black/5 transition-colors"
+      class="w-full flex items-center justify-between px-6 py-4 hover:bg-muted/40 transition-colors"
     >
-      <div class="flex items-center gap-4">
-        <div class="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center flex-shrink-0">
-          <iconify-icon icon="solar:map-bold-duotone" width="24" class="text-orange-500"></iconify-icon>
+      <div class="flex items-center gap-3">
+        <div class="inline-flex size-9 items-center justify-center rounded-lg bg-muted text-foreground flex-shrink-0">
+          <iconify-icon icon="solar:map-linear" width="18"></iconify-icon>
         </div>
         <div class="text-left">
-          <p class="font-black text-neutral-900 text-lg leading-tight">Leads Map</p>
-          <p class="text-sm text-neutral-500 font-medium">{leadsWithCoords.length} lead{leadsWithCoords.length !== 1 ? 's' : ''} with location</p>
+          <p class="text-sm font-semibold text-foreground">Carte des leads</p>
+          <p class="text-xs text-muted-foreground">{leadsWithCoords.length} lead{leadsWithCoords.length !== 1 ? 's' : ''} avec localisation</p>
         </div>
       </div>
       <div class="flex items-center gap-3">
-        <div class="flex items-center gap-1.5">
-          <span class="w-2.5 h-2.5 rounded-full bg-orange-400"></span>
-          <span class="text-xs font-bold text-neutral-500">HOT</span>
-          <span class="w-2.5 h-2.5 rounded-full bg-yellow-400 ml-2"></span>
-          <span class="text-xs font-bold text-neutral-500">WARM</span>
-          <span class="w-2.5 h-2.5 rounded-full bg-gray-400 ml-2"></span>
-          <span class="text-xs font-bold text-neutral-500">COLD</span>
+        <div class="hidden sm:flex items-center gap-3 text-xs text-muted-foreground">
+          <span class="inline-flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-foreground"></span>
+            HOT
+          </span>
+          <span class="inline-flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-muted-foreground"></span>
+            Autres
+          </span>
         </div>
-        <div class="w-9 h-9 bg-white rounded-xl flex items-center justify-center shadow-sm transition-transform duration-300 {expanded ? 'rotate-180' : ''}">
-          <iconify-icon icon="solar:alt-arrow-down-bold" width="18" class="text-neutral-600"></iconify-icon>
-        </div>
+        <iconify-icon
+          icon="solar:alt-arrow-down-linear"
+          width="16"
+          class="text-muted-foreground transition-transform duration-300 {expanded ? 'rotate-180' : ''}"
+        ></iconify-icon>
       </div>
     </button>
 
@@ -168,8 +171,8 @@
       class="overflow-hidden transition-all duration-300 ease-in-out"
       style="max-height: {expanded ? '480px' : '0px'}; opacity: {expanded ? '1' : '0'};"
     >
-      <div class="px-4 pb-4 h-[440px]">
-        <div bind:this={mapContainer} class="w-full h-full rounded-2xl overflow-hidden shadow-inner"></div>
+      <div class="px-3 pb-3 h-[440px]">
+        <div bind:this={mapContainer} class="w-full h-full rounded-lg overflow-hidden border border-border"></div>
       </div>
     </div>
   </div>

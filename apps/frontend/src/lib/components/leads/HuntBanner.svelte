@@ -104,7 +104,7 @@
   const isLocalBusiness = $derived(session?.huntType === 'LOCAL_BUSINESS');
 
   const huntIcon = $derived(
-    isLocalBusiness ? 'solar:map-point-bold' : 'solar:target-bold'
+    isLocalBusiness ? 'solar:map-point-linear' : 'solar:target-linear'
   );
 
   const huntTitle = $derived(
@@ -128,40 +128,40 @@
 {#if session}
   <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
   <div
-    class="rounded-[32px] shadow-lg p-8 bg-gradient-to-r from-black to-neutral-800 text-white transition-all duration-200 {clickable ? 'cursor-pointer hover:shadow-2xl hover:-translate-y-0.5 hover:scale-[1.005]' : ''}"
+    class="rounded-xl border border-border bg-card p-6 transition-colors {clickable ? 'cursor-pointer hover:bg-muted/40' : ''}"
     role={clickable ? 'button' : 'region'}
     tabindex={clickable ? 0 : -1}
     onclick={handleClick}
     onkeydown={(e) => clickable && e.key === 'Enter' && handleClick()}
   >
-    <div class="flex items-center justify-between mb-6">
-      <div class="flex items-center gap-4">
-        <div class="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center">
-          <iconify-icon icon={huntIcon} width="28"></iconify-icon>
+    <div class="flex items-start justify-between gap-4 mb-5">
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="inline-flex size-9 items-center justify-center rounded-lg bg-muted text-foreground flex-shrink-0">
+          <iconify-icon icon={huntIcon} width="18"></iconify-icon>
         </div>
-        <div>
-          <h3 class="text-2xl font-black tracking-tight">{huntTitle}</h3>
-          <div class="flex items-center gap-4 mt-1 flex-wrap">
-            <span class="bg-white/20 px-3 py-1 rounded-lg text-xs font-bold uppercase">
+        <div class="min-w-0">
+          <h3 class="text-lg font-semibold text-foreground">{huntTitle}</h3>
+          <div class="flex items-center gap-2 mt-1 flex-wrap text-xs text-muted-foreground">
+            <span class="rounded-full bg-muted px-2.5 py-0.5 font-medium text-foreground">
               {session.status}
             </span>
-            <span class="text-sm font-medium opacity-90 truncate max-w-xs">
+            <span class="truncate max-w-xs">
               {huntLabel}
             </span>
             {#if session.successfulLeads > 0}
-              <span class="text-sm font-medium">
-                <iconify-icon icon="solar:check-circle-bold" width="14" class="mr-1"></iconify-icon>
+              <span class="inline-flex items-center gap-1">
+                <iconify-icon icon="solar:check-circle-linear" width="12"></iconify-icon>
                 {session.successfulLeads} trouvés
               </span>
             {:else if session.totalLeads > 0 && session.progress === 0}
-              <span class="text-sm font-medium opacity-80">
-                <iconify-icon icon="solar:map-point-search-bold" width="14" class="mr-1"></iconify-icon>
+              <span class="inline-flex items-center gap-1">
+                <iconify-icon icon="solar:map-point-search-linear" width="12"></iconify-icon>
                 {session.totalLeads} découverts
               </span>
             {/if}
             {#if session.lastDiscoveredDomain}
-              <span class="text-xs font-medium opacity-70 truncate max-w-[200px]">
-                <iconify-icon icon="solar:globe-bold" width="12" class="mr-1"></iconify-icon>
+              <span class="inline-flex items-center gap-1 truncate max-w-[200px]">
+                <iconify-icon icon="solar:globe-linear" width="12"></iconify-icon>
                 {session.lastDiscoveredDomain}
               </span>
             {/if}
@@ -169,10 +169,10 @@
         </div>
       </div>
 
-      <div class="flex items-center gap-6 flex-shrink-0">
-        <div class="text-right">
-          <div class="text-sm font-medium opacity-90">En cours : {elapsedTime}</div>
-          <div class="text-sm font-medium opacity-90">ETA : {eta}</div>
+      <div class="flex items-center gap-4 flex-shrink-0">
+        <div class="text-right text-xs text-muted-foreground">
+          <div>En cours : <span class="text-foreground font-medium">{elapsedTime}</span></div>
+          <div>ETA : <span class="text-foreground font-medium">{eta}</span></div>
         </div>
         <button
           onclick={(e) => {
@@ -180,27 +180,27 @@
             if (session) onCancel(session.id);
           }}
           disabled={cancelling}
-          class="bg-white/20 hover:bg-white/30 px-6 py-3 rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
+          class="inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {#if cancelling}
-            <iconify-icon icon="solar:close-circle-bold" width="20" class="animate-spin mr-2"></iconify-icon>
+            <iconify-icon icon="solar:close-circle-linear" width="16" class="animate-spin"></iconify-icon>
             Annulation...
           {:else}
-            <iconify-icon icon="solar:close-circle-bold" width="20" class="mr-2"></iconify-icon>
+            <iconify-icon icon="solar:close-circle-linear" width="16"></iconify-icon>
             Annuler
           {/if}
         </button>
       </div>
     </div>
 
-    <div class="space-y-3">
-      <div class="flex justify-between text-sm font-medium">
+    <div class="space-y-2">
+      <div class="flex justify-between text-xs text-muted-foreground">
         <span>Progression</span>
-        <span class="font-black">{session.progress}%</span>
+        <span class="font-medium text-foreground">{session.progress}%</span>
       </div>
-      <div class="bg-white/20 rounded-full h-3 overflow-hidden">
+      <div class="bg-muted rounded-full h-1.5 overflow-hidden">
         <div
-          class="bg-white h-full transition-all duration-500 ease-out rounded-full"
+          class="bg-foreground h-full transition-all duration-500 ease-out"
           style="width: {session.progress}%"
         ></div>
       </div>

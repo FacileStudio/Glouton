@@ -42,15 +42,8 @@
     }
   }
 
-  function getRoleBadgeColor(role: string) {
-    switch (role) {
-      case 'OWNER':
-        return 'bg-red-100 text-red-700 border-red-200';
-      case 'ADMIN':
-        return 'bg-blue-100 text-blue-700 border-blue-200';
-      default:
-        return 'bg-neutral-100 text-neutral-700 border-neutral-200';
-    }
+  function getRoleBadgeColor(_role: string) {
+    return 'bg-muted text-foreground';
   }
 
   function getRoleLabel(role: string) {
@@ -73,139 +66,128 @@
   }
 </script>
 
-<div
-  class="p-6 lg:p-12 max-w-[1600px] mx-auto space-y-12 selection:text-black font-sans"
-  style="background-color: var(--background); selection-background-color: var(--foreground);"
->
+<div class="max-w-[1600px] mx-auto px-6 py-6 space-y-6">
   {#if loading}
-    <div class="flex items-center justify-center py-20">
+    <div class="flex items-center justify-center py-16">
       <Spinner size="lg" />
     </div>
   {:else if team}
-    <div class="flex items-center gap-4">
+    <div class="flex items-center gap-3">
       <button
         aria-label="Retour"
         onclick={handleBack}
-        class="w-12 h-12 flex items-center justify-center bg-white rounded-xl hover:bg-neutral-50 transition-colors border border-neutral-100"
+        class="inline-flex size-8 items-center justify-center rounded-lg border border-border bg-background hover:bg-muted"
       >
-        <iconify-icon icon="solar:arrow-left-bold" width="20" class="text-neutral-700"></iconify-icon>
+        <iconify-icon icon="solar:arrow-left-linear" width="16"></iconify-icon>
       </button>
-      <div class="flex-1">
-        <div class="flex items-center gap-3">
-          <h1 class="text-3xl md:text-4xl font-black tracking-tight" style="color: var(--foreground);">
+      <div class="flex-1 space-y-1">
+        <div class="flex items-center gap-2">
+          <h1 class="text-2xl font-bold tracking-tight text-foreground">
             {team.name}
           </h1>
-          <span class="inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold uppercase border {getRoleBadgeColor(team.userRole)}">
+          <span class="rounded-full px-2.5 py-0.5 text-xs font-medium {getRoleBadgeColor(team.userRole)}">
             {getRoleLabel(team.userRole)}
           </span>
         </div>
         {#if team.description}
-          <p class="text-neutral-500 font-medium text-base mt-1">
+          <p class="text-sm text-muted-foreground">
             {team.description}
           </p>
         {/if}
       </div>
       <button
         onclick={() => handleNavigate('/settings')}
-        class="px-4 h-12 flex items-center gap-2 bg-white rounded-xl hover:bg-neutral-50 transition-colors border border-neutral-100"
+        class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 text-sm font-medium transition-colors hover:bg-muted"
       >
-        <iconify-icon icon="solar:settings-bold" width="20" class="text-neutral-700"></iconify-icon>
-        <span class="text-sm font-bold text-neutral-700">Paramètres</span>
+        <iconify-icon icon="solar:settings-linear" width="16"></iconify-icon>
+        <span>Paramètres</span>
       </button>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <button
         onclick={() => handleNavigate('/members')}
-        class="bg-white rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all border border-neutral-100 text-left group hover:scale-[1.02] active:scale-[0.98]"
+        class="rounded-xl border border-border bg-card p-4 hover:bg-muted/30 transition-colors text-left"
       >
         <div class="flex items-center justify-between mb-2">
-          <iconify-icon icon="solar:users-group-rounded-bold" width="32" class="text-neutral-700 group-hover:text-black"></iconify-icon>
-          <iconify-icon icon="solar:arrow-right-bold" width="20" class="text-neutral-300 group-hover:text-neutral-700"></iconify-icon>
+          <iconify-icon icon="solar:users-group-rounded-linear" width="20" class="text-muted-foreground"></iconify-icon>
+          <iconify-icon icon="solar:arrow-right-linear" width="16" class="text-muted-foreground"></iconify-icon>
         </div>
-        <h3 class="font-bold text-sm text-neutral-500 uppercase">Membres</h3>
-        <p class="text-2xl font-black text-neutral-900 mt-1">
+        <h3 class="text-sm text-muted-foreground">Membres</h3>
+        <p class="text-2xl font-bold tracking-tight text-foreground mt-1">
           {loadingStats ? '...' : stats?.memberCount || 0}
         </p>
       </button>
 
       <button
         onclick={() => goto('/app/leads')}
-        class="bg-white rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all border border-neutral-100 text-left group hover:scale-[1.02] active:scale-[0.98]"
+        class="rounded-xl border border-border bg-card p-4 hover:bg-muted/30 transition-colors text-left"
       >
         <div class="flex items-center justify-between mb-2">
-          <iconify-icon icon="solar:chart-square-bold" width="32" class="text-neutral-700 group-hover:text-black"></iconify-icon>
-          <iconify-icon icon="solar:arrow-right-bold" width="20" class="text-neutral-300 group-hover:text-neutral-700"></iconify-icon>
+          <iconify-icon icon="solar:chart-square-linear" width="20" class="text-muted-foreground"></iconify-icon>
+          <iconify-icon icon="solar:arrow-right-linear" width="16" class="text-muted-foreground"></iconify-icon>
         </div>
-        <h3 class="font-bold text-sm text-neutral-500 uppercase">Leads</h3>
-        <p class="text-2xl font-black text-neutral-900 mt-1">
+        <h3 class="text-sm text-muted-foreground">Leads</h3>
+        <p class="text-2xl font-bold tracking-tight text-foreground mt-1">
           {loadingStats ? '...' : stats?.totalLeads || 0}
         </p>
       </button>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      <div class="bg-white rounded-2xl p-6 shadow-sm border border-neutral-100">
-        <div class="flex items-center gap-3 mb-3">
-          <div class="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center">
-            <iconify-icon icon="solar:fire-bold" width="20" class="text-orange-600"></iconify-icon>
-          </div>
-          <h3 class="font-bold text-sm text-neutral-500 uppercase">Leads Chauds</h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="rounded-xl border border-border bg-card p-4">
+        <div class="flex items-center gap-2 mb-2">
+          <iconify-icon icon="solar:fire-linear" width="18" class="text-muted-foreground"></iconify-icon>
+          <h3 class="text-sm text-muted-foreground">Leads Chauds</h3>
         </div>
-        <p class="text-3xl font-black text-neutral-900">
+        <p class="text-2xl font-bold tracking-tight text-foreground">
           {loadingStats ? '...' : stats?.hotLeads || 0}
         </p>
       </div>
 
-      <div class="bg-white rounded-2xl p-6 shadow-sm border border-neutral-100">
-        <div class="flex items-center gap-3 mb-3">
-          <div class="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
-            <iconify-icon icon="solar:lightning-bold" width="20" class="text-purple-600"></iconify-icon>
-          </div>
-          <h3 class="font-bold text-sm text-neutral-500 uppercase">Chasses</h3>
+      <div class="rounded-xl border border-border bg-card p-4">
+        <div class="flex items-center gap-2 mb-2">
+          <iconify-icon icon="solar:lightning-linear" width="18" class="text-muted-foreground"></iconify-icon>
+          <h3 class="text-sm text-muted-foreground">Chasses</h3>
         </div>
-        <p class="text-3xl font-black text-neutral-900">
+        <p class="text-2xl font-bold tracking-tight text-foreground">
           {loadingStats ? '...' : stats?.totalHunts || 0}
         </p>
         {#if stats?.activeHunts > 0}
-          <p class="text-xs text-green-600 font-bold mt-1">
+          <p class="text-xs text-muted-foreground mt-1">
             {stats.activeHunts} active{stats.activeHunts !== 1 ? 's' : ''}
           </p>
         {/if}
       </div>
 
-      <div class="bg-white rounded-2xl p-6 shadow-sm border border-neutral-100">
-        <div class="flex items-center gap-3 mb-3">
-          <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
-            <iconify-icon icon="solar:shield-check-bold" width="20" class="text-blue-600"></iconify-icon>
-          </div>
-          <h3 class="font-bold text-sm text-neutral-500 uppercase">Audits</h3>
+      <div class="rounded-xl border border-border bg-card p-4">
+        <div class="flex items-center gap-2 mb-2">
+          <iconify-icon icon="solar:shield-check-linear" width="18" class="text-muted-foreground"></iconify-icon>
+          <h3 class="text-sm text-muted-foreground">Audits</h3>
         </div>
-        <p class="text-3xl font-black text-neutral-900">
+        <p class="text-2xl font-bold tracking-tight text-foreground">
           {loadingStats ? '...' : stats?.totalAudits || 0}
         </p>
       </div>
 
-      <div class="bg-white rounded-2xl p-6 shadow-sm border border-neutral-100">
-        <div class="flex items-center gap-3 mb-3">
-          <div class="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
-            <iconify-icon icon="solar:letter-bold" width="20" class="text-green-600"></iconify-icon>
-          </div>
-          <h3 class="font-bold text-sm text-neutral-500 uppercase">Emails Envoyés</h3>
+      <div class="rounded-xl border border-border bg-card p-4">
+        <div class="flex items-center gap-2 mb-2">
+          <iconify-icon icon="solar:letter-linear" width="18" class="text-muted-foreground"></iconify-icon>
+          <h3 class="text-sm text-muted-foreground">Emails Envoyés</h3>
         </div>
-        <p class="text-3xl font-black text-neutral-900">
+        <p class="text-2xl font-bold tracking-tight text-foreground">
           {loadingStats ? '...' : stats?.emailsSent || 0}
         </p>
       </div>
     </div>
 
     <div class="max-w-2xl">
-      <div class="bg-white rounded-2xl p-8 shadow-sm border border-neutral-100">
-        <h3 class="font-black text-xl mb-4 text-neutral-900">Informations</h3>
+      <div class="rounded-xl border border-border bg-card p-6">
+        <h3 class="text-lg font-semibold text-foreground mb-4">Informations</h3>
         <div class="space-y-4">
           <div>
-            <p class="text-xs font-bold text-neutral-500 uppercase mb-1">Créée le</p>
-            <p class="text-sm font-medium text-neutral-900">
+            <p class="text-xs text-muted-foreground mb-1">Créée le</p>
+            <p class="text-sm text-foreground">
               {new Date(team.createdAt).toLocaleDateString('fr-FR', {
                 day: 'numeric',
                 month: 'long',
@@ -215,8 +197,8 @@
           </div>
 
           <div>
-            <p class="text-xs font-bold text-neutral-500 uppercase mb-1">Dernière mise à jour</p>
-            <p class="text-sm font-medium text-neutral-900">
+            <p class="text-xs text-muted-foreground mb-1">Dernière mise à jour</p>
+            <p class="text-sm text-foreground">
               {new Date(team.updatedAt).toLocaleDateString('fr-FR', {
                 day: 'numeric',
                 month: 'long',
@@ -226,8 +208,8 @@
           </div>
 
           <div>
-            <p class="text-xs font-bold text-neutral-500 uppercase mb-1">Votre rôle</p>
-            <span class="inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold uppercase border {getRoleBadgeColor(team.userRole)}">
+            <p class="text-xs text-muted-foreground mb-1">Votre rôle</p>
+            <span class="rounded-full px-2.5 py-0.5 text-xs font-medium {getRoleBadgeColor(team.userRole)}">
               {getRoleLabel(team.userRole)}
             </span>
           </div>

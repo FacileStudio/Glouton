@@ -44,7 +44,7 @@
 
       {#if business.category}
         <div class="flex items-center gap-2 mb-2">
-          <iconify-icon icon="solar:tag-bold" width="14" class="text-neutral-400"></iconify-icon>
+          <iconify-icon icon="solar:tag-linear" width="14" class="text-neutral-400"></iconify-icon>
           <span class="text-sm font-semibold text-neutral-600 capitalize">{business.category}</span>
         </div>
       {/if}
@@ -54,7 +54,7 @@
           <div class="flex items-center gap-1">
             {#each Array(5) as _, i}
               <iconify-icon
-                icon="solar:star-bold"
+                icon="solar:star-linear"
                 width="14"
                 class={i < Math.floor(business.rating || 0) ? 'text-yellow-400' : 'text-neutral-300'}
               ></iconify-icon>
@@ -81,21 +81,21 @@
         on:click={openInMaps}
         class="flex items-start gap-2 text-left w-full hover:text-yellow-600 transition-colors group/addr cursor-pointer"
       >
-        <iconify-icon icon="solar:map-point-bold" width="18" class="text-neutral-400 group-hover/addr:text-yellow-600 flex-shrink-0 mt-0.5"></iconify-icon>
+        <iconify-icon icon="solar:map-point-linear" width="18" class="text-neutral-400 group-hover/addr:text-yellow-600 flex-shrink-0 mt-0.5"></iconify-icon>
         <span class="text-sm font-medium text-neutral-700 group-hover/addr:text-yellow-600">{business.address}</span>
       </button>
     {/if}
 
     {#if business.phone}
       <a href="tel:{business.phone}" class="flex items-center gap-2 hover:text-yellow-600 transition-colors group/phone">
-        <iconify-icon icon="solar:phone-bold" width="18" class="text-neutral-400 group-hover/phone:text-yellow-600"></iconify-icon>
+        <iconify-icon icon="solar:phone-linear" width="18" class="text-neutral-400 group-hover/phone:text-yellow-600"></iconify-icon>
         <span class="text-sm font-medium text-neutral-700 group-hover/phone:text-yellow-600">{business.phone}</span>
       </a>
     {/if}
 
     {#if business.website}
       <a href={business.website} target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 hover:text-yellow-600 transition-colors group/web">
-        <iconify-icon icon="solar:global-bold" width="18" class="text-neutral-400 group-hover/web:text-yellow-600"></iconify-icon>
+        <iconify-icon icon="solar:global-linear" width="18" class="text-neutral-400 group-hover/web:text-yellow-600"></iconify-icon>
         <span class="text-sm font-medium text-neutral-700 group-hover/web:text-yellow-600 truncate">{business.website}</span>
       </a>
     {/if}
@@ -104,7 +104,7 @@
   {#if business.openingHours && business.openingHours.length > 0}
     <div class="pt-3 border-t border-neutral-100">
       <div class="flex items-center gap-2 mb-2">
-        <iconify-icon icon="solar:clock-circle-bold" width="16" class="text-neutral-400"></iconify-icon>
+        <iconify-icon icon="solar:clock-circle-linear" width="16" class="text-neutral-400"></iconify-icon>
         <span class="text-xs font-bold uppercase tracking-wide text-neutral-500">Opening Hours</span>
       </div>
       <div class="space-y-1">

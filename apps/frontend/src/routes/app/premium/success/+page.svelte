@@ -50,44 +50,42 @@
   }
 </script>
 
-<main class="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-  <div class="max-w-md w-full space-y-8">
-    <div class="text-center">
-      <h1 class="text-4xl font-bold text-gray-900">Félicitations !</h1>
-      <p class="mt-2 text-gray-600">Votre accès Premium est maintenant activé.</p>
+<div class="max-w-[1600px] mx-auto px-6 py-6">
+  <div class="max-w-md mx-auto space-y-6">
+    <div class="space-y-1 text-center">
+      <h1 class="text-2xl font-bold tracking-tight text-foreground">Félicitations</h1>
+      <p class="text-sm text-muted-foreground">Votre accès Premium est maintenant activé.</p>
     </div>
 
     {#if error}
-      <div class="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
-        <iconify-icon icon="solar:shield-warning-bold" class="text-red-600" width="24"></iconify-icon>
-        <p class="text-red-600 text-sm font-medium">{error}</p>
+      <div class="rounded-xl border border-border bg-destructive/10 p-4 flex items-center gap-3">
+        <iconify-icon icon="solar:shield-warning-linear" class="text-destructive" width="20"></iconify-icon>
+        <p class="text-sm font-medium text-destructive">{error}</p>
       </div>
     {/if}
 
     {#if pageLoading}
       <div class="text-center py-12">
-        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-        <p class="mt-2 text-gray-500 text-sm">Mise à jour de votre compte...</p>
+        <div class="inline-block animate-spin rounded-full h-6 w-6 border-2 border-border border-t-foreground"></div>
+        <p class="mt-2 text-sm text-muted-foreground">Mise à jour de votre compte...</p>
       </div>
     {:else if subscriptionStatus}
-      <div class="bg-white rounded-xl shadow-lg p-8 space-y-6 border border-gray-100">
+      <div class="rounded-xl border border-border bg-card p-6 space-y-5">
 
         <div class="text-center space-y-2">
-          <span class="inline-flex items-center justify-center p-3 bg-green-100 rounded-full mb-2">
-             <iconify-icon icon="solar:verified-check-bold" class="text-green-600" width="32"></iconify-icon>
-          </span>
-          <h2 class="text-2xl font-bold text-gray-900">Abonnement Confirmé</h2>
+          <iconify-icon icon="solar:verified-check-linear" class="text-foreground" width="32"></iconify-icon>
+          <h2 class="text-lg font-semibold text-foreground">Abonnement Confirmé</h2>
         </div>
 
-        <div class="bg-gray-50 rounded-lg p-4 text-sm space-y-2 text-gray-700">
-          <div class="flex justify-between border-b border-gray-200 pb-2">
-            <span>Statut</span>
-            <span class="font-bold text-green-600 capitalize">Actif</span>
+        <div class="rounded-lg border border-border bg-muted/50 p-4 text-sm space-y-2 text-foreground">
+          <div class="flex justify-between border-b border-border pb-2">
+            <span class="text-muted-foreground">Statut</span>
+            <span class="font-medium capitalize">Actif</span>
           </div>
 
           {#if subscriptionStatus.subscription?.currentPeriodEnd}
             <div class="flex justify-between pt-1">
-              <span>Prochaine facturation</span>
+              <span class="text-muted-foreground">Prochaine facturation</span>
               <span class="font-medium">
                 {new Date(subscriptionStatus.subscription.currentPeriodEnd).toLocaleDateString()}
               </span>
@@ -95,10 +93,10 @@
           {/if}
         </div>
 
-        <div class="space-y-3">
+        <div class="space-y-2">
           <a
             href={resolve('/')}
-            class="w-full bg-black text-white py-3 px-4 rounded-lg hover:bg-gray-800 transition flex items-center justify-center gap-2 font-medium"
+            class="inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85"
           >
             Accéder au Dashboard
           </a>
@@ -106,12 +104,12 @@
           <button
             on:click={handleManageSubscription}
             disabled={actionLoading}
-            class="w-full bg-white border border-gray-200 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-50 transition disabled:opacity-50 flex items-center justify-center gap-2 font-medium"
+            class="inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50"
           >
             {#if actionLoading}
-              <iconify-icon icon="line-md:loading-loop" width="20"></iconify-icon>
+              <iconify-icon icon="line-md:loading-loop" width="16"></iconify-icon>
             {:else}
-              <iconify-icon icon="solar:settings-bold" width="20"></iconify-icon>
+              <iconify-icon icon="solar:settings-linear" width="16"></iconify-icon>
             {/if}
             Gérer mon abonnement
           </button>
@@ -119,4 +117,4 @@
       </div>
     {/if}
   </div>
-</main>
+</div>

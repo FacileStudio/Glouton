@@ -244,46 +244,37 @@
   }
 
   function getEmailStatusConfig(status: string, needsFollowUp: boolean) {
-    if (needsFollowUp) return { label: 'À relancer', cls: 'bg-amber-100 text-amber-700' };
+    if (needsFollowUp) return { label: 'À relancer', cls: 'bg-muted text-foreground' };
     switch (status) {
-      case 'REPLIED': return { label: 'Répondu', cls: 'bg-green-100 text-green-700' };
-      case 'OPENED': return { label: 'Ouvert', cls: 'bg-purple-100 text-purple-700' };
-      case 'CLICKED': return { label: 'Cliqué', cls: 'bg-indigo-100 text-indigo-700' };
-      case 'SENT': return { label: 'Envoyé', cls: 'bg-blue-100 text-blue-700' };
-      case 'FAILED': return { label: 'Échoué', cls: 'bg-red-100 text-red-700' };
-      case 'BOUNCED': return { label: 'Rejeté', cls: 'bg-red-100 text-red-700' };
-      default: return { label: status, cls: 'bg-neutral-100 text-neutral-700' };
+      case 'REPLIED': return { label: 'Répondu', cls: 'bg-muted text-foreground' };
+      case 'OPENED': return { label: 'Ouvert', cls: 'bg-muted text-foreground' };
+      case 'CLICKED': return { label: 'Cliqué', cls: 'bg-muted text-foreground' };
+      case 'SENT': return { label: 'Envoyé', cls: 'bg-muted text-foreground' };
+      case 'FAILED': return { label: 'Échoué', cls: 'bg-destructive/10 text-destructive' };
+      case 'BOUNCED': return { label: 'Rejeté', cls: 'bg-destructive/10 text-destructive' };
+      default: return { label: status, cls: 'bg-muted text-foreground' };
     }
   }
 
-  function getLeadStatusColor(status: string): string {
-    const map: Record<string, string> = {
-      HOT: 'bg-orange-100 text-orange-700',
-      WARM: 'bg-yellow-100 text-yellow-700',
-      COLD: 'bg-blue-100 text-blue-700',
-    };
-    return map[status] ?? 'bg-neutral-100 text-neutral-700';
+  function getLeadStatusColor(_status: string): string {
+    return 'bg-muted text-foreground';
   }
 
   function getHistoryStatusIcon(status: string): string {
     switch (status) {
-      case 'REPLIED': return 'solar:reply-bold';
-      case 'OPENED': return 'solar:eye-bold';
-      case 'CLICKED': return 'solar:cursor-bold';
-      case 'SENT': return 'solar:letter-bold';
-      case 'FAILED': case 'BOUNCED': return 'solar:danger-triangle-bold';
-      default: return 'solar:clock-circle-bold';
+      case 'REPLIED': return 'solar:reply-linear';
+      case 'OPENED': return 'solar:eye-linear';
+      case 'CLICKED': return 'solar:cursor-linear';
+      case 'SENT': return 'solar:letter-linear';
+      case 'FAILED': case 'BOUNCED': return 'solar:danger-triangle-linear';
+      default: return 'solar:clock-circle-linear';
     }
   }
 
   function getHistoryStatusColor(status: string): string {
     switch (status) {
-      case 'REPLIED': return 'text-green-600 bg-green-100';
-      case 'OPENED': return 'text-purple-600 bg-purple-100';
-      case 'CLICKED': return 'text-indigo-600 bg-indigo-100';
-      case 'SENT': return 'text-blue-600 bg-blue-100';
-      case 'FAILED': case 'BOUNCED': return 'text-red-600 bg-red-100';
-      default: return 'text-neutral-500 bg-neutral-100';
+      case 'FAILED': case 'BOUNCED': return 'bg-destructive/10 text-destructive';
+      default: return 'bg-muted text-foreground';
     }
   }
 
@@ -317,52 +308,42 @@
   let expandedLead = $derived(outreachLeads.find((l) => l.leadId === expandedLeadId) ?? null);
 </script>
 
-<div
-  class="p-6 lg:p-12 max-w-[1600px] mx-auto space-y-10 selection:text-black font-sans"
-  style="background-color: var(--background); selection-background-color: var(--foreground);"
->
-  <div class="flex items-center gap-4">
-    <div class="w-16 h-16 flex items-center justify-center bg-neutral-900 rounded-2xl">
-      <iconify-icon icon="solar:letter-bold" width="32" class="text-white"></iconify-icon>
-    </div>
-    <div class="space-y-1">
-      <h1 class="text-5xl font-black tracking-tight leading-none" style="color: var(--foreground);">
-        Prospection
-      </h1>
-      <p class="text-neutral-400 font-medium text-sm">Historique des e-mails, relances et réponses</p>
-    </div>
+<div class="max-w-[1600px] mx-auto px-6 py-6 space-y-6">
+  <div class="space-y-1">
+    <h1 class="text-2xl font-bold tracking-tight text-foreground">Prospection</h1>
+    <p class="text-sm text-muted-foreground">Historique des e-mails, relances et réponses</p>
   </div>
 
   {#if !checkingSmtp && !smtpConfigured}
-    <div class="rounded-2xl bg-amber-50 border-2 border-amber-200 p-6 flex items-start gap-4" transition:slide={{ duration: 200 }}>
-      <div class="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
-        <iconify-icon icon="solar:danger-triangle-bold" width="24" class="text-amber-600"></iconify-icon>
-      </div>
-      <div class="flex-1 space-y-2">
-        <h3 class="text-lg font-black text-amber-900">Configuration SMTP manquante</h3>
-        <p class="text-sm text-amber-700 font-medium leading-relaxed">
+    <div class="rounded-xl border border-border bg-card p-4 flex items-start gap-3" transition:slide={{ duration: 200 }}>
+      <iconify-icon icon="solar:danger-triangle-linear" width="20" class="text-muted-foreground flex-shrink-0 mt-0.5"></iconify-icon>
+      <div class="flex-1 space-y-1">
+        <h3 class="text-sm font-semibold text-foreground">Configuration SMTP manquante</h3>
+        <p class="text-sm text-muted-foreground">
           Vous devez configurer vos paramètres SMTP pour pouvoir envoyer des e-mails. Rendez-vous dans les paramètres de l'équipe pour ajouter votre configuration SMTP.
         </p>
-        <button
-          onclick={() => goto(settingsUrl)}
-          class="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-xl font-bold text-sm hover:bg-amber-700 transition-colors mt-2"
-        >
-          <iconify-icon icon="solar:settings-bold" width="16"></iconify-icon>
-          Configurer SMTP
-        </button>
+        <div class="pt-2">
+          <button
+            onclick={() => goto(settingsUrl)}
+            class="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85"
+          >
+            <iconify-icon icon="solar:settings-linear" width="16"></iconify-icon>
+            Configurer SMTP
+          </button>
+        </div>
       </div>
     </div>
   {/if}
 
-  <section class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+  <section class="grid grid-cols-1 sm:grid-cols-3 gap-4">
     {#if initialLoading}
       {#each Array(3) as _}
-        <div class="p-4 sm:p-6 lg:p-8 rounded-[24px] sm:rounded-2xl shadow-lg" style="background-color: var(--card);">
-          <div class="flex items-start justify-between mb-3 sm:mb-4 lg:mb-6">
-            <Skeleton width="120px" height="1.5rem" rounded="md" />
-            <Skeleton width="40px" height="40px" rounded="2xl" />
+        <div class="rounded-xl border border-border bg-card p-4">
+          <div class="flex items-start justify-between mb-3">
+            <Skeleton width="120px" height="1rem" rounded="md" />
+            <Skeleton width="20px" height="20px" rounded="md" />
           </div>
-          <Skeleton width="80px" height="2rem" rounded="md" />
+          <Skeleton width="80px" height="1.5rem" rounded="md" />
         </div>
       {/each}
     {:else}
@@ -370,68 +351,56 @@
         {
           label: 'Envoyés',
           val: (stats?.totalEmails ?? 0).toString(),
-          icon: 'solar:letter-bold-duotone',
-          color: 'text-black',
-          accent: null,
+          icon: 'solar:letter-linear',
         },
         {
           label: 'Contactés',
           val: (stats?.contactedLeads ?? 0).toString(),
-          icon: 'solar:users-group-rounded-bold-duotone',
-          color: 'text-blue-500',
-          accent: null,
+          icon: 'solar:users-group-rounded-linear',
         },
         {
           label: 'À relancer',
           val: (stats?.needsFollowUp ?? 0).toString(),
-          icon: 'solar:bell-bing-bold-duotone',
-          color: (stats?.needsFollowUp ?? 0) > 0 ? 'text-amber-500' : 'text-neutral-400',
-          accent: (stats?.needsFollowUp ?? 0) > 0,
+          icon: 'solar:bell-bing-linear',
         },
       ] as stat}
-        <div
-          class="p-4 sm:p-6 lg:p-8 rounded-[24px] sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow {stat.accent ? 'ring-2 ring-amber-300' : ''}"
-          style="background-color: var(--card);"
-        >
-          <div class="flex items-start justify-between mb-3 sm:mb-4 lg:mb-6">
-            <h3 class="text-sm sm:text-base lg:text-lg font-bold text-neutral-700">{stat.label}</h3>
-            <iconify-icon icon={stat.icon} class={stat.color} width="24"></iconify-icon>
+        <div class="rounded-xl border border-border bg-card p-4">
+          <div class="flex items-start justify-between mb-3">
+            <h3 class="text-sm text-muted-foreground">{stat.label}</h3>
+            <iconify-icon icon={stat.icon} class="text-muted-foreground" width="18"></iconify-icon>
           </div>
-          <p class="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tighter {stat.accent ? 'text-amber-600' : ''}">{stat.val}</p>
+          <p class="text-2xl font-bold tracking-tight text-foreground">{stat.val}</p>
         </div>
       {/each}
     {/if}
   </section>
 
-  <!-- Filter Bar -->
-  <div class="rounded-[28px] shadow-lg p-5 space-y-4" style="background-color: var(--card);">
-    <!-- Search -->
+  <div class="rounded-xl border border-border bg-card p-4 space-y-3">
     <div class="relative">
       <iconify-icon
-        icon="solar:magnifer-bold"
-        width="18"
-        class="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none"
+        icon="solar:magnifer-linear"
+        width="16"
+        class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
       ></iconify-icon>
       <input
         type="text"
         bind:value={search}
         placeholder="Rechercher par nom, e-mail, domaine..."
-        class="w-full h-12 pl-11 pr-10 bg-white rounded-2xl border border-neutral-200 focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 outline-none font-medium text-sm placeholder:text-neutral-400 transition-all"
+        class="w-full h-9 rounded-lg border border-input bg-background pl-9 pr-9 text-sm"
       />
       {#if search}
         <button
           onclick={() => (search = '')}
           aria-label="Effacer la recherche"
-          class="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-black transition-colors"
+          class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
         >
-          <iconify-icon icon="solar:close-circle-bold" width="18"></iconify-icon>
+          <iconify-icon icon="solar:close-circle-linear" width="16"></iconify-icon>
         </button>
       {/if}
     </div>
 
-    <!-- Tab pills -->
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <div class="flex flex-wrap items-center gap-1.5">
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <div class="flex flex-wrap items-center gap-1">
         {#each [
           { key: 'all', label: 'Tous', count: outreachLeads.length },
           { key: 'followup', label: 'À relancer', count: followUpLeads.length },
@@ -440,47 +409,40 @@
         ] as tab}
           <button
             onclick={() => { activeTab = tab.key as typeof activeTab; expandedLeadId = null; }}
-            class="h-9 pl-3.5 pr-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 {activeTab === tab.key
-              ? 'bg-neutral-900 text-white shadow-sm'
-              : 'bg-white text-neutral-600 border border-neutral-200 hover:border-neutral-400 hover:text-neutral-900'}"
+            class="inline-flex h-9 items-center gap-2 rounded-lg px-3 text-sm font-medium transition-colors {activeTab === tab.key
+              ? 'bg-muted text-foreground'
+              : 'text-muted-foreground hover:bg-muted hover:text-foreground'}"
           >
             {tab.label}
-            <span
-              class="text-[10px] px-1.5 py-0.5 rounded-lg font-black {activeTab === tab.key
-                ? 'bg-white/20 text-white'
-                : tab.key === 'followup' && tab.count > 0
-                  ? 'bg-amber-100 text-amber-700'
-                  : 'bg-neutral-100 text-neutral-500'}"
-            >
+            <span class="rounded-full bg-muted text-foreground px-2 py-0.5 text-xs font-medium {activeTab === tab.key ? 'bg-background' : ''}">
               {tab.count}
             </span>
           </button>
         {/each}
       </div>
-      <p class="text-xs font-medium text-neutral-400">Seuil de relance : 5 jours</p>
+      <p class="text-xs text-muted-foreground">Seuil de relance : 5 jours</p>
     </div>
   </div>
 
-  <section class="rounded-2xl overflow-hidden shadow-lg" style="background-color: var(--card);">
+  <section class="rounded-xl border border-border bg-card overflow-hidden">
 
     {#if initialLoading}
-      <div class="p-8 space-y-3">
+      <div class="p-4 space-y-2">
         {#each Array(5) as _}
-          <div class="flex items-center gap-4 p-4 bg-white rounded-2xl">
-            <Skeleton width="40px" height="40px" rounded="xl" />
+          <div class="flex items-center gap-3 p-3 rounded-lg">
+            <Skeleton width="36px" height="36px" rounded="lg" />
             <div class="flex-1 space-y-2">
-              <Skeleton width="200px" height="1rem" rounded="md" />
+              <Skeleton width="200px" height="0.875rem" rounded="md" />
               <Skeleton width="140px" height="0.75rem" rounded="md" />
             </div>
-            <Skeleton width="80px" height="1.5rem" rounded="lg" />
-            <Skeleton width="60px" height="1rem" rounded="md" />
+            <Skeleton width="80px" height="1.25rem" rounded="md" />
           </div>
         {/each}
       </div>
     {:else if filteredLeads.length === 0}
-      <div class="flex flex-col items-center justify-center py-24 space-y-4">
-        <iconify-icon icon="solar:inbox-line-bold" width="80" class="text-neutral-200"></iconify-icon>
-        <p class="text-neutral-400 font-bold uppercase tracking-widest text-sm">
+      <div class="flex flex-col items-center justify-center py-16 space-y-3">
+        <iconify-icon icon="solar:inbox-line-linear" width="48" class="text-muted-foreground"></iconify-icon>
+        <p class="text-sm text-muted-foreground">
           {activeTab === 'all'
             ? 'Aucun e-mail envoyé'
             : activeTab === 'followup'
@@ -492,29 +454,27 @@
         {#if activeTab === 'all'}
           <button
             onclick={() => goto('/app/leads')}
-            class="mt-2 px-6 py-3 bg-black text-white rounded-xl font-bold text-sm hover:bg-neutral-800 transition-colors"
+            class="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85"
           >
             Aller aux leads
           </button>
         {/if}
       </div>
     {:else}
-      <div class="divide-y divide-neutral-100">
+      <div class="divide-y divide-border">
         {#each filteredLeads as lead (lead.leadId)}
           {@const statusConfig = getEmailStatusConfig(lead.lastEmailStatus, lead.needsFollowUp)}
           {@const isExpanded = expandedLeadId === lead.leadId}
           <div in:fade={{ duration: 150 }}>
             <button
               onclick={() => togglePanel(lead)}
-              class="w-full px-6 py-4 flex items-center gap-4 hover:bg-white/60 transition-colors text-left {isExpanded ? 'bg-white' : ''} {lead.needsFollowUp ? 'border-l-4 border-amber-400' : 'border-l-4 border-transparent'}"
+              class="w-full px-4 py-3 flex items-center gap-3 hover:bg-muted/50 transition-colors text-left {isExpanded ? 'bg-muted/30' : ''}"
             >
-              <div
-                class="w-10 h-10 rounded-xl border border-neutral-200 bg-white flex items-center justify-center overflow-hidden flex-shrink-0 shadow-sm"
-              >
+              <div class="size-9 rounded-lg border border-border bg-background flex items-center justify-center overflow-hidden flex-shrink-0">
                 <img
                   src={getFaviconUrl(getFaviconSource(lead), 64)}
                   alt="favicon"
-                  class="w-6 h-6"
+                  class="w-5 h-5"
                   loading="lazy"
                   onerror={(e) => handleFaviconError(e.currentTarget)}
                 />
@@ -522,55 +482,55 @@
 
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2 flex-wrap">
-                  <span class="font-black text-sm text-neutral-900 truncate">{getLeadName(lead)}</span>
-                  <span class="px-2 py-0.5 rounded-md text-[10px] font-black uppercase {getLeadStatusColor(lead.status)}">
+                  <span class="text-sm font-medium text-foreground truncate">{getLeadName(lead)}</span>
+                  <span class="rounded-full px-2.5 py-0.5 text-xs font-medium {getLeadStatusColor(lead.status)}">
                     {lead.status}
                   </span>
                 </div>
                 {#if getLeadSubtitle(lead)}
-                  <p class="text-xs text-neutral-500 font-medium mt-0.5 truncate">{getLeadSubtitle(lead)}</p>
+                  <p class="text-xs text-muted-foreground mt-0.5 truncate">{getLeadSubtitle(lead)}</p>
                 {/if}
               </div>
 
               <div class="hidden md:block flex-1 min-w-0 px-4">
-                <p class="text-xs text-neutral-600 font-medium truncate">{lead.lastEmailSubject}</p>
-                <p class="text-[10px] text-neutral-400 mt-0.5">{lead.emailsSentCount} e-mail{lead.emailsSentCount !== 1 ? 's' : ''} envoyé{lead.emailsSentCount !== 1 ? 's' : ''}</p>
+                <p class="text-sm text-foreground truncate">{lead.lastEmailSubject}</p>
+                <p class="text-xs text-muted-foreground mt-0.5">{lead.emailsSentCount} e-mail{lead.emailsSentCount !== 1 ? 's' : ''} envoyé{lead.emailsSentCount !== 1 ? 's' : ''}</p>
               </div>
 
               <div class="flex items-center gap-3 flex-shrink-0">
-                <span class="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase border {statusConfig.cls}">
+                <span class="rounded-full px-2.5 py-0.5 text-xs font-medium {statusConfig.cls}">
                   {statusConfig.label}
                 </span>
 
-                <div class="hidden sm:flex items-center gap-1.5 {lead.needsFollowUp ? 'text-amber-600' : 'text-neutral-400'}">
+                <div class="hidden sm:flex items-center gap-1.5 text-muted-foreground">
                   <iconify-icon
-                    icon={lead.needsFollowUp ? 'solar:bell-bing-bold' : 'solar:calendar-bold'}
+                    icon={lead.needsFollowUp ? 'solar:bell-bing-linear' : 'solar:calendar-linear'}
                     width="14"
                   ></iconify-icon>
-                  <span class="text-xs font-bold">{formatDays(lead.daysSinceLastContact)}</span>
+                  <span class="text-xs">{formatDays(lead.daysSinceLastContact)}</span>
                 </div>
 
                 <div class="hidden lg:flex items-center gap-2">
-                  <div class="w-12 h-1.5 bg-neutral-200 rounded-full overflow-hidden">
+                  <div class="w-12 h-1.5 bg-muted rounded-full overflow-hidden">
                     <div
-                      class="h-full {lead.score >= 70 ? 'bg-green-500' : lead.score >= 40 ? 'bg-yellow-500' : 'bg-orange-400'}"
+                      class="h-full bg-foreground"
                       style="width: {Math.min(lead.score, 100)}%"
                     ></div>
                   </div>
-                  <span class="text-xs font-bold text-neutral-500">{lead.score}</span>
+                  <span class="text-xs text-muted-foreground">{lead.score}</span>
                 </div>
 
                 <iconify-icon
-                  icon={isExpanded ? 'solar:alt-arrow-up-bold' : 'solar:alt-arrow-down-bold'}
-                  width="16"
-                  class="text-neutral-400 flex-shrink-0"
+                  icon={isExpanded ? 'solar:alt-arrow-up-linear' : 'solar:alt-arrow-down-linear'}
+                  width="14"
+                  class="text-muted-foreground flex-shrink-0"
                 ></iconify-icon>
               </div>
             </button>
 
             {#if isExpanded}
               <div
-                class="border-t border-neutral-200/60 bg-white"
+                class="border-t border-border bg-background"
                 transition:slide={{ duration: 200 }}
               >
                 {#if panelLoading}
@@ -578,53 +538,53 @@
                     <Spinner size="md" color="neutral" />
                   </div>
                 {:else}
-                  <div class="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-neutral-100">
+                  <div class="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-border">
                     <div class="p-6 space-y-3">
-                      <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-[9px] font-black uppercase tracking-widest text-neutral-400 flex items-center gap-2">
-                          <iconify-icon icon="solar:history-bold" width="14"></iconify-icon>
+                      <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-sm font-semibold text-foreground flex items-center gap-2">
+                          <iconify-icon icon="solar:history-linear" width="16"></iconify-icon>
                           Historique des e-mails
                         </h3>
                         <button
                           onclick={(e) => { e.stopPropagation(); goto(`/app/leads/${lead.leadId}`); }}
-                          class="text-[10px] font-bold text-neutral-500 hover:text-black transition-colors flex items-center gap-1"
+                          class="inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                         >
                           Profil complet
-                          <iconify-icon icon="solar:arrow-right-up-bold" width="12"></iconify-icon>
+                          <iconify-icon icon="solar:arrow-right-up-linear" width="14"></iconify-icon>
                         </button>
                       </div>
 
                       {#if panelHistory.length === 0}
                         <div class="py-6 text-center">
-                          <p class="text-xs font-bold text-neutral-400">Aucun e-mail envoyé</p>
+                          <p class="text-sm text-muted-foreground">Aucun e-mail envoyé</p>
                         </div>
                       {:else}
-                        <div class="space-y-2 max-h-64 overflow-y-auto pr-1">
+                        <div class="space-y-1 max-h-64 overflow-y-auto pr-1">
                           {#each panelHistory as email}
                             <button
                               onclick={(e) => { e.stopPropagation(); expandedEmailId = expandedEmailId === email.id ? null : email.id; }}
                               class="w-full text-left"
                             >
-                              <div class="flex items-start gap-3 p-3 rounded-xl hover:bg-neutral-50 transition-colors">
-                                <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 {getHistoryStatusColor(email.status)}">
+                              <div class="flex items-start gap-3 p-3 rounded-lg hover:bg-muted transition-colors">
+                                <div class="size-7 rounded-lg flex items-center justify-center flex-shrink-0 {getHistoryStatusColor(email.status)}">
                                   <iconify-icon icon={getHistoryStatusIcon(email.status)} width="14"></iconify-icon>
                                 </div>
                                 <div class="flex-1 min-w-0">
-                                  <p class="text-xs font-bold text-neutral-800 truncate">{email.subject}</p>
-                                  <p class="text-[10px] text-neutral-400 mt-0.5">{formatDate(email.sentAt || email.createdAt)}</p>
+                                  <p class="text-sm font-medium text-foreground truncate">{email.subject}</p>
+                                  <p class="text-xs text-muted-foreground mt-0.5">{formatDate(email.sentAt || email.createdAt)}</p>
                                   {#if expandedEmailId === email.id && email.textBody}
-                                    <p class="text-xs text-neutral-600 mt-2 leading-relaxed whitespace-pre-wrap border-t border-neutral-100 pt-2" in:slide={{ duration: 150 }}>
+                                    <p class="text-sm text-foreground mt-2 leading-relaxed whitespace-pre-wrap border-t border-border pt-2" in:slide={{ duration: 150 }}>
                                       {email.textBody}
                                     </p>
                                   {/if}
                                   {#if email.error}
-                                    <p class="text-[10px] text-red-500 mt-1">{email.error}</p>
+                                    <p class="text-xs text-destructive mt-1">{email.error}</p>
                                   {/if}
                                 </div>
                                 <iconify-icon
-                                  icon={expandedEmailId === email.id ? 'solar:alt-arrow-up-bold' : 'solar:alt-arrow-down-bold'}
+                                  icon={expandedEmailId === email.id ? 'solar:alt-arrow-up-linear' : 'solar:alt-arrow-down-linear'}
                                   width="12"
-                                  class="text-neutral-300 flex-shrink-0 mt-1"
+                                  class="text-muted-foreground flex-shrink-0 mt-1"
                                 ></iconify-icon>
                               </div>
                             </button>
@@ -634,26 +594,26 @@
                     </div>
 
                     <div class="p-6 space-y-4" role="presentation" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
-                      <h3 class="text-[9px] font-black uppercase tracking-widest text-neutral-400 flex items-center gap-2">
-                        <iconify-icon icon="solar:rocket-2-bold" width="14"></iconify-icon>
+                      <h3 class="text-sm font-semibold text-foreground flex items-center gap-2">
+                        <iconify-icon icon="solar:rocket-2-linear" width="16"></iconify-icon>
                         {lead.emailsSentCount > 0 ? 'Envoyer une relance' : 'Envoyer un e-mail'}
                       </h3>
 
                       {#if !lead.email}
-                        <div class="py-6 text-center rounded-xl border-2 border-dashed border-neutral-200">
-                          <p class="text-xs font-bold text-neutral-400">Aucune adresse e-mail</p>
+                        <div class="py-6 text-center rounded-lg border border-dashed border-border">
+                          <p class="text-sm text-muted-foreground">Aucune adresse e-mail</p>
                         </div>
                       {:else if templates.length === 0}
-                        <div class="py-6 text-center rounded-xl border-2 border-dashed border-neutral-200">
-                          <p class="text-xs font-bold text-neutral-400">Aucun modèle disponible</p>
+                        <div class="py-6 text-center rounded-lg border border-dashed border-border">
+                          <p class="text-sm text-muted-foreground">Aucun modèle disponible</p>
                         </div>
                       {:else}
                         {#if !smtpConfigured}
-                          <div class="rounded-xl bg-amber-50 border border-amber-200 p-4 flex items-start gap-3">
-                            <iconify-icon icon="solar:danger-triangle-bold" width="20" class="text-amber-600 flex-shrink-0"></iconify-icon>
+                          <div class="rounded-lg border border-border bg-muted/50 p-3 flex items-start gap-2">
+                            <iconify-icon icon="solar:danger-triangle-linear" width="16" class="text-muted-foreground flex-shrink-0 mt-0.5"></iconify-icon>
                             <div class="flex-1">
-                              <p class="text-xs font-bold text-amber-900 mb-1">SMTP non configuré</p>
-                              <p class="text-[10px] text-amber-700 leading-relaxed">
+                              <p class="text-sm font-medium text-foreground">SMTP non configuré</p>
+                              <p class="text-xs text-muted-foreground mt-0.5">
                                 Configurez vos paramètres SMTP dans les paramètres de l'équipe pour envoyer des e-mails.
                               </p>
                             </div>
@@ -661,15 +621,15 @@
                         {/if}
 
                         <div class="space-y-3">
-                          <div>
-                            <label for="template-select-{lead.id}" class="block text-[9px] font-black uppercase tracking-widest text-neutral-500 mb-1.5">
+                          <div class="space-y-1.5">
+                            <label for="template-select-{lead.id}" class="block text-sm font-medium text-foreground">
                               Modèle
                             </label>
                             <select
                               id="template-select-{lead.id}"
                               bind:value={selectedTemplate}
                               onchange={() => handleTemplateChange(lead)}
-                              class="w-full px-3 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl font-semibold text-sm outline-none focus:border-black transition"
+                              class="w-full h-9 rounded-lg border border-input bg-background px-3 text-sm"
                             >
                               {#each templates as template}
                                 <option value={template.id}>{template.name}</option>
@@ -681,11 +641,11 @@
                             {@const tpl = templates.find((t) => t.id === selectedTemplate)}
                             {#if tpl && tpl.variables.length > 0}
                               <div class="space-y-2">
-                                <p class="text-[9px] font-black uppercase tracking-widest text-neutral-500">Variables</p>
+                                <p class="text-sm font-medium text-foreground">Variables</p>
 
                                 {#each tpl.variables as variable}
-                                  <div>
-                                    <label for="var-{lead.id}-{variable}" class="block text-[10px] font-bold text-neutral-500 mb-1 capitalize">
+                                  <div class="space-y-1.5">
+                                    <label for="var-{lead.id}-{variable}" class="block text-xs text-muted-foreground capitalize">
                                       {variable.replace(/([A-Z])/g, ' $1').trim()}
                                     </label>
                                     <input
@@ -693,7 +653,7 @@
                                       type="text"
                                       bind:value={composeVariables[variable]}
                                       placeholder={variable.replace(/([A-Z])/g, ' $1').trim().toLowerCase()}
-                                      class="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm font-medium outline-none focus:border-black transition placeholder:text-neutral-300"
+                                      class="w-full h-9 rounded-lg border border-input bg-background px-3 text-sm"
                                     />
                                   </div>
                                 {/each}
@@ -702,19 +662,19 @@
                           {/if}
 
                           <div class="pt-1">
-                            <p class="text-[10px] text-neutral-400 font-medium mb-3">
-                              Envoi à <span class="font-black text-neutral-700">{lead.email}</span>
+                            <p class="text-xs text-muted-foreground mb-3">
+                              Envoi à <span class="text-foreground font-medium">{lead.email}</span>
                             </p>
                             <button
                               onclick={() => sendFromPanel(lead)}
                               disabled={sending || !selectedTemplate || !smtpConfigured}
-                              class="w-full bg-black text-white px-4 py-3 rounded-xl font-bold text-sm hover:bg-neutral-800 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                              class="inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               {#if sending}
                                 <Spinner size="sm" color="white" />
                                 Envoi...
                               {:else}
-                                <iconify-icon icon="solar:rocket-2-bold" width="16"></iconify-icon>
+                                <iconify-icon icon="solar:rocket-2-linear" width="16"></iconify-icon>
                                 {lead.emailsSentCount > 0 ? 'Envoyer une relance' : 'Envoyer un e-mail'}
                               {/if}
                             </button>
