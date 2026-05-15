@@ -1,5 +1,5 @@
 services:
-  postgres:
+  glouton-postgres:
     image: postgres:16-alpine
     container_name: glouton-postgres
     environment:
@@ -15,7 +15,7 @@ services:
       retries: 5
     restart: unless-stopped
 
-  redis:
+  glouton-redis:
     image: redis:7-alpine
     container_name: glouton-redis
     command: redis-server --appendonly yes --maxmemory-policy noeviction
@@ -28,28 +28,28 @@ services:
       retries: 5
     restart: unless-stopped
 
-  backend:
+  glouton-backend:
     build:
       context: .
       dockerfile: apps/backend/Dockerfile
       network: host
       args:
-        DATABASE_URL: postgresql://glouton:${POSTGRES_PASSWORD:-glouton}@postgres:5432/glouton
+        DATABASE_URL: postgresql://glouton:${POSTGRES_PASSWORD:-glouton}@glouton-postgres:5432/glouton
         CACHE_BUST: ${CACHE_BUST:-2026-05-15-1}
     container_name: glouton-backend
     environment:
       NODE_ENV: production
       PORT: 3001
       DOMAIN: ${DOMAIN:?Set DOMAIN to your public URL, for example https://glouton.facile.studio}
-      DATABASE_URL: postgresql://glouton:${POSTGRES_PASSWORD:-glouton}@postgres:5432/glouton
+      DATABASE_URL: postgresql://glouton:${POSTGRES_PASSWORD:-glouton}@glouton-postgres:5432/glouton
       ENCRYPTION_SECRET: ${ENCRYPTION_SECRET:?Set ENCRYPTION_SECRET to a stable random value}
-      REDIS_HOST: redis
+      REDIS_HOST: glouton-redis
       REDIS_PORT: 6379
       REDIS_DB: 0
     depends_on:
-      postgres:
+      glouton-postgres:
         condition: service_healthy
-      redis:
+      glouton-redis:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "bun -e \"fetch('http://localhost:3001/health/ready').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
@@ -58,7 +58,7 @@ services:
       retries: 10
     restart: unless-stopped
 
-  frontend:
+  glouton-frontend:
     build:
       context: .
       dockerfile: apps/frontend/Dockerfile
@@ -69,11 +69,11 @@ services:
       HOST: 0.0.0.0
       PORT: 3000
       DOMAIN: ${DOMAIN:?Set DOMAIN to your public URL, for example https://glouton.facile.studio}
-      BACKEND_URL: http://backend:3001
+      BACKEND_URL: http://glouton-backend:3001
     expose:
       - "3000"
     depends_on:
-      backend:
+      glouton-backend:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "bun -e \"fetch('http://localhost:3000/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
