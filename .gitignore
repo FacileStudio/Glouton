@@ -45,3 +45,7 @@ coverage
 *~
 .cache
 /converted-leads
+
+# Local dev files
+.claude/
+egg.yml
