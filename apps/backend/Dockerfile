@@ -32,7 +32,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 COPY prisma.config.ts ./
 
-ARG DATABASE_URL
+ARG DATABASE_URL=postgresql://glouton:glouton@postgres:5432/glouton
 ENV DATABASE_URL=$DATABASE_URL
 
 RUN bun run --cwd packages/database prisma:generate

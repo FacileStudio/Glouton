@@ -50,8 +50,6 @@ RUN bun install --no-save
 # Copy source
 COPY . .
 
-ARG VITE_API_URL
-ENV VITE_API_URL=$VITE_API_URL
 ENV NODE_ENV=production
 
 RUN cd apps/frontend && bunx svelte-kit sync
@@ -66,6 +64,7 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 frontend
 
 COPY --from=builder --chown=frontend:nodejs /app/apps/frontend/build ./apps/frontend/build
+COPY --from=builder --chown=frontend:nodejs /app/apps/frontend/server.js ./apps/frontend/server.js
 COPY --from=builder --chown=frontend:nodejs /app/apps/frontend/package.json ./apps/frontend/
 COPY --from=builder --chown=frontend:nodejs /app/packages ./packages
 COPY --from=builder --chown=frontend:nodejs /app/node_modules ./node_modules
@@ -75,4 +74,4 @@ USER frontend
 
 EXPOSE 3000
 
-CMD ["bun", "run", "apps/frontend/build"]
+CMD ["bun", "apps/frontend/server.js"]

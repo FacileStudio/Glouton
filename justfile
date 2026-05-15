@@ -2,33 +2,33 @@
 setup:
     ./local-dev.sh
 
-# Start all Docker services (PostgreSQL, Redis, MinIO)
+# Start local infrastructure (PostgreSQL, Redis)
 docker-up:
-    docker-compose -f docker-compose.dev.yml up -d
+    DOMAIN=http://localhost:3000 ENCRYPTION_SECRET=local-dev-encryption-secret-change-me docker compose up -d postgres redis
 
 # Stop all Docker services
 docker-down:
-    docker-compose -f docker-compose.dev.yml down
+    DOMAIN=http://localhost:3000 ENCRYPTION_SECRET=local-dev-encryption-secret-change-me docker compose down
 
 # Stop Docker services and remove volumes
 docker-clean:
-    docker-compose -f docker-compose.dev.yml down -v
+    DOMAIN=http://localhost:3000 ENCRYPTION_SECRET=local-dev-encryption-secret-change-me docker compose down -v
 
 # View Docker logs (all services)
 docker-logs:
-    docker-compose -f docker-compose.dev.yml logs -f
+    DOMAIN=http://localhost:3000 ENCRYPTION_SECRET=local-dev-encryption-secret-change-me docker compose logs -f
 
 # View Docker logs for specific service (usage: just docker-logs-service postgres)
 docker-logs-service service:
-    docker-compose -f docker-compose.dev.yml logs -f {{service}}
+    DOMAIN=http://localhost:3000 ENCRYPTION_SECRET=local-dev-encryption-secret-change-me docker compose logs -f {{service}}
 
 # Restart Docker services
 docker-restart:
-    docker-compose -f docker-compose.dev.yml restart
+    DOMAIN=http://localhost:3000 ENCRYPTION_SECRET=local-dev-encryption-secret-change-me docker compose restart
 
 # Check Docker service status
 docker-status:
-    docker-compose -f docker-compose.dev.yml ps
+    DOMAIN=http://localhost:3000 ENCRYPTION_SECRET=local-dev-encryption-secret-change-me docker compose ps
 
 # Run database migrations
 migrate:

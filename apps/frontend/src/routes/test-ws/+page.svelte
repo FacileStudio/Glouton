@@ -36,9 +36,7 @@
     }
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-    const host = new URL(apiUrl).host;
-    const wsUrl = `${protocol}//${host}/ws?token=${token}`;
+    const wsUrl = `${protocol}//${window.location.host}/ws?token=${token}`;
 
     
 

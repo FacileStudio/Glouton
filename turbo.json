@@ -1,6 +1,19 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "globalDependencies": ["**/.env.*local"],
+  "globalEnv": [
+    "BACKEND_URL",
+    "DATABASE_URL",
+    "DOMAIN",
+    "ENCRYPTION_SECRET",
+    "HUNTER_API_KEY",
+    "NODE_ENV",
+    "PORT",
+    "REDIS_DB",
+    "REDIS_HOST",
+    "REDIS_PASSWORD",
+    "REDIS_PORT"
+  ],
   "tasks": {
     "check-env": {
       "cache": false,
