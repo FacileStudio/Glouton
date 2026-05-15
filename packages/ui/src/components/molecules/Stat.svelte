@@ -10,9 +10,9 @@
     export { className as class };
 
     const trendColors = {
-        up: 'text-green-600 bg-green-50',
-        down: 'text-rose-600 bg-rose-50',
-        neutral: 'text-slate-600 bg-slate-50',
+        up: 'text-success bg-success/10',
+        down: 'text-destructive bg-destructive/10',
+        neutral: 'text-muted-foreground bg-muted',
     };
 
     const trendIcons = {
@@ -22,24 +22,24 @@
     };
 </script>
 
-<div class={cn("bg-white p-6 rounded-2xl border border-slate-100 shadow-sm", className)}>
+<div class={cn("bg-card p-6 rounded-xl border border-border", className)}>
     <div class="flex items-start justify-between mb-4">
-        <div class="text-sm font-black uppercase tracking-wider text-slate-400">
+        <div class="text-sm font-medium text-muted-foreground">
             {label}
         </div>
         {#if icon}
-            <div class="p-2 bg-indigo-50 rounded-xl">
-                <iconify-icon {icon} width="20" class="text-indigo-600"></iconify-icon>
+            <div class="flex size-9 items-center justify-center rounded-md border border-border bg-background">
+                <iconify-icon {icon} width="20" class="text-foreground"></iconify-icon>
             </div>
         {/if}
     </div>
 
-    <div class="text-3xl font-black text-slate-900 mb-2">
+    <div class="text-3xl font-semibold text-foreground mb-2">
         {value}
     </div>
 
     {#if trendValue}
-        <div class={cn("inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold", trendColors[trend])}>
+        <div class={cn("inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium", trendColors[trend])}>
             <iconify-icon icon={trendIcons[trend]} width="14"></iconify-icon>
             {trendValue}
         </div>

@@ -135,7 +135,7 @@
 </script>
 
 {#if leadsWithCoords.length > 0}
-  <div class="rounded-[32px] overflow-hidden shadow-lg transition-all duration-300" style="background-color: #EFEAE6;">
+  <div class="rounded-[32px] overflow-hidden shadow-lg transition-all duration-300" style="background-color: var(--card);">
     <button
       onclick={toggleExpand}
       class="w-full flex items-center justify-between px-8 py-6 hover:bg-black/5 transition-colors"

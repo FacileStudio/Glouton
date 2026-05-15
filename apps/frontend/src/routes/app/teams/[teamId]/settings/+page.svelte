@@ -232,7 +232,7 @@
 
 <div
   class="p-6 lg:p-12 max-w-6xl mx-auto space-y-8 selection:text-black font-sans pb-32"
-  style="background-color: #FAF7F5; selection-background-color: #FEC129;"
+  style="background-color: var(--background); selection-background-color: var(--foreground);"
 >
   {#if loading}
     <div class="flex items-center justify-center py-20">
@@ -247,7 +247,7 @@
         <iconify-icon icon="solar:arrow-left-bold" width="20" class="text-neutral-700"></iconify-icon>
       </button>
       <div>
-        <h1 class="text-3xl md:text-4xl font-black tracking-tight" style="color: #291334;">
+        <h1 class="text-3xl md:text-4xl font-black tracking-tight" style="color: var(--foreground);">
           Paramètres de {team.name}
         </h1>
         <p class="text-neutral-500 font-medium text-base mt-1">
@@ -262,15 +262,15 @@
       </Alert>
     {/if}
 
-    <div class="rounded-2xl shadow-lg p-2" style="background-color: #EFEAE6;">
+    <div class="rounded-2xl shadow-lg p-2" style="background-color: var(--card);">
       <div class="grid grid-cols-3 gap-2">
         {#each tabs as tab (tab.id)}
           <button
             onclick={() => (activeTab = tab.id)}
             class="flex items-center justify-center gap-2.5 px-5 py-3.5 rounded-xl font-bold text-sm transition-all duration-200
             {activeTab === tab.id
-              ? 'bg-brand-purple text-white shadow-md'
-              : 'text-slate-600 hover:text-brand-purple hover:bg-slate-50'}"
+              ? 'bg-foreground text-white shadow-md'
+              : 'text-slate-600 hover:text-foreground hover:bg-slate-50'}"
           >
             <iconify-icon icon={tab.icon} width="20"></iconify-icon>
             {tab.name}
@@ -281,9 +281,9 @@
 
     {#if activeTab === 'general'}
       <div in:fade={{ duration: 300 }} class="space-y-6">
-        <div class="p-8 md:p-10 rounded-2xl shadow-lg" style="background-color: #EFEAE6;">
+        <div class="p-8 md:p-10 rounded-2xl shadow-lg" style="background-color: var(--card);">
           <div class="mb-8">
-            <h2 class="text-2xl font-black mb-2" style="color: #291334;">Informations générales</h2>
+            <h2 class="text-2xl font-black mb-2" style="color: var(--foreground);">Informations générales</h2>
             <p class="text-neutral-500 text-sm">Modifiez les informations de base de votre équipe</p>
           </div>
 
@@ -311,7 +311,7 @@
                 disabled={!canManage}
                 placeholder="Décrivez l'objectif de cette équipe..."
                 rows="4"
-                class="w-full px-5 py-3 rounded-2xl bg-slate-50/50 border-2 border-slate-100 focus:border-brand-gold focus:bg-white hover:bg-white transition-all duration-200 font-medium text-brand-purple placeholder:text-slate-400 outline-none resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+                class="w-full px-5 py-3 rounded-2xl bg-slate-50/50 border-2 border-slate-100 focus:border-muted focus:bg-white hover:bg-white transition-all duration-200 font-medium text-foreground placeholder:text-slate-400 outline-none resize-none disabled:opacity-50 disabled:cursor-not-allowed"
               ></textarea>
             </div>
           </div>
@@ -336,7 +336,7 @@
         </div>
 
         {#if isOwner}
-          <div class="rounded-2xl border-2 border-red-200 shadow-lg p-8 md:p-10" style="background-color: #EFEAE6;">
+          <div class="rounded-2xl border-2 border-red-200 shadow-lg p-8 md:p-10" style="background-color: var(--card);">
             <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
               <div>
                 <h3 class="text-red-600 font-black text-xl mb-2 flex items-center gap-2">
@@ -361,9 +361,9 @@
       </div>
     {:else if activeTab === 'api-keys'}
       <div in:fade={{ duration: 300 }}>
-        <div class="p-8 md:p-10 rounded-2xl shadow-lg" style="background-color: #EFEAE6;">
+        <div class="p-8 md:p-10 rounded-2xl shadow-lg" style="background-color: var(--card);">
           <div class="mb-8">
-            <h2 class="text-2xl font-black mb-2" style="color: #291334;">Clés API</h2>
+            <h2 class="text-2xl font-black mb-2" style="color: var(--foreground);">Clés API</h2>
             <p class="text-neutral-500 text-sm">Configurez les clés API pour les sources de leads de l'équipe</p>
           </div>
 
@@ -432,9 +432,9 @@
       </div>
     {:else if activeTab === 'smtp'}
       <div in:fade={{ duration: 300 }}>
-        <div class="p-8 md:p-10 rounded-2xl shadow-lg" style="background-color: #EFEAE6;">
+        <div class="p-8 md:p-10 rounded-2xl shadow-lg" style="background-color: var(--card);">
           <div class="mb-8">
-            <h2 class="text-2xl font-black mb-2" style="color: #291334;">Configuration SMTP</h2>
+            <h2 class="text-2xl font-black mb-2" style="color: var(--foreground);">Configuration SMTP</h2>
             <p class="text-neutral-500 text-sm">Configurez le serveur SMTP pour l'envoi d'emails de l'équipe</p>
           </div>
 

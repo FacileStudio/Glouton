@@ -31,14 +31,14 @@
     bind:this={dialog}
     on:close={close}
     on:click|self={close}
-    class="w-full h-screen bg-transparent outline-none backdrop:bg-brand-purple/30 backdrop:backdrop-blur-sm p-4 outline-none flex items-center justify-center z-50" >
+    class="w-full h-screen bg-transparent outline-none backdrop:bg-foreground/30 backdrop:backdrop-blur-sm p-4 outline-none flex items-center justify-center z-50" >
     <div
       in:scale={{ start: 0.9, duration: 300, opacity: 0 }}
       out:scale={{ start: 0.95, duration: 200, opacity: 0 }}
       class="bg-white rounded-[35px] shadow-2xl w-full max-w-lg overflow-hidden border border-slate-100"
     >
       <header class="p-6 flex justify-between items-center border-b border-slate-100">
-        <h3 class="font-black uppercase tracking-tight text-xl text-brand-purple">{title}</h3>
+        <h3 class="font-black uppercase tracking-tight text-xl text-foreground">{title}</h3>
         <button
           on:click={close}
           class="text-slate-400 hover:text-danger hover:scale-110 transition-all duration-200 cursor-pointer"

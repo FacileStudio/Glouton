@@ -7,16 +7,18 @@
         {
             variants: {
                 size: {
+                    xs: "",
                     sm: "",
                     md: "",
                     lg: "",
                     xl: "",
                 },
                 color: {
-                    primary: "text-brand-purple",
-                    accent: "text-brand-gold",
+                    primary: "text-foreground",
+                    accent: "text-muted-foreground",
                     white: "text-white",
                     slate: "text-slate-600",
+                    neutral: "text-muted-foreground",
                 }
             },
             defaultVariants: {
@@ -32,6 +34,7 @@
     export { className as class };
 
     const sizeMap = {
+        xs: '14',
         sm: '16',
         md: '24',
         lg: '40',

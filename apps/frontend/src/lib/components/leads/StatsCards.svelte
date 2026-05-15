@@ -55,7 +55,7 @@
 <section class="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-6">
   {#if !stats}
     {#each Array(5) as _, i}
-      <div class="p-8 rounded-[32px] shadow-lg" style="background-color: #EFEAE6;">
+      <div class="p-8 rounded-[32px] shadow-lg" style="background-color: var(--card);">
         <div class="flex items-start justify-between mb-6">
           <Skeleton width="120px" height="1.5rem" rounded="md" />
           <Skeleton width="52px" height="52px" rounded="2xl" />
@@ -65,7 +65,7 @@
     {/each}
   {:else}
     {#each statCards as stat}
-      <div class="p-4 sm:p-6 lg:p-8 rounded-[24px] sm:rounded-[32px] shadow-lg hover:shadow-xl transition-shadow" style="background-color: #EFEAE6;">
+      <div class="p-4 sm:p-6 lg:p-8 rounded-[24px] sm:rounded-[32px] shadow-lg hover:shadow-xl transition-shadow" style="background-color: var(--card);">
         <div class="flex items-start justify-between mb-3 sm:mb-4 lg:mb-6">
           <h3 class="text-sm sm:text-base lg:text-lg font-bold text-neutral-700">{stat.label}</h3>
           <iconify-icon icon={stat.icon} class={stat.color} width="24" class:sm:width-28={true} class:lg:width-32={true}></iconify-icon>

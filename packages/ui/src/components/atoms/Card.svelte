@@ -2,7 +2,7 @@
     import { cva, type VariantProps } from 'class-variance-authority';
 
     const cardClass = cva(
-        "bg-white border transition-all duration-200",
+        "bg-card text-card-foreground border border-border transition-colors",
         {
             variants: {
                 padding: {
@@ -12,22 +12,22 @@
                     lg: "p-8",
                 },
                 rounded: {
-                    sm: "rounded-xl",
-                    md: "rounded-2xl",
-                    lg: "rounded-[32px]",
-                    xl: "rounded-[35px]",
+                    sm: "rounded-md",
+                    md: "rounded-lg",
+                    lg: "rounded-xl",
+                    xl: "rounded-xl",
                 },
                 shadow: {
-                    none: "shadow-none border-slate-100",
-                    sm: "shadow-sm border-slate-100",
-                    md: "shadow-md border-slate-100",
-                    lg: "shadow-lg border-slate-100",
+                    none: "shadow-none",
+                    sm: "shadow-none",
+                    md: "shadow-none",
+                    lg: "shadow-none",
                 },
                 hover: {
                     none: "",
-                    lift: "hover:shadow-xl hover:-translate-y-1 cursor-pointer",
-                    scale: "hover:scale-[1.02] cursor-pointer",
-                    glow: "hover:shadow-lg hover:shadow-brand-gold/20 hover:border-brand-gold/30 cursor-pointer",
+                    lift: "hover:bg-muted/40 cursor-pointer",
+                    scale: "hover:bg-muted/40 cursor-pointer",
+                    glow: "hover:bg-muted/40 cursor-pointer",
                 },
             },
             defaultVariants: {

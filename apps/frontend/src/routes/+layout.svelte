@@ -27,7 +27,7 @@
 
 {#if $authStore.loading}
   <div class="flex h-screen flex-col items-center justify-center gap-6">
-    <iconify-icon icon="svg-spinners:blocks-shuffle-3" width="48" class="text-brand-purple"
+    <iconify-icon icon="solar:magnet-wave-bold-duotone" width="48" class="text-foreground"
     ></iconify-icon>
   </div>
 {:else}

@@ -344,7 +344,7 @@
 
 <div
   class="min-h-screen p-6 lg:p-12 max-w-6xl mx-auto space-y-8 pb-32"
-  style="background-color: #FAF7F5;"
+  style="background-color: var(--background);"
 >
   <header class="space-y-6">
     <div class="flex items-center gap-4">
@@ -352,7 +352,7 @@
         <iconify-icon icon="solar:settings-bold" width="32" class="text-white"></iconify-icon>
       </div>
       <div>
-        <h1 class="text-3xl md:text-4xl font-black tracking-tight" style="color: #291334;">
+        <h1 class="text-3xl md:text-4xl font-black tracking-tight" style="color: var(--foreground);">
           Paramètres
         </h1>
         <p class="text-neutral-500 font-medium text-base mt-1">
@@ -362,15 +362,15 @@
     </div>
   </header>
 
-  <div class="rounded-2xl shadow-lg p-2" style="background-color: #EFEAE6;">
+  <div class="rounded-2xl shadow-lg p-2" style="background-color: var(--card);">
     <div class="grid grid-cols-2 gap-2">
       {#each tabs as tab (tab.id)}
         <button
           onclick={() => (activeTab = tab.id)}
           class="flex items-center justify-center gap-2.5 px-5 py-3.5 rounded-xl font-bold text-sm transition-all duration-200
           {activeTab === tab.id
-            ? 'bg-brand-purple text-white shadow-md'
-            : 'text-slate-600 hover:text-brand-purple hover:bg-slate-50'}"
+            ? 'bg-foreground text-white shadow-md'
+            : 'text-slate-600 hover:text-foreground hover:bg-slate-50'}"
         >
           <iconify-icon icon={tab.icon} width="20"></iconify-icon>
           {tab.name}
@@ -390,9 +390,9 @@
   <div>
     {#if activeTab === 'profile'}
       <div in:fade={{ duration: 300 }} class="space-y-6">
-        <div class="p-8 md:p-10 rounded-2xl shadow-lg" style="background-color: #EFEAE6;">
+        <div class="p-8 md:p-10 rounded-2xl shadow-lg" style="background-color: var(--card);">
           <div class="mb-8">
-            <h2 class="text-2xl font-black mb-2" style="color: #291334;">Informations personnelles</h2>
+            <h2 class="text-2xl font-black mb-2" style="color: var(--foreground);">Informations personnelles</h2>
             <p class="text-neutral-500 text-sm">
               Mettez à jour vos informations de profil
             </p>
@@ -463,14 +463,14 @@
       </div>
     {:else if activeTab === 'account'}
       <div in:fade={{ duration: 300 }} class="space-y-6">
-        <div class="p-8 md:p-10 rounded-2xl shadow-lg" style="background-color: #EFEAE6;">
+        <div class="p-8 md:p-10 rounded-2xl shadow-lg" style="background-color: var(--card);">
           <div class="mb-8">
             <div class="flex items-center gap-3 mb-2">
               <div class="w-11 h-11 flex items-center justify-center bg-neutral-900 rounded-lg">
                 <iconify-icon icon="solar:key-square-bold-duotone" width="20" class="text-white"
                 ></iconify-icon>
               </div>
-              <h2 class="text-2xl font-black" style="color: #291334;">Sécurité</h2>
+              <h2 class="text-2xl font-black" style="color: var(--foreground);">Sécurité</h2>
             </div>
             <p class="text-neutral-500 text-sm">Mettez à jour votre mot de passe pour sécuriser votre compte</p>
           </div>
@@ -532,14 +532,14 @@
           </div>
         </div>
 
-        <div class="p-8 md:p-10 rounded-2xl shadow-lg" style="background-color: #EFEAE6;">
+        <div class="p-8 md:p-10 rounded-2xl shadow-lg" style="background-color: var(--card);">
           <div class="mb-8">
             <div class="flex items-center gap-3 mb-2">
               <div class="w-11 h-11 flex items-center justify-center bg-neutral-900 rounded-lg">
                 <iconify-icon icon="solar:key-bold-duotone" width="20" class="text-white"
                 ></iconify-icon>
               </div>
-              <h2 class="text-2xl font-black" style="color: #291334;">Clés API sources</h2>
+              <h2 class="text-2xl font-black" style="color: var(--foreground);">Clés API sources</h2>
             </div>
             <p class="text-neutral-500 text-sm">Configurez les clés API pour les sources de leads</p>
           </div>
@@ -662,14 +662,14 @@
           </div>
         </div>
 
-        <div class="p-8 md:p-10 rounded-2xl shadow-lg" style="background-color: #EFEAE6;">
+        <div class="p-8 md:p-10 rounded-2xl shadow-lg" style="background-color: var(--card);">
           <div class="mb-8">
             <div class="flex items-center gap-3 mb-2">
               <div class="w-11 h-11 flex items-center justify-center bg-neutral-900 rounded-lg">
                 <iconify-icon icon="solar:letter-bold-duotone" width="20" class="text-white"
                 ></iconify-icon>
               </div>
-              <h2 class="text-2xl font-black" style="color: #291334;">Serveur Mail</h2>
+              <h2 class="text-2xl font-black" style="color: var(--foreground);">Serveur Mail</h2>
             </div>
             <p class="text-neutral-500 text-sm">
               Configurez votre serveur SMTP pour l'envoi d'emails de prospection
@@ -817,14 +817,14 @@
           </div>
         </div>
 
-        <div class="p-8 md:p-10 rounded-2xl shadow-lg" style="background-color: #EFEAE6;">
+        <div class="p-8 md:p-10 rounded-2xl shadow-lg" style="background-color: var(--card);">
           <div class="mb-8">
             <div class="flex items-center gap-3 mb-2">
               <div class="w-11 h-11 flex items-center justify-center bg-neutral-900 rounded-lg">
                 <iconify-icon icon="solar:logout-2-bold-duotone" width="20" class="text-white"
                 ></iconify-icon>
               </div>
-              <h2 class="text-2xl font-black" style="color: #291334;">Session</h2>
+              <h2 class="text-2xl font-black" style="color: var(--foreground);">Session</h2>
             </div>
             <p class="text-neutral-500 text-sm">Terminer votre session en cours</p>
           </div>
@@ -842,7 +842,7 @@
 
         <div
           class="rounded-2xl border-2 border-red-200 shadow-lg p-8 md:p-10"
-          style="background-color: #EFEAE6;"
+          style="background-color: var(--card);"
         >
           <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div>

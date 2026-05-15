@@ -79,7 +79,7 @@
   ];
 </script>
 
-<div class="rounded-[28px] shadow-lg p-5 space-y-3" style="background-color: #EFEAE6;">
+<div class="rounded-[28px] shadow-lg p-5 space-y-3" style="background-color: var(--card);">
 
   <div class="flex items-center gap-3">
     <div class="relative flex-1">

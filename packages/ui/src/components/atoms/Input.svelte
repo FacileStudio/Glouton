@@ -16,8 +16,8 @@
     {type}
     {placeholder}
     bind:value
-    class="w-full px-5 py-3 rounded-2xl bg-slate-50/50 border-2 transition-all duration-200 font-medium text-brand-purple placeholder:text-slate-400 outline-none
-    {error ? 'border-danger/30 focus:border-danger focus:bg-danger-light' : 'border-slate-100 focus:border-brand-gold focus:bg-white hover:bg-white'}
+    class="flex h-9 w-full rounded-lg border bg-background px-3 py-1 text-sm text-foreground shadow-none transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50
+    {error ? 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20' : 'border-input hover:bg-muted/30'}
     {className}"
     {...$$restProps}
     on:input

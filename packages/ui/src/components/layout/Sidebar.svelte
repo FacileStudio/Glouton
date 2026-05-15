@@ -5,66 +5,67 @@
   export let resolvePath: (path: string) => string = (path) => path;
   export let settingsHref: string | undefined = undefined;
   export let logoSrc: string | undefined = undefined;
+  export let logoIcon = 'solar:magnet-wave-bold-duotone';
 </script>
 
 <!-- eslint-disable svelte/no-navigation-without-resolve -->
 
 <aside
-  class="w-72 h-screen sticky top-0 bg-white border-r-2 border-neutral-100 p-8 flex flex-col selection:bg-black selection:text-white"
+  class="sticky top-0 flex h-screen w-60 flex-col border-r border-border bg-background selection:bg-foreground selection:text-background"
 >
-  <div class="mb-8 px-2">
+  <div class="px-5 pt-8 pb-6">
     <div class="flex items-center gap-3">
       {#if logoSrc}
-        <img src={logoSrc} alt="Glouton Logo" class="w-10 h-10" />
+        <img src={logoSrc} alt="Glouton" class="h-7 w-7" />
       {:else}
-        <iconify-icon icon="solar:ghost-bold" width="40" class="text-yellow-400"></iconify-icon>
+        <iconify-icon icon={logoIcon} width="28" class="text-foreground"></iconify-icon>
       {/if}
-      <h1 class="text-3xl font-black tracking-tight leading-none text-black">
-        Glouton.
+      <h1 class="text-2xl font-bold leading-none text-foreground">
+        Glouton
       </h1>
     </div>
   </div>
 
-  <div class="mb-8">
+  <div class="mb-4 px-3">
     <slot name="context-switcher" />
   </div>
 
-  <nav class="flex-1 space-y-2">
+  <nav class="flex flex-1 flex-col gap-1 px-3">
     {#each items as item (item.href)}
       <a
         href={resolvePath(item.href)}
         data-sveltekit-reload
-        class="group relative flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-200
+        class="group relative flex items-center gap-3 rounded-md px-3 py-2.5 text-sm transition-colors
         {activeHref.startsWith(item.href)
-          ? 'bg-neutral-900 text-white shadow-lg shadow-neutral-200'
-          : 'text-neutral-600 hover:bg-neutral-50 hover:text-black'}"
+          ? 'bg-foreground text-background font-medium'
+          : 'text-muted-foreground hover:bg-muted hover:text-foreground'}"
       >
-        <iconify-icon icon={item.icon} width="24" class="transition-transform group-hover:scale-110"
+        <iconify-icon icon={item.icon} width="18"
         ></iconify-icon>
 
-        <span class="font-bold tracking-tight text-[13px]">
+        <span>
           {item.label}
         </span>
       </a>
     {/each}
   </nav>
 
-  <div class="mt-auto pt-6 border-t border-neutral-50 space-y-3">
+  <div class="mt-auto space-y-3 border-t border-border p-4">
     <div
-      class="p-4 bg-neutral-50 rounded-[24px] border border-neutral-100"
+      class="rounded-lg border border-border bg-muted/40 p-2.5"
     >
       <div class="flex items-center gap-3">
         <div
-          class="w-11 h-11 rounded-xl bg-white border border-neutral-200 overflow-hidden flex-shrink-0 flex items-center justify-center shadow-sm"
+          class="flex h-9 w-9 flex-shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-foreground text-background"
         >
           <slot name="user-avatar" />
         </div>
 
         <div class="flex-1 min-w-0">
-          <p class="text-[13px] font-black text-black truncate leading-tight">
+          <p class="truncate text-sm font-medium text-foreground">
             <slot name="user-name" />
           </p>
-          <p class="text-[11px] font-medium text-neutral-400 truncate">
+          <p class="truncate text-xs text-muted-foreground">
             <slot name="user-email">operator@glouton.app</slot>
           </p>
         </div>
@@ -75,13 +76,13 @@
       <a
         href={resolvePath(settingsHref)}
         data-sveltekit-reload
-        class="group flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-200
+        class="group flex items-center gap-3 rounded-md px-3 py-2.5 text-sm transition-colors
         {settingsHref && activeHref.startsWith(settingsHref)
-          ? 'bg-neutral-900 text-white shadow-lg shadow-neutral-200'
-          : 'text-neutral-600 hover:bg-neutral-50 hover:text-black'}"
+          ? 'bg-foreground text-background font-medium'
+          : 'text-muted-foreground hover:bg-muted hover:text-foreground'}"
       >
-        <iconify-icon icon="solar:settings-bold" width="20" class="transition-transform group-hover:scale-110"></iconify-icon>
-        <span class="font-bold tracking-tight text-[13px]">Paramètres</span>
+        <iconify-icon icon="solar:settings-bold" width="18"></iconify-icon>
+        <span>Paramètres</span>
       </a>
     {/if}
   </div>

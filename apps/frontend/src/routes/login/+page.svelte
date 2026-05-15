@@ -1,7 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
-  import { fly, fade } from 'svelte/transition';
   import { trpc } from '$lib/trpc';
   import authStore from '$lib/auth-store';
   import { getTrpcErrorMessage } from '$lib/utils/trpc-error';
@@ -17,7 +16,7 @@
     error = '';
     try {
       const result = await trpc.auth.login.mutate({ email, password });
-      authStore.setAuth({ token: result.token }, result.user);
+      authStore.setAuth({ token: result.token }, result.user as any);
       await goto(resolve('/app/leads'));
     } catch (err: any) {
       console.error('Login error:', err);
@@ -25,127 +24,102 @@
       loading = false;
     }
   }
-
-  function focusInput(node: HTMLElement) {
-    setTimeout(() => node.focus(), 100);
-  }
-
-  const inputClass =
-    'text-2xl md:text-4xl font-bold bg-transparent border-b-4 border-neutral-300 outline-none py-4 transition-all placeholder:text-neutral-300 focus:placeholder:text-neutral-200 w-full';
-  const btnClass =
-    'px-12 py-5 bg-black text-white font-black uppercase tracking-widest rounded-2xl disabled:opacity-30 transition-all active:enabled:scale-95 shadow-xl shadow-black/5 flex items-center justify-center gap-3';
 </script>
 
-<main
-  class="h-screen w-full text-black font-sans overflow-hidden flex flex-col selection:text-black"
-  style="background-color: #FAF7F5; selection-background-color: #FEC129;"
->
-  <nav class="p-8 flex justify-between items-center relative z-10" style="background-color: #FAF7F5;">
-    <a
-      href={resolve('/')}
-      class="px-6 py-3 bg-neutral-100 border-2 border-black hover:bg-black hover:text-white transition-all rounded-xl flex items-center gap-3 text-sm font-black uppercase tracking-wide"
-    >
-      <iconify-icon
-        icon="solar:arrow-left-bold"
-        width="18"
-      ></iconify-icon>
-      Accueil
+<svelte:head>
+  <title>Connexion — Glouton</title>
+</svelte:head>
+
+<div class="flex min-h-screen bg-background text-foreground">
+  <aside class="hidden w-1/2 flex-col bg-foreground px-12 py-10 text-background lg:flex">
+    <a href={resolve('/')} class="mb-auto flex items-center gap-3">
+      <iconify-icon icon="solar:magnet-wave-bold-duotone" width="28"></iconify-icon>
+      <span class="text-xl font-bold">Glouton</span>
     </a>
-    <div class="flex items-center gap-3">
-      <img src="/logo.png" alt="Glouton Logo" class="w-10 h-10 rounded-xl" />
-      <div class="text-2xl font-black tracking-tight" style="color: #291334;">
-        Glouton<span style="color: #FEC129;">.</span>
-      </div>
+
+    <div class="mb-auto">
+      <h1 class="text-4xl font-bold leading-tight">
+        Trouver. Qualifier.<br />Prospecter.
+      </h1>
+      <p class="mt-4 max-w-xs text-sm leading-relaxed text-background/55">
+        L'espace de prospection propre pour les pistes Facile.
+      </p>
     </div>
-  </nav>
 
-  <div class="flex-1 flex items-center justify-center px-6 relative">
-    <form
-      on:submit|preventDefault={handleLogin}
-      in:fly={{ y: 20, duration: 600 }}
-      class="max-w-xl w-full"
-    >
-      <span
-        class="text-[10px] font-black uppercase tracking-[0.3em] text-neutral-400 mb-4 block underline underline-offset-8 decoration-2"
-        style="text-decoration-color: #FEC129;"
-        >Portail d'accès</span
-      >
+    <p class="text-xs text-background/35">© {new Date().getFullYear()} Glouton by Facile.</p>
+  </aside>
 
-      <h2 class="text-6xl md:text-8xl font-black tracking-tighter leading-none mb-12" style="color: #291334;">
-        Bon <br /> <span style="color: #FEC129;">Retour.</span>
-      </h2>
+  <main class="flex w-full flex-col items-center justify-center px-8 py-12 lg:w-1/2">
+    <div class="w-full max-w-sm">
+      <a href={resolve('/')} class="mb-10 flex items-center gap-3 lg:hidden">
+        <iconify-icon icon="solar:magnet-wave-bold-duotone" width="28"></iconify-icon>
+        <span class="text-xl font-bold">Glouton</span>
+      </a>
 
-      <div class="space-y-8">
-        <input
-          type="email"
-          bind:value={email}
-          placeholder="Adresse e-mail"
-          class="login-input {inputClass}"
-          required
-          use:focusInput
-        />
-        <input
-          type="password"
-          bind:value={password}
-          placeholder="Mot de passe"
-          class="login-input {inputClass}"
-          required
-        />
+      <div class="mb-8">
+        <h2 class="text-2xl font-bold">Bon retour</h2>
+        <p class="mt-1.5 text-sm text-muted-foreground">
+          Connectez-vous à votre espace de prospection.
+        </p>
       </div>
 
-      {#if error}
-        <div class="mt-6 p-4 bg-black rounded-xl flex items-center gap-3" style="color: #FEC129;" in:fade>
-          <iconify-icon icon="solar:danger-triangle-bold" width="20"></iconify-icon>
-          <span class="text-[10px] font-black uppercase tracking-widest">{error}</span>
-        </div>
-      {/if}
+      <form
+        class="space-y-4"
+        onsubmit={(event) => {
+          event.preventDefault();
+          void handleLogin();
+        }}
+      >
+        <label class="space-y-1.5 block">
+          <span class="text-sm font-medium">Email</span>
+          <input
+            type="email"
+            bind:value={email}
+            placeholder="vous@entreprise.com"
+            class="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-1 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+            required
+          />
+        </label>
 
-      <div class="flex flex-col md:flex-row items-center gap-10 mt-12">
-        <button type="submit" disabled={loading || !email || !password} class="login-btn {btnClass}" style="border: 2px solid #291334;">
+        <label class="space-y-1.5 block">
+          <span class="text-sm font-medium">Mot de passe</span>
+          <input
+            type="password"
+            bind:value={password}
+            placeholder="••••••••"
+            class="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-1 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+            required
+          />
+        </label>
+
+        {#if error}
+          <p class="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {error}
+          </p>
+        {/if}
+
+        <button
+          type="submit"
+          disabled={loading || !email || !password}
+          class="inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85 disabled:pointer-events-none disabled:opacity-50"
+        >
           {#if loading}
-            <iconify-icon icon="svg-spinners:18-dots-revolve" width="24"></iconify-icon>
-            Vérification...
+            <iconify-icon icon="svg-spinners:180-ring" width="16"></iconify-icon>
+            Vérification
           {:else}
-            <iconify-icon icon="solar:login-3-bold" width="22"></iconify-icon>
             Se connecter
           {/if}
         </button>
+      </form>
 
-        <a
-          href={resolve('/register')}
-          class="login-link text-xs font-black uppercase tracking-[0.2em] transition-all"
-        >
+      <div class="mt-5 flex items-center justify-between text-sm">
+        <a href={resolve('/')} class="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+          Accueil
+        </a>
+        <a href={resolve('/register')} class="font-medium underline-offset-4 hover:underline">
           Créer un compte
         </a>
       </div>
-    </form>
-  </div>
-
-  <div class="fixed bottom-0 right-0 p-12 pointer-events-none overflow-hidden hidden md:block">
-    <div
-      class="text-[20vh] font-black uppercase tracking-tighter leading-none opacity-[0.03] select-none translate-y-1/4"
-    >
-      Connexion.
     </div>
-  </div>
-</main>
-
-<style>
-  :global(body) {
-    overflow: hidden;
-    background-color: #FAF7F5;
-  }
-  input::placeholder {
-    opacity: 1;
-  }
-  .login-input:focus {
-    border-color: #FEC129;
-  }
-  .login-btn:hover:enabled {
-    background-color: #FEC129;
-    color: black;
-  }
-  .login-link:hover {
-    color: #FEC129;
-  }
-</style>
+  </main>
+</div>
