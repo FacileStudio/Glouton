@@ -35,6 +35,7 @@ services:
       network: host
       args:
         DATABASE_URL: postgresql://glouton:${POSTGRES_PASSWORD:-glouton}@postgres:5432/glouton
+        CACHE_BUST: ${CACHE_BUST:-2026-05-15-1}
     container_name: glouton-backend
     environment:
       NODE_ENV: production
