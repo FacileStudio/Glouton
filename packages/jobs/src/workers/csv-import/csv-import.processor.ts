@@ -169,17 +169,17 @@ export class CsvImportProcessor {
           return index !== -1 ? values[index] : '';
         };
 
-        const domain = getHeaderValue('Domaine');
-        const organization = getHeaderValue('Nom Organisation');
+        const domain = this.sanitizeCellValue(getHeaderValue('Domaine'));
+        const organization = this.sanitizeCellValue(getHeaderValue('Nom Organisation'));
         const email = getHeaderValue('Email');
 
-        const city = getHeaderValue('Ville');
-        const country = getHeaderValue('Pays');
+        const city = this.sanitizeCellValue(getHeaderValue('Ville'));
+        const country = this.sanitizeCellValue(getHeaderValue('Pays'));
         const emailValue = email || (domain ? `contact@${domain}` : null);
-        const firstName = getHeaderValue('Prenom') || (organization ? organization.split(' ')[0] : '') || '';
-        const lastName = getHeaderValue('Nom') || (organization ? organization.split(' ').slice(1).join(' ') : '') || '';
-        const position = getHeaderValue('Position') || null;
-        const department = getHeaderValue('Departement') || null;
+        const firstName = this.sanitizeCellValue(getHeaderValue('Prenom')) || (organization ? organization.split(' ')[0] : '') || '';
+        const lastName = this.sanitizeCellValue(getHeaderValue('Nom')) || (organization ? organization.split(' ').slice(1).join(' ') : '') || '';
+        const position = this.sanitizeCellValue(getHeaderValue('Position')) || null;
+        const department = this.sanitizeCellValue(getHeaderValue('Departement')) || null;
 
         const businessTypeStr = getHeaderValue('Type Business');
         const businessType = businessTypeStr === 'LOCAL_BUSINESS' ? 'LOCAL_BUSINESS' : 'DOMAIN';
@@ -194,8 +194,8 @@ export class CsvImportProcessor {
         const companyInfo = this.parseCSVJson(getHeaderValue('Info Entreprise'));
         const websiteAudit = this.parseCSVJson(getHeaderValue('Audit Site Web'));
 
-        const category = getHeaderValue('Categorie') || null;
-        const openingHours = getHeaderValue('Horaires Ouverture') || null;
+        const category = this.sanitizeCellValue(getHeaderValue('Categorie')) || null;
+        const openingHours = this.sanitizeCellValue(getHeaderValue('Horaires Ouverture')) || null;
         const hasWebsite = this.parseCSVBoolean(getHeaderValue('A un Site Web'));
 
         const statusStr = getHeaderValue('Status');
@@ -462,6 +462,13 @@ export class CsvImportProcessor {
     values.push(current.trim());
 
     return values;
+  }
+
+  private sanitizeCellValue(value: string): string {
+    if (value.length > 0 && (value[0] === '=' || value[0] === '+' || value[0] === '-' || value[0] === '@')) {
+      return "'" + value;
+    }
+    return value;
   }
 
   private parseCSVArray(str: string): string[] {

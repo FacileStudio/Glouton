@@ -127,6 +127,10 @@ export const userRouter = router({
     return userService.deleteOwnAccount(ctx.user.id);
   }),
 
+  getApiKeys: protectedProcedure.query(async ({ ctx }) => {
+    return userService.getApiKeys(ctx.user.id, ctx.auth);
+  }),
+
   updateApiKeys: protectedProcedure
     .input(
       z.object({
@@ -135,7 +139,7 @@ export const userRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      return userService.updateApiKeys(ctx.user.id, input);
+      return userService.updateApiKeys(ctx.user.id, input, ctx.auth);
     }),
 
   getSmtpConfig: protectedProcedure.query(async ({ ctx }) => {

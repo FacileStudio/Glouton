@@ -3,6 +3,7 @@
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { fade, fly } from 'svelte/transition';
+  import DOMPurify from 'isomorphic-dompurify';
   import { trpc } from '$lib/trpc';
   import { toast } from '@repo/utils';
   import { Spinner } from '@repo/ui';
@@ -368,6 +369,11 @@
   let phoneNumbers = $derived(lead?.phoneNumbers ?? []);
   let addresses = $derived(lead?.physicalAddresses ?? []);
   let socialProfiles = $derived(lead?.socialProfiles ?? []);
+  let sanitizedPreviewHtml = $derived(
+    emailPreview.html
+      ? DOMPurify.sanitize(emailPreview.html)
+      : '<p class="text-muted-foreground italic text-sm">Fill in the variables to see the preview...</p>'
+  );
 
   $effect(() => {
     const _ = [selectedTemplate, variables];
@@ -883,7 +889,7 @@
                     </div>
                     <div class="p-4 max-h-[500px] overflow-y-auto">
                       <div class="email-preview">
-                        {@html emailPreview.html || '<p class="text-muted-foreground italic text-sm">Fill in the variables to see the preview...</p>'}
+                        {@html sanitizedPreviewHtml}
                       </div>
                     </div>
                   </div>

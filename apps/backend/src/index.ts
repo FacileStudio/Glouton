@@ -1,8 +1,10 @@
 import { Hono } from 'hono';
 import { loggerMiddleware } from './middleware/logger';
+import { loginLimiter, registerLimiter } from './middleware/rate-limit';
 import { prisma } from '@repo/database';
 import { validateRedisConfiguration } from '@repo/jobs';
 import { logger } from '@repo/logger';
+import corsHandler from './handlers/cors';
 import trpcHandler from './handlers/trpc';
 import {
   createLivenessHandler,
@@ -63,6 +65,21 @@ const app = new Hono();
 
 app.use('*', loggerMiddleware);
 
+app.use('*', corsHandler([env.DOMAIN]));
+
+app.use('*', async (c, next) => {
+  await next();
+  c.res.headers.set('X-Content-Type-Options', 'nosniff');
+  c.res.headers.set('X-Frame-Options', 'DENY');
+  c.res.headers.set('X-XSS-Protection', '0');
+  c.res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  c.res.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  const url = new URL(c.req.url);
+  if (url.protocol === 'https:') {
+    c.res.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
+});
+
 app.get('/health/live', createLivenessHandler());
 app.get('/health/ready', createReadinessHandler({ prisma }));
 
@@ -100,6 +117,9 @@ app.post('/internal/broadcast', async (c) => {
     return c.json({ error: 'Invalid request' }, 400);
   }
 });
+
+app.use('/trpc/auth.login', loginLimiter);
+app.use('/trpc/auth.register', registerLimiter);
 
 app.all('/trpc/*', trpcHandler({
   authManager: config.authManager,

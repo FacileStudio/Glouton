@@ -4,10 +4,47 @@ import { type AuthManager } from '@repo/auth';
 import type { UserRole } from '@repo/types';
 import { UserStatus } from '@prisma/client';
 
+const SAFE_USER_SELECT = {
+  id: true,
+  email: true,
+  firstName: true,
+  lastName: true,
+  role: true,
+  isPremium: true,
+  status: true,
+  emailVerified: true,
+  isBanned: true,
+  banReason: true,
+  bannedAt: true,
+  bannedBy: true,
+  isSuspended: true,
+  suspendedUntil: true,
+  suspensionReason: true,
+  lastLoginAt: true,
+  createdAt: true,
+  updatedAt: true,
+} as const;
+
+function maskKey(key: string | null | undefined): string | null {
+  if (!key) return null;
+  if (key.length <= 4) return '***';
+  return `***...${key.slice(-4)}`;
+}
+
+function tryDecrypt(auth: AuthManager, value: string | null | undefined): string | null {
+  if (!value) return null;
+  try {
+    return auth.decryptData(value);
+  } catch {
+    return value;
+  }
+}
+
 export const userService = {
   getProfile: async (userId: string) => {
     const user = await prisma.user.findUnique({
       where: { id: userId },
+      select: SAFE_USER_SELECT,
     });
 
     if (!user) {
@@ -86,13 +123,16 @@ export const userService = {
 
     return await prisma.user.findMany({
       where,
+      select: SAFE_USER_SELECT,
       orderBy: { createdAt: 'desc' },
+      take: 100,
     });
   },
 
   getUserById: async (userId: string) => {
     const user = await prisma.user.findUnique({
       where: { id: userId },
+      select: SAFE_USER_SELECT,
     });
 
     if (!user) {
@@ -156,6 +196,7 @@ export const userService = {
     const updatedUser = await prisma.user.update({
       where: { id: userId },
       data: updateData,
+      select: SAFE_USER_SELECT,
     });
 
     if (!updatedUser) throw new TRPCError({ code: 'NOT_FOUND', message: 'User not found' });
@@ -172,6 +213,7 @@ export const userService = {
         bannedAt: new Date(),
         bannedBy: bannedBy,
       },
+      select: SAFE_USER_SELECT,
     });
     return bannedUser;
   },
@@ -186,6 +228,7 @@ export const userService = {
         bannedAt: null,
         bannedBy: null,
       },
+      select: SAFE_USER_SELECT,
     });
     return unbannedUser;
   },
@@ -199,6 +242,7 @@ export const userService = {
         suspensionReason: reason,
         suspendedUntil: until,
       },
+      select: SAFE_USER_SELECT,
     });
     return suspendedUser;
   },
@@ -212,6 +256,7 @@ export const userService = {
         suspensionReason: null,
         suspendedUntil: null,
       },
+      select: SAFE_USER_SELECT,
     });
     return unsuspendedUser;
   },
@@ -220,6 +265,7 @@ export const userService = {
     const verifiedUser = await prisma.user.update({
       where: { id: userId },
       data: { emailVerified: true },
+      select: SAFE_USER_SELECT,
     });
     return verifiedUser;
   },
@@ -227,6 +273,7 @@ export const userService = {
   deleteUser: async (userId: string) => {
     const deletedUser = await prisma.user.delete({
       where: { id: userId },
+      select: SAFE_USER_SELECT,
     });
     return deletedUser;
   },
@@ -260,6 +307,7 @@ export const userService = {
     const updatedUser = await prisma.user.update({
       where: { id: userId },
       data: updateData,
+      select: SAFE_USER_SELECT,
     });
     return updatedUser;
   },
@@ -270,7 +318,18 @@ export const userService = {
     currentPassword: string,
     newPassword: string
   ) => {
-    const user = await userService.getUserById(userId);
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, password: true },
+    });
+
+    if (!user) {
+      throw new TRPCError({
+        code: 'NOT_FOUND',
+        message: 'User not found',
+      });
+    }
+
     const isValid = await auth.verifyPassword(currentPassword, user.password);
 
     if (!isValid) {
@@ -282,16 +341,18 @@ export const userService = {
 
     const hashedPassword = await auth.hashPassword(newPassword);
 
-    const updatedUser = await prisma.user.update({
+    await prisma.user.update({
       where: { id: userId },
       data: { password: hashedPassword },
     });
-    return updatedUser;
+
+    return { success: true };
   },
 
   deleteOwnAccount: async (userId: string) => {
     const deletedUser = await prisma.user.delete({
       where: { id: userId },
+      select: SAFE_USER_SELECT,
     });
 
     if (!deletedUser) {
@@ -304,31 +365,62 @@ export const userService = {
     return deletedUser;
   },
 
+  getApiKeys: async (userId: string, auth: AuthManager) => {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        hunterApiKey: true,
+        apolloApiKey: true,
+        snovApiKey: true,
+        hasdataApiKey: true,
+        contactoutApiKey: true,
+        googleMapsApiKey: true,
+      },
+    });
+
+    if (!user) {
+      throw new TRPCError({
+        code: 'NOT_FOUND',
+        message: 'User not found',
+      });
+    }
+
+    return {
+      hunterApiKey: maskKey(tryDecrypt(auth, user.hunterApiKey)),
+      apolloApiKey: maskKey(tryDecrypt(auth, user.apolloApiKey)),
+      snovApiKey: maskKey(tryDecrypt(auth, user.snovApiKey)),
+      hasdataApiKey: maskKey(tryDecrypt(auth, user.hasdataApiKey)),
+      contactoutApiKey: maskKey(tryDecrypt(auth, user.contactoutApiKey)),
+      googleMapsApiKey: maskKey(tryDecrypt(auth, user.googleMapsApiKey)),
+    };
+  },
+
   updateApiKeys: async (
     userId: string,
     apiKeys: {
       hunterApiKey?: string;
       googleMapsApiKey?: string;
-    }
+    },
+    auth: AuthManager
   ) => {
     if (apiKeys.hunterApiKey === undefined && apiKeys.googleMapsApiKey === undefined) {
-      return userService.getUserById(userId);
+      return userService.getApiKeys(userId, auth);
     }
 
     const updateData: any = {};
     if (apiKeys.hunterApiKey !== undefined) {
-      updateData.hunterApiKey = apiKeys.hunterApiKey || null;
+      updateData.hunterApiKey = apiKeys.hunterApiKey ? auth.encryptData(apiKeys.hunterApiKey) : null;
     }
     if (apiKeys.googleMapsApiKey !== undefined) {
-      updateData.googleMapsApiKey = apiKeys.googleMapsApiKey || null;
+      updateData.googleMapsApiKey = apiKeys.googleMapsApiKey ? auth.encryptData(apiKeys.googleMapsApiKey) : null;
     }
 
-    const updatedUser = await prisma.user.update({
+    await prisma.user.update({
       where: { id: userId },
       data: updateData,
     });
 
-    return updatedUser;
+    return userService.getApiKeys(userId, auth);
   },
 
   getSmtpConfig: async (userId: string, auth: AuthManager) => {
@@ -390,7 +482,7 @@ export const userService = {
       encryptedPass = auth.encryptData(smtpConfig.smtpPass);
     }
 
-    const updatedUser = await prisma.user.update({
+    const updated = await prisma.user.update({
       where: { id: userId },
       data: {
         smtpHost: smtpConfig.smtpHost ?? null,
@@ -401,9 +493,17 @@ export const userService = {
         smtpFromName: smtpConfig.smtpFromName ?? null,
         smtpFromEmail: smtpConfig.smtpFromEmail ?? null,
       },
+      select: {
+        smtpHost: true,
+        smtpPort: true,
+        smtpSecure: true,
+        smtpUser: true,
+        smtpFromName: true,
+        smtpFromEmail: true,
+      },
     });
 
-    return updatedUser;
+    return updated;
   },
 };
 

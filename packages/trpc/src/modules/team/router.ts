@@ -1,3 +1,4 @@
+import { TRPCError } from '@trpc/server';
 import { router, protectedProcedure } from '../../trpc';
 import teamService from './service';
 import { checkTeamPermission, TeamRole } from './permissions';
@@ -114,7 +115,7 @@ export const teamRouter = router({
       { userId: ctx.user.id, teamId: input.teamId },
       '[TEAM] Getting team API keys'
     );
-    return await teamService.getTeamApiKeys(input.teamId, ctx.user.id);
+    return await teamService.getTeamApiKeys(input.teamId, ctx.user.id, ctx.auth);
   }),
 
   updateApiKeys: protectedProcedure
@@ -125,7 +126,7 @@ export const teamRouter = router({
         '[TEAM] Updating team API keys'
       );
       const { teamId, ...apiKeys } = input;
-      return await teamService.updateTeamApiKeys(teamId, ctx.user.id, apiKeys);
+      return await teamService.updateTeamApiKeys(teamId, ctx.user.id, apiKeys, ctx.auth);
     }),
 
   getSmtpConfig: protectedProcedure.input(teamIdSchema).query(async ({ ctx, input }) => {

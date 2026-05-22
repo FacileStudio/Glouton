@@ -1,5 +1,6 @@
 import * as cheerio from 'cheerio';
 import type { CheerioAPI } from 'cheerio';
+import { validateAndResolveUrl } from './url-validator';
 
 
 
@@ -298,15 +299,12 @@ export function findAboutPage($: CheerioAPI, baseUrl: string): string | undefine
     
 
     for (const pattern of aboutPatterns) {
-      
+
 
       if (lowerHref.includes(pattern)) {
-        try {
-          const url = new URL(href, baseUrl);
-          return url.href;
-        } catch {
-          continue;
-        }
+        const resolved = validateAndResolveUrl(href, baseUrl);
+        if (resolved) return resolved;
+        continue;
       }
     }
   }
@@ -332,15 +330,12 @@ export function findContactPage($: CheerioAPI, baseUrl: string): string | undefi
     
 
     for (const pattern of contactPatterns) {
-      
+
 
       if (lowerHref.includes(pattern)) {
-        try {
-          const url = new URL(href, baseUrl);
-          return url.href;
-        } catch {
-          continue;
-        }
+        const resolved = validateAndResolveUrl(href, baseUrl);
+        if (resolved) return resolved;
+        continue;
       }
     }
   }
@@ -361,12 +356,9 @@ export function findTeamPage($: CheerioAPI, baseUrl: string): string | undefined
     const lowerHref = href.toLowerCase();
     for (const pattern of teamPatterns) {
       if (lowerHref.includes(pattern)) {
-        try {
-          const url = new URL(href, baseUrl);
-          return url.href;
-        } catch {
-          continue;
-        }
+        const resolved = validateAndResolveUrl(href, baseUrl);
+        if (resolved) return resolved;
+        continue;
       }
     }
   }
@@ -395,10 +387,11 @@ export async function findSpeculativePaths(baseUrl: string, httpClient: any): Pr
       checks.push(
         (async () => {
           try {
-            const url = new URL(path, baseUrl);
-            const response = await httpClient.head(url.href);
+            const resolved = validateAndResolveUrl(path, baseUrl);
+            if (!resolved) return;
+            const response = await httpClient.head(resolved);
             if (response && !found[category]) {
-              found[category] = url.href;
+              found[category] = resolved;
             }
           } catch {
           }

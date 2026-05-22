@@ -1,6 +1,7 @@
 import type { CheerioAPI } from 'cheerio';
 import type { CompanyInfo } from '../types';
 import type { HttpClient } from '../utils/http';
+import { isSafeUrl } from '../utils/url-validator';
 import {
   parseHtml,
   extractEmails,
@@ -81,7 +82,7 @@ export async function extractCompanyInfo(
 
   const pagePromises: Promise<void>[] = [];
 
-  if (aboutUrl) {
+  if (aboutUrl && isSafeUrl(aboutUrl)) {
     pagePromises.push(
       httpClient.get(aboutUrl)
         .then((aboutHtml: string) => {
@@ -92,7 +93,7 @@ export async function extractCompanyInfo(
     );
   }
 
-  if (contactUrl && contactUrl !== aboutUrl) {
+  if (contactUrl && contactUrl !== aboutUrl && isSafeUrl(contactUrl)) {
     pagePromises.push(
       httpClient.get(contactUrl)
         .then((contactHtml: string) => {
@@ -103,7 +104,7 @@ export async function extractCompanyInfo(
     );
   }
 
-  if (teamUrl && teamUrl !== aboutUrl && teamUrl !== contactUrl) {
+  if (teamUrl && teamUrl !== aboutUrl && teamUrl !== contactUrl && isSafeUrl(teamUrl)) {
     pagePromises.push(
       httpClient.get(teamUrl)
         .then((teamHtml: string) => {

@@ -3,6 +3,16 @@ import type { Scope } from './scope';
 import { logger } from '@repo/logger';
 import { TRPCError } from '@trpc/server';
 import type { AuthManager } from '@repo/auth';
+import { CryptoService } from '@repo/crypto';
+
+function tryDecrypt(crypto: CryptoService, value: string | null | undefined): string | undefined {
+  if (!value) return undefined;
+  try {
+    return crypto.decrypt(value);
+  } catch {
+    return value;
+  }
+}
 
 export interface ApiKeys {
   hunterApiKey?: string;
@@ -24,6 +34,8 @@ export async function getApiKeys(
   scope: Scope,
   encryptionSecret: string
 ): Promise<ApiKeys> {
+  const crypto = new CryptoService({ ENCRYPTION_KEY: encryptionSecret });
+
   if (scope.type === 'team') {
     const team = await prisma.$queryRaw<
       Array<{
@@ -51,8 +63,8 @@ export async function getApiKeys(
     logger.info({ teamId: scope.teamId }, '[API_KEYS] Using team API keys');
 
     return {
-      hunterApiKey: teamData.hunterApiKey ?? undefined,
-      googleMapsApiKey: teamData.googleMapsApiKey ?? undefined,
+      hunterApiKey: tryDecrypt(crypto, teamData.hunterApiKey),
+      googleMapsApiKey: tryDecrypt(crypto, teamData.googleMapsApiKey),
     };
   }
 
@@ -75,8 +87,8 @@ export async function getApiKeys(
   logger.info({ userId: scope.userId }, '[API_KEYS] Using personal API keys');
 
   return {
-    hunterApiKey: user.hunterApiKey ?? undefined,
-    googleMapsApiKey: user.googleMapsApiKey ?? undefined,
+    hunterApiKey: tryDecrypt(crypto, user.hunterApiKey),
+    googleMapsApiKey: tryDecrypt(crypto, user.googleMapsApiKey),
   };
 }
 

@@ -10,7 +10,7 @@ export const serverEnvSchema = baseSchema.extend({
   PORT: z.coerce.number().default(3001),
   DOMAIN: z.string().min(1),
 
-  ENCRYPTION_SECRET: z.string().min(1),
+  ENCRYPTION_SECRET: z.string().min(32),
 
   HUNTER_API_KEY: z.string().optional(),
 

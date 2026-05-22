@@ -13,7 +13,11 @@ export const emailRouter = router({
     .input(
       z.object({
         templateId: z.string(),
-        variables: z.record(z.string()),
+        variables: z.record(
+          z.string()
+            .max(1000)
+            .refine((val) => !val.includes('\r') && !val.includes('\n'), 'Variable cannot contain line breaks')
+        ),
       }),
     )
     .query(async ({ input }) => {
@@ -30,7 +34,11 @@ export const emailRouter = router({
         teamId: z.string().uuid().optional(),
         leadId: z.string(),
         templateId: z.string(),
-        variables: z.record(z.string()),
+        variables: z.record(
+          z.string()
+            .max(1000)
+            .refine((val) => !val.includes('\r') && !val.includes('\n'), 'Variable cannot contain line breaks')
+        ),
       }),
     )
     .mutation(async ({ ctx, input }) => {
