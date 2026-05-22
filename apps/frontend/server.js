@@ -1,6 +1,5 @@
 import http from 'node:http';
 import https from 'node:https';
-import net from 'node:net';
 import { handler } from './build/handler.js';
 
 const host = process.env.HOST || '0.0.0.0';
@@ -19,7 +18,6 @@ const hopByHopHeaders = new Set([
 ]);
 
 const isBackendPath = (url = '') => url === '/trpc' || url.startsWith('/trpc/') || url.startsWith('/trpc?');
-const isWebSocketPath = (url = '') => url === '/ws' || url.startsWith('/ws?');
 
 function backendPort() {
   if (backendUrl.port) return Number(backendUrl.port);
@@ -66,35 +64,6 @@ function proxyHttp(req, res) {
   req.pipe(proxyReq);
 }
 
-function proxyWebSocket(req, socket, head) {
-  if (backendUrl.protocol !== 'http:') {
-    socket.destroy();
-    return;
-  }
-
-  const backendSocket = net.connect(backendPort(), backendUrl.hostname, () => {
-    backendSocket.write(`${req.method} ${req.url} HTTP/${req.httpVersion}\r\n`);
-
-    const headers = { ...req.headers, host: backendUrl.host };
-    for (const [name, value] of Object.entries(headers)) {
-      if (Array.isArray(value)) {
-        for (const item of value) backendSocket.write(`${name}: ${item}\r\n`);
-      } else if (value !== undefined) {
-        backendSocket.write(`${name}: ${value}\r\n`);
-      }
-    }
-
-    backendSocket.write('\r\n');
-    if (head.length > 0) backendSocket.write(head);
-
-    socket.pipe(backendSocket);
-    backendSocket.pipe(socket);
-  });
-
-  backendSocket.on('error', () => socket.destroy());
-  socket.on('error', () => backendSocket.destroy());
-}
-
 const server = http.createServer((req, res) => {
   if (isBackendPath(req.url)) {
     proxyHttp(req, res);
@@ -102,15 +71,6 @@ const server = http.createServer((req, res) => {
   }
 
   handler(req, res);
-});
-
-server.on('upgrade', (req, socket, head) => {
-  if (!isWebSocketPath(req.url)) {
-    socket.destroy();
-    return;
-  }
-
-  proxyWebSocket(req, socket, head);
 });
 
 server.listen(port, host, () => {

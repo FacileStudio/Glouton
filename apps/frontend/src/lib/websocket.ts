@@ -6,159 +6,91 @@ type MessageHandler = (data: any) => void;
 export type ConnectionState = 'connecting' | 'connected' | 'disconnected' | 'reconnecting' | 'failed';
 
 class WebSocketClient {
-  private ws: WebSocket | null = null;
-  private handlers = new Map<string, Set<MessageHandler>>();
-  private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
-  private reconnectAttempts = 0;
-  private maxReconnectAttempts = Infinity;
-  private reconnectDelay = 1000;
-  private maxReconnectDelay = 30000;
-  private token: string | null = null;
-  public connectionState = writable<ConnectionState>('disconnected');
+	private eventSource: EventSource | null = null;
+	private handlers = new Map<string, Set<MessageHandler>>();
+	private token: string | null = null;
+	public connectionState = writable<ConnectionState>('disconnected');
 
-  private getWebSocketUrl(): string {
-    if (!browser) {
-      return '';
-    }
+	connect(token: string) {
+		if (!browser) return;
 
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const url = `${protocol}//${window.location.host}/ws`;
+		if (this.eventSource) {
+			this.eventSource.close();
+			this.eventSource = null;
+		}
 
-    return url;
-  }
+		this.token = token;
+		const url = `/api/events?token=${encodeURIComponent(token)}`;
 
-  connect(token: string) {
-    if (!browser) return;
+		this.connectionState.set('connecting');
 
-    const wsBaseUrl = this.getWebSocketUrl();
+		try {
+			this.eventSource = new EventSource(url);
 
-    if (!wsBaseUrl) {
-      console.error('[WebSocket] Failed to get WebSocket URL');
-      return;
-    }
+			this.eventSource.onopen = () => {
+				this.connectionState.set('connected');
+			};
 
-    if (this.ws && (this.ws.readyState === WebSocket.CONNECTING || this.ws.readyState === WebSocket.OPEN)) {
-      return;
-    }
+			this.eventSource.onmessage = (event) => {
+				try {
+					const message = JSON.parse(event.data);
 
-    if (this.ws) {
-      this.ws.close();
-      this.ws = null;
-    }
+					const handlers = this.handlers.get(message.type);
+					if (handlers) {
+						handlers.forEach((handler) => {
+							handler(message.data);
+						});
+					}
+				} catch (error) {
+					console.error('[Events] Error parsing message:', error);
+				}
+			};
 
-    this.token = token;
-    const wsUrl = `${wsBaseUrl}?token=${token}`;
+			this.eventSource.onerror = () => {
+				this.connectionState.set('reconnecting');
+			};
+		} catch (error) {
+			console.error('[Events] Connection error:', error);
+			this.connectionState.set('disconnected');
+		}
+	}
 
-    this.connectionState.set(this.reconnectAttempts > 0 ? 'reconnecting' : 'connecting');
+	resetConnection() {
+		if (this.token) {
+			this.connect(this.token);
+		}
+	}
 
-    try {
-      this.ws = new WebSocket(wsUrl);
+	on(type: string, handler: MessageHandler) {
+		if (!this.handlers.has(type)) {
+			this.handlers.set(type, new Set());
+		}
+		this.handlers.get(type)!.add(handler);
 
-      this.ws.onopen = () => {
-        this.reconnectAttempts = 0;
-        this.connectionState.set('connected');
-      };
+		return () => {
+			const handlers = this.handlers.get(type);
+			if (handlers) {
+				handlers.delete(handler);
+				if (handlers.size === 0) {
+					this.handlers.delete(type);
+				}
+			}
+		};
+	}
 
-      this.ws.onmessage = (event) => {
-        try {
-          const message = JSON.parse(event.data);
+	disconnect() {
+		if (this.eventSource) {
+			this.eventSource.close();
+			this.eventSource = null;
+		}
 
-          const handlers = this.handlers.get(message.type);
-          if (handlers) {
-            handlers.forEach((handler) => {
-              handler(message.data);
-            });
-          }
-        } catch (error) {
-          console.error('[WebSocket] Error parsing message:', error);
-        }
-      };
+		this.handlers.clear();
+		this.connectionState.set('disconnected');
+	}
 
-      this.ws.onclose = (event) => {
-        this.connectionState.set('disconnected');
-        this.attemptReconnect();
-      };
-
-      this.ws.onerror = (error) => {
-        console.error('[WebSocket] Error:', error);
-        this.connectionState.set('disconnected');
-      };
-    } catch (error) {
-      console.error('[WebSocket] Connection error:', error);
-      this.connectionState.set('disconnected');
-      this.attemptReconnect();
-    }
-  }
-
-  private attemptReconnect() {
-    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      this.connectionState.set('failed');
-      return;
-    }
-
-    this.reconnectAttempts++;
-    const delay = Math.min(
-      this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1),
-      this.maxReconnectDelay
-    );
-
-    this.connectionState.set('reconnecting');
-
-    this.reconnectTimeout = setTimeout(() => {
-      if (this.token) {
-        this.connect(this.token);
-      }
-    }, delay);
-  }
-
-  resetConnection() {
-    this.reconnectAttempts = 0;
-    if (this.reconnectTimeout) {
-      clearTimeout(this.reconnectTimeout);
-      this.reconnectTimeout = null;
-    }
-    if (this.token) {
-      this.connect(this.token);
-    }
-  }
-
-  on(type: string, handler: MessageHandler) {
-    if (!this.handlers.has(type)) {
-      this.handlers.set(type, new Set());
-    }
-    this.handlers.get(type)!.add(handler);
-
-    return () => {
-      const handlers = this.handlers.get(type);
-      if (handlers) {
-        handlers.delete(handler);
-        if (handlers.size === 0) {
-          this.handlers.delete(type);
-        }
-      }
-    };
-  }
-
-  disconnect() {
-    if (this.reconnectTimeout) {
-      clearTimeout(this.reconnectTimeout);
-      this.reconnectTimeout = null;
-    }
-
-    if (this.ws) {
-      this.ws.close();
-      this.ws = null;
-    }
-
-    this.handlers.clear();
-    this.reconnectAttempts = 0;
-  }
-
-  send(message: any) {
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify(message));
-    }
-  }
+	send(_message: any) {
+		// SSE is server-to-client only
+	}
 }
 
 export const ws = new WebSocketClient();

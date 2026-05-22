@@ -73,6 +73,7 @@ export const huntRouter = router({
         });
       } catch (error) {
         if (error instanceof TRPCError) throw error;
+        ctx.log.error({ action: 'start-local-hunt-failed', error });
         throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Local hunt failed' });
       }
     }),
