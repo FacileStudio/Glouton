@@ -17,7 +17,10 @@ const hopByHopHeaders = new Set([
   'upgrade',
 ]);
 
-const isBackendPath = (url = '') => url === '/trpc' || url.startsWith('/trpc/') || url.startsWith('/trpc?');
+const isBackendPath = (url = '') =>
+  url === '/trpc' || url.startsWith('/trpc/') || url.startsWith('/trpc?') ||
+  url === '/docs' || url.startsWith('/docs?') ||
+  url === '/openapi.json' || url.startsWith('/openapi.json?');
 
 function backendPort() {
   if (backendUrl.port) return Number(backendUrl.port);
