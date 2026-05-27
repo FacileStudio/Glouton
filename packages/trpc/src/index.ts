@@ -4,6 +4,7 @@ import { authRouter } from './modules/auth/router';
 import { leadRouter } from './modules/lead/router';
 import { emailRouter } from './modules/email/router';
 import { teamRouter } from './modules/team/router';
+import { createOpenApiDocument } from './openapi';
 
 export const appRouter = router({
   auth: authRouter,
@@ -12,6 +13,8 @@ export const appRouter = router({
   email: emailRouter,
   team: teamRouter,
 });
+
+export const openApiDocument = createOpenApiDocument(appRouter);
 
 export type AppRouter = typeof appRouter;
 

@@ -6,6 +6,8 @@ import { validateRedisConfiguration } from '@repo/jobs';
 import { logger } from '@repo/logger';
 import corsHandler from './handlers/cors';
 import trpcHandler from './handlers/trpc';
+import { openApiHandler } from './handlers/openapi';
+import { apiReference } from '@scalar/hono-api-reference';
 import {
   createLivenessHandler,
   createReadinessHandler,
@@ -79,6 +81,9 @@ app.use('*', async (c, next) => {
     c.res.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   }
 });
+
+app.get('/openapi.json', openApiHandler);
+app.get('/docs', apiReference({ url: '/openapi.json', pageTitle: 'Glouton API' }));
 
 app.get('/health/live', createLivenessHandler());
 app.get('/health/ready', createReadinessHandler({ prisma }));
