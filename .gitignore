@@ -49,3 +49,4 @@ coverage
 # Local dev files
 .claude/
 egg.yml
+CLAUDE.md
