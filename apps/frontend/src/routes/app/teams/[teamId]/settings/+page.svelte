@@ -23,8 +23,6 @@
     description: '',
   });
 
-  let apiKeysForm = $state({} as Record<string, string>);
-
   let smtpForm = $state({
     smtpHost: '',
     smtpPort: 587,
@@ -38,18 +36,11 @@
   let showSmtpPass = $state(false);
 
   let originalGeneralForm = $state({ name: '', description: '' });
-  let originalApiKeysForm = $state({ ...apiKeysForm });
   let originalSmtpForm = $state({ ...smtpForm });
 
   let hasGeneralChanges = $derived(
     generalForm.name !== originalGeneralForm.name ||
     generalForm.description !== originalGeneralForm.description
-  );
-
-  let hasApiKeysChanges = $derived(
-    Object.keys(apiKeysForm).some(
-      (key) => apiKeysForm[key as keyof typeof apiKeysForm] !== originalApiKeysForm[key as keyof typeof originalApiKeysForm]
-    )
   );
 
   let hasSmtpChanges = $derived(
@@ -75,7 +66,7 @@
       originalGeneralForm.description = team.description || '';
 
       if (team.userRole === 'OWNER' || team.userRole === 'ADMIN') {
-        await Promise.all([loadApiKeys(), loadSmtpConfig()]);
+        await loadSmtpConfig();
       }
     } catch (error: any) {
       console.error('Error loading team:', error);
@@ -83,15 +74,6 @@
       goto('/app/teams');
     } finally{
       loading = false;
-    }
-  }
-
-  async function loadApiKeys() {
-    try {
-      const apiKeys = await trpc.team.getApiKeys.query({ teamId });
-      originalApiKeysForm = { ...apiKeysForm };
-    } catch (error) {
-      console.error('Error loading API keys:', error);
     }
   }
 
@@ -126,22 +108,6 @@
       await loadTeam();
     } catch (error: any) {
       toast.push(error?.message || 'Échec de la mise à jour', 'error');
-    } finally {
-      saving = false;
-    }
-  }
-
-  async function handleUpdateApiKeys() {
-    if (!canManage) return;
-    saving = true;
-    try {
-      await trpc.team.updateApiKeys.mutate({
-        teamId,
-      });
-      await loadApiKeys();
-      toast.push('Clés API mises à jour avec succès', 'success');
-    } catch (error: any) {
-      toast.push(error?.message || 'Échec de la mise à jour des clés API', 'error');
     } finally {
       saving = false;
     }
@@ -250,7 +216,7 @@
     {/if}
 
     <div class="rounded-2xl shadow-lg p-2" style="background-color: var(--card);">
-      <div class="grid grid-cols-3 gap-2">
+      <div class="grid grid-cols-2 gap-2">
         {#each tabs as tab (tab.id)}
           <button
             onclick={() => (activeTab = tab.id)}

@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Glouton is a production-ready lead generation platform with automated web scraping, intelligent lead scoring, and real-time progress tracking. Built as a Turborepo monorepo with Bun, Hono, tRPC, SvelteKit, and BullMQ.
 
 **Core Features:**
-- Automated lead extraction from multiple sources (Hunter.io, Apollo, Snov, Google Maps, etc.)
+- Automated lead extraction from free sources (OpenStreetMap local business search)
 - Background job processing with BullMQ and Redis
 - Real-time WebSocket updates for hunt progress
 - Intelligent lead scoring (HOT/WARM/COLD)
@@ -84,9 +84,8 @@ bun run clean                  # Clean and reinstall dependencies
 - `packages/trpc-client/` - Universal tRPC client factory (client-only)
 - `packages/database/` - PostgreSQL schema, migrations, Prisma client
 - `packages/jobs/` - BullMQ job queues and workers
-- `packages/hunter/` - Web scraping/crawling logic
+- `packages/maps/` - OpenStreetMap business search (Overpass/Nominatim)
 - `packages/audit/` - Website audit system with analyzers
-- `packages/lead-sources/` - Multi-provider lead extraction (Hunter, Apollo, etc.)
 - `packages/auth/` - JWT authentication (server-only)
 - `packages/auth-shared/` - Role-based access control (isomorphic)
 - `packages/smtp/` - Email sending utilities
@@ -99,7 +98,7 @@ bun run clean                  # Clean and reinstall dependencies
 
 **Modules** (`packages/trpc/src/modules/`):
 - `auth/` - Login, register, token refresh
-- `user/` - User management, API keys
+- `user/` - User management
 - `lead/` - Lead operations (CRUD, hunt, audit)
 - `email/` - Email outreach
 
@@ -115,13 +114,13 @@ bun run clean                  # Clean and reinstall dependencies
 **Job System** (`packages/jobs/`):
 - `queue-manager.ts` - BullMQ queue manager with Redis
 - `workers/` - Job processors for hunts and audits
-  - `domain-finder/` - Domain discovery jobs
-  - `lead-extraction/` - Multi-source lead extraction
+  - `opportunity-scraper/` - Freelance missions scraping (free public sources)
+  - `csv-import/` - CSV lead import
   - `lead-audit/` - Website audit jobs
-  - `local-business-hunt/` - Google Maps business search
+  - `local-business-hunt/` - OpenStreetMap business search
 
 **Job Flow:**
-1. User triggers hunt via `lead.startHunt` tRPC mutation
+1. User triggers hunt via `lead.hunt.startLocalBusiness` tRPC mutation
 2. Backend creates `HuntSession` in database
 3. Job added to BullMQ queue
 4. Worker processes job, emits progress events
@@ -139,7 +138,7 @@ bun run clean                  # Clean and reinstall dependencies
 - 13 enums: UserRole, LeadStatus, HuntStatus, etc.
 
 **Key Tables:**
-- `User` - Auth, API keys, per-user SMTP config
+- `User` - Auth, per-user SMTP config
 - `Lead` - Extracted leads with scoring
 - `HuntSession` - Hunt job tracking (status, progress, metadata)
 - `AuditSession` - Website audit tracking
@@ -147,17 +146,9 @@ bun run clean                  # Clean and reinstall dependencies
 
 ### Lead Extraction System
 
-**Multi-Provider Support** (`packages/lead-sources/`):
-- Factory pattern for provider abstraction
-- Rate limiting per provider
-- Providers: Hunter, Apollo, Snov, HasData, ContactOut, Google Maps
-- Each provider has API key stored per-user
-
-**Hunt Orchestrator:**
-- Coordinates multi-provider searches
-- Fallback logic (tries providers in order)
+**OpenStreetMap only** (`packages/maps/`):
+- Free, no API key required (Overpass API + Nominatim geocoding)
 - Deduplication and quality scoring
-- Filter presets for common use cases
 
 ### Audit System
 
@@ -207,13 +198,6 @@ bun run clean                  # Clean and reinstall dependencies
 2. Define job processor with `createJobProcessor()`
 3. Register in `apps/backend/src/services/register-workers.ts`
 4. Add queue to `apps/backend/src/config.ts`
-
-### Adding a Lead Source Provider
-
-1. Create provider in `packages/lead-sources/src/providers/[name].ts`
-2. Implement `LeadSourceProvider` interface
-3. Add to factory in `packages/lead-sources/src/factory.ts`
-4. Add API key field to User table if needed
 
 ## Important Conventions
 

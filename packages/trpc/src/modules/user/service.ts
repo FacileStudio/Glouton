@@ -284,33 +284,6 @@ export const userService = {
     return deletedUser;
   },
 
-  updateApiKeys: async (
-    userId: string,
-    apiKeys: {
-      hunterApiKey?: string;
-      googleMapsApiKey?: string;
-    }
-  ) => {
-    if (apiKeys.hunterApiKey === undefined && apiKeys.googleMapsApiKey === undefined) {
-      return userService.getUserById(userId);
-    }
-
-    const updateData: any = {};
-    if (apiKeys.hunterApiKey !== undefined) {
-      updateData.hunterApiKey = apiKeys.hunterApiKey || null;
-    }
-    if (apiKeys.googleMapsApiKey !== undefined) {
-      updateData.googleMapsApiKey = apiKeys.googleMapsApiKey || null;
-    }
-
-    const updatedUser = await prisma.user.update({
-      where: { id: userId },
-      data: updateData,
-    });
-
-    return updatedUser;
-  },
-
   getSmtpConfig: async (userId: string, auth: AuthManager) => {
     const user = await prisma.user.findUnique({
       where: { id: userId },

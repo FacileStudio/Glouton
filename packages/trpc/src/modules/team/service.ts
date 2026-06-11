@@ -429,66 +429,6 @@ export const teamService = {
     };
   },
 
-  getTeamApiKeys: async (teamId: string, userId: string) => {
-    await checkTeamPermission(userId, teamId, TeamRole.ADMIN);
-
-    const team = await prisma.team.findUnique({
-      where: { id: teamId },
-      select: {
-        hunterApiKey: true,
-        apolloApiKey: true,
-        snovApiKey: true,
-        hasdataApiKey: true,
-        contactoutApiKey: true,
-        googleMapsApiKey: true,
-      },
-    });
-
-    if (!team) {
-      throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: 'Team not found',
-      });
-    }
-
-    return {
-      hunterApiKey: team.hunterApiKey,
-      apolloApiKey: team.apolloApiKey,
-      snovApiKey: team.snovApiKey,
-      hasdataApiKey: team.hasdataApiKey,
-      contactoutApiKey: team.contactoutApiKey,
-      googleMapsApiKey: team.googleMapsApiKey,
-    };
-  },
-
-  updateTeamApiKeys: async (
-    teamId: string,
-    userId: string,
-    apiKeys: {
-      hunterApiKey?: string;
-      googleMapsApiKey?: string;
-    }
-  ) => {
-    await checkTeamPermission(userId, teamId, TeamRole.ADMIN);
-
-    const updateData: any = {};
-    if (apiKeys.hunterApiKey !== undefined)
-      updateData.hunterApiKey = apiKeys.hunterApiKey || null;
-    if (apiKeys.googleMapsApiKey !== undefined)
-      updateData.googleMapsApiKey = apiKeys.googleMapsApiKey || null;
-
-    const team = await prisma.team.update({
-      where: { id: teamId },
-      data: updateData,
-      select: {
-        hunterApiKey: true,
-        googleMapsApiKey: true,
-      },
-    });
-
-    return team;
-  },
-
   getTeamSmtpConfig: async (teamId: string, userId: string, auth: AuthManager) => {
     await checkTeamPermission(userId, teamId, TeamRole.MEMBER);
 

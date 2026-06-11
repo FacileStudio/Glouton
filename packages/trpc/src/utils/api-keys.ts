@@ -4,8 +4,6 @@ import { logger } from '@repo/logger';
 import { TRPCError } from '@trpc/server';
 import type { AuthManager } from '@repo/auth';
 
-export interface ApiKeys {}
-
 export interface SmtpConfig {
   host: string;
   port: number;
@@ -14,14 +12,6 @@ export interface SmtpConfig {
   pass: string;
   fromName: string;
   fromEmail: string;
-}
-
-export async function getApiKeys(
-  prisma: PrismaClient,
-  scope: Scope,
-  encryptionSecret: string
-): Promise<ApiKeys> {
-  return {};
 }
 
 export async function getSmtpConfig(

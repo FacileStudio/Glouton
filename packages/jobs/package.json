@@ -19,7 +19,6 @@
   "dependencies": {
     "@repo/audit": "workspace:*",
     "@repo/maps": "workspace:*",
-    "@repo/lead-sources": "workspace:*",
     "@repo/logger": "workspace:*",
     "bullmq": "^5.31.3",
     "ioredis": "^5.4.2"

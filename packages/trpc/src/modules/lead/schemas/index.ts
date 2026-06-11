@@ -1,36 +1,5 @@
 import { z } from 'zod';
 
-export const leadSourceSchema = z.enum(['HUNTER', 'MANUAL']);
-
-export const hunterFiltersSchema = z.object({
-  type: z.enum(['personal', 'generic']).optional(),
-  seniority: z.array(z.enum(['junior', 'senior', 'executive'])).optional(),
-  department: z.array(z.string()).optional(),
-  jobTitles: z.array(z.string()).optional(),
-  requiredFields: z.array(z.enum(['full_name', 'position', 'phone_number'])).optional(),
-  verificationStatus: z.array(z.enum(['valid', 'accept_all', 'unknown'])).optional(),
-  location: z.object({
-    continent: z.string().optional(),
-    businessRegion: z.enum(['AMER', 'EMEA', 'APAC', 'LATAM']).optional(),
-    country: z.string().optional(),
-    state: z.string().optional(),
-    city: z.string().optional(),
-  }).optional(),
-}).optional();
-
-export const startHuntSchema = z.object({
-  teamId: z.string().uuid().optional(),
-  source: leadSourceSchema.default('HUNTER'),
-  companyName: z.string().optional(),
-  speed: z
-    .number()
-    .int('Speed must be an integer')
-    .min(1, 'Speed must be at least 1')
-    .max(10, 'Speed must not exceed 10')
-    .default(5),
-  filters: hunterFiltersSchema,
-});
-
 export const businessCategoryEnum = z.enum([
   'restaurant',
   'cafe',

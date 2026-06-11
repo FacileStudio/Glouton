@@ -3,7 +3,6 @@ import { z } from 'zod';
 import { router, protectedProcedure } from '../../../trpc';
 import huntService from './service';
 import {
-  startHuntSchema,
   startLocalBusinessHuntSchema,
   huntStatusSchema,
   cancelHuntSchema,
@@ -25,13 +24,6 @@ const getRunEventsSchema = z.object({
 });
 
 export const huntRouter = router({
-  start: protectedProcedure.input(startHuntSchema).mutation(async ({ ctx, input }) => {
-    throw new TRPCError({
-      code: 'METHOD_NOT_SUPPORTED',
-      message: 'Domain hunting via Hunter.io has been removed. Use local business hunt (OpenStreetMap) instead.',
-    });
-  }),
-
   startLocalBusiness: protectedProcedure
     .input(startLocalBusinessHuntSchema)
     .mutation(async ({ ctx, input }) => {
@@ -40,7 +32,6 @@ export const huntRouter = router({
 
         return await huntService.startLocalBusinessHunt({
           scope,
-          apiKeys: {},
           ...input,
           jobs: ctx.jobs,
           prisma: ctx.prisma,

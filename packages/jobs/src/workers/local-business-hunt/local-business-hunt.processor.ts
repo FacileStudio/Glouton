@@ -113,10 +113,7 @@ export class LocalBusinessHuntProcessor {
   }
 
   private createMapsOrchestrator(): MapsOrchestrator {
-    return new MapsOrchestrator({
-      useGoogleMaps: false,
-      useOpenStreetMap: true,
-    });
+    return new MapsOrchestrator();
   }
 
   private async searchBusinesses(

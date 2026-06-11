@@ -1,4 +1,3 @@
-import { GoogleMapsService } from './providers/google-maps-api';
 import { OpenStreetMapService } from './providers/openstreetmap-api';
 import type { LocalBusiness, Coordinates } from './types';
 
@@ -11,104 +10,23 @@ interface SearchOptions {
 }
 
 export interface MapsConfig {
-  googleMapsApiKey?: string;
-  useGoogleMaps?: boolean;
   useOpenStreetMap?: boolean;
 }
 
 export class MapsOrchestrator {
-  private googleMaps?: GoogleMapsService;
   private openStreetMap: OpenStreetMapService;
-  private config: Required<MapsConfig>;
 
-  constructor(config: MapsConfig = {}) {
-    this.config = {
-      googleMapsApiKey: config.googleMapsApiKey || '',
-      useGoogleMaps: config.useGoogleMaps !== false && !!config.googleMapsApiKey,
-      useOpenStreetMap: config.useOpenStreetMap !== false,
-    };
-
-    if (this.config.useGoogleMaps && this.config.googleMapsApiKey) {
-      this.googleMaps = new GoogleMapsService(this.config.googleMapsApiKey);
-    }
-
+  constructor(_config: MapsConfig = {}) {
     this.openStreetMap = new OpenStreetMapService();
   }
 
-  private async delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
-
   async search(options: SearchOptions): Promise<LocalBusiness[]> {
-    const results: LocalBusiness[] = [];
-    const errors: Error[] = [];
-    const successfulProviders: string[] = [];
+    const result = await this.openStreetMap.searchNearby(options);
+    const businesses: LocalBusiness[] = result.businesses;
 
-    const promises: Promise<void>[] = [];
+    console.log(`[OpenStreetMap] Successfully found ${businesses.length} businesses`);
 
-    
-    let delayOffset = 0;
-    const STAGGER_DELAY = 500; 
-
-    if (this.config.useGoogleMaps && this.googleMaps) {
-      const googleMapsDelay = delayOffset;
-      delayOffset += STAGGER_DELAY;
-
-      promises.push(
-        this.delay(googleMapsDelay).then(() =>
-          this.googleMaps!
-            .searchNearby(options)
-            .then((result: any) => {
-              results.push(...result.businesses);
-              successfulProviders.push('google-maps');
-              console.log(`[GoogleMaps] Successfully found ${result.businesses.length} businesses`);
-            })
-            .catch((error: any) => {
-              console.error('[GoogleMaps] Search failed:', error);
-              errors.push(new Error(`GoogleMaps: ${error.message}`));
-            })
-        )
-      );
-    }
-
-    if (this.config.useOpenStreetMap) {
-      const osmDelay = delayOffset;
-      delayOffset += STAGGER_DELAY;
-
-      promises.push(
-        this.delay(osmDelay).then(() =>
-          this.openStreetMap
-            .searchNearby(options)
-            .then((result: any) => {
-              results.push(...result.businesses);
-              successfulProviders.push('openstreetmap');
-              console.log(`[OpenStreetMap] Successfully found ${result.businesses.length} businesses`);
-            })
-            .catch((error: any) => {
-              console.error('[OpenStreetMap] Search failed:', error);
-              errors.push(new Error(`OpenStreetMap: ${error.message}`));
-            })
-        )
-      );
-    }
-
-    await Promise.all(promises);
-
-    
-    if (successfulProviders.length > 0) {
-      console.log(`[MapsOrchestrator] Search completed. Successful providers: ${successfulProviders.join(', ')}`);
-    }
-
-    if (errors.length > 0) {
-      console.log(`[MapsOrchestrator] Some providers failed: ${errors.map(e => e.message).join('; ')}`);
-    }
-
-    
-    if (results.length === 0 && errors.length > 0) {
-      throw new Error(`All map services failed: ${errors.map(e => e.message).join('; ')}`);
-    }
-
-    const deduplicated = this.deduplicateBusinesses(results);
+    const deduplicated = this.deduplicateBusinesses(businesses);
 
     console.log(`[MapsOrchestrator] After deduplication: ${deduplicated.length} unique businesses`);
 
@@ -145,7 +63,7 @@ export class MapsOrchestrator {
         if (distance < DISTANCE_THRESHOLD && namesSimilar) {
           isDuplicate = true;
 
-          if (business.source === 'google-maps' && !existing.website && business.website) {
+          if (!existing.website && business.website) {
             existing.website = business.website;
           }
           if (!existing.phone && business.phone) {
@@ -228,14 +146,6 @@ export class MapsOrchestrator {
   }
 
   async geocode(location: string): Promise<Coordinates> {
-    if (this.googleMaps) {
-      try {
-        return await this.googleMaps.geocode(location);
-      } catch (error) {
-        console.error('[GoogleMaps] Geocoding failed, falling back to OSM:', error);
-      }
-    }
-
     return this.openStreetMap.geocode(location);
   }
 }

@@ -72,12 +72,6 @@
     { id: 'account', name: 'Compte', icon: 'solar:shield-user-bold' },
   ];
 
-  let keywordsInput = $state('');
-  let excludeKeywordsInput = $state('');
-  let testingWebhook = $state(false);
-
-  
-
   async function handleUpdateProfile() {
     saving = true;
     message = null;
