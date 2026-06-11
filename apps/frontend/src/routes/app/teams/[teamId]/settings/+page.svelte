@@ -23,10 +23,7 @@
     description: '',
   });
 
-  let apiKeysForm = $state({
-    hunterApiKey: '',
-    googleMapsApiKey: '',
-  });
+  let apiKeysForm = $state({} as Record<string, string>);
 
   let smtpForm = $state({
     smtpHost: '',
@@ -36,11 +33,6 @@
     smtpPass: '',
     smtpFromName: '',
     smtpFromEmail: '',
-  });
-
-  let showApiKeys = $state({
-    hunterApiKey: false,
-    googleMapsApiKey: false,
   });
 
   let showSmtpPass = $state(false);
@@ -97,8 +89,6 @@
   async function loadApiKeys() {
     try {
       const apiKeys = await trpc.team.getApiKeys.query({ teamId });
-      apiKeysForm.hunterApiKey = apiKeys.hunterApiKey || '';
-      apiKeysForm.googleMapsApiKey = apiKeys.googleMapsApiKey || '';
       originalApiKeysForm = { ...apiKeysForm };
     } catch (error) {
       console.error('Error loading API keys:', error);
@@ -147,8 +137,6 @@
     try {
       await trpc.team.updateApiKeys.mutate({
         teamId,
-        hunterApiKey: apiKeysForm.hunterApiKey || undefined,
-        googleMapsApiKey: apiKeysForm.googleMapsApiKey || undefined,
       });
       await loadApiKeys();
       toast.push('Clés API mises à jour avec succès', 'success');
@@ -225,7 +213,6 @@
 
   const tabs = [
     { id: 'general', name: 'Général', icon: 'solar:settings-bold' },
-    { id: 'api-keys', name: 'Clés API', icon: 'solar:key-bold' },
     { id: 'smtp', name: 'SMTP', icon: 'solar:letter-bold' },
   ];
 </script>
@@ -358,77 +345,6 @@
             </div>
           </div>
         {/if}
-      </div>
-    {:else if activeTab === 'api-keys'}
-      <div in:fade={{ duration: 300 }}>
-        <div class="p-8 md:p-10 rounded-2xl shadow-lg" style="background-color: var(--card);">
-          <div class="mb-8">
-            <h2 class="text-2xl font-black mb-2" style="color: var(--foreground);">Clés API</h2>
-            <p class="text-neutral-500 text-sm">Configurez les clés API pour les sources de leads de l'équipe</p>
-          </div>
-
-          <div class="space-y-6">
-            {#each [
-              { key: 'hunterApiKey', label: 'Hunter.io', url: 'https://hunter.io/api' },
-              { key: 'googleMapsApiKey', label: 'Google Maps', url: 'https://console.cloud.google.com' },
-            ] as provider}
-              <div class="space-y-2">
-                <label for={provider.key} class="text-sm font-bold text-neutral-700 flex items-center gap-2">
-                  {provider.label}
-                  {#if apiKeysForm[provider.key as keyof typeof apiKeysForm]}
-                    <span class="text-xs font-bold text-green-600 flex items-center gap-1 px-2 py-0.5 bg-green-50 rounded-full">
-                      <iconify-icon icon="solar:check-circle-bold" width="12"></iconify-icon>
-                      Configuré
-                    </span>
-                  {/if}
-                </label>
-                <div class="relative">
-                  <Input
-                    id={provider.key}
-                    type={showApiKeys[provider.key as keyof typeof showApiKeys] ? 'text' : 'password'}
-                    bind:value={apiKeysForm[provider.key as keyof typeof apiKeysForm]}
-                    disabled={!canManage}
-                    placeholder={`Entrez votre clé API ${provider.label}`}
-                    class="rounded-xl font-mono pr-10"
-                  />
-                  {#if apiKeysForm[provider.key as keyof typeof apiKeysForm]}
-                    <button
-                      type="button"
-                      onclick={() => (showApiKeys[provider.key as keyof typeof showApiKeys] = !showApiKeys[provider.key as keyof typeof showApiKeys])}
-                      class="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors"
-                    >
-                      <iconify-icon
-                        icon={showApiKeys[provider.key as keyof typeof showApiKeys] ? 'solar:eye-bold' : 'solar:eye-closed-bold'}
-                        width="20"
-                      ></iconify-icon>
-                    </button>
-                  {/if}
-                </div>
-                <p class="text-xs text-neutral-500">
-                  Obtenez votre clé sur <a href={provider.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-neutral-900">{provider.url}</a>
-                </p>
-              </div>
-            {/each}
-          </div>
-
-          {#if canManage}
-            <div class="flex justify-end pt-8 mt-8 border-t border-neutral-100">
-              <Button
-                onclick={handleUpdateApiKeys}
-                disabled={saving || !hasApiKeysChanges}
-                class="px-6 bg-black text-white hover:bg-neutral-800 disabled:opacity-50"
-              >
-                {#if saving}
-                  <Spinner size="sm" />
-                  <span>Enregistrement...</span>
-                {:else}
-                  <iconify-icon icon="solar:diskette-bold" width="18"></iconify-icon>
-                  <span>Enregistrer</span>
-                {/if}
-              </Button>
-            </div>
-          {/if}
-        </div>
       </div>
     {:else if activeTab === 'smtp'}
       <div in:fade={{ duration: 300 }}>

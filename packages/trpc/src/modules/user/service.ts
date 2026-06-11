@@ -8,6 +8,13 @@ export const userService = {
   getProfile: async (userId: string) => {
     const user = await prisma.user.findUnique({
       where: { id: userId },
+      select: {
+        id: true, email: true, firstName: true, lastName: true,
+        role: true, isPremium: true, status: true, emailVerified: true,
+        lastLoginAt: true, createdAt: true, updatedAt: true,
+        smtpHost: true, smtpPort: true, smtpSecure: true, smtpUser: true,
+        smtpFromName: true, smtpFromEmail: true,
+      },
     });
 
     if (!user) {
@@ -20,42 +27,8 @@ export const userService = {
     return user;
   },
 
-  getConfiguredSources: async (userId: string, teamId?: string) => {
-    if (teamId) {
-      const team = await prisma.team.findUnique({
-        where: { id: teamId },
-        select: { hunterApiKey: true, googleMapsApiKey: true },
-      });
-
-      if (!team) {
-        throw new TRPCError({
-          code: 'NOT_FOUND',
-          message: 'Team not found',
-        });
-      }
-
-      const sources: string[] = [];
-      if (team.hunterApiKey) sources.push('HUNTER');
-      if (team.googleMapsApiKey) sources.push('GOOGLE_MAPS');
-      return sources;
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { hunterApiKey: true, googleMapsApiKey: true },
-    });
-
-    if (!user) {
-      throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: 'User not found',
-      });
-    }
-
-    const sources: string[] = [];
-    if (user.hunterApiKey) sources.push('HUNTER');
-    if (user.googleMapsApiKey) sources.push('GOOGLE_MAPS');
-    return sources;
+  getConfiguredSources: async (_userId: string, _teamId?: string) => {
+    return ['OPENSTREETMAP'];
   },
 
   getAllUsers: async (
@@ -87,6 +60,13 @@ export const userService = {
     return await prisma.user.findMany({
       where,
       orderBy: { createdAt: 'desc' },
+      select: {
+        id: true, email: true, firstName: true, lastName: true,
+        role: true, isPremium: true, status: true, emailVerified: true,
+        isBanned: true, banReason: true, bannedAt: true,
+        isSuspended: true, suspendedUntil: true, suspensionReason: true,
+        lastLoginAt: true, lastLoginIp: true, createdAt: true, updatedAt: true,
+      },
     });
   },
 

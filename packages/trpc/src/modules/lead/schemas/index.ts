@@ -134,7 +134,7 @@ export const exportToCsvSchema = z.object({
 });
 
 export const importFromCsvSchema = z.object({
-  csvContent: z.string().min(1, 'CSV content is required'),
+  csvContent: z.string().min(1, 'CSV content is required').max(5 * 1024 * 1024, 'CSV too large (max 5MB)'),
   huntSessionId: z.string().optional(),
   teamId: z.string().uuid().optional(),
 });

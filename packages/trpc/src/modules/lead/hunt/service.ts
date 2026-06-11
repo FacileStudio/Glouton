@@ -26,7 +26,6 @@ export interface StartLocalBusinessHuntParams {
   hasWebsite?: boolean;
   radius?: number;
   maxResults?: number;
-  googleMapsApiKey?: string;
   jobs: QueueManager;
   prisma: PrismaClient;
 }
@@ -146,14 +145,13 @@ export default {
     hasWebsite,
     radius,
     maxResults,
-    googleMapsApiKey,
     jobs,
     prisma,
   }: StartLocalBusinessHuntParams) {
     const huntData: any = {
       userId: scope.userId,
       huntType: 'LOCAL_BUSINESS',
-      sources: ['GOOGLE_MAPS', 'OPENSTREETMAP'] as LeadSource[],
+      sources: ['OPENSTREETMAP'] as LeadSource[],
       filters: {
         location,
         categories,
@@ -196,7 +194,6 @@ export default {
           hasWebsite,
           radius,
           maxResults: Math.floor((maxResults || 100) / categories.length),
-          googleMapsApiKey,
         }
       );
     }

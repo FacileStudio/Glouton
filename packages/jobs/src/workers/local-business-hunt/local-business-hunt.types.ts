@@ -7,7 +7,6 @@ export interface LocalBusinessHuntData {
   hasWebsite?: boolean;
   radius?: number;
   maxResults?: number;
-  googleMapsApiKey?: string;
 }
 
 export interface BusinessFilters {

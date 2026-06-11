@@ -12,6 +12,7 @@ import { wsHandler, websocket, broadcastToUser, broadcastToAll, clients } from '
 import { events } from './services/events';
 import { checkOrphanedSessions, cleanupStalled } from './services/job-monitor';
 import { registerWorkers } from './services/register-workers';
+import corsHandler from './handlers/cors';
 import env from './env';
 import config from './config';
 
@@ -45,6 +46,23 @@ async function startup() {
     logger.info(`[CLEANUP] Orphaned sessions: ${orphaned.audits} audits, ${orphaned.hunts} hunts`);
   }
 
+  // Schedule opportunity scraper every 3 hours
+  try {
+    await jobs.addJob('opportunity-scraper', 'opportunity-scraper', {}, {
+      repeat: { every: 3 * 60 * 60 * 1000 },
+      removeOnComplete: 5,
+      removeOnFail: 3,
+    });
+    // Trigger an immediate first run
+    await jobs.addJob('opportunity-scraper', 'opportunity-scraper', { triggeredBy: 'startup' }, {
+      delay: 5000,
+      removeOnComplete: true,
+    });
+    logger.info('[OPPORTUNITIES] Scraper scheduled every 3h');
+  } catch (err) {
+    logger.error({ error: err }, '[OPPORTUNITIES] Failed to schedule scraper');
+  }
+
   setInterval(async () => {
     try {
       const stalled = await cleanupStalled(prisma);
@@ -61,6 +79,10 @@ startup();
 
 const app = new Hono();
 
+app.use('*', corsHandler([
+  'https://glouton.facile.studio',
+  env.DOMAIN ?? '',
+].filter(Boolean)));
 app.use('*', loggerMiddleware);
 
 app.get('/health/live', createLivenessHandler());
@@ -68,7 +90,13 @@ app.get('/health/ready', createReadinessHandler({ prisma }));
 
 app.get('/ws', wsHandler);
 
+function requireInternalAuth(c: any): boolean {
+  const token = c.req.header('x-internal-secret');
+  return token === env.ENCRYPTION_SECRET;
+}
+
 app.get('/internal/ws-status', (c) => {
+  if (!requireInternalAuth(c)) return c.json({ error: 'Unauthorized' }, 401);
   const status = {
     totalUsers: clients.size,
     users: Array.from(clients.entries()).map(([userId, connections]) => ({
@@ -80,6 +108,7 @@ app.get('/internal/ws-status', (c) => {
 });
 
 app.post('/internal/broadcast', async (c) => {
+  if (!requireInternalAuth(c)) return c.json({ error: 'Unauthorized' }, 401);
   try {
     const body = await c.req.json();
     const { userId, message, broadcastAll } = body;

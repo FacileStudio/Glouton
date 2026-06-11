@@ -4,10 +4,7 @@ import { logger } from '@repo/logger';
 import { TRPCError } from '@trpc/server';
 import type { AuthManager } from '@repo/auth';
 
-export interface ApiKeys {
-  hunterApiKey?: string;
-  googleMapsApiKey?: string;
-}
+export interface ApiKeys {}
 
 export interface SmtpConfig {
   host: string;
@@ -24,60 +21,7 @@ export async function getApiKeys(
   scope: Scope,
   encryptionSecret: string
 ): Promise<ApiKeys> {
-  if (scope.type === 'team') {
-    const team = await prisma.$queryRaw<
-      Array<{
-        hunterApiKey: string | null;
-        googleMapsApiKey: string | null;
-      }>
-    >`
-      SELECT
-        "hunterApiKey",
-        "googleMapsApiKey"
-      FROM "Team"
-      WHERE "id" = ${scope.teamId}::text
-      LIMIT 1
-    `;
-
-    if (!team || team.length === 0) {
-      logger.error({ teamId: scope.teamId }, '[API_KEYS] Team not found');
-      throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: 'Team not found',
-      });
-    }
-
-    const teamData = team[0];
-    logger.info({ teamId: scope.teamId }, '[API_KEYS] Using team API keys');
-
-    return {
-      hunterApiKey: teamData.hunterApiKey ?? undefined,
-      googleMapsApiKey: teamData.googleMapsApiKey ?? undefined,
-    };
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { id: scope.userId },
-    select: {
-      hunterApiKey: true,
-      googleMapsApiKey: true,
-    },
-  });
-
-  if (!user) {
-    logger.error({ userId: scope.userId }, '[API_KEYS] User not found');
-    throw new TRPCError({
-      code: 'NOT_FOUND',
-      message: 'User not found',
-    });
-  }
-
-  logger.info({ userId: scope.userId }, '[API_KEYS] Using personal API keys');
-
-  return {
-    hunterApiKey: user.hunterApiKey ?? undefined,
-    googleMapsApiKey: user.googleMapsApiKey ?? undefined,
-  };
+  return {};
 }
 
 export async function getSmtpConfig(

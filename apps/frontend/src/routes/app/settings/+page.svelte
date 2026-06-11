@@ -25,8 +25,6 @@
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
-    hunterApiKey: '',
-    googleMapsApiKey: '',
     smtpHost: '',
     smtpPort: 587,
     smtpSecure: false,
@@ -34,11 +32,6 @@
     smtpPass: '',
     smtpFromName: '',
     smtpFromEmail: '',
-  });
-
-  let existingApiKeys = $state({
-    hunterApiKey: '',
-    googleMapsApiKey: '',
   });
 
   let existingSmtpConfig = $state({
@@ -49,11 +42,6 @@
     smtpPass: '',
     smtpFromName: '',
     smtpFromEmail: '',
-  });
-
-  let showApiKeys = $state({
-    hunterApiKey: false,
-    googleMapsApiKey: false,
   });
 
   let showSmtpPass = $state(false);
@@ -67,11 +55,6 @@
   let hasProfileChanges = $derived(
     formData.firstName !== originalFormData.firstName ||
       formData.lastName !== originalFormData.lastName
-  );
-
-  let hasApiKeyChanges = $derived(
-    formData.hunterApiKey !== existingApiKeys.hunterApiKey ||
-    formData.googleMapsApiKey !== existingApiKeys.googleMapsApiKey
   );
 
   let hasSmtpConfigChanges = $derived(
@@ -164,36 +147,6 @@
   }
 
   
-
-  async function handleUpdateApiKeys() {
-    saving = true;
-    message = null;
-    try {
-      const updatePayload: any = {};
-      if (formData.hunterApiKey && formData.hunterApiKey.trim())
-        updatePayload.hunterApiKey = formData.hunterApiKey.trim();
-      if (formData.googleMapsApiKey && formData.googleMapsApiKey.trim())
-        updatePayload.googleMapsApiKey = formData.googleMapsApiKey.trim();
-
-      await trpc.user.updateApiKeys.mutate(updatePayload);
-
-      const user = await trpc.user.me.query();
-      existingApiKeys.hunterApiKey = user.hunterApiKey || '';
-      formData.hunterApiKey = user.hunterApiKey || '';
-      existingApiKeys.googleMapsApiKey = user.googleMapsApiKey || '';
-      formData.googleMapsApiKey = user.googleMapsApiKey || '';
-
-      toast.push('API keys updated successfully!', 'success');
-      message = { type: 'success', text: 'API keys updated successfully!' };
-    } catch (error: any) {
-      const errorMessage = error?.message || 'Failed to update API keys';
-      console.error('Failed to update API keys:', error);
-      toast.push(errorMessage, 'error');
-      message = { type: 'error', text: errorMessage };
-    } finally {
-      saving = false;
-    }
-  }
 
   async function handleTestSmtpConfig() {
     if (
@@ -309,14 +262,8 @@
 
     
 
-    if (userResult.status === 'fulfilled') {
-      const user = userResult.value;
-      existingApiKeys.hunterApiKey = user.hunterApiKey || '';
-      formData.hunterApiKey = user.hunterApiKey || '';
-      existingApiKeys.googleMapsApiKey = user.googleMapsApiKey || '';
-      formData.googleMapsApiKey = user.googleMapsApiKey || '';
-    } else {
-      console.error('Failed to fetch API key status:', userResult.reason);
+    if (userResult.status === 'rejected') {
+      console.error('Failed to fetch user:', userResult.reason);
     }
 
     if (smtpConfigResult.status === 'fulfilled') {
@@ -532,135 +479,6 @@
           </div>
         </div>
 
-        <div class="p-8 md:p-10 rounded-2xl shadow-lg" style="background-color: var(--card);">
-          <div class="mb-8">
-            <div class="flex items-center gap-3 mb-2">
-              <div class="w-11 h-11 flex items-center justify-center bg-neutral-900 rounded-lg">
-                <iconify-icon icon="solar:key-bold-duotone" width="20" class="text-white"
-                ></iconify-icon>
-              </div>
-              <h2 class="text-2xl font-black" style="color: var(--foreground);">Clés API sources</h2>
-            </div>
-            <p class="text-neutral-500 text-sm">Configurez les clés API pour les sources de leads</p>
-          </div>
-
-          <div class="space-y-6">
-            <div class="grid grid-cols-1 gap-6">
-              <div class="space-y-2">
-                <label
-                  for="hunterApiKey"
-                  class="text-sm font-bold text-neutral-700 flex items-center gap-2"
-                >
-                  Hunter.io API Key
-                  {#if existingApiKeys.hunterApiKey}
-                    <span
-                      class="text-xs font-bold text-green-600 flex items-center gap-1 px-2 py-0.5 bg-green-50 rounded-full"
-                    >
-                      <iconify-icon icon="solar:check-circle-bold" width="12"></iconify-icon>
-                      Actif
-                    </span>
-                  {/if}
-                </label>
-                <div class="relative">
-                  <Input
-                    id="hunterApiKey"
-                    type={showApiKeys.hunterApiKey ? 'text' : 'password'}
-                    bind:value={formData.hunterApiKey}
-                    placeholder="Entrez votre clé API Hunter.io"
-                    class="rounded-xl font-mono pr-10"
-                  />
-                  {#if formData.hunterApiKey}
-                    <button
-                      type="button"
-                      onclick={() => (showApiKeys.hunterApiKey = !showApiKeys.hunterApiKey)}
-                      aria-label={showApiKeys.hunterApiKey
-                        ? 'Masquer la clé API Hunter.io'
-                        : 'Afficher la clé API Hunter.io'}
-                      class="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors"
-                    >
-                      <iconify-icon
-                        icon={showApiKeys.hunterApiKey ? 'solar:eye-bold' : 'solar:eye-closed-bold'}
-                        width="20"
-                      ></iconify-icon>
-                    </button>
-                  {/if}
-                </div>
-                <p class="text-xs text-neutral-500">
-                  Get yours at <a
-                    href="https://hunter.io/api"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="underline hover:text-neutral-900">hunter.io/api</a
-                  >
-                </p>
-              </div>
-
-              <div class="space-y-2">
-                <label
-                  for="googleMapsApiKey"
-                  class="text-sm font-bold text-neutral-700 flex items-center gap-2"
-                >
-                  Google Maps API Key
-                  {#if existingApiKeys.googleMapsApiKey}
-                    <span
-                      class="text-xs font-bold text-green-600 flex items-center gap-1 px-2 py-0.5 bg-green-50 rounded-full"
-                    >
-                      <iconify-icon icon="solar:check-circle-bold" width="12"></iconify-icon>
-                      Actif
-                    </span>
-                  {/if}
-                </label>
-                <div class="relative">
-                  <Input
-                    id="googleMapsApiKey"
-                    type={showApiKeys.googleMapsApiKey ? 'text' : 'password'}
-                    bind:value={formData.googleMapsApiKey}
-                    placeholder="Entrez votre clé API Google Maps"
-                    class="rounded-xl font-mono pr-10"
-                  />
-                  {#if formData.googleMapsApiKey}
-                    <button
-                      type="button"
-                      onclick={() => (showApiKeys.googleMapsApiKey = !showApiKeys.googleMapsApiKey)}
-                      aria-label={showApiKeys.googleMapsApiKey
-                        ? 'Masquer la clé API Google Maps'
-                        : 'Afficher la clé API Google Maps'}
-                      class="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors"
-                    >
-                      <iconify-icon
-                        icon={showApiKeys.googleMapsApiKey ? 'solar:eye-bold' : 'solar:eye-closed-bold'}
-                        width="20"
-                      ></iconify-icon>
-                    </button>
-                  {/if}
-                </div>
-                <p class="text-xs text-neutral-500">
-                  Utilisée pour les chasses locales. Get yours at <a
-                    href="https://console.cloud.google.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="underline hover:text-neutral-900">console.cloud.google.com</a
-                  >
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div class="flex justify-end pt-8 mt-8 border-t border-neutral-100">
-            <Button
-              onclick={handleUpdateApiKeys}
-              disabled={saving || !hasApiKeyChanges}
-              class="px-6 bg-black text-white hover:bg-neutral-800 disabled:opacity-50"
-            >
-              {#if saving}
-                <Spinner size="sm" class="text-white" />
-              {:else}
-                <iconify-icon icon="solar:diskette-bold" width="18"></iconify-icon>
-              {/if}
-              {saving ? 'Enregistrement...' : 'Enregistrer les clés API'}
-            </Button>
-          </div>
-        </div>
 
         <div class="p-8 md:p-10 rounded-2xl shadow-lg" style="background-color: var(--card);">
           <div class="mb-8">

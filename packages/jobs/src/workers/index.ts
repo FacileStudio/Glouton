@@ -3,6 +3,7 @@ import { createLocalBusinessHuntWorker } from './local-business-hunt';
 import { createLeadAuditWorker } from './lead-audit';
 import { createDomainFinderWorker } from './domain-finder';
 import { createCsvImportWorker } from './csv-import';
+import { createOpportunityScraperWorker } from './opportunity-scraper';
 
 export interface EventEmitter {
   emit: (userId: string, type: string, data?: any) => void;
@@ -17,6 +18,7 @@ export function createWorkers(events: EventEmitter) {
     'lead-audit': createLeadAuditWorker(events),
     'domain-finder': createDomainFinderWorker(events),
     'csv-import': createCsvImportWorker(events),
+    'opportunity-scraper': createOpportunityScraperWorker(),
   };
 }
 
