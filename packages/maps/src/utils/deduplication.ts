@@ -185,9 +185,6 @@ function mergeBusinesses(businesses: LocalBusiness[]): LocalBusiness {
     if (!merged.rating && business.rating) {
       merged.rating = business.rating;
       merged.reviewCount = business.reviewCount;
-    } else if (merged.rating && business.rating && business.source === 'google-maps') {
-      merged.rating = business.rating;
-      merged.reviewCount = business.reviewCount;
     }
   }
 

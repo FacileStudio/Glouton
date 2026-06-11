@@ -15,9 +15,7 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@googlemaps/google-maps-services-js": "^3.4.0",
     "@repo/logger": "workspace:*",
-    "axios": "^1.16.1",
-    "playwright": "^1.60.0"
+    "axios": "^1.16.1"
   }
 }

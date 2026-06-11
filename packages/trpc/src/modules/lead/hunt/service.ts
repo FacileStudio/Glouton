@@ -3,30 +3,16 @@ import type { PrismaClient, LeadSource } from '@prisma/client';
 import type { QueueManager } from '@repo/jobs';
 import { TRPCError } from '@trpc/server';
 import type { Scope } from '../../../utils/scope';
-import type { ApiKeys } from '../../../utils/api-keys';
 import { buildHuntFilter } from '../../../utils/scope';
 import { logger } from '@repo/logger';
 
-export interface StartHuntParams {
-  scope: Scope;
-  apiKeys: ApiKeys;
-  source: string;
-  companyName?: string;
-  speed: number;
-  filters?: any;
-  jobs: QueueManager;
-  prisma: PrismaClient;
-}
-
 export interface StartLocalBusinessHuntParams {
   scope: Scope;
-  apiKeys: ApiKeys;
   location: string;
   categories: string[];
   hasWebsite?: boolean;
   radius?: number;
   maxResults?: number;
-  googleMapsApiKey?: string;
   jobs: QueueManager;
   prisma: PrismaClient;
 }
@@ -83,77 +69,20 @@ export interface RunEvent {
 }
 
 export default {
-  async startHunt({
-    scope,
-    apiKeys,
-    source,
-    companyName,
-    speed,
-    filters,
-    jobs,
-    prisma,
-  }: StartHuntParams) {
-    const huntData: any = {
-      userId: scope.userId,
-      huntType: 'DOMAIN',
-      sources: [source as LeadSource],
-      filters: filters || {},
-      status: 'PENDING',
-      progress: 0,
-    };
-
-    if (scope.type === 'team') {
-      huntData.teamId = scope.teamId;
-      logger.info({ teamId: scope.teamId, userId: scope.userId }, '[HUNT] Starting hunt for team');
-    } else {
-      huntData.teamId = null;
-      logger.info({ userId: scope.userId }, '[HUNT] Starting hunt for personal use');
-    }
-
-    const huntSession = await prisma.huntSession.create({
-      data: huntData,
-      select: {
-        id: true,
-        status: true,
-        createdAt: true,
-      }
-    });
-
-    await jobs.addJob(
-      'domain-finder',
-      'domain-finder',
-      {
-        huntSessionId: huntSession.id,
-        userId: scope.userId,
-        teamId: scope.type === 'team' ? scope.teamId : null,
-        filters,
-      }
-    );
-
-    return {
-      huntSessionId: huntSession.id,
-      status: huntSession.status,
-      source,
-      createdAt: huntSession.createdAt,
-    };
-  },
-
   async startLocalBusinessHunt({
     scope,
-    apiKeys,
     location,
     categories,
     hasWebsite,
     radius,
     maxResults,
-    googleMapsApiKey,
     jobs,
     prisma,
   }: StartLocalBusinessHuntParams) {
     const huntData: any = {
       userId: scope.userId,
       huntType: 'LOCAL_BUSINESS',
-      sources: ['GOOGLE_MAPS', 'OPENSTREETMAP'] as LeadSource[],
+      sources: ['OPENSTREETMAP'] as LeadSource[],
       filters: {
         location,
         categories,
@@ -196,7 +125,6 @@ export default {
           hasWebsite,
           radius,
           maxResults: Math.floor((maxResults || 100) / categories.length),
-          googleMapsApiKey,
         }
       );
     }

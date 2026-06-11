@@ -3,21 +3,6 @@ import { prisma } from '@repo/database/prisma';
 import { TeamRole, checkTeamPermission, checkTeamMembership, isTeamOwner } from './permissions';
 import type { AuthManager } from '@repo/auth';
 
-function maskKey(key: string | null | undefined): string | null {
-  if (!key) return null;
-  if (key.length <= 4) return '***';
-  return `***...${key.slice(-4)}`;
-}
-
-function tryDecrypt(auth: AuthManager, value: string | null | undefined): string | null {
-  if (!value) return null;
-  try {
-    return auth.decryptData(value);
-  } catch {
-    return value;
-  }
-}
-
 export const teamService = {
   listUserTeams: async (userId: string) => {
     const memberships = await prisma.teamMember.findMany({
@@ -442,63 +427,6 @@ export const teamService = {
       memberCount,
       hotLeads,
     };
-  },
-
-  getTeamApiKeys: async (teamId: string, userId: string, auth: AuthManager) => {
-    await checkTeamPermission(userId, teamId, TeamRole.ADMIN);
-
-    const team = await prisma.team.findUnique({
-      where: { id: teamId },
-      select: {
-        hunterApiKey: true,
-        apolloApiKey: true,
-        snovApiKey: true,
-        hasdataApiKey: true,
-        contactoutApiKey: true,
-        googleMapsApiKey: true,
-      },
-    });
-
-    if (!team) {
-      throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: 'Team not found',
-      });
-    }
-
-    return {
-      hunterApiKey: maskKey(tryDecrypt(auth, team.hunterApiKey)),
-      apolloApiKey: maskKey(tryDecrypt(auth, team.apolloApiKey)),
-      snovApiKey: maskKey(tryDecrypt(auth, team.snovApiKey)),
-      hasdataApiKey: maskKey(tryDecrypt(auth, team.hasdataApiKey)),
-      contactoutApiKey: maskKey(tryDecrypt(auth, team.contactoutApiKey)),
-      googleMapsApiKey: maskKey(tryDecrypt(auth, team.googleMapsApiKey)),
-    };
-  },
-
-  updateTeamApiKeys: async (
-    teamId: string,
-    userId: string,
-    apiKeys: {
-      hunterApiKey?: string;
-      googleMapsApiKey?: string;
-    },
-    auth: AuthManager
-  ) => {
-    await checkTeamPermission(userId, teamId, TeamRole.ADMIN);
-
-    const updateData: any = {};
-    if (apiKeys.hunterApiKey !== undefined)
-      updateData.hunterApiKey = apiKeys.hunterApiKey ? auth.encryptData(apiKeys.hunterApiKey) : null;
-    if (apiKeys.googleMapsApiKey !== undefined)
-      updateData.googleMapsApiKey = apiKeys.googleMapsApiKey ? auth.encryptData(apiKeys.googleMapsApiKey) : null;
-
-    await prisma.team.update({
-      where: { id: teamId },
-      data: updateData,
-    });
-
-    return teamService.getTeamApiKeys(teamId, userId, auth);
   },
 
   getTeamSmtpConfig: async (teamId: string, userId: string, auth: AuthManager) => {

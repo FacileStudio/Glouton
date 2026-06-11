@@ -23,11 +23,6 @@
     description: '',
   });
 
-  let apiKeysForm = $state({
-    hunterApiKey: '',
-    googleMapsApiKey: '',
-  });
-
   let smtpForm = $state({
     smtpHost: '',
     smtpPort: 587,
@@ -38,26 +33,14 @@
     smtpFromEmail: '',
   });
 
-  let showApiKeys = $state({
-    hunterApiKey: false,
-    googleMapsApiKey: false,
-  });
-
   let showSmtpPass = $state(false);
 
   let originalGeneralForm = $state({ name: '', description: '' });
-  let originalApiKeysForm = $state({ ...apiKeysForm });
   let originalSmtpForm = $state({ ...smtpForm });
 
   let hasGeneralChanges = $derived(
     generalForm.name !== originalGeneralForm.name ||
     generalForm.description !== originalGeneralForm.description
-  );
-
-  let hasApiKeysChanges = $derived(
-    Object.keys(apiKeysForm).some(
-      (key) => apiKeysForm[key as keyof typeof apiKeysForm] !== originalApiKeysForm[key as keyof typeof originalApiKeysForm]
-    )
   );
 
   let hasSmtpChanges = $derived(
@@ -83,7 +66,7 @@
       originalGeneralForm.description = team.description || '';
 
       if (team.userRole === 'OWNER' || team.userRole === 'ADMIN') {
-        await Promise.all([loadApiKeys(), loadSmtpConfig()]);
+        await loadSmtpConfig();
       }
     } catch (error: any) {
       console.error('Error loading team:', error);
@@ -91,17 +74,6 @@
       goto('/app/teams');
     } finally{
       loading = false;
-    }
-  }
-
-  async function loadApiKeys() {
-    try {
-      const apiKeys = await trpc.team.getApiKeys.query({ teamId });
-      apiKeysForm.hunterApiKey = apiKeys.hunterApiKey || '';
-      apiKeysForm.googleMapsApiKey = apiKeys.googleMapsApiKey || '';
-      originalApiKeysForm = { ...apiKeysForm };
-    } catch (error) {
-      console.error('Error loading API keys:', error);
     }
   }
 
@@ -136,24 +108,6 @@
       await loadTeam();
     } catch (error: any) {
       toast.push(error?.message || 'Échec de la mise à jour', 'error');
-    } finally {
-      saving = false;
-    }
-  }
-
-  async function handleUpdateApiKeys() {
-    if (!canManage) return;
-    saving = true;
-    try {
-      await trpc.team.updateApiKeys.mutate({
-        teamId,
-        hunterApiKey: apiKeysForm.hunterApiKey || undefined,
-        googleMapsApiKey: apiKeysForm.googleMapsApiKey || undefined,
-      });
-      await loadApiKeys();
-      toast.push('Clés API mises à jour avec succès', 'success');
-    } catch (error: any) {
-      toast.push(error?.message || 'Échec de la mise à jour des clés API', 'error');
     } finally {
       saving = false;
     }
@@ -225,7 +179,6 @@
 
   const tabs = [
     { id: 'general', name: 'Général', icon: 'solar:settings-linear' },
-    { id: 'api-keys', name: 'Clés API', icon: 'solar:key-linear' },
     { id: 'smtp', name: 'SMTP', icon: 'solar:letter-linear' },
   ];
 </script>
@@ -261,7 +214,7 @@
     {/if}
 
     <div class="rounded-xl border border-border bg-card p-1">
-      <div class="grid grid-cols-3 gap-1">
+      <div class="grid grid-cols-2 gap-1">
         {#each tabs as tab (tab.id)}
           <button
             onclick={() => (activeTab = tab.id)}
@@ -354,78 +307,6 @@
             </div>
           </div>
         {/if}
-      </div>
-    {:else if activeTab === 'api-keys'}
-      <div in:fade={{ duration: 200 }}>
-        <div class="rounded-xl border border-border bg-card p-6">
-          <div class="mb-6">
-            <h2 class="text-lg font-semibold text-foreground">Clés API</h2>
-            <p class="text-sm text-muted-foreground mt-1">Configurez les clés API pour les sources de leads de l'équipe</p>
-          </div>
-
-          <div class="space-y-4">
-            {#each [
-              { key: 'hunterApiKey', label: 'Hunter.io', url: 'https://hunter.io/api' },
-              { key: 'googleMapsApiKey', label: 'Google Maps', url: 'https://console.cloud.google.com' },
-            ] as provider}
-              <div class="space-y-1.5">
-                <label for={provider.key} class="text-sm font-medium text-foreground flex items-center gap-2">
-                  {provider.label}
-                  {#if apiKeysForm[provider.key as keyof typeof apiKeysForm]}
-                    <span class="rounded-full bg-muted text-foreground px-2.5 py-0.5 text-xs font-medium flex items-center gap-1">
-                      <iconify-icon icon="solar:check-circle-linear" width="12"></iconify-icon>
-                      Configuré
-                    </span>
-                  {/if}
-                </label>
-                <div class="relative">
-                  <Input
-                    id={provider.key}
-                    type={showApiKeys[provider.key as keyof typeof showApiKeys] ? 'text' : 'password'}
-                    bind:value={apiKeysForm[provider.key as keyof typeof apiKeysForm]}
-                    disabled={!canManage}
-                    placeholder={`Entrez votre clé API ${provider.label}`}
-                    class="font-mono pr-10"
-                  />
-                  {#if apiKeysForm[provider.key as keyof typeof apiKeysForm]}
-                    <button
-                      type="button"
-                      aria-label="Afficher ou masquer la clé API"
-                      onclick={() => (showApiKeys[provider.key as keyof typeof showApiKeys] = !showApiKeys[provider.key as keyof typeof showApiKeys])}
-                      class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      <iconify-icon
-                        icon={showApiKeys[provider.key as keyof typeof showApiKeys] ? 'solar:eye-linear' : 'solar:eye-closed-linear'}
-                        width="16"
-                      ></iconify-icon>
-                    </button>
-                  {/if}
-                </div>
-                <p class="text-xs text-muted-foreground">
-                  Obtenez votre clé sur <a href={provider.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-foreground">{provider.url}</a>
-                </p>
-              </div>
-            {/each}
-          </div>
-
-          {#if canManage}
-            <div class="flex justify-end pt-6 mt-6 border-t border-border">
-              <button
-                onclick={handleUpdateApiKeys}
-                disabled={saving || !hasApiKeysChanges}
-                class="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85 disabled:opacity-50"
-              >
-                {#if saving}
-                  <Spinner size="sm" />
-                  <span>Enregistrement...</span>
-                {:else}
-                  <iconify-icon icon="solar:diskette-linear" width="16"></iconify-icon>
-                  <span>Enregistrer</span>
-                {/if}
-              </button>
-            </div>
-          {/if}
-        </div>
       </div>
     {:else if activeTab === 'smtp'}
       <div in:fade={{ duration: 200 }}>

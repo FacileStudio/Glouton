@@ -1,5 +1,5 @@
 export interface LocalBusiness {
-  source: 'google-maps' | 'openstreetmap';
+  source: 'openstreetmap';
   name: string;
   address?: string;
   city?: string;
@@ -23,7 +23,7 @@ export interface SearchOptions {
   category?: BusinessCategory;
   hasWebsite?: boolean;
   limit?: number;
-  source?: 'google-maps' | 'openstreetmap' | 'all';
+  source?: 'openstreetmap';
 }
 
 export interface BoundingBox {
@@ -62,14 +62,6 @@ export type BusinessCategory =
   | 'home-services'
   | 'professional-services'
   | 'other';
-
-export interface GoogleMapsScraperOptions {
-  headless?: boolean;
-  timeout?: number;
-  maxResults?: number;
-  delayBetweenScrolls?: number;
-  delayAfterSearch?: number;
-}
 
 export interface OverpassOptions {
   timeout?: number;

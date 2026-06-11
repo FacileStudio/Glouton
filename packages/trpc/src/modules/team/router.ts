@@ -11,7 +11,6 @@ import {
   updateMemberRoleSchema,
   leaveTeamSchema,
   teamIdSchema,
-  updateApiKeysSchema,
   updateSmtpConfigSchema,
 } from './schemas';
 
@@ -109,25 +108,6 @@ export const teamRouter = router({
     );
     return await teamService.getTeamStats(input.teamId, ctx.user.id);
   }),
-
-  getApiKeys: protectedProcedure.input(teamIdSchema).query(async ({ ctx, input }) => {
-    ctx.log.info(
-      { userId: ctx.user.id, teamId: input.teamId },
-      '[TEAM] Getting team API keys'
-    );
-    return await teamService.getTeamApiKeys(input.teamId, ctx.user.id, ctx.auth);
-  }),
-
-  updateApiKeys: protectedProcedure
-    .input(updateApiKeysSchema)
-    .mutation(async ({ ctx, input }) => {
-      ctx.log.info(
-        { userId: ctx.user.id, teamId: input.teamId },
-        '[TEAM] Updating team API keys'
-      );
-      const { teamId, ...apiKeys } = input;
-      return await teamService.updateTeamApiKeys(teamId, ctx.user.id, apiKeys, ctx.auth);
-    }),
 
   getSmtpConfig: protectedProcedure.input(teamIdSchema).query(async ({ ctx, input }) => {
     ctx.log.info(

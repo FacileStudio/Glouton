@@ -1,31 +1,5 @@
 import type { BusinessCategory } from '../types';
 
-export const GOOGLE_MAPS_CATEGORIES: Record<BusinessCategory, string[]> = {
-  restaurant: ['restaurant', 'food'],
-  cafe: ['cafe', 'coffee shop'],
-  bar: ['bar', 'pub', 'nightclub'],
-  hotel: ['hotel', 'motel', 'lodging'],
-  retail: ['store', 'shop', 'retail'],
-  office: ['office', 'corporate office'],
-  service: ['service', 'services'],
-  healthcare: ['hospital', 'clinic', 'doctor', 'dentist', 'medical'],
-  education: ['school', 'university', 'college', 'academy', 'education'],
-  entertainment: ['cinema', 'theater', 'museum', 'gallery', 'amusement'],
-  automotive: ['car dealer', 'auto repair', 'car wash', 'gas station'],
-  'real-estate': ['real estate', 'property'],
-  finance: ['bank', 'atm', 'financial', 'insurance'],
-  beauty: ['salon', 'spa', 'barber', 'beauty'],
-  fitness: ['gym', 'fitness', 'yoga', 'sports'],
-  travel: ['travel agency', 'tour operator'],
-  'food-delivery': ['food delivery'],
-  grocery: ['grocery', 'supermarket', 'convenience store'],
-  pharmacy: ['pharmacy', 'drugstore'],
-  'pet-services': ['veterinarian', 'pet store', 'pet grooming'],
-  'home-services': ['plumber', 'electrician', 'carpenter', 'cleaning'],
-  'professional-services': ['lawyer', 'accountant', 'consultant'],
-  other: ['business'],
-};
-
 export const OVERPASS_CATEGORIES: Record<BusinessCategory, string[]> = {
   restaurant: ['amenity=restaurant'],
   cafe: ['amenity=cafe'],
@@ -58,10 +32,6 @@ export const OVERPASS_CATEGORIES: Record<BusinessCategory, string[]> = {
   other: ['*=*'],
 };
 
-export function getGoogleMapsSearchQuery(category: BusinessCategory): string {
-  const queries = GOOGLE_MAPS_CATEGORIES[category];
-  return queries[0] || 'business';
-}
 
 export function getOverpassQuery(
   category: BusinessCategory,

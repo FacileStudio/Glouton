@@ -17,12 +17,6 @@ model User {
   suspensionReason   String?   @db.Text
   lastLoginAt        DateTime? @db.Timestamptz(3)
   lastLoginIp        String?   @db.Text
-  hunterApiKey       String?   @db.Text
-  apolloApiKey       String?   @db.Text
-  snovApiKey         String?   @db.Text
-  hasdataApiKey      String?   @db.Text
-  contactoutApiKey   String?   @db.Text
-  googleMapsApiKey   String?   @db.Text
   smtpHost           String?   @db.Text
   smtpPort           Int?
   smtpSecure         Boolean?

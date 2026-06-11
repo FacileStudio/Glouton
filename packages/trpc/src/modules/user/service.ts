@@ -25,21 +25,6 @@ const SAFE_USER_SELECT = {
   updatedAt: true,
 } as const;
 
-function maskKey(key: string | null | undefined): string | null {
-  if (!key) return null;
-  if (key.length <= 4) return '***';
-  return `***...${key.slice(-4)}`;
-}
-
-function tryDecrypt(auth: AuthManager, value: string | null | undefined): string | null {
-  if (!value) return null;
-  try {
-    return auth.decryptData(value);
-  } catch {
-    return value;
-  }
-}
-
 export const userService = {
   getProfile: async (userId: string) => {
     const user = await prisma.user.findUnique({
@@ -57,42 +42,8 @@ export const userService = {
     return user;
   },
 
-  getConfiguredSources: async (userId: string, teamId?: string) => {
-    if (teamId) {
-      const team = await prisma.team.findUnique({
-        where: { id: teamId },
-        select: { hunterApiKey: true, googleMapsApiKey: true },
-      });
-
-      if (!team) {
-        throw new TRPCError({
-          code: 'NOT_FOUND',
-          message: 'Team not found',
-        });
-      }
-
-      const sources: string[] = [];
-      if (team.hunterApiKey) sources.push('HUNTER');
-      if (team.googleMapsApiKey) sources.push('GOOGLE_MAPS');
-      return sources;
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { hunterApiKey: true, googleMapsApiKey: true },
-    });
-
-    if (!user) {
-      throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: 'User not found',
-      });
-    }
-
-    const sources: string[] = [];
-    if (user.hunterApiKey) sources.push('HUNTER');
-    if (user.googleMapsApiKey) sources.push('GOOGLE_MAPS');
-    return sources;
+  getConfiguredSources: async (_userId: string, _teamId?: string) => {
+    return ['OPENSTREETMAP'];
   },
 
   getAllUsers: async (
@@ -365,63 +316,7 @@ export const userService = {
     return deletedUser;
   },
 
-  getApiKeys: async (userId: string, auth: AuthManager) => {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        hunterApiKey: true,
-        apolloApiKey: true,
-        snovApiKey: true,
-        hasdataApiKey: true,
-        contactoutApiKey: true,
-        googleMapsApiKey: true,
-      },
-    });
 
-    if (!user) {
-      throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: 'User not found',
-      });
-    }
-
-    return {
-      hunterApiKey: maskKey(tryDecrypt(auth, user.hunterApiKey)),
-      apolloApiKey: maskKey(tryDecrypt(auth, user.apolloApiKey)),
-      snovApiKey: maskKey(tryDecrypt(auth, user.snovApiKey)),
-      hasdataApiKey: maskKey(tryDecrypt(auth, user.hasdataApiKey)),
-      contactoutApiKey: maskKey(tryDecrypt(auth, user.contactoutApiKey)),
-      googleMapsApiKey: maskKey(tryDecrypt(auth, user.googleMapsApiKey)),
-    };
-  },
-
-  updateApiKeys: async (
-    userId: string,
-    apiKeys: {
-      hunterApiKey?: string;
-      googleMapsApiKey?: string;
-    },
-    auth: AuthManager
-  ) => {
-    if (apiKeys.hunterApiKey === undefined && apiKeys.googleMapsApiKey === undefined) {
-      return userService.getApiKeys(userId, auth);
-    }
-
-    const updateData: any = {};
-    if (apiKeys.hunterApiKey !== undefined) {
-      updateData.hunterApiKey = apiKeys.hunterApiKey ? auth.encryptData(apiKeys.hunterApiKey) : null;
-    }
-    if (apiKeys.googleMapsApiKey !== undefined) {
-      updateData.googleMapsApiKey = apiKeys.googleMapsApiKey ? auth.encryptData(apiKeys.googleMapsApiKey) : null;
-    }
-
-    await prisma.user.update({
-      where: { id: userId },
-      data: updateData,
-    });
-
-    return userService.getApiKeys(userId, auth);
-  },
 
   getSmtpConfig: async (userId: string, auth: AuthManager) => {
     const user = await prisma.user.findUnique({

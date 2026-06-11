@@ -3,21 +3,6 @@ import type { Scope } from './scope';
 import { logger } from '@repo/logger';
 import { TRPCError } from '@trpc/server';
 import type { AuthManager } from '@repo/auth';
-import { CryptoService } from '@repo/crypto';
-
-function tryDecrypt(crypto: CryptoService, value: string | null | undefined): string | undefined {
-  if (!value) return undefined;
-  try {
-    return crypto.decrypt(value);
-  } catch {
-    return value;
-  }
-}
-
-export interface ApiKeys {
-  hunterApiKey?: string;
-  googleMapsApiKey?: string;
-}
 
 export interface SmtpConfig {
   host: string;
@@ -27,69 +12,6 @@ export interface SmtpConfig {
   pass: string;
   fromName: string;
   fromEmail: string;
-}
-
-export async function getApiKeys(
-  prisma: PrismaClient,
-  scope: Scope,
-  encryptionSecret: string
-): Promise<ApiKeys> {
-  const crypto = new CryptoService({ ENCRYPTION_KEY: encryptionSecret });
-
-  if (scope.type === 'team') {
-    const team = await prisma.$queryRaw<
-      Array<{
-        hunterApiKey: string | null;
-        googleMapsApiKey: string | null;
-      }>
-    >`
-      SELECT
-        "hunterApiKey",
-        "googleMapsApiKey"
-      FROM "Team"
-      WHERE "id" = ${scope.teamId}::text
-      LIMIT 1
-    `;
-
-    if (!team || team.length === 0) {
-      logger.error({ teamId: scope.teamId }, '[API_KEYS] Team not found');
-      throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: 'Team not found',
-      });
-    }
-
-    const teamData = team[0];
-    logger.info({ teamId: scope.teamId }, '[API_KEYS] Using team API keys');
-
-    return {
-      hunterApiKey: tryDecrypt(crypto, teamData.hunterApiKey),
-      googleMapsApiKey: tryDecrypt(crypto, teamData.googleMapsApiKey),
-    };
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { id: scope.userId },
-    select: {
-      hunterApiKey: true,
-      googleMapsApiKey: true,
-    },
-  });
-
-  if (!user) {
-    logger.error({ userId: scope.userId }, '[API_KEYS] User not found');
-    throw new TRPCError({
-      code: 'NOT_FOUND',
-      message: 'User not found',
-    });
-  }
-
-  logger.info({ userId: scope.userId }, '[API_KEYS] Using personal API keys');
-
-  return {
-    hunterApiKey: tryDecrypt(crypto, user.hunterApiKey),
-    googleMapsApiKey: tryDecrypt(crypto, user.googleMapsApiKey),
-  };
 }
 
 export async function getSmtpConfig(

@@ -45,6 +45,7 @@ coverage
 *~
 .cache
 /converted-leads
+debug-storybook.log
 
 # Local dev files
 .claude/

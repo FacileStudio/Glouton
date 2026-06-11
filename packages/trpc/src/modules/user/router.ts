@@ -127,21 +127,6 @@ export const userRouter = router({
     return userService.deleteOwnAccount(ctx.user.id);
   }),
 
-  getApiKeys: protectedProcedure.query(async ({ ctx }) => {
-    return userService.getApiKeys(ctx.user.id, ctx.auth);
-  }),
-
-  updateApiKeys: protectedProcedure
-    .input(
-      z.object({
-        hunterApiKey: z.string().optional(),
-        googleMapsApiKey: z.string().optional(),
-      })
-    )
-    .mutation(async ({ ctx, input }) => {
-      return userService.updateApiKeys(ctx.user.id, input, ctx.auth);
-    }),
-
   getSmtpConfig: protectedProcedure.query(async ({ ctx }) => {
     return userService.getSmtpConfig(ctx.user.id, ctx.auth);
   }),

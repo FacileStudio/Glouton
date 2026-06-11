@@ -39,12 +39,6 @@ export const teamIdSchema = z.object({
   teamId: z.string(),
 });
 
-export const updateApiKeysSchema = z.object({
-  teamId: z.string(),
-  hunterApiKey: z.string().optional(),
-  googleMapsApiKey: z.string().optional(),
-});
-
 export const updateSmtpConfigSchema = z.object({
   teamId: z.string(),
   smtpHost: z.string().optional(),

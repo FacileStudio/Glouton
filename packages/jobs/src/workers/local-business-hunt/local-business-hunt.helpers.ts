@@ -91,8 +91,7 @@ export class LocalBusinessHuntHelpers {
       userId,
       teamId: teamId || null,
       huntSessionId,
-      source: (business.source === 'google-maps' ? 'GOOGLE_MAPS' :
-              business.source === 'openstreetmap' ? 'OPENSTREETMAP' : 'GOOGLE_MAPS') as any,
+      source: 'OPENSTREETMAP' as any,
       domain: domain || null,
       email: generatedEmail || null,
       businessName: business.name || 'Unknown Business',

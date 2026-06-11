@@ -13,6 +13,7 @@
   const menuItems = [
     { label: 'Chasses', icon: 'solar:radar-2-linear', href: '/app/hunts' },
     { label: 'Leads', icon: 'solar:magnet-wave-bold-duotone', href: '/app/leads' },
+    { label: 'Missions', icon: 'solar:case-round-linear', href: '/app/missions' },
     { label: 'Prospection', icon: 'solar:letter-linear', href: '/app/outreach' },
     { label: 'Équipes', icon: 'solar:users-group-rounded-linear', href: '/app/teams' },
   ];
@@ -27,6 +28,7 @@
     if (path === '/app/hunts') return 'Chasses — Glouton';
     if (path.match(/^\/app\/leads\/.+/)) return 'Lead — Glouton';
     if (path === '/app/leads') return 'Leads — Glouton';
+    if (path === '/app/missions') return 'Missions — Glouton';
     if (path === '/app/outreach') return 'Prospection — Glouton';
     if (path === '/app/teams/new') return 'Nouvelle Équipe — Glouton';
     if (path.match(/^\/app\/teams\/.+\/settings/)) return 'Paramètres d\'équipe — Glouton';

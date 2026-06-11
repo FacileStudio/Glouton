@@ -138,12 +138,6 @@
           maxResults: filters.maxResults || 20,
           hasWebsite: filters.hasWebsite,
         });
-      } else if (filters.domain) {
-        await trpc.lead.hunt.start.mutate({
-          domain: filters.domain,
-          positions: filters.positions || [],
-          departments: filters.departments || [],
-        });
       } else {
         toast.push('Type de chasse non reconnu', 'error');
         return;

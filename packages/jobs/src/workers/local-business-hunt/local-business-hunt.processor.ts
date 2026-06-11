@@ -22,7 +22,6 @@ export class LocalBusinessHuntProcessor {
       hasWebsite,
       radius = 5000,
       maxResults = 20,
-      googleMapsApiKey,
     } = job.data;
 
     console.log(`[LocalBusinessHunt] Starting hunt for ${category} in ${location}`);
@@ -37,7 +36,7 @@ export class LocalBusinessHuntProcessor {
       return await this.handleCancellation(huntSessionId, currentSession, emitter);
     }
 
-    const mapsOrchestrator = this.createMapsOrchestrator(googleMapsApiKey);
+    const mapsOrchestrator = this.createMapsOrchestrator();
     const businessesFound = await this.searchBusinesses(
       mapsOrchestrator,
       location,
@@ -113,12 +112,8 @@ export class LocalBusinessHuntProcessor {
     }
   }
 
-  private createMapsOrchestrator(googleMapsApiKey?: string): MapsOrchestrator {
-    return new MapsOrchestrator({
-      googleMapsApiKey,
-      useGoogleMaps: !!googleMapsApiKey,
-      useOpenStreetMap: true,
-    });
+  private createMapsOrchestrator(): MapsOrchestrator {
+    return new MapsOrchestrator();
   }
 
   private async searchBusinesses(
