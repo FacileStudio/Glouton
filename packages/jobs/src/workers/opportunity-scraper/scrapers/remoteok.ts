@@ -43,7 +43,7 @@ export async function scrapeRemoteOK(): Promise<ScrapedOpportunity[]> {
           description: desc.slice(0, 2000),
           company: job.company || undefined,
           sourceId: `remoteok-${job.id}`,
-          sourcePlatform: 'REMOTE_CO',
+          sourcePlatform: 'REMOTEOK',
           sourceUrl: job.url?.startsWith('http') ? job.url : `https://remoteok.com/remote-jobs/${job.id}`,
           category: detectCategory(job.position, desc),
           tags: job.tags ?? [],

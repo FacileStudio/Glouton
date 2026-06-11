@@ -45,13 +45,14 @@
   let filterTimeout: ReturnType<typeof setTimeout>;
 
   const SOURCE_LABELS: Record<string, string> = {
-    REMOTIVE: 'Remotive',
-    REMOTE_CO: 'RemoteOK',
-    WE_WORK_REMOTELY: 'We Work Remotely',
-    LINKEDIN: 'HN Hiring',
-    INDEED: 'Indeed France',
-    MALT: 'Malt',
+    FREE_WORK: 'FreeWork',
     CODEUR: 'Codeur.com',
+    REMOTIVE: 'Remotive',
+    REMOTEOK: 'RemoteOK',
+    WE_WORK_REMOTELY: 'We Work Remotely',
+    HACKER_NEWS: 'HN Hiring',
+    JOBICY: 'Jobicy',
+    HIMALAYAS: 'Himalayas',
   };
 
   const TIER_COLORS: Record<Tier, string> = {

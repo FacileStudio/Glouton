@@ -49,7 +49,7 @@ export async function scrapeHNHiring(): Promise<ScrapedOpportunity[]> {
           description: text.slice(0, 2000),
           company: hit.author || undefined,
           sourceId: `hn-${hit.objectID}`,
-          sourcePlatform: 'LINKEDIN',
+          sourcePlatform: 'HACKER_NEWS',
           sourceUrl: `https://news.ycombinator.com/item?id=${hit.objectID}`,
           category: detectCategory(firstLine, text),
           tags: ['hacker-news', 'freelance'],
