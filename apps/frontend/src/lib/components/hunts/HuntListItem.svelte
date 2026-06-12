@@ -82,34 +82,36 @@
     onclick={() => goto(`/app/hunts/${session.id}`)}
     class="w-full p-5 text-left transition-colors hover:bg-muted/40"
   >
-    <div class="flex items-center gap-4">
-      <div class="flex items-center justify-center size-10 rounded-lg border border-border shrink-0">
-        <iconify-icon
-          icon={isLocal ? 'solar:map-point-linear' : 'solar:global-linear'}
-          width="20"
-          class="text-foreground"
-        ></iconify-icon>
-      </div>
-
-      <div class="flex-1 min-w-0">
-        <div class="flex items-center gap-2 mb-1">
-          <h3 class="font-semibold text-sm text-foreground truncate">{huntTitle}</h3>
-          <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-muted text-foreground shrink-0">
-            Terminée
-          </span>
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+      <div class="flex items-center gap-4 min-w-0 sm:flex-1">
+        <div class="flex items-center justify-center size-10 rounded-lg border border-border shrink-0">
+          <iconify-icon
+            icon={isLocal ? 'solar:map-point-linear' : 'solar:global-linear'}
+            width="20"
+            class="text-foreground"
+          ></iconify-icon>
         </div>
-        <div class="flex items-center gap-2 text-xs text-muted-foreground">
-          <span>{formatTimeAgo(referenceDate)}</span>
-          {#if session.startedAt && session.completedAt}
+
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 mb-1 min-w-0">
+            <h3 class="font-semibold text-sm text-foreground truncate">{huntTitle}</h3>
+            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-muted text-foreground shrink-0">
+              Terminée
+            </span>
+          </div>
+          <div class="flex items-center gap-2 flex-wrap text-xs text-muted-foreground">
+            <span>{formatTimeAgo(referenceDate)}</span>
+            {#if session.startedAt && session.completedAt}
+              <span>·</span>
+              <span>Durée: {formatDuration(session.startedAt, session.completedAt)}</span>
+            {/if}
             <span>·</span>
-            <span>Durée: {formatDuration(session.startedAt, session.completedAt)}</span>
-          {/if}
-          <span>·</span>
-          <span>{isLocal ? 'Local' : 'Domaine'}</span>
+            <span>{isLocal ? 'Local' : 'Domaine'}</span>
+          </div>
         </div>
       </div>
 
-      <div class="flex items-center gap-6 shrink-0">
+      <div class="flex items-center justify-between gap-6 shrink-0 pl-14 sm:pl-0 sm:justify-start">
         <div class="flex items-center gap-4">
           <div class="text-right">
             <div class="flex items-center justify-end gap-1.5">

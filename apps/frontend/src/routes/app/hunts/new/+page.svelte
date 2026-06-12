@@ -237,22 +237,22 @@
 
       <div class="space-y-3">
         <span class="text-sm font-medium text-foreground block">Catégories d'activité (sélection multiple)</span>
-        <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
           {#each businessCategories as category}
             <label
               class="rounded-lg border p-3 transition-colors cursor-pointer {localBusinessFilters.categories.includes(category.value)
                 ? 'border-foreground bg-muted'
                 : 'border-border bg-background hover:bg-muted'}"
             >
-              <div class="flex items-center gap-2">
+              <div class="flex items-center gap-2 min-w-0">
                 <input
                   type="checkbox"
                   value={category.value}
                   bind:group={localBusinessFilters.categories}
-                  class="w-4 h-4"
+                  class="w-4 h-4 shrink-0"
                 />
-                <iconify-icon icon={category.icon} width="16" class="text-foreground"></iconify-icon>
-                <span class="text-sm text-foreground">{category.label}</span>
+                <iconify-icon icon={category.icon} width="16" class="text-foreground shrink-0"></iconify-icon>
+                <span class="text-sm text-foreground truncate">{category.label}</span>
               </div>
             </label>
           {/each}

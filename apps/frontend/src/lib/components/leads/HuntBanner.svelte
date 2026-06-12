@@ -134,7 +134,7 @@
     onclick={handleClick}
     onkeydown={(e) => clickable && e.key === 'Enter' && handleClick()}
   >
-    <div class="flex items-start justify-between gap-4 mb-5">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-5">
       <div class="flex items-center gap-3 min-w-0">
         <div class="inline-flex size-9 items-center justify-center rounded-lg bg-muted text-foreground shrink-0">
           <iconify-icon icon={huntIcon} width="18"></iconify-icon>
@@ -145,7 +145,7 @@
             <span class="rounded-full bg-muted px-2.5 py-0.5 font-medium text-foreground">
               {session.status}
             </span>
-            <span class="truncate max-w-xs">
+            <span class="truncate max-w-full sm:max-w-xs">
               {huntLabel}
             </span>
             {#if session.successfulLeads > 0}
@@ -169,8 +169,8 @@
         </div>
       </div>
 
-      <div class="flex items-center gap-4 shrink-0">
-        <div class="text-right text-xs text-muted-foreground">
+      <div class="flex items-center justify-between gap-4 sm:shrink-0 sm:justify-start">
+        <div class="text-left sm:text-right text-xs text-muted-foreground">
           <div>En cours : <span class="text-foreground font-medium">{elapsedTime}</span></div>
           <div>ETA : <span class="text-foreground font-medium">{eta}</span></div>
         </div>
