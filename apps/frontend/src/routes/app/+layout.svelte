@@ -3,7 +3,7 @@
   import { browser } from '$app/environment';
   import { page } from '$app/stores';
   import authStore from '$lib/auth-store';
-  import { Sidebar } from '@repo/ui';
+  import { Sidebar, MobileNav } from '@repo/ui';
   import { ws } from '$lib/websocket';
   import TeamContextSwitcher from '$lib/components/TeamContextSwitcher.svelte';
   import 'iconify-icon';
@@ -114,8 +114,13 @@
   </Sidebar>
 
   <main
-    class="relative h-full w-full flex-1 overflow-y-auto bg-background selection:bg-foreground selection:text-background"
+    class="relative h-full w-full flex-1 overflow-y-auto bg-background pb-24 selection:bg-foreground selection:text-background md:pb-0"
   >
     {@render children()}
   </main>
+
+  <MobileNav
+    items={[...menuItems, { label: 'Paramètres', icon: 'solar:settings-linear', href: '/app/settings' }]}
+    activeHref={$page.url.pathname}
+  />
 </div>

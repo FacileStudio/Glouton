@@ -22,6 +22,7 @@ export { default as EmptyState } from './components/organisms/EmptyState.svelte'
 export { default as Modal } from './components/organisms/Modal.svelte';
 
 export { default as Sidebar } from './components/layout/Sidebar.svelte';
+export { default as MobileNav } from './components/layout/MobileNav.svelte';
 export { default as ToastContainer } from './components/layout/ToastContainer.svelte';
 
 export { default as BarChart } from './components/charts/BarChart.svelte';

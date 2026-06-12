@@ -11,7 +11,7 @@
 <!-- eslint-disable svelte/no-navigation-without-resolve -->
 
 <aside
-  class="sticky top-0 flex h-screen w-60 flex-col border-r border-border bg-background selection:bg-foreground selection:text-background"
+  class="sticky top-0 hidden h-screen w-60 flex-col border-r border-border bg-background selection:bg-foreground selection:text-background md:flex"
 >
   <div class="px-4 pt-6 pb-4">
     <div class="flex items-center gap-2">
