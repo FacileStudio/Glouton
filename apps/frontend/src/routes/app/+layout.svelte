@@ -121,7 +121,11 @@
   </main>
 
   <MobileNav
-    items={[...menuItems, { label: 'Paramètres', icon: 'solar:settings-linear', href: '/app/settings' }]}
+    items={menuItems}
     activeHref={$page.url.pathname}
+    settingsHref="/app/settings"
+    {userAvatarUrl}
+    {userInitials}
+    {userName}
   />
 </div>

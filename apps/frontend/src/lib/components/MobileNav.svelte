@@ -4,10 +4,28 @@
   let {
     items = [],
     activeHref = '/',
+    settingsHref = '/app/settings',
+    userAvatarUrl = null,
+    userInitials = 'U',
+    userName = 'Utilisateur',
   }: {
     items?: { label: string; icon: string; href: string }[];
     activeHref?: string;
+    settingsHref?: string;
+    userAvatarUrl?: string | null;
+    userInitials?: string;
+    userName?: string;
   } = $props();
+
+  let avatarFailed = $state(false);
+
+  // Reset the fallback when the avatar URL changes (e.g. after profile update).
+  $effect(() => {
+    void userAvatarUrl;
+    avatarFailed = false;
+  });
+
+  let settingsActive = $derived(activeHref.startsWith(settingsHref));
 </script>
 
 <nav
@@ -32,5 +50,30 @@
         <iconify-icon icon={item.icon} width="22"></iconify-icon>
       </a>
     {/each}
+
+    <a
+      href={settingsHref}
+      data-sveltekit-reload
+      aria-label="Paramètres"
+      title="Paramètres"
+      class="flex items-center justify-center rounded-full px-2.5 py-1.5 transition-all duration-200 {settingsActive
+        ? 'bg-foreground shadow-sm'
+        : 'hover:bg-muted/60'}"
+    >
+      {#if userAvatarUrl && !avatarFailed}
+        <img
+          src={userAvatarUrl}
+          alt={userName}
+          class="h-7 w-7 rounded-full border border-border object-cover"
+          onerror={() => (avatarFailed = true)}
+        />
+      {:else}
+        <span
+          class="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-foreground text-[10px] font-semibold text-background"
+        >
+          {userInitials}
+        </span>
+      {/if}
+    </a>
   </div>
 </nav>
