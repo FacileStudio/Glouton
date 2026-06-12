@@ -21,15 +21,16 @@
   let displayName = $derived(teamContextStore.getName());
 
   async function loadTeams() {
-    loading = true;
+    // Only show the spinner on the very first load; background refreshes
+    // keep the current list visible.
+    if (teams.length === 0) loading = true;
     error = null;
     try {
       const result = await trpc.team.list.query();
       teams = result;
     } catch (err) {
       console.error('Failed to load teams:', err);
-      error = 'Failed to load teams';
-      toast.push('Failed to load teams', 'error');
+      if (teams.length === 0) error = 'Échec du chargement des équipes';
     } finally {
       loading = false;
     }
@@ -37,6 +38,8 @@
 
   function toggleDropdown() {
     isOpen = !isOpen;
+    // Refresh on open: always up to date, and retries after a network error.
+    if (isOpen) loadTeams();
   }
 
   function closeDropdown() {
@@ -67,13 +70,14 @@
     }
   }
 
-  // Re-fetch on every client-side navigation (also fires on initial load),
-  // so a newly created team shows up immediately without a manual reload.
-  afterNavigate(() => {
-    loadTeams();
+  // Re-fetch after client-side navigations so a newly created team shows up
+  // immediately without a manual reload. The initial load is done in onMount.
+  afterNavigate((nav) => {
+    if (nav.from) loadTeams();
   });
 
   onMount(() => {
+    loadTeams();
     if (typeof document !== 'undefined') {
       document.addEventListener('click', handleClickOutside);
       return () => {
