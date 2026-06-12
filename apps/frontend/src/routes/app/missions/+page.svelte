@@ -62,9 +62,9 @@
   };
 
   const TIER_ICONS: Record<Tier, string> = {
-    HOT: 'solar:fire-bold-duotone',
-    WARM: 'solar:sun-bold-duotone',
-    COLD: 'solar:snowflake-bold-duotone',
+    HOT: 'solar:fire-linear',
+    WARM: 'solar:sun-linear',
+    COLD: 'solar:snowflake-linear',
   };
 
   async function loadData() {
@@ -167,7 +167,7 @@
       {#if scraping}
         <Spinner size="sm" />
       {:else}
-        <iconify-icon icon="solar:refresh-bold-duotone" width="16"></iconify-icon>
+        <iconify-icon icon="solar:refresh-linear" width="16"></iconify-icon>
       {/if}
       Actualiser
     </button>
@@ -181,15 +181,24 @@
         <p class="mt-1 text-2xl font-bold">{stats.total}</p>
       </div>
       <div class="rounded-xl border border-red-500/20 bg-red-500/5 p-4">
-        <p class="text-xs text-red-400">🔥 HOT</p>
+        <p class="flex items-center gap-1.5 text-xs text-red-400">
+          <iconify-icon icon="solar:fire-linear" width="14"></iconify-icon>
+          HOT
+        </p>
         <p class="mt-1 text-2xl font-bold text-red-400">{stats.hot}</p>
       </div>
       <div class="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
-        <p class="text-xs text-amber-400">☀️ WARM</p>
+        <p class="flex items-center gap-1.5 text-xs text-amber-400">
+          <iconify-icon icon="solar:sun-linear" width="14"></iconify-icon>
+          WARM
+        </p>
         <p class="mt-1 text-2xl font-bold text-amber-400">{stats.warm}</p>
       </div>
       <div class="rounded-xl border border-blue-500/20 bg-blue-500/5 p-4">
-        <p class="text-xs text-blue-400">❄️ COLD</p>
+        <p class="flex items-center gap-1.5 text-xs text-blue-400">
+          <iconify-icon icon="solar:snowflake-linear" width="14"></iconify-icon>
+          COLD
+        </p>
         <p class="mt-1 text-2xl font-bold text-blue-400">{stats.cold}</p>
       </div>
       <div class="rounded-xl border border-border bg-card p-4">
@@ -213,9 +222,9 @@
       class="h-9 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-1 focus:ring-ring"
     >
       <option value="">Tous les niveaux</option>
-      <option value="HOT">🔥 HOT</option>
-      <option value="WARM">☀️ WARM</option>
-      <option value="COLD">❄️ COLD</option>
+      <option value="HOT">HOT</option>
+      <option value="WARM">WARM</option>
+      <option value="COLD">COLD</option>
     </select>
 
     <select
@@ -255,7 +264,7 @@
     </div>
   {:else if opportunities.length === 0}
     <div class="flex flex-col items-center justify-center gap-3 py-16 text-muted-foreground">
-      <iconify-icon icon="solar:ghost-bold-duotone" width="48" class="opacity-30"></iconify-icon>
+      <iconify-icon icon="solar:ghost-linear" width="48" class="opacity-30"></iconify-icon>
       <p class="text-sm">Aucune mission trouvée</p>
       <button
         onclick={triggerScrape}
@@ -333,7 +342,7 @@
           disabled={currentPage === 1}
           class="h-8 w-8 rounded-lg border border-border flex items-center justify-center text-sm disabled:opacity-40 hover:bg-accent"
         >
-          <iconify-icon icon="solar:alt-arrow-left-bold" width="14"></iconify-icon>
+          <iconify-icon icon="solar:alt-arrow-left-linear" width="14"></iconify-icon>
         </button>
         <span class="text-sm text-muted-foreground">Page {currentPage} / {totalPages}</span>
         <button
@@ -341,7 +350,7 @@
           disabled={currentPage === totalPages}
           class="h-8 w-8 rounded-lg border border-border flex items-center justify-center text-sm disabled:opacity-40 hover:bg-accent"
         >
-          <iconify-icon icon="solar:alt-arrow-right-bold" width="14"></iconify-icon>
+          <iconify-icon icon="solar:alt-arrow-right-linear" width="14"></iconify-icon>
         </button>
       </div>
     {/if}
