@@ -127,7 +127,7 @@
 
   <div class="rounded-xl border border-border bg-card p-4">
     <div class="flex gap-3">
-      <iconify-icon icon="solar:info-circle-linear" width="18" class="text-muted-foreground flex-shrink-0 mt-0.5"></iconify-icon>
+      <iconify-icon icon="solar:info-circle-linear" width="18" class="text-muted-foreground shrink-0 mt-0.5"></iconify-icon>
       <div>
         <h3 class="text-sm font-semibold text-foreground mb-1">À propos des équipes</h3>
         <p class="text-sm text-muted-foreground">

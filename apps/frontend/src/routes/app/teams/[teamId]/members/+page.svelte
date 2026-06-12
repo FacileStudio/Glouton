@@ -255,7 +255,7 @@
           {#each members as member (member.id)}
             <div class="px-4 py-3 flex items-center justify-between gap-3">
               <div class="flex items-center gap-3 flex-1 min-w-0">
-                <div class="size-9 rounded-lg border border-border bg-background flex items-center justify-center text-foreground text-sm font-medium flex-shrink-0">
+                <div class="size-9 rounded-lg border border-border bg-background flex items-center justify-center text-foreground text-sm font-medium shrink-0">
                   {getInitials(member.firstName, member.lastName, member.email)}
                 </div>
 
@@ -270,7 +270,7 @@
                         {member.email}
                       {/if}
                     </h3>
-                    <span class="rounded-full px-2.5 py-0.5 text-xs font-medium flex-shrink-0 {getRoleBadgeColor(member.role)}">
+                    <span class="rounded-full px-2.5 py-0.5 text-xs font-medium shrink-0 {getRoleBadgeColor(member.role)}">
                       {getRoleLabel(member.role)}
                     </span>
                   </div>
@@ -281,7 +281,7 @@
                 </div>
               </div>
 
-              <div class="flex items-center gap-2 flex-shrink-0">
+              <div class="flex items-center gap-2 shrink-0">
                 {#if isOwner && member.role !== 'OWNER'}
                   <select
                     value={member.role}

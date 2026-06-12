@@ -88,13 +88,13 @@
       <iconify-icon
         icon="solar:user-linear"
         width="16"
-        class="text-muted-foreground flex-shrink-0"
+        class="text-muted-foreground shrink-0"
       ></iconify-icon>
     {:else}
       <iconify-icon
         icon="solar:users-group-rounded-linear"
         width="16"
-        class="text-foreground flex-shrink-0"
+        class="text-foreground shrink-0"
       ></iconify-icon>
     {/if}
 

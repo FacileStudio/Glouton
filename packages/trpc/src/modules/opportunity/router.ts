@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server';
-import { router, protectedProcedure, adminProcedure } from '../../trpc';
+import { router, protectedProcedure } from '../../trpc';
 import OpportunityService from './service';
 import { listOpportunitiesSchema } from './schemas';
 
@@ -25,7 +25,9 @@ export const opportunityRouter = router({
       }
     }),
 
-  triggerScrape: adminProcedure
+  // Any signed-in user can request a refresh; a shared cooldown (see service)
+  // makes sure the sources are scraped at most once per window.
+  triggerScrape: protectedProcedure
     .mutation(async ({ ctx }) => {
       try {
         return await OpportunityService.triggerScrape({ jobs: ctx.jobs });

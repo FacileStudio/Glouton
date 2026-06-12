@@ -1,5 +1,5 @@
 import type { Job as BullJob } from 'bullmq';
-import { MapsOrchestrator, type LocalBusiness } from '@repo/maps';
+import { MapsOrchestrator, toMapsError, type LocalBusiness } from '@repo/maps';
 import { prisma } from '@repo/database';
 import { Prisma } from '@prisma/client';
 import type { JobEventEmitter } from '../../lib/job-event-emitter';
@@ -164,14 +164,18 @@ export class LocalBusinessHuntProcessor {
     } catch (error) {
       console.error('[LocalBusinessHunt] Maps search failed:', error);
 
+      // Surface a clean French message to the live feed; technical details
+      // stay in the logs above.
+      const mapsError = toMapsError(error);
+
       emitter.emit('hunt-error', {
         huntSessionId,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: mapsError.userMessage,
         location,
         category,
       });
 
-      throw new Error(`Failed to search for businesses: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw mapsError;
     }
   }
 

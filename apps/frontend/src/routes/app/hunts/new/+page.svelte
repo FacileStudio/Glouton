@@ -216,7 +216,7 @@
       </div>
     </div>
 
-    <div class="flex items-center gap-2 flex-shrink-0">
+    <div class="flex items-center gap-2 shrink-0">
       <a
         href="/app/hunts"
         class="inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"

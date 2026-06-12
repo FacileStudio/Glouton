@@ -140,7 +140,7 @@
       class="w-full flex items-center justify-between px-6 py-4 hover:bg-muted/40 transition-colors"
     >
       <div class="flex items-center gap-3">
-        <div class="inline-flex size-9 items-center justify-center rounded-lg bg-muted text-foreground flex-shrink-0">
+        <div class="inline-flex size-9 items-center justify-center rounded-lg bg-muted text-foreground shrink-0">
           <iconify-icon icon="solar:map-linear" width="18"></iconify-icon>
         </div>
         <div class="text-left">

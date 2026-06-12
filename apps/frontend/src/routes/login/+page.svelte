@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
   import { trpc } from '$lib/trpc';
@@ -10,6 +11,20 @@
   let error = '';
   let email = '';
   let password = '';
+  let ssoOnly = false;
+  let oidcEnabled = false;
+  let configLoaded = false;
+
+  onMount(async () => {
+    try {
+      const config = await fetch('/auth/config').then((r) => r.json());
+      ssoOnly = config.sso_only ?? false;
+      oidcEnabled = config.oidc_enabled ?? false;
+    } catch {
+      // Backend unreachable or OIDC not configured: keep password login.
+    }
+    configLoaded = true;
+  });
 
   async function handleLogin() {
     loading = true;
@@ -59,10 +74,16 @@
       <div class="mb-8">
         <h2 class="text-2xl font-bold">Bon retour</h2>
         <p class="mt-1.5 text-sm text-muted-foreground">
-          Connectez-vous à votre espace de prospection.
+          {ssoOnly
+            ? 'Connectez-vous avec votre compte organisation.'
+            : 'Connectez-vous à votre espace de prospection.'}
         </p>
       </div>
 
+      {#if !configLoaded}
+        <div class="h-40"></div>
+      {:else}
+      {#if !ssoOnly}
       <form
         class="space-y-4"
         onsubmit={(event) => {
@@ -111,15 +132,38 @@
           {/if}
         </button>
       </form>
+      {/if}
+
+      {#if oidcEnabled}
+        {#if !ssoOnly}
+          <div class="my-5 flex items-center gap-3">
+            <div class="h-px flex-1 bg-border"></div>
+            <span class="text-xs text-muted-foreground">ou</span>
+            <div class="h-px flex-1 bg-border"></div>
+          </div>
+        {/if}
+
+        <a
+          href="/auth/oidc"
+          data-sveltekit-reload
+          class="inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-border bg-background px-3 text-sm font-medium transition-colors hover:bg-muted"
+        >
+          <iconify-icon icon="solar:shield-keyhole-linear" width="16"></iconify-icon>
+          Continuer avec SSO
+        </a>
+      {/if}
 
       <div class="mt-5 flex items-center justify-between text-sm">
         <a href={resolve('/')} class="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
           Accueil
         </a>
-        <a href={resolve('/register')} class="font-medium underline-offset-4 hover:underline">
-          Créer un compte
-        </a>
+        {#if !ssoOnly}
+          <a href={resolve('/register')} class="font-medium underline-offset-4 hover:underline">
+            Créer un compte
+          </a>
+        {/if}
       </div>
+      {/if}
     </div>
   </main>
 </div>

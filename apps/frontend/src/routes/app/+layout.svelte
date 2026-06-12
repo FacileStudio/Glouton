@@ -21,6 +21,7 @@
   let userInitials = $derived($authStore.user?.firstName?.[0] || 'U');
   let userName = $derived($authStore.user?.firstName || 'Utilisateur');
   let userEmail = $derived($authStore.user?.email || 'user@example.com');
+  let userAvatarUrl = $derived($authStore.user?.avatarUrl ?? null);
 
   function getPageTitle(path: string): string {
     if (path.startsWith('/app/hunts/new')) return 'Nouvelle Chasse — Glouton';
@@ -73,7 +74,6 @@
   <Sidebar
     items={menuItems}
     activeHref={$page.url.pathname}
-    settingsHref="/app/settings"
     userHref="/app/settings"
     logoIcon="solar:magnet-wave-bold-duotone"
   >
@@ -83,7 +83,15 @@
       slot="user-avatar"
       class="flex h-full w-full items-center justify-center text-xs font-semibold"
     >
-      {userInitials}
+      {#if userAvatarUrl}
+        <img
+          src={userAvatarUrl}
+          alt={userName}
+          class="h-full w-full rounded-full object-cover"
+        />
+      {:else}
+        {userInitials}
+      {/if}
     </div>
 
     <span slot="user-name">

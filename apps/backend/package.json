@@ -24,6 +24,7 @@
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.4.2",
     "hono": "^4.12.22",
+    "jose": "^6.2.3",
     "jsonwebtoken": "^9.0.3",
     "superjson": "^2.2.6"
   },

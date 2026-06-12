@@ -1,6 +1,8 @@
 export { OpenStreetMapService } from './providers/openstreetmap-api';
 export { MapsOrchestrator } from './orchestrator-api';
 export type { MapsConfig } from './orchestrator-api';
+export { MapsError, toMapsError, MAPS_ERROR_MESSAGES } from './errors';
+export type { MapsErrorCode } from './errors';
 
 export * from './types';
 export * from './providers/openstreetmap';

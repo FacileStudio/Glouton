@@ -14,6 +14,14 @@ export default defineConfig({
         target: backendUrl,
         changeOrigin: true,
       },
+      '/auth/config': {
+        target: backendUrl,
+        changeOrigin: true,
+      },
+      '/auth/oidc': {
+        target: backendUrl,
+        changeOrigin: true,
+      },
       '/docs': {
         target: backendUrl,
         changeOrigin: true,

@@ -122,7 +122,7 @@
       </div>
 
       <div
-        class="flex items-center gap-1 flex-shrink-0"
+        class="flex items-center gap-1 shrink-0"
         role="presentation"
         onclick={(e) => e.stopPropagation()}
         onkeydown={(e) => e.stopPropagation()}

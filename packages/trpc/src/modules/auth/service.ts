@@ -13,19 +13,9 @@ const mapToSessionUser = (user: any): SessionUser => ({
   lastName: user.lastName,
   role: user.role,
   isPremium: user.isPremium,
-  avatarUrl: null,
+  avatarUrl: user.avatarUrl ?? null,
   coverImageUrl: null,
 });
-
-const userSelection = {
-  id: true,
-  email: true,
-  firstName: true,
-  lastName: true,
-  password: true,
-  role: true,
-  isPremium: true,
-};
 
 export const authService = {
   login: async (auth: AuthManager, input: LoginInput) => {
@@ -39,6 +29,7 @@ export const authService = {
         password: true,
         role: true,
         isPremium: true,
+        avatarUrl: true,
       },
     });
 
@@ -80,6 +71,7 @@ export const authService = {
         password: true,
         role: true,
         isPremium: true,
+        avatarUrl: true,
       },
     });
 

@@ -158,8 +158,8 @@
   async function checkSmtpConfiguration() {
     checkingSmtp = true;
     try {
-      const config = await trpc.team.getSmtpConfig.query({ teamId });
-      smtpConfigured = !!(config.smtpHost && config.smtpUser && config.smtpPass);
+      const status = await trpc.email.getSmtpStatus.query({ teamId });
+      smtpConfigured = status.configured;
     } catch (error) {
       console.error('[LEAD] Error checking SMTP config:', error);
       smtpConfigured = false;
@@ -412,7 +412,7 @@
             <iconify-icon icon="solar:arrow-left-linear" width="16"></iconify-icon>
           </button>
 
-          <div class="size-8 flex-shrink-0 rounded-lg border border-border bg-background flex items-center justify-center overflow-hidden">
+          <div class="size-8 shrink-0 rounded-lg border border-border bg-background flex items-center justify-center overflow-hidden">
             <img
               src={getFaviconUrl(lead.domain ?? '', 64)}
               alt="{lead.domain ?? ''} favicon"
@@ -432,7 +432,7 @@
           </div>
         </div>
 
-        <div class="flex items-center gap-2 flex-shrink-0">
+        <div class="flex items-center gap-2 shrink-0">
           <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {getPriorityColor(lead.status)}">
             {lead.status}
           </span>
@@ -481,7 +481,7 @@
 
         <div class="rounded-xl border border-border bg-card p-6">
           <div class="flex items-start gap-4">
-            <div class="size-12 rounded-lg bg-muted flex items-center justify-center flex-shrink-0 text-lg font-semibold text-muted-foreground">
+            <div class="size-12 rounded-lg bg-muted flex items-center justify-center shrink-0 text-lg font-semibold text-muted-foreground">
               {(lead.firstName?.[0] || lead.businessName?.[0] || lead.companyInfo?.name?.[0] || lead.domain?.[0] || '?').toUpperCase()}
             </div>
             <div class="flex-1 min-w-0">
@@ -527,7 +527,7 @@
               href="mailto:{lead.email}"
               class="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border bg-background hover:bg-muted transition-colors"
             >
-              <div class="inline-flex size-8 items-center justify-center rounded-lg bg-muted text-foreground flex-shrink-0">
+              <div class="inline-flex size-8 items-center justify-center rounded-lg bg-muted text-foreground shrink-0">
                 <iconify-icon icon="solar:letter-linear" width="14"></iconify-icon>
               </div>
               <div class="flex-1 min-w-0">
@@ -535,22 +535,22 @@
                 <p class="text-sm text-foreground truncate">{lead.email}</p>
               </div>
               {#if lead.emailVerified === true}
-                <span title="Email vérifié le {lead.emailVerifiedAt ? formatDate(lead.emailVerifiedAt) : ''}" class="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-foreground flex-shrink-0">
+                <span title="Email vérifié le {lead.emailVerifiedAt ? formatDate(lead.emailVerifiedAt) : ''}" class="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-foreground shrink-0">
                   <iconify-icon icon="solar:check-circle-linear" width="12"></iconify-icon>
                   Vérifié
                 </span>
               {:else if lead.emailVerified === false}
-                <span title="Email invalide ({lead.emailVerificationMethod ?? ''})" class="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive flex-shrink-0">
+                <span title="Email invalide ({lead.emailVerificationMethod ?? ''})" class="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive shrink-0">
                   <iconify-icon icon="solar:close-circle-linear" width="12"></iconify-icon>
                   Invalide
                 </span>
               {:else}
-                <span class="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground flex-shrink-0">
+                <span class="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground shrink-0">
                   <iconify-icon icon="solar:question-circle-linear" width="12"></iconify-icon>
                   Non vérifié
                 </span>
               {/if}
-              <iconify-icon icon="solar:arrow-right-up-linear" width="14" class="text-muted-foreground flex-shrink-0"></iconify-icon>
+              <iconify-icon icon="solar:arrow-right-up-linear" width="14" class="text-muted-foreground shrink-0"></iconify-icon>
             </a>
           {/if}
 
@@ -559,14 +559,14 @@
               href="mailto:{email}"
               class="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border bg-background hover:bg-muted transition-colors"
             >
-              <div class="inline-flex size-8 items-center justify-center rounded-lg bg-muted text-foreground flex-shrink-0">
+              <div class="inline-flex size-8 items-center justify-center rounded-lg bg-muted text-foreground shrink-0">
                 <iconify-icon icon="solar:letter-outline" width="14"></iconify-icon>
               </div>
               <div class="flex-1 min-w-0">
                 <p class="text-xs text-muted-foreground">Email {i + 2}</p>
                 <p class="text-sm text-foreground truncate">{email}</p>
               </div>
-              <iconify-icon icon="solar:arrow-right-up-linear" width="14" class="text-muted-foreground flex-shrink-0"></iconify-icon>
+              <iconify-icon icon="solar:arrow-right-up-linear" width="14" class="text-muted-foreground shrink-0"></iconify-icon>
             </a>
           {/each}
 
@@ -575,14 +575,14 @@
               href="tel:{phone}"
               class="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border bg-background hover:bg-muted transition-colors"
             >
-              <div class="inline-flex size-8 items-center justify-center rounded-lg bg-muted text-foreground flex-shrink-0">
+              <div class="inline-flex size-8 items-center justify-center rounded-lg bg-muted text-foreground shrink-0">
                 <iconify-icon icon="solar:phone-linear" width="14"></iconify-icon>
               </div>
               <div class="flex-1 min-w-0">
                 <p class="text-xs text-muted-foreground">Téléphone</p>
                 <p class="text-sm text-foreground truncate">{phone}</p>
               </div>
-              <iconify-icon icon="solar:arrow-right-up-linear" width="14" class="text-muted-foreground flex-shrink-0"></iconify-icon>
+              <iconify-icon icon="solar:arrow-right-up-linear" width="14" class="text-muted-foreground shrink-0"></iconify-icon>
             </a>
           {/each}
 
@@ -593,20 +593,20 @@
               rel="noopener noreferrer"
               class="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border bg-background hover:bg-muted transition-colors"
             >
-              <div class="inline-flex size-8 items-center justify-center rounded-lg bg-muted text-foreground flex-shrink-0">
+              <div class="inline-flex size-8 items-center justify-center rounded-lg bg-muted text-foreground shrink-0">
                 <iconify-icon icon="solar:global-linear" width="14"></iconify-icon>
               </div>
               <div class="flex-1 min-w-0">
                 <p class="text-xs text-muted-foreground">Site web</p>
                 <p class="text-sm text-foreground truncate">{lead.domain}</p>
               </div>
-              <iconify-icon icon="solar:arrow-right-up-linear" width="14" class="text-muted-foreground flex-shrink-0"></iconify-icon>
+              <iconify-icon icon="solar:arrow-right-up-linear" width="14" class="text-muted-foreground shrink-0"></iconify-icon>
             </a>
           {/if}
 
           {#if lead.city || lead.country}
             <div class="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border bg-background">
-              <div class="inline-flex size-8 items-center justify-center rounded-lg bg-muted text-foreground flex-shrink-0">
+              <div class="inline-flex size-8 items-center justify-center rounded-lg bg-muted text-foreground shrink-0">
                 <iconify-icon icon="solar:map-point-linear" width="14"></iconify-icon>
               </div>
               <div class="flex-1 min-w-0">
@@ -671,14 +671,14 @@
                   rel="noopener noreferrer"
                   class="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border bg-background hover:bg-muted transition-colors group"
                 >
-                  <div class="inline-flex size-8 items-center justify-center rounded-lg {meta.bg} {meta.color} flex-shrink-0">
+                  <div class="inline-flex size-8 items-center justify-center rounded-lg {meta.bg} {meta.color} shrink-0">
                     <iconify-icon icon={meta.icon} width="16"></iconify-icon>
                   </div>
                   <div class="flex-1 min-w-0">
                     <p class="text-sm font-medium text-foreground">{meta.label}</p>
                     <p class="text-xs text-muted-foreground truncate">{profile.url.replace(/^https?:\/\//, '').replace(/\/$/, '')}</p>
                   </div>
-                  <iconify-icon icon="solar:arrow-right-up-linear" width="14" class="text-muted-foreground flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"></iconify-icon>
+                  <iconify-icon icon="solar:arrow-right-up-linear" width="14" class="text-muted-foreground shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"></iconify-icon>
                 </a>
               {/each}
             </div>
@@ -796,7 +796,7 @@
 
             {#if !checkingSmtp && !smtpConfigured}
               <div class="mx-6 mt-4 rounded-lg border border-border bg-muted/40 p-4 flex items-start gap-3">
-                <iconify-icon icon="solar:danger-triangle-linear" width="18" class="text-muted-foreground flex-shrink-0"></iconify-icon>
+                <iconify-icon icon="solar:danger-triangle-linear" width="18" class="text-muted-foreground shrink-0"></iconify-icon>
                 <div class="flex-1">
                   <p class="text-sm font-medium text-foreground mb-1">Configuration SMTP manquante</p>
                   <p class="text-xs text-muted-foreground leading-relaxed mb-2">
@@ -943,7 +943,7 @@
                             {formatDate(email.sentAt || email.createdAt)}
                           </p>
                         </div>
-                        <div class="flex items-center gap-2 flex-shrink-0">
+                        <div class="flex items-center gap-2 shrink-0">
                           <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {getStatusColor(email.status)}">
                             {email.status}
                           </span>
@@ -960,7 +960,7 @@
                       <div class="border-t border-border px-4 py-3 bg-muted/40 space-y-3" in:fly={{ y: -8, duration: 150 }}>
                         {#if email.error}
                           <div class="flex items-start gap-2 px-3 py-2.5 rounded-lg border border-border bg-destructive/10">
-                            <iconify-icon icon="solar:danger-triangle-linear" width="14" class="text-destructive flex-shrink-0 mt-0.5"></iconify-icon>
+                            <iconify-icon icon="solar:danger-triangle-linear" width="14" class="text-destructive shrink-0 mt-0.5"></iconify-icon>
                             <p class="text-xs text-destructive">{email.error}</p>
                           </div>
                         {/if}

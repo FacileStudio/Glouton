@@ -413,7 +413,7 @@ export function setupHuntListeners(
         updateSession(data.huntSessionId, {
           error: data.error,
         });
-        toast.push(`Hunt error: ${data.error}`, 'error');
+        toast.push(`Erreur de chasse : ${data.error}`, 'error');
       }
     })
   );

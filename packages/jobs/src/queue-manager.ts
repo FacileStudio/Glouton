@@ -49,6 +49,37 @@ export class QueueManager {
     return queue.addBulk(jobs);
   }
 
+  /**
+   * Idempotent recurring job. Replaces the legacy `repeat` option: re-running
+   * this on startup updates the schedule in place instead of piling up
+   * repeatable configs in Redis across deploys.
+   */
+  async upsertScheduler<T = any>(
+    queueName: string,
+    schedulerId: string,
+    everyMs: number,
+    jobName: string,
+    data: T,
+    options?: AddJobOptions
+  ): Promise<void> {
+    const queue = this.getOrCreateQueue(queueName);
+
+    // Drop legacy repeatable jobs so old schedules cannot linger or conflict.
+    const legacy = await queue.getRepeatableJobs();
+    for (const job of legacy) {
+      if (job.name === jobName && !job.key.includes(schedulerId)) {
+        await queue.removeRepeatableByKey(job.key);
+        logger.info(`[JOBS] Removed legacy repeatable job ${job.key}`);
+      }
+    }
+
+    await queue.upsertJobScheduler(
+      schedulerId,
+      { every: everyMs },
+      { name: jobName, data, opts: options }
+    );
+  }
+
   
 
   private getOrCreateWorker(queueName: string, definitionConcurrency?: number): Worker {

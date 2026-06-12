@@ -51,6 +51,23 @@ ENCRYPTION_SECRET=your-secret-key-min-32-chars
 
 Compose wires PostgreSQL, Redis, `DATABASE_URL`, and the private frontend-to-backend proxy automatically. The browser talks only to the SvelteKit frontend; the backend stays internal.
 
+#### OIDC SSO (optional)
+
+Like the other Facile apps (Nuage, Courrier, Agenda), Glouton supports any OpenID Connect provider (e.g. Authentik):
+
+```bash
+OIDC_ISSUER=https://authentik.yourdomain.com/application/o/glouton/
+OIDC_CLIENT_ID=your-client-id
+OIDC_CLIENT_SECRET=your-client-secret
+# Optional — derived from DOMAIN when unset:
+# OIDC_REDIRECT_URL=https://glouton.facile.studio/auth/oidc/callback
+# OIDC_SUCCESS_URL=https://glouton.facile.studio/auth/callback
+# Hide password auth entirely:
+# SSO_ONLY=true
+```
+
+Endpoints: `GET /auth/config` (feature discovery), `GET /auth/oidc` (start login), `GET /auth/oidc/callback` (provider redirect). Users are provisioned on first SSO login; name and avatar come from the `profile` claims. See `.env.example`.
+
 ### Usage
 
 1. Navigate to `http://localhost:3000/app/leads`

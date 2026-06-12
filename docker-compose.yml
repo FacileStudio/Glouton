@@ -46,6 +46,12 @@ services:
       REDIS_HOST: glouton-redis
       REDIS_PORT: 6379
       REDIS_DB: 0
+      OIDC_ISSUER: ${OIDC_ISSUER:-}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
+      OIDC_REDIRECT_URL: ${OIDC_REDIRECT_URL:-}
+      OIDC_SUCCESS_URL: ${OIDC_SUCCESS_URL:-}
+      SSO_ONLY: ${SSO_ONLY:-}
     depends_on:
       glouton-postgres:
         condition: service_healthy

@@ -27,7 +27,7 @@
             out:fly={{ x: 30, duration: 200 }}
             class="flex items-center gap-2 p-3 rounded-lg bg-white shadow-lg pointer-events-auto {colors[t.type]}"
         >
-            <div class="flex-shrink-0">
+            <div class="shrink-0">
                 <iconify-icon icon={icons[t.type]} width="18"></iconify-icon>
             </div>
 

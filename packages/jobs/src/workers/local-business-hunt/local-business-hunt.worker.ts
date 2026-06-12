@@ -1,5 +1,6 @@
 import type { JobDefinition } from '../../types';
 import type { Job as BullJob } from 'bullmq';
+import { toMapsError } from '@repo/maps';
 import type { EventEmitter } from '../index';
 import { JobEventEmitter } from '../../lib/job-event-emitter';
 import { SessionManager } from '../shared';
@@ -28,16 +29,18 @@ export function createLocalBusinessHuntWorker(events: EventEmitter): JobDefiniti
       } catch (error) {
         console.error(`[LocalBusinessHunt] Fatal error:`, error);
 
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        // Store and broadcast the clean user-facing message; the raw error
+        // stays in the logs.
+        const userMessage = toMapsError(error).userMessage;
 
-        await sessionManager.failSession(huntSessionId, errorMessage);
+        await sessionManager.failSession(huntSessionId, userMessage);
 
         emitter.emit('hunt-failed', {
           huntSessionId,
-          error: errorMessage,
+          error: userMessage,
           location,
           category,
-          message: `Hunt failed: ${errorMessage}`,
+          message: `Chasse échouée : ${userMessage}`,
         });
 
         throw error;

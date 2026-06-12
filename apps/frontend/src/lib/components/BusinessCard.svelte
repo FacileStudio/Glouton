@@ -81,7 +81,7 @@
         on:click={openInMaps}
         class="flex items-start gap-2 text-left w-full hover:text-yellow-600 transition-colors group/addr cursor-pointer"
       >
-        <iconify-icon icon="solar:map-point-linear" width="18" class="text-neutral-400 group-hover/addr:text-yellow-600 flex-shrink-0 mt-0.5"></iconify-icon>
+        <iconify-icon icon="solar:map-point-linear" width="18" class="text-neutral-400 group-hover/addr:text-yellow-600 shrink-0 mt-0.5"></iconify-icon>
         <span class="text-sm font-medium text-neutral-700 group-hover/addr:text-yellow-600">{business.address}</span>
       </button>
     {/if}

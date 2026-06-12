@@ -114,7 +114,7 @@
   >
     <div class="flex items-start justify-between gap-4 mb-5">
       <div class="flex items-center gap-3 min-w-0">
-        <div class="inline-flex size-9 items-center justify-center rounded-lg bg-muted text-foreground flex-shrink-0">
+        <div class="inline-flex size-9 items-center justify-center rounded-lg bg-muted text-foreground shrink-0">
           <iconify-icon icon="solar:shield-check-linear" width="18"></iconify-icon>
         </div>
         <div class="min-w-0">
@@ -144,7 +144,7 @@
         </div>
       </div>
 
-      <div class="flex items-center gap-4 flex-shrink-0">
+      <div class="flex items-center gap-4 shrink-0">
         <div class="text-right text-xs text-muted-foreground">
           <div>En cours : <span class="text-foreground font-medium">{elapsedTime}</span></div>
           <div>ETA : <span class="text-foreground font-medium">{eta}</span></div>

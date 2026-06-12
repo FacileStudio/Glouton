@@ -372,7 +372,7 @@
         </div>
       </div>
 
-      <div class="flex items-center gap-2 flex-shrink-0">
+      <div class="flex items-center gap-2 shrink-0">
         <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {
           details.status === 'FAILED' ? 'bg-destructive/10 text-destructive' : 'bg-muted text-foreground'
         }">
@@ -441,7 +441,7 @@
                 <div class="rounded-lg border border-border bg-background p-4 space-y-3 text-sm">
                   {#if details.filters.location}
                     <div class="flex justify-between items-start gap-2">
-                      <span class="text-muted-foreground flex-shrink-0">Localisation</span>
+                      <span class="text-muted-foreground shrink-0">Localisation</span>
                       <span class="font-medium text-foreground text-right">{details.filters.location}</span>
                     </div>
                   {/if}
@@ -656,7 +656,7 @@
             {#if details.error}
               <div class="rounded-lg bg-destructive/10 p-4">
                 <div class="flex items-start gap-2">
-                  <iconify-icon icon="solar:danger-linear" width="16" class="text-destructive flex-shrink-0 mt-0.5"></iconify-icon>
+                  <iconify-icon icon="solar:danger-linear" width="16" class="text-destructive shrink-0 mt-0.5"></iconify-icon>
                   <p class="text-sm text-destructive">{details.error}</p>
                 </div>
               </div>
@@ -727,11 +727,11 @@
               {:else}
                 {#each liveEvents as event (event.id)}
                   <div class="flex items-start gap-3 py-2 border-b border-border last:border-0" in:fly={{ y: -8, duration: 200 }}>
-                    <div class="flex-shrink-0 mt-1.5 w-1.5 h-1.5 rounded-full {event.level === 'error' ? 'bg-destructive' : 'bg-foreground'}"></div>
+                    <div class="shrink-0 mt-1.5 w-1.5 h-1.5 rounded-full {event.level === 'error' ? 'bg-destructive' : 'bg-foreground'}"></div>
                     <div class="flex-1 min-w-0">
                       <p class="text-sm text-foreground leading-snug">{event.message}</p>
                     </div>
-                    <span class="flex-shrink-0 text-xs font-mono text-muted-foreground">{formatTs(event.timestamp)}</span>
+                    <span class="shrink-0 text-xs font-mono text-muted-foreground">{formatTs(event.timestamp)}</span>
                   </div>
                 {/each}
               {/if}
@@ -746,7 +746,7 @@
             <div class="px-6 pb-6 space-y-2 max-h-[400px] overflow-y-auto">
               {#each discoveredItems as item (item.index)}
                 <div class="flex items-center gap-4 py-2.5 border-b border-border last:border-0" in:fly={{ y: -6, duration: 150 }}>
-                  <span class="text-xs font-mono text-muted-foreground w-8 flex-shrink-0">#{item.index}</span>
+                  <span class="text-xs font-mono text-muted-foreground w-8 shrink-0">#{item.index}</span>
                   <div class="flex-1 min-w-0">
                     <p class="font-medium text-foreground truncate text-sm">{item.organization || item.domain}</p>
                     {#if item.organization}
@@ -754,7 +754,7 @@
                     {/if}
                   </div>
                   {#if item.industry}
-                    <span class="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-foreground flex-shrink-0 truncate max-w-[120px]">{item.industry}</span>
+                    <span class="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-foreground shrink-0 truncate max-w-[120px]">{item.industry}</span>
                   {/if}
                 </div>
               {/each}
@@ -770,7 +770,7 @@
           <div class="px-6 pb-6 space-y-1 max-h-[500px] overflow-y-auto">
             {#each details.leads as lead}
               <div class="flex items-center gap-3 py-2.5 border-b border-border last:border-0 transition-colors hover:bg-muted/40 rounded-lg px-2 -mx-2">
-                <div class="size-9 rounded-lg border border-border flex items-center justify-center flex-shrink-0">
+                <div class="size-9 rounded-lg border border-border flex items-center justify-center shrink-0">
                   <iconify-icon icon="solar:user-linear" width="16" class="text-muted-foreground"></iconify-icon>
                 </div>
                 <div class="flex-1 min-w-0">
@@ -781,7 +781,7 @@
                     {lead.email || lead.domain || 'Aucune information de contact'}
                   </p>
                 </div>
-                <div class="flex items-center gap-2 flex-shrink-0">
+                <div class="flex items-center gap-2 shrink-0">
                   <span class="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-foreground">
                     {lead.status === 'HOT' ? 'Chaud' :
                      lead.status === 'WARM' ? 'Tiède' :

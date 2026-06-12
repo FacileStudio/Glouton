@@ -95,8 +95,14 @@ export default {
   },
 
   async triggerScrape({ jobs }: { jobs: QueueManager }) {
+    // Shared 10-minute cooldown: the time-bucketed jobId makes BullMQ ignore
+    // duplicate manual triggers while a run from the same window still exists.
+    const cooldownMs = 10 * 60 * 1000;
+    const bucket = Math.floor(Date.now() / cooldownMs);
     await jobs.addJob('opportunity-scraper', 'opportunity-scraper', { triggeredBy: 'manual' }, {
-      removeOnComplete: true,
+      jobId: `manual-${bucket}`,
+      removeOnComplete: { age: cooldownMs / 1000 },
+      removeOnFail: { age: cooldownMs / 1000 },
     });
     return { queued: true };
   },

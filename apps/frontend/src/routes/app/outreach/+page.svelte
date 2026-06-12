@@ -131,8 +131,8 @@
   async function checkSmtpConfiguration() {
     checkingSmtp = true;
     try {
-      const config = await trpc.team.getSmtpConfig.query({ teamId });
-      smtpConfigured = !!(config.smtpHost && config.smtpUser && config.smtpPass);
+      const status = await trpc.email.getSmtpStatus.query({ teamId });
+      smtpConfigured = status.configured;
     } catch (error) {
       console.error('[OUTREACH] Error checking SMTP config:', error);
       smtpConfigured = false;
@@ -316,7 +316,7 @@
 
   {#if !checkingSmtp && !smtpConfigured}
     <div class="rounded-xl border border-border bg-card p-4 flex items-start gap-3" transition:slide={{ duration: 200 }}>
-      <iconify-icon icon="solar:danger-triangle-linear" width="20" class="text-muted-foreground flex-shrink-0 mt-0.5"></iconify-icon>
+      <iconify-icon icon="solar:danger-triangle-linear" width="20" class="text-muted-foreground shrink-0 mt-0.5"></iconify-icon>
       <div class="flex-1 space-y-1">
         <h3 class="text-sm font-semibold text-foreground">Configuration SMTP manquante</h3>
         <p class="text-sm text-muted-foreground">
@@ -470,7 +470,7 @@
               onclick={() => togglePanel(lead)}
               class="w-full px-4 py-3 flex items-center gap-3 hover:bg-muted/50 transition-colors text-left {isExpanded ? 'bg-muted/30' : ''}"
             >
-              <div class="size-9 rounded-lg border border-border bg-background flex items-center justify-center overflow-hidden flex-shrink-0">
+              <div class="size-9 rounded-lg border border-border bg-background flex items-center justify-center overflow-hidden shrink-0">
                 <img
                   src={getFaviconUrl(getFaviconSource(lead), 64)}
                   alt="favicon"
@@ -497,7 +497,7 @@
                 <p class="text-xs text-muted-foreground mt-0.5">{lead.emailsSentCount} e-mail{lead.emailsSentCount !== 1 ? 's' : ''} envoyé{lead.emailsSentCount !== 1 ? 's' : ''}</p>
               </div>
 
-              <div class="flex items-center gap-3 flex-shrink-0">
+              <div class="flex items-center gap-3 shrink-0">
                 <span class="rounded-full px-2.5 py-0.5 text-xs font-medium {statusConfig.cls}">
                   {statusConfig.label}
                 </span>
@@ -523,7 +523,7 @@
                 <iconify-icon
                   icon={isExpanded ? 'solar:alt-arrow-up-linear' : 'solar:alt-arrow-down-linear'}
                   width="14"
-                  class="text-muted-foreground flex-shrink-0"
+                  class="text-muted-foreground shrink-0"
                 ></iconify-icon>
               </div>
             </button>
@@ -566,7 +566,7 @@
                               class="w-full text-left"
                             >
                               <div class="flex items-start gap-3 p-3 rounded-lg hover:bg-muted transition-colors">
-                                <div class="size-7 rounded-lg flex items-center justify-center flex-shrink-0 {getHistoryStatusColor(email.status)}">
+                                <div class="size-7 rounded-lg flex items-center justify-center shrink-0 {getHistoryStatusColor(email.status)}">
                                   <iconify-icon icon={getHistoryStatusIcon(email.status)} width="14"></iconify-icon>
                                 </div>
                                 <div class="flex-1 min-w-0">
@@ -584,7 +584,7 @@
                                 <iconify-icon
                                   icon={expandedEmailId === email.id ? 'solar:alt-arrow-up-linear' : 'solar:alt-arrow-down-linear'}
                                   width="12"
-                                  class="text-muted-foreground flex-shrink-0 mt-1"
+                                  class="text-muted-foreground shrink-0 mt-1"
                                 ></iconify-icon>
                               </div>
                             </button>
@@ -610,7 +610,7 @@
                       {:else}
                         {#if !smtpConfigured}
                           <div class="rounded-lg border border-border bg-muted/50 p-3 flex items-start gap-2">
-                            <iconify-icon icon="solar:danger-triangle-linear" width="16" class="text-muted-foreground flex-shrink-0 mt-0.5"></iconify-icon>
+                            <iconify-icon icon="solar:danger-triangle-linear" width="16" class="text-muted-foreground shrink-0 mt-0.5"></iconify-icon>
                             <div class="flex-1">
                               <p class="text-sm font-medium text-foreground">SMTP non configuré</p>
                               <p class="text-xs text-muted-foreground mt-0.5">

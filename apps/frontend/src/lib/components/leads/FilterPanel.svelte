@@ -106,7 +106,7 @@
     <button
       onclick={() => (filtersExpanded = !filtersExpanded)}
       aria-label={filtersExpanded ? 'Masquer les filtres' : 'Afficher les filtres'}
-      class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 text-sm font-medium transition-colors hover:bg-muted flex-shrink-0"
+      class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 text-sm font-medium transition-colors hover:bg-muted shrink-0"
     >
       <iconify-icon icon={filtersExpanded ? 'solar:alt-arrow-up-linear' : 'solar:filter-linear'} width="14"></iconify-icon>
       {filtersExpanded ? 'Masquer' : 'Filtres'}
@@ -114,7 +114,7 @@
     {#if hasActiveFilters}
       <button
         onclick={onReset}
-        class="inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground flex-shrink-0"
+        class="inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground shrink-0"
       >
         <iconify-icon icon="solar:restart-linear" width="14"></iconify-icon>
         Réinitialiser

@@ -6,6 +6,7 @@ import { validateRedisConfiguration } from '@repo/jobs';
 import { logger } from '@repo/logger';
 import corsHandler from './handlers/cors';
 import trpcHandler from './handlers/trpc';
+import { createAuthRoutes } from './handlers/auth';
 import { openApiHandler } from './handlers/openapi';
 import { apiReference } from '@scalar/hono-api-reference';
 import {
@@ -49,13 +50,16 @@ async function startup() {
     logger.info(`[CLEANUP] Orphaned sessions: ${orphaned.audits} audits, ${orphaned.hunts} hunts`);
   }
 
-  // Schedule opportunity scraper every 3 hours
+  // Schedule opportunity scraper every 3 hours (idempotent job scheduler)
   try {
-    await jobs.addJob('opportunity-scraper', 'opportunity-scraper', {}, {
-      repeat: { every: 3 * 60 * 60 * 1000 },
-      removeOnComplete: 5,
-      removeOnFail: 3,
-    });
+    await jobs.upsertScheduler(
+      'opportunity-scraper',
+      'opportunity-scraper-every-3h',
+      3 * 60 * 60 * 1000,
+      'opportunity-scraper',
+      {},
+      { removeOnComplete: 5, removeOnFail: 3 }
+    );
     // Trigger an immediate first run
     await jobs.addJob('opportunity-scraper', 'opportunity-scraper', { triggeredBy: 'startup' }, {
       delay: 5000,
@@ -150,6 +154,8 @@ app.post('/internal/broadcast', async (c) => {
     return c.json({ error: 'Invalid request' }, 400);
   }
 });
+
+app.route('/auth', createAuthRoutes(config.authManager));
 
 app.use('/trpc/auth.login', loginLimiter);
 app.use('/trpc/auth.register', registerLimiter);

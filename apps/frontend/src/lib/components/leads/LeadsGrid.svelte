@@ -70,7 +70,7 @@
       >
         <div class="flex items-start justify-between gap-3 mb-3">
           <div class="flex items-center gap-3 flex-1 min-w-0">
-            <div class="size-9 rounded-lg border border-border bg-background flex items-center justify-center overflow-hidden flex-shrink-0">
+            <div class="size-9 rounded-lg border border-border bg-background flex items-center justify-center overflow-hidden shrink-0">
               <img
                 src={getFaviconUrl(lead.domain, 64)}
                 alt="{lead.domain} favicon"
@@ -84,7 +84,7 @@
             </h3>
           </div>
 
-          <span class="text-sm font-medium text-foreground flex-shrink-0" title="Score: {lead.score}">
+          <span class="text-sm font-medium text-foreground shrink-0" title="Score: {lead.score}">
             {lead.score}
           </span>
         </div>
@@ -103,19 +103,19 @@
         <div class="space-y-1.5 mb-3">
           {#if lead.email}
             <div class="flex items-center gap-2 text-sm text-foreground min-w-0">
-              <iconify-icon icon="solar:letter-linear" width="14" class="text-muted-foreground flex-shrink-0"></iconify-icon>
+              <iconify-icon icon="solar:letter-linear" width="14" class="text-muted-foreground shrink-0"></iconify-icon>
               <span class="truncate" title={lead.email}>{lead.email}</span>
             </div>
           {/if}
           {#if lead.firstName || lead.lastName}
             <div class="flex items-center gap-2 text-sm text-foreground min-w-0">
-              <iconify-icon icon="solar:user-linear" width="14" class="text-muted-foreground flex-shrink-0"></iconify-icon>
+              <iconify-icon icon="solar:user-linear" width="14" class="text-muted-foreground shrink-0"></iconify-icon>
               <span class="truncate">{lead.firstName || ''} {lead.lastName || ''}</span>
             </div>
           {/if}
           {#if lead.city || lead.country}
             <div class="flex items-center gap-2 text-sm text-foreground min-w-0">
-              <iconify-icon icon="solar:map-point-linear" width="14" class="text-muted-foreground flex-shrink-0"></iconify-icon>
+              <iconify-icon icon="solar:map-point-linear" width="14" class="text-muted-foreground shrink-0"></iconify-icon>
               <span class="truncate">
                 {#if lead.city}{lead.city}{#if lead.country}, {/if}{/if}
                 {#if lead.country}{lead.country}{/if}

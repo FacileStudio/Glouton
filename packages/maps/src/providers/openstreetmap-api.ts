@@ -1,4 +1,5 @@
 import type { LocalBusiness, SearchResult, Coordinates } from '../types';
+import { MapsError, toMapsError } from '../errors';
 
 interface SearchOptions {
   location: string;
@@ -8,11 +9,26 @@ interface SearchOptions {
   hasWebsite?: boolean;
 }
 
-class OverpassApi {
-  private lastRequestTime: number = 0;
-  private minRequestInterval: number = 1000; 
+const USER_AGENT = 'Glouton-Maps/1.0 (+https://glouton.facile.studio)';
 
-  constructor(_config: any) {}
+/**
+ * Public Overpass mirrors, tried in order. When one is rate limited or
+ * unreachable it is put on cooldown and the next mirror takes over.
+ */
+const OVERPASS_ENDPOINTS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.private.coffee/api/interpreter',
+];
+
+const REQUEST_TIMEOUT_MS = 45_000;
+const RATE_LIMIT_COOLDOWN_MS = 60_000;
+const FAILURE_COOLDOWN_MS = 30_000;
+
+class OverpassApi {
+  private lastRequestTime = 0;
+  private minRequestInterval = 1000;
+  private cooldownUntil = new Map<string, number>();
 
   private async delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -22,118 +38,130 @@ class OverpassApi {
     const now = Date.now();
     const timeSinceLastRequest = now - this.lastRequestTime;
     if (timeSinceLastRequest < this.minRequestInterval) {
-      const waitTime = this.minRequestInterval - timeSinceLastRequest;
-      await this.delay(waitTime);
+      await this.delay(this.minRequestInterval - timeSinceLastRequest);
     }
     this.lastRequestTime = Date.now();
   }
 
-  async exec(query: string): Promise<any> {
-    const maxRetries = 3;
-    let lastError: Error | null = null;
+  /** Endpoints not currently on cooldown; falls back to all if every mirror is cooling down. */
+  private availableEndpoints(): string[] {
+    const now = Date.now();
+    const available = OVERPASS_ENDPOINTS.filter(
+      (endpoint) => (this.cooldownUntil.get(endpoint) ?? 0) <= now
+    );
+    return available.length > 0 ? available : [...OVERPASS_ENDPOINTS];
+  }
 
-    for (let attempt = 0; attempt < maxRetries; attempt++) {
-      try {
-        
-        await this.waitForRateLimit();
+  private putOnCooldown(endpoint: string, durationMs: number): void {
+    this.cooldownUntil.set(endpoint, Date.now() + durationMs);
+  }
 
-        const response = await fetch('https://overpass-api.de/api/interpreter', {
-          method: 'POST',
-          body: query,
-          headers: { 'Content-Type': 'text/plain' },
-        });
+  private async requestEndpoint(endpoint: string, query: string): Promise<any> {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      // Standard Overpass form encoding + explicit Accept/User-Agent: some
+      // mirrors answer 406 to anonymous text/plain POSTs.
+      body: `data=${encodeURIComponent(query)}`,
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json',
+        'User-Agent': USER_AGENT,
+      },
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
 
-        
-        if (!response.ok) {
-          const text = await response.text();
+    if (!response.ok) {
+      const text = await response.text().catch(() => '');
 
-          
-          if (response.status === 429) {
-            const retryDelay = Math.min(Math.pow(2, attempt + 1) * 1000, 30000); 
-            console.log(`[OverpassApi] Rate limited (429), waiting ${retryDelay}ms before retry ${attempt + 1}/${maxRetries}`);
-
-            if (attempt < maxRetries - 1) {
-              await this.delay(retryDelay);
-              
-              this.minRequestInterval = Math.min(this.minRequestInterval * 2, 10000);
-              continue;
-            }
-          }
-
-          throw new Error(`Overpass API returned ${response.status}: ${text.substring(0, 200)}`);
-        }
-
-      
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        
-        const text = await response.text();
-
-        
-        if (text.includes('rate_limited')) {
-          throw new Error('Overpass API rate limit exceeded. Please wait before retrying.');
-        }
-        if (text.includes('timeout')) {
-          throw new Error('Overpass API query timeout. Try reducing the search radius.');
-        }
-        if (text.includes('error') || text.includes('Error')) {
-          throw new Error(`Overpass API error: ${text.substring(0, 200)}`);
-        }
-
-        
-        try {
-          return JSON.parse(text);
-        } catch (parseError) {
-          throw new Error(`Overpass API returned non-JSON response: ${text.substring(0, 200)}`);
-        }
+      if (response.status === 429) {
+        throw new MapsError('RATE_LIMITED', `Overpass ${endpoint} returned 429`);
       }
+      if (response.status === 504 || text.includes('timeout')) {
+        throw new MapsError('TIMEOUT', `Overpass ${endpoint} returned ${response.status} (query timeout)`);
+      }
+      throw new MapsError(
+        'UNAVAILABLE',
+        `Overpass ${endpoint} returned ${response.status}: ${text.substring(0, 200)}`
+      );
+    }
 
-        const data = await response.json();
+    const text = await response.text();
 
-        
-        if (!data || typeof data !== 'object') {
-          throw new Error('Overpass API returned invalid data structure');
-        }
+    if (text.includes('rate_limited')) {
+      throw new MapsError('RATE_LIMITED', `Overpass ${endpoint} reported rate_limited`);
+    }
 
-        
+    let data: any;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      if (text.includes('timeout')) {
+        throw new MapsError('TIMEOUT', `Overpass ${endpoint} query timed out`);
+      }
+      throw new MapsError(
+        'INVALID_RESPONSE',
+        `Overpass ${endpoint} returned non-JSON response: ${text.substring(0, 200)}`
+      );
+    }
+
+    if (!data || typeof data !== 'object') {
+      throw new MapsError('INVALID_RESPONSE', `Overpass ${endpoint} returned invalid data structure`);
+    }
+
+    return data;
+  }
+
+  async exec(query: string): Promise<any> {
+    const maxAttempts = OVERPASS_ENDPOINTS.length * 2;
+    let lastError: MapsError | null = null;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const endpoints = this.availableEndpoints();
+      const endpoint = endpoints[attempt % endpoints.length];
+
+      await this.waitForRateLimit();
+
+      try {
+        const data = await this.requestEndpoint(endpoint, query);
+
+        // Recover the request pace after a successful call.
         if (this.minRequestInterval > 1000) {
           this.minRequestInterval = Math.max(1000, this.minRequestInterval / 2);
         }
 
         return data;
       } catch (error) {
-        lastError = error instanceof Error ? error : new Error('Unknown error occurred');
+        lastError = toMapsError(error);
+        console.warn(
+          `[OverpassApi] ${endpoint} failed (${lastError.code}), attempt ${attempt + 1}/${maxAttempts}: ${lastError.message}`
+        );
 
-        if (attempt < maxRetries - 1) {
-          
-          if (lastError.message.includes('Overpass API returned invalid data structure') ||
-              lastError.message.includes('non-JSON response')) {
+        switch (lastError.code) {
+          case 'RATE_LIMITED':
+            this.putOnCooldown(endpoint, RATE_LIMIT_COOLDOWN_MS);
+            this.minRequestInterval = Math.min(this.minRequestInterval * 2, 10_000);
+            break;
+          case 'NETWORK':
+          case 'UNAVAILABLE':
+          case 'INVALID_RESPONSE':
+            this.putOnCooldown(endpoint, FAILURE_COOLDOWN_MS);
+            break;
+          case 'TIMEOUT':
+            // Query too heavy: switching mirrors will not help, let the
+            // caller shrink the radius instead.
             throw lastError;
-          }
+        }
 
-          
-          if (lastError.message.includes('Failed to fetch')) {
-            const retryDelay = Math.min(Math.pow(2, attempt + 1) * 1000, 10000);
-            console.log(`[OverpassApi] Network error, waiting ${retryDelay}ms before retry ${attempt + 1}/${maxRetries}`);
-            await this.delay(retryDelay);
-            continue;
-          }
+        if (attempt < maxAttempts - 1) {
+          const backoff = Math.min(Math.pow(2, attempt) * 1000, 10_000);
+          await this.delay(backoff);
         }
       }
     }
 
-    
-    if (lastError) {
-      if (lastError.message.includes('Failed to fetch')) {
-        throw new Error('Failed to connect to Overpass API. Please check your internet connection.');
-      }
-      throw lastError;
-    }
-
-    throw new Error('Unknown error occurred while querying Overpass API');
+    throw lastError ?? new MapsError('UNAVAILABLE', 'Unknown error occurred while querying Overpass API');
   }
 }
-
 
 let openStreetMapServiceInstance: OpenStreetMapService | null = null;
 
@@ -143,15 +171,12 @@ export class OpenStreetMapService {
   private nominatimMinInterval: number = 1000;
 
   constructor() {
-    
+
     if (openStreetMapServiceInstance) {
       return openStreetMapServiceInstance;
     }
 
-    this.api = new OverpassApi({
-      endpoint: 'https://overpass-api.de/api',
-      rateLimitPadding: 1000,
-    });
+    this.api = new OverpassApi();
 
     openStreetMapServiceInstance = this;
   }
@@ -172,58 +197,64 @@ export class OpenStreetMapService {
 
   async geocode(location: string): Promise<Coordinates> {
     try {
-      
+
       await this.waitForNominatimRateLimit();
 
       const response = await fetch(
         `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(location)}&format=json&limit=1`,
         {
           headers: {
-            'User-Agent': 'Glouton-Maps/1.0',
+            'User-Agent': USER_AGENT,
+            'Accept': 'application/json',
           },
+          signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
         }
       );
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Nominatim API error (${response.status}): ${errorText.substring(0, 200)}`);
+        const errorText = await response.text().catch(() => '');
+        if (response.status === 429) {
+          throw new MapsError('RATE_LIMITED', `Nominatim returned 429`);
+        }
+        throw new MapsError(
+          'UNAVAILABLE',
+          `Nominatim API error (${response.status}): ${errorText.substring(0, 200)}`
+        );
       }
 
-      
-      const contentType = response.headers.get('content-type');
-      let data;
-
-      if (!contentType || !contentType.includes('application/json')) {
-        const text = await response.text();
-        try {
-          data = JSON.parse(text);
-        } catch (parseError) {
-          throw new Error(`Nominatim returned non-JSON response: ${text.substring(0, 200)}`);
-        }
-      } else {
-        data = await response.json();
+      const text = await response.text();
+      let data: any;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new MapsError(
+          'INVALID_RESPONSE',
+          `Nominatim returned non-JSON response: ${text.substring(0, 200)}`
+        );
       }
 
       if (!Array.isArray(data) || data.length === 0) {
-        throw new Error(`Could not geocode location: ${location}`);
+        throw new MapsError(
+          'GEOCODING_FAILED',
+          `Could not geocode location: ${location}`,
+          `Localisation « ${location} » introuvable. Vérifiez le nom de la ville et réessayez.`
+        );
       }
 
       const lat = parseFloat(data[0].lat);
       const lng = parseFloat(data[0].lon);
 
       if (isNaN(lat) || isNaN(lng)) {
-        throw new Error(`Invalid coordinates returned for location: ${location}`);
+        throw new MapsError(
+          'GEOCODING_FAILED',
+          `Invalid coordinates returned for location: ${location}`,
+          `Localisation « ${location} » introuvable. Vérifiez le nom de la ville et réessayez.`
+        );
       }
 
       return { lat, lng };
     } catch (error) {
-      if (error instanceof Error) {
-        if (error.message.includes('Failed to fetch')) {
-          throw new Error(`Cannot connect to Nominatim API. Please check your internet connection.`);
-        }
-        throw new Error(`Geocoding failed for "${location}": ${error.message}`);
-      }
-      throw new Error(`Geocoding failed: Unknown error`);
+      throw toMapsError(error);
     }
   }
 
@@ -337,12 +368,12 @@ export class OpenStreetMapService {
           response = await this.api.exec(query);
 
           if (!response || typeof response !== 'object') {
-            throw new Error('Invalid response structure from Overpass API');
+            throw new MapsError('INVALID_RESPONSE', 'Invalid response structure from Overpass API');
           }
         } catch (error) {
           lastError = error;
 
-          if (error instanceof Error && (error.message.includes('504') || error.message.includes('timeout'))) {
+          if (error instanceof MapsError && error.code === 'TIMEOUT') {
             console.log(`[OpenStreetMap] Query timed out, will retry with smaller radius`);
             continue;
           }
@@ -412,53 +443,48 @@ export class OpenStreetMapService {
         query: options.category,
       };
     } catch (error) {
-      throw new Error(`OpenStreetMap search failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw toMapsError(error);
     }
   }
 
   async reverseGeocode(coordinates: Coordinates): Promise<string> {
     try {
-      
+
       await this.waitForNominatimRateLimit();
 
       const response = await fetch(
         `https://nominatim.openstreetmap.org/reverse?lat=${coordinates.lat}&lon=${coordinates.lng}&format=json`,
         {
           headers: {
-            'User-Agent': 'Glouton-Maps/1.0',
+            'User-Agent': USER_AGENT,
+            'Accept': 'application/json',
           },
+          signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
         }
       );
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Nominatim API error (${response.status}): ${errorText.substring(0, 200)}`);
+        const errorText = await response.text().catch(() => '');
+        throw new MapsError(
+          'UNAVAILABLE',
+          `Nominatim API error (${response.status}): ${errorText.substring(0, 200)}`
+        );
       }
 
-      
-      const contentType = response.headers.get('content-type');
-      let data;
-
-      if (!contentType || !contentType.includes('application/json')) {
-        const text = await response.text();
-        try {
-          data = JSON.parse(text);
-        } catch (parseError) {
-          throw new Error(`Nominatim returned non-JSON response: ${text.substring(0, 200)}`);
-        }
-      } else {
-        data = await response.json();
+      const text = await response.text();
+      let data: any;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new MapsError(
+          'INVALID_RESPONSE',
+          `Nominatim returned non-JSON response: ${text.substring(0, 200)}`
+        );
       }
 
       return data.display_name || '';
     } catch (error) {
-      if (error instanceof Error) {
-        if (error.message.includes('Failed to fetch')) {
-          throw new Error(`Cannot connect to Nominatim API. Please check your internet connection.`);
-        }
-        throw new Error(`Reverse geocoding failed for (${coordinates.lat}, ${coordinates.lng}): ${error.message}`);
-      }
-      throw new Error(`Reverse geocoding failed: Unknown error`);
+      throw toMapsError(error);
     }
   }
 }

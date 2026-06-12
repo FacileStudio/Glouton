@@ -299,7 +299,7 @@
               </div>
               <button
                 onclick={() => { deleteModalOpen = true; deleteConfirmationText = ''; }}
-                class="inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors flex-shrink-0"
+                class="inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors shrink-0"
               >
                 <iconify-icon icon="solar:trash-bin-trash-linear" width="16"></iconify-icon>
                 Supprimer l'équipe

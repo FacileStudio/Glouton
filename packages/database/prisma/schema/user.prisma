@@ -4,6 +4,7 @@ model User {
   firstName          String    @db.Text
   lastName           String    @db.Text
   password           String    @db.Text
+  avatarUrl          String?   @db.Text
   emailVerified      Boolean   @default(false)
   role               UserRole  @default(USER)
   isPremium          Boolean   @default(false)

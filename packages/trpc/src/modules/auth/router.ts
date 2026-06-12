@@ -1,14 +1,26 @@
+import { TRPCError } from '@trpc/server';
 import { router, publicProcedure, protectedProcedure } from '../../trpc';
 import { loginSchema, registerSchema } from '@repo/auth-shared';
 import authService from './service';
 import { z } from 'zod';
 
+const assertPasswordAuthEnabled = (ctx: { env: { SSO_ONLY?: boolean } }) => {
+  if (ctx.env.SSO_ONLY) {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message: 'Password authentication is disabled, use SSO',
+    });
+  }
+};
+
 export const authRouter = router({
   login: publicProcedure.input(loginSchema).mutation(async ({ ctx, input }) => {
+    assertPasswordAuthEnabled(ctx);
     return authService.login(ctx.auth, input);
   }),
 
   register: publicProcedure.input(registerSchema).mutation(async ({ ctx, input }) => {
+    assertPasswordAuthEnabled(ctx);
     return authService.register(ctx.auth, input);
   }),
 

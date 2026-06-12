@@ -136,7 +136,7 @@
         >
           <td class="px-6 py-3">
             <div class="flex items-center gap-3">
-              <div class="size-8 rounded-lg border border-border bg-background flex items-center justify-center overflow-hidden flex-shrink-0">
+              <div class="size-8 rounded-lg border border-border bg-background flex items-center justify-center overflow-hidden shrink-0">
                 <img
                   src={getFaviconUrl(lead.domain, 64)}
                   alt="{lead.domain} favicon"

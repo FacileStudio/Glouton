@@ -3,11 +3,22 @@ import { router, protectedProcedure } from '../../trpc';
 import { EmailService } from './service';
 import { getAllTemplates, renderTemplate } from '@repo/smtp';
 import { resolveScope } from '../../utils/scope';
+import { getSmtpConfig } from '../../utils/api-keys';
 
 export const emailRouter = router({
   getTemplates: protectedProcedure.query(async () => {
     return getAllTemplates();
   }),
+
+  // Single source of truth for "can this scope send emails?" — uses the exact
+  // same resolution as sending (team SMTP, falling back to personal SMTP).
+  getSmtpStatus: protectedProcedure
+    .input(z.object({ teamId: z.string().uuid().optional() }).optional())
+    .query(async ({ ctx, input }) => {
+      const scope = await resolveScope(ctx.prisma, ctx.user.id, input?.teamId);
+      const config = await getSmtpConfig(ctx.prisma, scope, ctx.auth);
+      return { configured: config !== null };
+    }),
 
   previewEmail: protectedProcedure
     .input(

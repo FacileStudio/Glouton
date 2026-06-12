@@ -120,7 +120,7 @@
             onclick={() => handleTeamClick(team.id)}
             class="w-full px-4 py-3 flex items-center gap-3 hover:bg-muted/50 transition-colors text-left"
           >
-            <div class="size-9 rounded-lg border border-border bg-background flex items-center justify-center text-foreground text-sm font-medium flex-shrink-0">
+            <div class="size-9 rounded-lg border border-border bg-background flex items-center justify-center text-foreground text-sm font-medium shrink-0">
               {team.name[0].toUpperCase()}
             </div>
 

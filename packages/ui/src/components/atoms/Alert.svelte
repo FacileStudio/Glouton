@@ -35,14 +35,14 @@
 
 {#if visible}
     <div class={alertClass({ variant, class: className })}>
-        <iconify-icon icon={icons[variant || 'info']} width="20" class="flex-shrink-0 mt-0.5"></iconify-icon>
+        <iconify-icon icon={icons[variant || 'info']} width="20" class="shrink-0 mt-0.5"></iconify-icon>
         <div class="flex-1">
             <slot />
         </div>
         {#if dismissible}
             <button
                 on:click={() => visible = false}
-                class="flex-shrink-0 hover:opacity-70 hover:scale-110 transition-all duration-200 cursor-pointer"
+                class="shrink-0 hover:opacity-70 hover:scale-110 transition-all duration-200 cursor-pointer"
                 aria-label="Dismiss"
             >
                 <iconify-icon icon="solar:close-circle-line-duotone" width="20"></iconify-icon>

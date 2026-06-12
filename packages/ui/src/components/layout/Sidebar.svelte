@@ -3,7 +3,6 @@
   export let items: { label: string; icon: string; href: string }[] = [];
   export let activeHref = '/';
   export let resolvePath: (path: string) => string = (path) => path;
-  export let settingsHref: string | undefined = undefined;
   export let userHref: string | undefined = undefined;
   export let logoSrc: string | undefined = undefined;
   export let logoIcon = 'solar:magnet-wave-bold-duotone';
@@ -45,20 +44,6 @@
         <span>{item.label}</span>
       </a>
     {/each}
-
-    {#if settingsHref}
-      <a
-        href={resolvePath(settingsHref)}
-        data-sveltekit-reload
-        class="flex h-9 items-center gap-2 rounded-lg px-3 text-sm transition-colors
-        {activeHref.startsWith(settingsHref)
-          ? 'bg-muted text-foreground font-medium'
-          : 'text-muted-foreground hover:bg-muted hover:text-foreground'}"
-      >
-        <iconify-icon icon="solar:settings-linear" width="16"></iconify-icon>
-        <span>Paramètres</span>
-      </a>
-    {/if}
   </nav>
 
   <div class="mt-auto flex flex-col gap-2 border-t border-border p-3">
@@ -69,7 +54,7 @@
       class="flex items-center gap-3 rounded-lg border border-border/70 bg-muted/40 p-2 transition-colors {userHref ? 'hover:bg-muted' : ''}"
     >
       <div
-        class="flex h-9 w-9 flex-shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-foreground text-xs font-semibold text-background"
+        class="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-foreground text-xs font-semibold text-background"
       >
         <slot name="user-avatar" />
       </div>
