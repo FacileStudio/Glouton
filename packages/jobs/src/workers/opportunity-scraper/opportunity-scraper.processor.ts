@@ -1,6 +1,6 @@
 import { prisma } from '@repo/database';
 import type { ScraperStats, OpportunityScraperResult, ScrapeProgress } from './opportunity-scraper.types';
-import type { ScrapedOpportunity } from './scrapers/types';
+import { type ScrapedOpportunity, decodeEntities } from './scrapers/types';
 import { scrapeRemotive } from './scrapers/remotive';
 import { scrapeRemoteOK } from './scrapers/remoteok';
 import { scrapeWeWorkRemotely } from './scrapers/weworkremotely';
@@ -107,30 +107,57 @@ export class OpportunityScraperProcessor {
     return `${normalize(opp.title)}::${normalize(opp.company ?? '')}`;
   }
 
-  private async upsertOpportunity(opp: ScrapedOpportunity): Promise<void> {
+  // Last line of defense against HTML entities slipping through a scraper
+  // (e.g. tags like "Creative &amp; Design").
+  private sanitize(opp: ScrapedOpportunity): ScrapedOpportunity {
+    const clean = (s: string) => decodeEntities(s).trim();
+    return {
+      ...opp,
+      title: clean(opp.title),
+      description: clean(opp.description),
+      company: opp.company ? clean(opp.company) : opp.company,
+      location: opp.location ? clean(opp.location) : opp.location,
+      tags: [...new Set(opp.tags.map(clean).filter(Boolean))],
+    };
+  }
+
+  private async upsertOpportunity(rawOpp: ScrapedOpportunity): Promise<void> {
+    const opp = this.sanitize(rawOpp);
+
+    // Shared between create and update: re-scraped rows get refreshed data
+    // (cleaned entities, newly scraped detail fields) instead of staying
+    // frozen at their first version.
+    const refreshed = {
+      title: opp.title,
+      description: opp.description,
+      company: opp.company ?? null,
+      tags: opp.tags,
+      budget: opp.budget ?? null,
+      budgetMin: opp.budgetMin ?? null,
+      budgetMax: opp.budgetMax ?? null,
+      currency: opp.currency ?? null,
+      location: opp.location ?? null,
+      isRemote: opp.isRemote,
+      relevanceScore: opp.relevanceScore,
+      companyLogo: opp.companyLogo ?? null,
+      contractType: opp.contractType ?? null,
+      experienceLevel: opp.experienceLevel ?? null,
+      duration: opp.duration ?? null,
+    };
+
     await prisma.opportunity.upsert({
       where: { sourceId: opp.sourceId },
       create: {
-        title: opp.title,
-        description: opp.description,
-        company: opp.company ?? null,
+        ...refreshed,
         sourceId: opp.sourceId,
         sourcePlatform: opp.sourcePlatform as any,
         sourceUrl: opp.sourceUrl,
         category: opp.category as any,
-        tags: opp.tags,
-        budget: opp.budget ?? null,
-        budgetMin: opp.budgetMin ?? null,
-        budgetMax: opp.budgetMax ?? null,
-        currency: opp.currency ?? null,
-        location: opp.location ?? null,
-        isRemote: opp.isRemote,
         postedAt: opp.postedAt,
-        relevanceScore: opp.relevanceScore,
         applicantCount: opp.applicantCount ?? null,
       },
       update: {
-        relevanceScore: opp.relevanceScore,
+        ...refreshed,
         ...(opp.applicantCount !== undefined ? { applicantCount: opp.applicantCount } : {}),
         updatedAt: new Date(),
       },

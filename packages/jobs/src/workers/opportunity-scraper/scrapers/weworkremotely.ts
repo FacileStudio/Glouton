@@ -37,6 +37,7 @@ export async function scrapeWeWorkRemotely(): Promise<ScrapedOpportunity[]> {
           sourceUrl: item.link ?? '',
           category: detectCategory(item.title ?? '', desc),
           tags: item.category ? [item.category] : [],
+          location: item.region || undefined,
           isRemote: true,
           postedAt: parseRssDate(item.pubDate ?? ''),
           relevanceScore: score,

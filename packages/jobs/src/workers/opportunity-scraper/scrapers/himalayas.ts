@@ -7,6 +7,7 @@ interface HimalayasJob {
   description?: string;
   companyName?: string;
   companySlug?: string;
+  companyLogo?: string;
   employmentType?: string;
   minSalary?: number | null;
   maxSalary?: number | null;
@@ -53,7 +54,7 @@ export async function scrapeHimalayas(): Promise<ScrapedOpportunity[]> {
         sourcePlatform: 'HIMALAYAS',
         sourceUrl: job.applicationLink || `https://himalayas.app/companies/${job.companySlug ?? ''}`,
         category: detectCategory(job.title, desc),
-        tags: [...(job.categories ?? []), ...(job.seniority ?? [])],
+        tags: job.categories ?? [],
         budget,
         budgetMin: job.minSalary ?? undefined,
         budgetMax: job.maxSalary ?? undefined,
@@ -62,6 +63,9 @@ export async function scrapeHimalayas(): Promise<ScrapedOpportunity[]> {
         isRemote: true,
         postedAt: job.pubDate ? new Date(job.pubDate * 1000) : new Date(),
         relevanceScore: score,
+        companyLogo: job.companyLogo || undefined,
+        contractType: job.employmentType || undefined,
+        experienceLevel: job.seniority?.join(', ') || undefined,
       });
     }
   } catch (err) {

@@ -7,7 +7,7 @@ interface FreeWorkJobPosting {
   slug: string;
   description?: string;
   candidateProfile?: string;
-  company?: { name?: string };
+  company?: { name?: string; logo?: { small?: string; medium?: string } };
   skills?: Array<{ name?: string }>;
   minDailySalary?: number | null;
   maxDailySalary?: number | null;
@@ -16,7 +16,9 @@ interface FreeWorkJobPosting {
   currency?: string;
   remoteMode?: string;
   duration?: number | null;
+  durationValue?: number | null;
   durationPeriod?: string | null;
+  renewable?: boolean;
   publishedAt?: string;
   contracts?: string[];
   experienceLevel?: string;
@@ -87,6 +89,10 @@ export async function scrapeFreeWork(): Promise<ScrapedOpportunity[]> {
           isRemote,
           postedAt: new Date(job.publishedAt ?? Date.now()),
           relevanceScore: score,
+          companyLogo: job.company?.logo?.medium || job.company?.logo?.small || undefined,
+          contractType: formatContracts(job.contracts) || undefined,
+          experienceLevel: formatExperience(job.experienceLevel) || undefined,
+          duration: formatDuration(job) || undefined,
         });
       }
     } catch (err) {
@@ -108,4 +114,44 @@ function formatBudget(job: FreeWorkJobPosting): string | null {
   }
   if (job.minAnnualSalary) return `${job.minAnnualSalary}${currency}/an`;
   return null;
+}
+
+const CONTRACT_LABELS: Record<string, string> = {
+  contractor: 'Freelance',
+  permanent: 'CDI',
+  'fixed-term': 'CDD',
+  apprenticeship: 'Alternance',
+  internship: 'Stage',
+};
+
+function formatContracts(contracts?: string[]): string | null {
+  if (!contracts?.length) return null;
+  return contracts.map((c) => CONTRACT_LABELS[c] ?? c).join(' / ');
+}
+
+const EXPERIENCE_LABELS: Record<string, string> = {
+  junior: 'Junior (0-2 ans)',
+  intermediate: 'Confirmé (3-5 ans)',
+  senior: 'Senior (6-10 ans)',
+  expert: 'Expert (10+ ans)',
+};
+
+function formatExperience(level?: string): string | null {
+  if (!level) return null;
+  return EXPERIENCE_LABELS[level] ?? level;
+}
+
+const PERIOD_LABELS: Record<string, { singular: string; plural: string }> = {
+  day: { singular: 'jour', plural: 'jours' },
+  week: { singular: 'semaine', plural: 'semaines' },
+  month: { singular: 'mois', plural: 'mois' },
+  year: { singular: 'an', plural: 'ans' },
+};
+
+function formatDuration(job: FreeWorkJobPosting): string | null {
+  const value = job.durationValue ?? job.duration;
+  if (!value || !job.durationPeriod) return null;
+  const period = PERIOD_LABELS[job.durationPeriod];
+  const label = period ? (value > 1 ? period.plural : period.singular) : job.durationPeriod;
+  return `${value} ${label}${job.renewable ? ' (renouvelable)' : ''}`;
 }

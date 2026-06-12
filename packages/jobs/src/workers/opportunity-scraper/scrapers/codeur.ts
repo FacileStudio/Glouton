@@ -29,7 +29,10 @@ export async function scrapeCodeur(): Promise<ScrapedOpportunity[]> {
         if (!id || seen.has(id)) continue;
         seen.add(id);
 
-        const desc = stripHtml(item.description ?? '');
+        // The first RSS paragraph carries structured metadata:
+        // "<p>Budget : 500 € à 1 000 € - Catégories : WordPress, SEO</p>"
+        const meta = parseMeta(item.description ?? '');
+        const desc = stripHtml(stripMetaAndFooter(item.description ?? ''));
         const score = scoreOpportunity(item.title ?? '', desc, false);
         if (score < 10) continue;
 
@@ -40,11 +43,16 @@ export async function scrapeCodeur(): Promise<ScrapedOpportunity[]> {
           sourcePlatform: 'CODEUR',
           sourceUrl: item.link ?? '',
           category: detectCategory(item.title ?? '', desc),
-          tags: ['codeur', 'france'],
+          tags: meta.categories.length > 0 ? meta.categories : ['codeur', 'france'],
+          budget: meta.budget || undefined,
+          budgetMin: meta.budgetMin,
+          budgetMax: meta.budgetMax,
+          currency: meta.budget ? 'EUR' : undefined,
           location: 'France',
           isRemote: true,
           postedAt: parseRssDate(item.pubDate ?? ''),
           relevanceScore: score,
+          contractType: 'Freelance',
         });
       }
     } catch (err) {
@@ -55,6 +63,51 @@ export async function scrapeCodeur(): Promise<ScrapedOpportunity[]> {
   await enrichWithOfferCounts(results);
 
   return results;
+}
+
+interface CodeurMeta {
+  budget: string | null;
+  budgetMin?: number;
+  budgetMax?: number;
+  categories: string[];
+}
+
+function parseMeta(html: string): CodeurMeta {
+  const meta: CodeurMeta = { budget: null, categories: [] };
+
+  const match = html.match(/<p>\s*Budget\s*:\s*([^<]+?)\s*-\s*Catégories?\s*:\s*([^<]+?)\s*<\/p>/i);
+  if (!match) return meta;
+
+  meta.budget = stripHtml(match[1]);
+  meta.categories = match[2]
+    .split(',')
+    .map((c) => stripHtml(c))
+    .filter(Boolean);
+
+  // "Moins de 500 €" / "500 € à 1 000 €" / "Plus de 10 000 €"
+  const amounts = (meta.budget.match(/[\d\s .]+/g) ?? [])
+    .map((n) => parseInt(n.replace(/[\s .]/g, ''), 10))
+    .filter((n) => Number.isFinite(n) && n > 0);
+  if (/moins de/i.test(meta.budget) && amounts[0]) {
+    meta.budgetMax = amounts[0];
+  } else if (/plus de/i.test(meta.budget) && amounts[0]) {
+    meta.budgetMin = amounts[0];
+  } else if (amounts.length >= 2) {
+    meta.budgetMin = Math.min(...amounts);
+    meta.budgetMax = Math.max(...amounts);
+  } else if (amounts.length === 1) {
+    meta.budgetMax = amounts[0];
+  }
+
+  return meta;
+}
+
+// Drop the metadata paragraph and the trailing "Voir ce projet sur Codeur"
+// link so the stored description only contains the actual project brief.
+function stripMetaAndFooter(html: string): string {
+  return html
+    .replace(/<p>\s*Budget\s*:[^<]*<\/p>/i, ' ')
+    .replace(/<p>\s*<a[^>]*>\s*Voir ce projet sur Codeur\s*<\/a>\s*<\/p>/i, ' ');
 }
 
 // Codeur project pages show how many freelancers already made an offer

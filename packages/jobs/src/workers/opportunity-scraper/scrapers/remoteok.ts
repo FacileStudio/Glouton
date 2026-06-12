@@ -1,4 +1,4 @@
-import { type ScrapedOpportunity, safeFetch } from './types';
+import { type ScrapedOpportunity, safeFetch, stripHtml } from './types';
 import { scoreOpportunity, detectCategory } from './scoring';
 
 interface RemoteOkJob {
@@ -6,6 +6,8 @@ interface RemoteOkJob {
   url: string;
   position: string;
   company: string;
+  company_logo?: string;
+  logo?: string;
   tags: string[];
   date: string;
   description: string;
@@ -54,6 +56,7 @@ export async function scrapeRemoteOK(): Promise<ScrapedOpportunity[]> {
           isRemote: true,
           postedAt: new Date(parseInt(job.date ?? '0') * 1000 || Date.now()),
           relevanceScore: score,
+          companyLogo: job.company_logo || job.logo || undefined,
         });
       }
     } catch (err) {
@@ -62,8 +65,4 @@ export async function scrapeRemoteOK(): Promise<ScrapedOpportunity[]> {
   }
 
   return results;
-}
-
-function stripHtml(html: string): string {
-  return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 }

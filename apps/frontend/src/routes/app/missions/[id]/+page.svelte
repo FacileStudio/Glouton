@@ -26,9 +26,15 @@
     postedAt: string;
     relevanceScore: number;
     applicantCount: number | null;
+    companyLogo: string | null;
+    contractType: string | null;
+    experienceLevel: string | null;
+    duration: string | null;
     createdAt: string;
     tier: Tier;
   }
+
+  let logoFailed = $state(false);
 
   let opportunity = $state<Opportunity | null>(null);
   let loading = $state(true);
@@ -192,7 +198,17 @@
         {/if}
       </div>
 
-      <h1 class="text-2xl font-bold tracking-tight">{opportunity.title}</h1>
+      <div class="flex items-center gap-4">
+        {#if opportunity.companyLogo && !logoFailed}
+          <img
+            src={opportunity.companyLogo}
+            alt={opportunity.company ?? 'Logo'}
+            class="size-12 rounded-lg border border-border bg-background object-contain shrink-0"
+            onerror={() => (logoFailed = true)}
+          />
+        {/if}
+        <h1 class="text-2xl font-bold tracking-tight">{opportunity.title}</h1>
+      </div>
 
       <div class="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
         {#if opportunity.company}
@@ -215,6 +231,24 @@
           <span class="flex items-center gap-1.5">
             <iconify-icon icon="solar:home-wifi-linear" width="15"></iconify-icon>
             Remote
+          </span>
+        {/if}
+        {#if opportunity.contractType}
+          <span class="flex items-center gap-1.5">
+            <iconify-icon icon="solar:case-minimalistic-linear" width="15"></iconify-icon>
+            {opportunity.contractType}
+          </span>
+        {/if}
+        {#if opportunity.experienceLevel}
+          <span class="flex items-center gap-1.5">
+            <iconify-icon icon="solar:medal-ribbons-star-linear" width="15"></iconify-icon>
+            {opportunity.experienceLevel}
+          </span>
+        {/if}
+        {#if opportunity.duration}
+          <span class="flex items-center gap-1.5">
+            <iconify-icon icon="solar:hourglass-line-linear" width="15"></iconify-icon>
+            {opportunity.duration}
           </span>
         {/if}
         {#if formatBudget(opportunity)}

@@ -17,6 +17,14 @@ export interface ScrapedOpportunity {
   relevanceScore: number;
   /** Number of people already applying / bidding, when the source exposes it */
   applicantCount?: number;
+  /** Company logo URL, when the source exposes it */
+  companyLogo?: string;
+  /** Contract type, e.g. "Freelance", "CDI", "Temps plein" */
+  contractType?: string;
+  /** Required experience level, e.g. "Junior", "Senior" */
+  experienceLevel?: string;
+  /** Mission duration, e.g. "3 mois (renouvelable)" */
+  duration?: string;
 }
 
 export async function safeFetch(url: string, options?: RequestInit): Promise<Response> {
@@ -53,17 +61,57 @@ export function extractTextBetween(html: string, open: string, close: string): s
   return html.slice(start + open.length, end).trim();
 }
 
+const NAMED_ENTITIES: Record<string, string> = {
+  lt: '<',
+  gt: '>',
+  quot: '"',
+  apos: "'",
+  nbsp: ' ',
+  eacute: 'é',
+  egrave: 'è',
+  ecirc: 'ê',
+  agrave: 'à',
+  acirc: 'â',
+  ccedil: 'ç',
+  ocirc: 'ô',
+  icirc: 'î',
+  ucirc: 'û',
+  ugrave: 'ù',
+  euml: 'ë',
+  iuml: 'ï',
+  rsquo: "'",
+  lsquo: "'",
+  rdquo: '"',
+  ldquo: '"',
+  ndash: '–',
+  mdash: '—',
+  hellip: '…',
+  euro: '€',
+  copy: '©',
+  reg: '®',
+  trade: '™',
+};
+
+/**
+ * Decode HTML entities (numeric + common named ones). `&amp;` is decoded
+ * last so double-encoded text ("Creative &amp;amp; Design") degrades
+ * gracefully instead of re-introducing entities.
+ */
+export function decodeEntities(text: string): string {
+  return text
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex) => {
+      try { return String.fromCodePoint(parseInt(hex, 16)); } catch { return ' '; }
+    })
+    .replace(/&#(\d+);/g, (_, dec) => {
+      try { return String.fromCodePoint(parseInt(dec, 10)); } catch { return ' '; }
+    })
+    .replace(/&([a-z]+);/gi, (match, name) => NAMED_ENTITIES[name.toLowerCase()] ?? match)
+    .replace(/&amp;/g, '&');
+}
+
 export function stripHtml(html: string): string {
-  return html
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&nbsp;/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+  const text = html.replace(/<[^>]+>/g, ' ');
+  return decodeEntities(text).replace(/\s+/g, ' ').trim();
 }
 
 export function parseRssItems(xml: string): Array<Record<string, string>> {
@@ -73,7 +121,7 @@ export function parseRssItems(xml: string): Array<Record<string, string>> {
   while ((match = itemRegex.exec(xml)) !== null) {
     const block = match[1];
     const item: Record<string, string> = {};
-    const fields = ['title', 'link', 'description', 'pubDate', 'guid', 'author', 'category'];
+    const fields = ['title', 'link', 'description', 'pubDate', 'guid', 'author', 'category', 'region'];
     for (const field of fields) {
       const cdataMatch = block.match(new RegExp(`<${field}[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]><\\/${field}>`, 'i'));
       if (cdataMatch) {

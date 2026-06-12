@@ -9,6 +9,7 @@ interface JobicyJob {
   jobSlug: string;
   jobTitle: string;
   companyName: string;
+  companyLogo?: string;
   jobIndustry?: string[] | string;
   jobType?: string[] | string;
   jobGeo?: string;
@@ -51,15 +52,14 @@ export async function scrapeJobicy(): Promise<ScrapedOpportunity[]> {
           sourcePlatform: 'JOBICY',
           sourceUrl: job.url,
           category: detectCategory(job.jobTitle, desc),
-          tags: [
-            ...toArray(job.jobIndustry),
-            ...toArray(job.jobType),
-            ...(job.jobLevel ? [job.jobLevel] : []),
-          ],
+          tags: toArray(job.jobIndustry),
           location: job.jobGeo || undefined,
           isRemote: true,
           postedAt: new Date(job.pubDate ?? Date.now()),
           relevanceScore: score,
+          companyLogo: job.companyLogo || undefined,
+          contractType: toArray(job.jobType).join(', ') || undefined,
+          experienceLevel: job.jobLevel && job.jobLevel !== 'Any' ? job.jobLevel : undefined,
         });
       }
     } catch (err) {

@@ -1,4 +1,4 @@
-import { type ScrapedOpportunity, safeFetch } from './types';
+import { type ScrapedOpportunity, safeFetch, stripHtml } from './types';
 import { scoreOpportunity, detectCategory } from './scoring';
 
 interface RemotiveJob {
@@ -6,6 +6,7 @@ interface RemotiveJob {
   url: string;
   title: string;
   company_name: string;
+  company_logo: string;
   category: string;
   tags: string[];
   job_type: string;
@@ -14,6 +15,14 @@ interface RemotiveJob {
   salary: string;
   description: string;
 }
+
+const JOB_TYPE_LABELS: Record<string, string> = {
+  full_time: 'Temps plein',
+  part_time: 'Temps partiel',
+  contract: 'Contrat / Freelance',
+  freelance: 'Freelance',
+  internship: 'Stage',
+};
 
 const CATEGORIES = [
   'software-dev',
@@ -33,19 +42,20 @@ export async function scrapeRemotive(): Promise<ScrapedOpportunity[]> {
       const data = await res.json() as { jobs: RemotiveJob[] };
 
       for (const job of data.jobs ?? []) {
-        const score = scoreOpportunity(job.title, job.description, true);
+        const desc = stripHtml(job.description ?? '');
+        const score = scoreOpportunity(job.title, desc, true);
         if (score < 15) continue;
 
         const salary = parseSalary(job.salary);
 
         results.push({
           title: job.title,
-          description: job.description.slice(0, 2000),
+          description: desc.slice(0, 2000),
           company: job.company_name,
           sourceId: `remotive-${job.id}`,
           sourcePlatform: 'REMOTIVE',
           sourceUrl: job.url,
-          category: detectCategory(job.title, job.description),
+          category: detectCategory(job.title, desc),
           tags: job.tags ?? [],
           budget: job.salary || undefined,
           budgetMin: salary.min,
@@ -55,6 +65,8 @@ export async function scrapeRemotive(): Promise<ScrapedOpportunity[]> {
           isRemote: true,
           postedAt: new Date(job.publication_date),
           relevanceScore: score,
+          companyLogo: job.company_logo || undefined,
+          contractType: JOB_TYPE_LABELS[job.job_type] ?? job.job_type ?? undefined,
         });
       }
     } catch (err) {
