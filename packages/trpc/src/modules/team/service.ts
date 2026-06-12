@@ -56,7 +56,7 @@ export const teamService = {
     if (!team) {
       throw new TRPCError({
         code: 'NOT_FOUND',
-        message: 'Team not found',
+        message: 'Équipe introuvable',
       });
     }
 
@@ -190,19 +190,21 @@ export const teamService = {
     if (role === TeamRole.OWNER) {
       throw new TRPCError({
         code: 'BAD_REQUEST',
-        message: 'Cannot add members with OWNER role. Transfer ownership instead.',
+        message: "Impossible d'ajouter un membre avec le rôle propriétaire.",
       });
     }
 
-    const targetUser = await prisma.user.findUnique({
-      where: { email },
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const targetUser = await prisma.user.findFirst({
+      where: { email: { equals: normalizedEmail, mode: 'insensitive' } },
       select: { id: true, email: true, firstName: true, lastName: true },
     });
 
     if (!targetUser) {
       throw new TRPCError({
         code: 'NOT_FOUND',
-        message: 'User with this email not found',
+        message: `Aucun compte trouvé pour ${normalizedEmail}. Cette personne doit d'abord créer un compte, puis vous pourrez l'ajouter.`,
       });
     }
 
@@ -218,7 +220,7 @@ export const teamService = {
     if (existingMember) {
       throw new TRPCError({
         code: 'BAD_REQUEST',
-        message: 'User is already a team member',
+        message: "Cette personne fait déjà partie de l'équipe.",
       });
     }
 
@@ -260,21 +262,21 @@ export const teamService = {
     if (!targetMember) {
       throw new TRPCError({
         code: 'NOT_FOUND',
-        message: 'User is not a team member',
+        message: "Cet utilisateur n'est pas membre de l'équipe.",
       });
     }
 
     if (targetMember.role === TeamRole.OWNER) {
       throw new TRPCError({
         code: 'FORBIDDEN',
-        message: 'Cannot remove team owner. Transfer ownership first.',
+        message: "Impossible de retirer le propriétaire de l'équipe.",
       });
     }
 
     if (requesterId === targetUserId) {
       throw new TRPCError({
         code: 'BAD_REQUEST',
-        message: 'Use leaveTeam to remove yourself from the team',
+        message: 'Utilisez « Quitter l\'équipe » pour vous retirer vous-même.',
       });
     }
 
@@ -298,10 +300,17 @@ export const teamService = {
   ) => {
     await checkTeamPermission(requesterId, teamId, TeamRole.OWNER);
 
+    if (newRole === TeamRole.OWNER) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: "Impossible de promouvoir un membre propriétaire : chaque équipe n'a qu'un seul propriétaire.",
+      });
+    }
+
     if (requesterId === targetUserId) {
       throw new TRPCError({
         code: 'BAD_REQUEST',
-        message: 'Cannot change your own role',
+        message: 'Vous ne pouvez pas modifier votre propre rôle.',
       });
     }
 
@@ -327,7 +336,14 @@ export const teamService = {
     if (!targetMember) {
       throw new TRPCError({
         code: 'NOT_FOUND',
-        message: 'User is not a team member',
+        message: "Cet utilisateur n'est pas membre de l'équipe.",
+      });
+    }
+
+    if (targetMember.role === TeamRole.OWNER) {
+      throw new TRPCError({
+        code: 'FORBIDDEN',
+        message: "Impossible de modifier le rôle du propriétaire de l'équipe.",
       });
     }
 
@@ -365,7 +381,7 @@ export const teamService = {
     if (!member) {
       throw new TRPCError({
         code: 'NOT_FOUND',
-        message: 'You are not a member of this team',
+        message: "Vous n'êtes pas membre de cette équipe.",
       });
     }
 
@@ -378,7 +394,7 @@ export const teamService = {
         throw new TRPCError({
           code: 'BAD_REQUEST',
           message:
-            'Cannot leave team as owner. Transfer ownership or delete the team first.',
+            "Le propriétaire ne peut pas quitter une équipe qui compte encore des membres. Retirez les membres ou supprimez l'équipe.",
         });
       }
     }
@@ -430,7 +446,8 @@ export const teamService = {
   },
 
   getTeamSmtpConfig: async (teamId: string, userId: string, auth: AuthManager) => {
-    await checkTeamPermission(userId, teamId, TeamRole.MEMBER);
+    // ADMIN+ only: this returns the decrypted SMTP password.
+    await checkTeamPermission(userId, teamId, TeamRole.ADMIN);
 
     const team = await prisma.team.findUnique({
       where: { id: teamId },
@@ -448,7 +465,7 @@ export const teamService = {
     if (!team) {
       throw new TRPCError({
         code: 'NOT_FOUND',
-        message: 'Team not found',
+        message: 'Équipe introuvable',
       });
     }
 

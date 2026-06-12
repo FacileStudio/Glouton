@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { invalidateAll } from '$app/navigation';
+  import { invalidateAll, afterNavigate } from '$app/navigation';
   import { teamContextStore } from '$lib/stores/team-context.svelte';
   import trpc from '$lib/trpc';
   import { toast } from '@repo/utils';
@@ -67,9 +67,13 @@
     }
   }
 
-  onMount(() => {
+  // Re-fetch on every client-side navigation (also fires on initial load),
+  // so a newly created team shows up immediately without a manual reload.
+  afterNavigate(() => {
     loadTeams();
+  });
 
+  onMount(() => {
     if (typeof document !== 'undefined') {
       document.addEventListener('click', handleClickOutside);
       return () => {

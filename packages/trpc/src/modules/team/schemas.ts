@@ -28,7 +28,8 @@ export const removeMemberSchema = z.object({
 export const updateMemberRoleSchema = z.object({
   teamId: z.string(),
   userId: z.string(),
-  role: z.enum(['OWNER', 'ADMIN', 'MEMBER']).transform((val) => val as TeamRole),
+  // OWNER is intentionally excluded: a team has exactly one owner.
+  role: z.enum(['ADMIN', 'MEMBER']).transform((val) => val as TeamRole),
 });
 
 export const leaveTeamSchema = z.object({
