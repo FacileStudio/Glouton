@@ -1,11 +1,14 @@
 <script lang="ts">
   import 'iconify-icon';
-  export let items: { label: string; icon: string; href: string }[] = [];
-  export let activeHref = '/';
-  export let resolvePath: (path: string) => string = (path) => path;
-</script>
 
-<!-- eslint-disable svelte/no-navigation-without-resolve -->
+  let {
+    items = [],
+    activeHref = '/',
+  }: {
+    items?: { label: string; icon: string; href: string }[];
+    activeHref?: string;
+  } = $props();
+</script>
 
 <nav
   class="fixed inset-x-0 z-50 flex justify-center px-4 md:hidden"
@@ -16,7 +19,7 @@
   >
     {#each items as item (item.href)}
       <a
-        href={resolvePath(item.href)}
+        href={item.href}
         data-sveltekit-reload
         aria-label={item.label}
         title={item.label}

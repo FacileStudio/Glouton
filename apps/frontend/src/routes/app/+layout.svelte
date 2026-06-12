@@ -3,7 +3,8 @@
   import { browser } from '$app/environment';
   import { page } from '$app/stores';
   import authStore from '$lib/auth-store';
-  import { Sidebar, MobileNav } from '@repo/ui';
+  import { Sidebar } from '@repo/ui';
+  import MobileNav from '$lib/components/MobileNav.svelte';
   import { ws } from '$lib/websocket';
   import TeamContextSwitcher from '$lib/components/TeamContextSwitcher.svelte';
   import 'iconify-icon';
