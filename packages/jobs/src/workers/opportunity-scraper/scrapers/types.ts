@@ -15,6 +15,8 @@ export interface ScrapedOpportunity {
   isRemote: boolean;
   postedAt: Date;
   relevanceScore: number;
+  /** Number of people already applying / bidding, when the source exposes it */
+  applicantCount?: number;
 }
 
 export async function safeFetch(url: string, options?: RequestInit): Promise<Response> {

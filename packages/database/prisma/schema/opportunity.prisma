@@ -17,6 +17,7 @@ model Opportunity {
   postedAt        DateTime            @db.Timestamptz(3)
   expiresAt       DateTime?           @db.Timestamptz(3)
   relevanceScore  Int                 @default(0)
+  applicantCount  Int?
   scrapedAt       DateTime            @default(now()) @db.Timestamptz(3)
   createdAt       DateTime            @default(now()) @db.Timestamptz(3)
   updatedAt       DateTime            @default(now()) @updatedAt @db.Timestamptz(3)

@@ -1,4 +1,4 @@
-import type { Job as BullJob, JobsOptions, Queue, Worker } from 'bullmq';
+import type { Job as BullJob, JobsOptions, KeepJobs, Queue, Worker } from 'bullmq';
 
 export interface JobConfig {
   connection: {
@@ -37,8 +37,8 @@ export interface JobDefinition<T = any, R = any> {
 export interface AddJobOptions extends JobsOptions {
   priority?: number;
   delay?: number;
-  removeOnComplete?: boolean | number;
-  removeOnFail?: boolean | number;
+  removeOnComplete?: boolean | number | KeepJobs;
+  removeOnFail?: boolean | number | KeepJobs;
   attempts?: number;
   backoff?: {
     type: 'exponential' | 'fixed';

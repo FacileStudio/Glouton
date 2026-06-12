@@ -1,7 +1,7 @@
 import { TRPCError } from '@trpc/server';
 import { router, protectedProcedure } from '../../trpc';
 import OpportunityService from './service';
-import { listOpportunitiesSchema } from './schemas';
+import { listOpportunitiesSchema, getOpportunitySchema, markClickedSchema } from './schemas';
 
 export const opportunityRouter = router({
   list: protectedProcedure
@@ -12,6 +12,41 @@ export const opportunityRouter = router({
       } catch (err) {
         ctx.log.error({ action: 'opportunity-list-failed', error: err });
         throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to list opportunities' });
+      }
+    }),
+
+  get: protectedProcedure
+    .input(getOpportunitySchema)
+    .query(async ({ ctx, input }) => {
+      try {
+        const opportunity = await OpportunityService.getById({
+          prisma: ctx.prisma,
+          input,
+          userId: ctx.user.id,
+        });
+        if (!opportunity) {
+          throw new TRPCError({ code: 'NOT_FOUND', message: 'Mission introuvable' });
+        }
+        return opportunity;
+      } catch (err) {
+        if (err instanceof TRPCError) throw err;
+        ctx.log.error({ action: 'opportunity-get-failed', error: err });
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to get opportunity' });
+      }
+    }),
+
+  markClicked: protectedProcedure
+    .input(markClickedSchema)
+    .mutation(async ({ ctx, input }) => {
+      try {
+        return await OpportunityService.markClicked({
+          prisma: ctx.prisma,
+          input,
+          userId: ctx.user.id,
+        });
+      } catch (err) {
+        ctx.log.error({ action: 'opportunity-mark-clicked-failed', error: err });
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to mark clicked' });
       }
     }),
 

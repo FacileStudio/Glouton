@@ -24,8 +24,13 @@ interface FreeWorkJobPosting {
   applicationUrl?: string | null;
 }
 
-interface FreeWorkResponse {
-  'hydra:member': FreeWorkJobPosting[];
+// Depending on the Accept header the API answers either a plain JSON array
+// or a Hydra collection ({ 'hydra:member': [...] }). Handle both.
+type FreeWorkResponse = FreeWorkJobPosting[] | { 'hydra:member'?: FreeWorkJobPosting[] };
+
+function extractJobs(data: FreeWorkResponse): FreeWorkJobPosting[] {
+  if (Array.isArray(data)) return data;
+  return data['hydra:member'] ?? [];
 }
 
 const SEARCH_KEYWORDS = [
@@ -49,7 +54,7 @@ export async function scrapeFreeWork(): Promise<ScrapedOpportunity[]> {
       if (!res.ok) continue;
       const data = await res.json() as FreeWorkResponse;
 
-      for (const job of data['hydra:member'] ?? []) {
+      for (const job of extractJobs(data)) {
         if (!job.id || !job.title) continue;
         if (seen.has(job.id)) continue;
         seen.add(job.id);

@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { trpc } from '$lib/trpc';
+  import { ws } from '$lib/websocket';
   import { toast } from '@repo/utils';
   import { Spinner } from '@repo/ui';
   import 'iconify-icon';
@@ -24,16 +25,41 @@
     isRemote: boolean;
     postedAt: string;
     relevanceScore: number;
+    applicantCount: number | null;
     tier: Tier;
+  }
+
+  interface ScrapeProgress {
+    percent: number;
+    source: string;
+    sourcesDone: number;
+    sourcesTotal: number;
+    totalInserted: number;
+    totalFound: number;
   }
 
   let opportunities = $state<Opportunity[]>([]);
   let stats = $state<{ total: number; hot: number; warm: number; cold: number; newToday: number } | null>(null);
   let loading = $state(true);
   let scraping = $state(false);
+  let scrapeProgress = $state<ScrapeProgress | null>(null);
+  let scrapeTimeout: ReturnType<typeof setTimeout> | null = null;
+  let unsubscribers: Array<() => void> = [];
   let currentPage = $state(1);
   let totalPages = $state(1);
   let total = $state(0);
+
+  type SortKey = 'relevance' | 'newest' | 'budget' | 'competition' | 'added';
+
+  const SORT_OPTIONS: Record<SortKey, { label: string; sortBy: 'relevanceScore' | 'postedAt' | 'createdAt' | 'budgetMax' | 'applicantCount'; sortOrder: 'asc' | 'desc' }> = {
+    relevance: { label: 'Pertinence', sortBy: 'relevanceScore', sortOrder: 'desc' },
+    newest: { label: 'Plus récentes', sortBy: 'postedAt', sortOrder: 'desc' },
+    budget: { label: 'Budget le plus élevé', sortBy: 'budgetMax', sortOrder: 'desc' },
+    competition: { label: 'Moins de concurrence', sortBy: 'applicantCount', sortOrder: 'asc' },
+    added: { label: 'Ajoutées récemment', sortBy: 'createdAt', sortOrder: 'desc' },
+  };
+
+  let sortKey = $state<SortKey>('relevance');
 
   let filters = $state({
     search: '',
@@ -78,8 +104,8 @@
           tier: filters.tier || undefined,
           source: filters.source || undefined,
           remoteOnly: filters.remoteOnly || undefined,
-          sortBy: 'relevanceScore',
-          sortOrder: 'desc',
+          sortBy: SORT_OPTIONS[sortKey].sortBy,
+          sortOrder: SORT_OPTIONS[sortKey].sortOrder,
         }),
         trpc.opportunity.stats.query(),
       ]);
@@ -97,13 +123,39 @@
   async function triggerScrape() {
     scraping = true;
     try {
-      await trpc.opportunity.triggerScrape.mutate();
-      toast.push('Scraping lancé — nouvelles missions dans quelques minutes', 'success');
+      const result = await trpc.opportunity.triggerScrape.mutate();
+      if (result.queued || (result as any).alreadyRunning) {
+        // Show the progress bar right away; real numbers arrive via SSE
+        scrapeProgress = { percent: 0, source: '…', sourcesDone: 0, sourcesTotal: 8, totalInserted: 0, totalFound: 0 };
+        armScrapeTimeout();
+        if (result.queued) {
+          toast.push('Actualisation lancée', 'success');
+        }
+      } else {
+        toast.push('Missions déjà actualisées il y a moins de 10 minutes', 'info');
+        scraping = false;
+      }
     } catch (err) {
-      toast.push('Erreur lors du lancement du scraping', 'error');
-    } finally {
+      toast.push("Erreur lors du lancement de l'actualisation", 'error');
       scraping = false;
     }
+  }
+
+  // Safety net: if no completion event arrives (SSE drop, worker crash),
+  // unlock the UI after 5 minutes.
+  function armScrapeTimeout() {
+    if (scrapeTimeout) clearTimeout(scrapeTimeout);
+    scrapeTimeout = setTimeout(() => {
+      scrapeProgress = null;
+      scraping = false;
+    }, 5 * 60 * 1000);
+  }
+
+  function endScrape() {
+    if (scrapeTimeout) clearTimeout(scrapeTimeout);
+    scrapeTimeout = null;
+    scrapeProgress = null;
+    scraping = false;
   }
 
   function formatBudget(opp: Opportunity): string {
@@ -130,7 +182,7 @@
   }
 
   $effect(() => {
-    filters.tier; filters.source; filters.remoteOnly;
+    filters.tier; filters.source; filters.remoteOnly; sortKey;
     currentPage = 1;
     clearTimeout(filterTimeout);
     filterTimeout = setTimeout(loadData, 100);
@@ -147,6 +199,39 @@
 
   onMount(() => {
     loadData();
+
+    unsubscribers.push(
+      ws.on('opportunity:scrape:progress', (data: ScrapeProgress) => {
+        scrapeProgress = data;
+        scraping = true;
+        armScrapeTimeout();
+      })
+    );
+
+    unsubscribers.push(
+      ws.on('opportunity:scrape:completed', (data: { totalInserted: number; totalFound: number }) => {
+        endScrape();
+        toast.push(
+          data.totalInserted > 0
+            ? `Actualisation terminée : ${data.totalInserted} nouvelle${data.totalInserted > 1 ? 's' : ''} mission${data.totalInserted > 1 ? 's' : ''}`
+            : 'Actualisation terminée : aucune nouvelle mission',
+          'success'
+        );
+        loadData();
+      })
+    );
+
+    unsubscribers.push(
+      ws.on('opportunity:scrape:failed', () => {
+        endScrape();
+        toast.push("L'actualisation des missions a échoué", 'error');
+      })
+    );
+  });
+
+  onDestroy(() => {
+    unsubscribers.forEach((unsub) => unsub());
+    if (scrapeTimeout) clearTimeout(scrapeTimeout);
   });
 </script>
 
@@ -172,6 +257,35 @@
       Actualiser
     </button>
   </div>
+
+  <!-- Scrape progress -->
+  {#if scrapeProgress}
+    <div class="rounded-xl border border-border bg-card p-4 space-y-2">
+      <div class="flex items-center justify-between gap-3 text-sm">
+        <div class="flex items-center gap-2 min-w-0">
+          <Spinner size="sm" />
+          <span class="font-medium text-foreground">Actualisation des missions</span>
+          <span class="truncate text-muted-foreground">
+            — {scrapeProgress.source} ({scrapeProgress.sourcesDone}/{scrapeProgress.sourcesTotal} sources)
+          </span>
+        </div>
+        <span class="shrink-0 font-mono text-xs text-muted-foreground">
+          {scrapeProgress.percent}%
+        </span>
+      </div>
+      <div class="h-1.5 overflow-hidden rounded-full bg-muted">
+        <div
+          class="h-full bg-foreground transition-all duration-500 ease-out"
+          style="width: {scrapeProgress.percent}%"
+        ></div>
+      </div>
+      {#if scrapeProgress.totalInserted > 0}
+        <p class="text-xs text-muted-foreground">
+          {scrapeProgress.totalInserted} nouvelle{scrapeProgress.totalInserted > 1 ? 's' : ''} mission{scrapeProgress.totalInserted > 1 ? 's' : ''} pour l'instant
+        </p>
+      {/if}
+    </div>
+  {/if}
 
   <!-- Stats -->
   {#if stats}
@@ -242,6 +356,19 @@
       Remote uniquement
     </label>
 
+    <div class="flex items-center gap-1.5 ml-auto">
+      <iconify-icon icon="solar:sort-vertical-linear" width="16" class="text-muted-foreground"></iconify-icon>
+      <select
+        bind:value={sortKey}
+        class="h-9 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-1 focus:ring-ring"
+        aria-label="Trier les missions"
+      >
+        {#each Object.entries(SORT_OPTIONS) as [value, opt]}
+          <option {value}>{opt.label}</option>
+        {/each}
+      </select>
+    </div>
+
     {#if filters.search || filters.tier || filters.source || filters.remoteOnly}
       <button
         onclick={() => { filters.search = ''; filters.tier = ''; filters.source = ''; filters.remoteOnly = false; }}
@@ -277,9 +404,7 @@
     <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
       {#each opportunities as opp (opp.id)}
         <a
-          href={opp.sourceUrl}
-          target="_blank"
-          rel="noopener noreferrer"
+          href={`/app/missions/${opp.id}`}
           class="group flex flex-col gap-3 rounded-xl border border-border bg-card p-4 transition-all hover:border-foreground/20 hover:shadow-md"
         >
           <!-- Top row: tier + score + source -->
@@ -309,6 +434,13 @@
             {#if opp.isRemote}
               <span>·</span>
               <span class="shrink-0 text-green-400">Remote</span>
+            {/if}
+            {#if opp.applicantCount !== null && opp.applicantCount !== undefined}
+              <span>·</span>
+              <span class="inline-flex shrink-0 items-center gap-1 {opp.applicantCount <= 3 ? 'text-green-400' : opp.applicantCount <= 10 ? 'text-amber-400' : 'text-red-400'}">
+                <iconify-icon icon="solar:users-group-rounded-linear" width="12"></iconify-icon>
+                {opp.applicantCount} sur le coup
+              </span>
             {/if}
           </div>
 

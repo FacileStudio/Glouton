@@ -14,7 +14,7 @@ export function createWorkers(events: EventEmitter) {
     'local-business-hunt': createLocalBusinessHuntWorker(events),
     'lead-audit': createLeadAuditWorker(events),
     'csv-import': createCsvImportWorker(events),
-    'opportunity-scraper': createOpportunityScraperWorker(),
+    'opportunity-scraper': createOpportunityScraperWorker(events),
   };
 }
 

@@ -16,3 +16,14 @@ export interface OpportunityScraperResult {
   totalFound: number;
   durationMs: number;
 }
+
+export interface ScrapeProgress {
+  /** 0-100 */
+  percent: number;
+  /** Source currently being scraped (or just finished) */
+  source: string;
+  sourcesDone: number;
+  sourcesTotal: number;
+  totalInserted: number;
+  totalFound: number;
+}

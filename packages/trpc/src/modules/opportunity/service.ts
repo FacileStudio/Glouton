@@ -43,10 +43,17 @@ export default {
     // Only show jobs posted in the last 30 days
     where.postedAt = { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) };
 
+    // Nullable sort fields: push the rows without a value to the end
+    // instead of letting them dominate the first pages.
+    const nullableSortFields = new Set(['budgetMax', 'applicantCount']);
+    const orderBy: Prisma.OpportunityOrderByWithRelationInput = nullableSortFields.has(sortBy)
+      ? { [sortBy]: { sort: sortOrder, nulls: 'last' } }
+      : { [sortBy]: sortOrder };
+
     const [opportunities, total] = await Promise.all([
       prisma.opportunity.findMany({
         where,
-        orderBy: { [sortBy]: sortOrder },
+        orderBy,
         skip,
         take: limit,
         select: {
@@ -66,6 +73,7 @@ export default {
           isRemote: true,
           postedAt: true,
           relevanceScore: true,
+          applicantCount: true,
           createdAt: true,
         },
       }),
@@ -94,13 +102,52 @@ export default {
     return { total, hot, warm, cold: total - hot - warm, newToday };
   },
 
+  async getById({ prisma, input, userId }: { prisma: PrismaClient; input: { id: string }; userId: string }) {
+    const opportunity = await prisma.opportunity.findUnique({
+      where: { id: input.id },
+    });
+
+    if (!opportunity) return null;
+
+    // Track that the user opened the detail page
+    await prisma.opportunityView.upsert({
+      where: { userId_opportunityId: { userId, opportunityId: input.id } },
+      create: { userId, opportunityId: input.id },
+      update: { viewedAt: new Date() },
+    }).catch(() => {});
+
+    return { ...opportunity, tier: tierFromScore(opportunity.relevanceScore) };
+  },
+
+  async markClicked({ prisma, input, userId }: { prisma: PrismaClient; input: { id: string }; userId: string }) {
+    await prisma.opportunityView.upsert({
+      where: { userId_opportunityId: { userId, opportunityId: input.id } },
+      create: { userId, opportunityId: input.id, clickedUrl: true },
+      update: { clickedUrl: true },
+    });
+    return { success: true };
+  },
+
   async triggerScrape({ jobs }: { jobs: QueueManager }) {
     // Shared 10-minute cooldown: the time-bucketed jobId makes BullMQ ignore
     // duplicate manual triggers while a run from the same window still exists.
     const cooldownMs = 10 * 60 * 1000;
     const bucket = Math.floor(Date.now() / cooldownMs);
+    const jobId = `manual-${bucket}`;
+
+    // Tell the caller when the trigger is a no-op (cooldown hit), so the UI
+    // doesn't wait for progress events that will never come.
+    const existing = await jobs.getJob('opportunity-scraper', jobId);
+    if (existing) {
+      const state = await existing.getState();
+      if (state === 'completed' || state === 'failed') {
+        return { queued: false, alreadyRan: true };
+      }
+      return { queued: false, alreadyRunning: true };
+    }
+
     await jobs.addJob('opportunity-scraper', 'opportunity-scraper', { triggeredBy: 'manual' }, {
-      jobId: `manual-${bucket}`,
+      jobId,
       removeOnComplete: { age: cooldownMs / 1000 },
       removeOnFail: { age: cooldownMs / 1000 },
     });

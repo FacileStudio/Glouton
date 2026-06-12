@@ -1,5 +1,5 @@
 import { prisma } from '@repo/database';
-import type { ScraperStats, OpportunityScraperResult } from './opportunity-scraper.types';
+import type { ScraperStats, OpportunityScraperResult, ScrapeProgress } from './opportunity-scraper.types';
 import type { ScrapedOpportunity } from './scrapers/types';
 import { scrapeRemotive } from './scrapers/remotive';
 import { scrapeRemoteOK } from './scrapers/remoteok';
@@ -24,18 +24,37 @@ const SCRAPERS: Array<{ name: string; fn: ScraperFn }> = [
 ];
 
 export class OpportunityScraperProcessor {
-  async process(): Promise<OpportunityScraperResult> {
+  async process(onProgress?: (progress: ScrapeProgress) => void): Promise<OpportunityScraperResult> {
     const start = Date.now();
     const stats: ScraperStats[] = [];
     const seenKeys = new Set<string>();
     let totalInserted = 0;
     let totalFound = 0;
 
-    for (const scraper of SCRAPERS) {
+    onProgress?.({
+      percent: 0,
+      source: SCRAPERS[0].name,
+      sourcesDone: 0,
+      sourcesTotal: SCRAPERS.length,
+      totalInserted: 0,
+      totalFound: 0,
+    });
+
+    for (let i = 0; i < SCRAPERS.length; i++) {
+      const scraper = SCRAPERS[i];
       const stat = await this.runScraper(scraper.name, scraper.fn, seenKeys);
       stats.push(stat);
       totalFound += stat.found;
       totalInserted += stat.inserted;
+
+      onProgress?.({
+        percent: Math.round(((i + 1) / SCRAPERS.length) * 100),
+        source: SCRAPERS[i + 1]?.name ?? scraper.name,
+        sourcesDone: i + 1,
+        sourcesTotal: SCRAPERS.length,
+        totalInserted,
+        totalFound,
+      });
     }
 
     return {
@@ -108,9 +127,11 @@ export class OpportunityScraperProcessor {
         isRemote: opp.isRemote,
         postedAt: opp.postedAt,
         relevanceScore: opp.relevanceScore,
+        applicantCount: opp.applicantCount ?? null,
       },
       update: {
         relevanceScore: opp.relevanceScore,
+        ...(opp.applicantCount !== undefined ? { applicantCount: opp.applicantCount } : {}),
         updatedAt: new Date(),
       },
     });

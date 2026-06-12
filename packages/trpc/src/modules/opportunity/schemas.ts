@@ -9,10 +9,21 @@ export const listOpportunitiesSchema = z.object({
   source: z.string().optional(),
   remoteOnly: z.boolean().optional(),
   minScore: z.number().int().min(0).max(100).optional(),
-  sortBy: z.enum(['relevanceScore', 'postedAt', 'createdAt']).default('relevanceScore'),
+  sortBy: z
+    .enum(['relevanceScore', 'postedAt', 'createdAt', 'budgetMax', 'applicantCount'])
+    .default('relevanceScore'),
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
+});
+
+export const getOpportunitySchema = z.object({
+  id: z.string(),
+});
+
+export const markClickedSchema = z.object({
+  id: z.string(),
 });
 
 export const triggerScrapeSchema = z.object({}).optional();
 
 export type ListOpportunitiesInput = z.infer<typeof listOpportunitiesSchema>;
+export type GetOpportunityInput = z.infer<typeof getOpportunitySchema>;

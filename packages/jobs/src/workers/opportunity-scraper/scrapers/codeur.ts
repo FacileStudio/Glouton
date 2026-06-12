@@ -52,5 +52,35 @@ export async function scrapeCodeur(): Promise<ScrapedOpportunity[]> {
     }
   }
 
+  await enrichWithOfferCounts(results);
+
   return results;
+}
+
+// Codeur project pages show how many freelancers already made an offer
+// ("N offres"). Fetch a capped number of pages to surface the competition
+// level without hammering the site.
+const MAX_OFFER_COUNT_FETCHES = 30;
+
+async function enrichWithOfferCounts(results: ScrapedOpportunity[]): Promise<void> {
+  const toEnrich = results.slice(0, MAX_OFFER_COUNT_FETCHES);
+
+  for (const opp of toEnrich) {
+    if (!opp.sourceUrl) continue;
+    try {
+      const res = await safeFetch(opp.sourceUrl, {
+        headers: { Accept: 'text/html', 'Accept-Language': 'fr-FR,fr;q=0.9' },
+      });
+      if (!res.ok) continue;
+      const html = await res.text();
+      const match = html.match(/(\d+)\s+offres?\b/i);
+      if (match) {
+        opp.applicantCount = parseInt(match[1], 10);
+      }
+      // Small delay to stay polite with Codeur
+      await new Promise((r) => setTimeout(r, 250));
+    } catch {
+      // Non-blocking enrichment: skip on any failure
+    }
+  }
 }
