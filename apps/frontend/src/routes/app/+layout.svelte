@@ -38,7 +38,6 @@
     if (path.match(/^\/app\/teams\/.+/)) return 'Équipe — Glouton';
     if (path === '/app/teams') return 'Équipes — Glouton';
     if (path === '/app/settings') return 'Paramètres — Glouton';
-    if (path === '/app/premium') return 'Premium — Glouton';
     return 'Glouton';
   }
 
