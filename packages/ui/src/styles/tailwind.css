@@ -72,8 +72,8 @@
 
 @import "tailwindcss";
 
-@source "../../../apps/**/src/**/*.{svelte,ts,js}";
-@source "../../ui/src/**/*.{svelte,ts,js}";
+@source "../../../../apps/**/src/**/*.{svelte,ts,js}";
+@source "../**/*.{svelte,ts,js}";
 
 :root {
   --background: oklch(1 0 0);
