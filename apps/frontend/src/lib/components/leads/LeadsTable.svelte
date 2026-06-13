@@ -64,7 +64,59 @@
   }
 </script>
 
-<div class="overflow-x-auto">
+<!-- Mobile : liste de cartes, la table à 6 colonnes déborde forcément -->
+<div class="md:hidden divide-y divide-border">
+  {#each leads as lead}
+    <button
+      onclick={() => navigateToLead(lead.id)}
+      class="flex w-full items-start gap-3 p-4 text-left transition-colors hover:bg-muted/40"
+    >
+      <div class="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-background">
+        <img
+          src={getFaviconUrl(lead.domain, 64)}
+          alt="{lead.domain} favicon"
+          class="h-5 w-5"
+          loading="lazy"
+          onerror={(e) => handleFaviconError(e.currentTarget as HTMLImageElement)}
+        />
+      </div>
+      <div class="min-w-0 flex-1 space-y-0.5">
+        <div class="flex items-center gap-2">
+          <span class="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
+            {getLeadTitle(lead)}
+          </span>
+          <span class="inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-medium {getStatusBadge(lead.status)}">
+            {lead.status}
+          </span>
+          {#if lead.contacted}
+            <span class="inline-flex shrink-0 items-center rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-foreground">
+              Contacté
+            </span>
+          {/if}
+        </div>
+        {#if lead.email}
+          <p class="truncate text-xs text-muted-foreground">{lead.email}</p>
+        {/if}
+        <p class="truncate text-xs text-muted-foreground">
+          {#if lead.city || lead.country}
+            {[lead.city, lead.country].filter(Boolean).join(', ')}
+            ·
+          {/if}
+          Score {lead.score}
+          · {getRelativeTime(lead.createdAt)}
+        </p>
+      </div>
+      <iconify-icon
+        icon="solar:alt-arrow-right-linear"
+        width="14"
+        class="mt-1 shrink-0 text-muted-foreground"
+      ></iconify-icon>
+    </button>
+  {/each}
+</div>
+
+<!-- Desktop : table complète -->
+<div class="hidden overflow-x-auto md:block">
   <table class="w-full text-left border-collapse">
     <thead>
       <tr class="border-b border-border">
@@ -142,7 +194,7 @@
                   alt="{lead.domain} favicon"
                   class="w-5 h-5"
                   loading="lazy"
-                  onerror={(e) => handleFaviconError(e.currentTarget)}
+                  onerror={(e) => handleFaviconError(e.currentTarget as HTMLImageElement)}
                 />
               </div>
               <span class="text-sm font-medium text-foreground truncate max-w-[180px]" title={getLeadTitle(lead)}>

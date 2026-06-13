@@ -30,57 +30,66 @@
 
   const startItem = $derived((currentPage - 1) * pageSize + 1);
   const endItem = $derived(Math.min(currentPage * pageSize, totalItems));
+
+  const navButtonClass =
+    'inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-border bg-background transition-colors hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-background';
 </script>
 
 {#if totalPages > 0}
-  <div class="rounded-[32px] shadow-lg px-10 py-6 flex flex-col md:flex-row justify-between items-center gap-4" style="background-color: var(--card);">
-    <div class="flex items-center gap-4">
+  <div
+    class="flex flex-col items-center justify-between gap-3 rounded-xl border border-border bg-card p-3 sm:flex-row sm:px-4"
+  >
+    <div class="flex w-full items-center justify-between gap-3 sm:w-auto sm:justify-start">
       <select
         bind:value={pageSize}
         onchange={(e) => changePageSize(Number(e.currentTarget.value))}
-        class="px-4 py-2 bg-white border border-neutral-200 rounded-xl text-xs font-bold outline-none focus:border-black transition"
+        class="h-9 rounded-lg border border-input bg-background px-3 text-sm text-foreground outline-none transition-colors focus:border-foreground"
       >
-        <option value={10}>10 par page</option>
-        <option value={25}>25 par page</option>
-        <option value={50}>50 par page</option>
-        <option value={100}>100 par page</option>
+        <option value={10}>10 / page</option>
+        <option value={25}>25 / page</option>
+        <option value={50}>50 / page</option>
+        <option value={100}>100 / page</option>
       </select>
-      <p class="text-sm font-medium text-neutral-600">
-        Affichage {startItem} - {endItem} sur {totalItems} leads
+      <p class="whitespace-nowrap text-xs text-muted-foreground sm:text-sm">
+        {startItem}–{endItem} sur {totalItems}
       </p>
     </div>
 
-    <div class="flex gap-2">
+    <div class="flex w-full items-center justify-between gap-1.5 sm:w-auto sm:justify-start">
       <button
         onclick={() => goToPage(1)}
         disabled={currentPage === 1}
-        class="px-4 py-2 bg-white border border-neutral-200 rounded-xl text-xs font-bold outline-none disabled:opacity-30 disabled:cursor-not-allowed hover:bg-neutral-50 transition"
+        aria-label="Première page"
+        class={navButtonClass}
       >
-        Première
+        <iconify-icon icon="solar:double-alt-arrow-left-linear" width="16"></iconify-icon>
       </button>
       <button
         onclick={() => goToPage(currentPage - 1)}
         disabled={currentPage === 1}
-        class="px-4 py-2 bg-white border border-neutral-200 rounded-xl text-xs font-bold outline-none disabled:opacity-30 disabled:cursor-not-allowed hover:bg-neutral-50 transition"
+        aria-label="Page précédente"
+        class={navButtonClass}
       >
-        Précédente
+        <iconify-icon icon="solar:alt-arrow-left-linear" width="16"></iconify-icon>
       </button>
-      <div class="flex items-center gap-2 px-4">
-        <span class="text-xs font-bold text-neutral-600">Page {currentPage} sur {totalPages}</span>
-      </div>
+      <span class="whitespace-nowrap px-2 text-xs font-medium text-muted-foreground">
+        Page {currentPage} / {totalPages}
+      </span>
       <button
         onclick={() => goToPage(currentPage + 1)}
         disabled={currentPage === totalPages}
-        class="px-4 py-2 bg-white border border-neutral-200 rounded-xl text-xs font-bold outline-none disabled:opacity-30 disabled:cursor-not-allowed hover:bg-neutral-50 transition"
+        aria-label="Page suivante"
+        class={navButtonClass}
       >
-        Suivante
+        <iconify-icon icon="solar:alt-arrow-right-linear" width="16"></iconify-icon>
       </button>
       <button
         onclick={() => goToPage(totalPages)}
         disabled={currentPage === totalPages}
-        class="px-4 py-2 bg-white border border-neutral-200 rounded-xl text-xs font-bold outline-none disabled:opacity-30 disabled:cursor-not-allowed hover:bg-neutral-50 transition"
+        aria-label="Dernière page"
+        class={navButtonClass}
       >
-        Dernière
+        <iconify-icon icon="solar:double-alt-arrow-right-linear" width="16"></iconify-icon>
       </button>
     </div>
   </div>
