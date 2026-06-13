@@ -192,7 +192,7 @@
           class="text-muted-foreground"
         ></iconify-icon>
         <span class="text-sm font-medium text-foreground">{displayLeads}</span>
-        <span class="text-sm text-muted-foreground">leads</span>
+        <span class="hidden text-sm text-muted-foreground sm:inline">leads</span>
       </div>
 
       {#if session.status === 'COMPLETED' && displayLeads > 0}
@@ -204,7 +204,7 @@
             class="text-muted-foreground"
           ></iconify-icon>
           <span class="text-sm font-medium text-foreground">{successRate}%</span>
-          <span class="text-sm text-muted-foreground">succès</span>
+          <span class="hidden text-sm text-muted-foreground sm:inline">succès</span>
         </div>
       {/if}
     </div>

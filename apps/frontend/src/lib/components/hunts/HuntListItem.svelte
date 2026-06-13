@@ -122,7 +122,7 @@
               ></iconify-icon>
               <span class="text-sm font-medium text-foreground">{displayLeads}</span>
             </div>
-            <p class="text-xs text-muted-foreground">Leads</p>
+            <p class="hidden text-xs text-muted-foreground sm:block">Leads</p>
           </div>
 
           {#if displayLeads > 0}
@@ -136,7 +136,7 @@
                 ></iconify-icon>
                 <span class="text-sm font-medium text-foreground">{successRate}%</span>
               </div>
-              <p class="text-xs text-muted-foreground">Succès</p>
+              <p class="hidden text-xs text-muted-foreground sm:block">Succès</p>
             </div>
           {/if}
         </div>
@@ -167,7 +167,7 @@
           Relance
         {:else}
           <iconify-icon icon="solar:restart-linear" width="14"></iconify-icon>
-          Relancer la chasse
+          Relancer
         {/if}
       </button>
     {/if}
