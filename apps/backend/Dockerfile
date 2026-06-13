@@ -20,6 +20,7 @@ COPY packages/trpc/package.json ./packages/trpc/
 COPY packages/tsconfig/package.json ./packages/tsconfig/
 COPY packages/types/package.json ./packages/types/
 COPY packages/utils/package.json ./packages/utils/
+COPY packages/webhooks/package.json ./packages/webhooks/
 
 RUN bun install --no-save
 
