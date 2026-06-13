@@ -405,7 +405,7 @@
       {#each opportunities as opp (opp.id)}
         <a
           href={`/app/missions/${opp.id}`}
-          class="group flex flex-col gap-3 rounded-xl border border-border bg-card p-4 transition-all hover:border-foreground/20 hover:shadow-md"
+          class="group flex min-w-0 flex-col gap-3 overflow-hidden rounded-xl border border-border bg-card p-4 transition-all hover:border-foreground/20 hover:shadow-md"
         >
           <!-- Top row: tier + score + source -->
           <div class="flex items-center justify-between gap-2">
@@ -420,12 +420,12 @@
           </div>
 
           <!-- Title -->
-          <h3 class="text-sm font-semibold leading-snug line-clamp-2 group-hover:text-foreground">
+          <h3 class="text-sm font-semibold leading-snug line-clamp-2 break-words group-hover:text-foreground">
             {opp.title}
           </h3>
 
           <!-- Company + date -->
-          <div class="flex items-center gap-2 text-xs text-muted-foreground">
+          <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
             {#if opp.company}
               <span class="truncate max-w-[140px]">{opp.company}</span>
               <span>·</span>
@@ -445,7 +445,7 @@
           </div>
 
           <!-- Description -->
-          <p class="text-xs text-muted-foreground leading-relaxed line-clamp-3">
+          <p class="text-xs text-muted-foreground leading-relaxed line-clamp-3 break-words">
             {truncate(opp.description, 180)}
           </p>
 
@@ -456,9 +456,9 @@
             {:else}
               <span></span>
             {/if}
-            <div class="flex gap-1 flex-wrap justify-end">
+            <div class="flex min-w-0 flex-wrap justify-end gap-1">
               {#each opp.tags.slice(0, 3) as tag}
-                <span class="rounded bg-foreground/5 px-1.5 py-0.5 text-xs">{tag}</span>
+                <span class="max-w-full truncate rounded bg-foreground/5 px-1.5 py-0.5 text-xs">{tag}</span>
               {/each}
             </div>
           </div>
