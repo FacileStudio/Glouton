@@ -196,7 +196,6 @@
       </div>
 
       {#if session.status === 'COMPLETED' && displayLeads > 0}
-        <div class="w-px h-3 bg-border"></div>
         <div class="flex items-center gap-1.5">
           <iconify-icon
             icon="solar:chart-2-linear"

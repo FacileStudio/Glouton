@@ -126,7 +126,6 @@
           </div>
 
           {#if displayLeads > 0}
-            <div class="w-px h-8 bg-border"></div>
             <div class="text-right">
               <div class="flex items-center justify-end gap-1.5">
                 <iconify-icon
