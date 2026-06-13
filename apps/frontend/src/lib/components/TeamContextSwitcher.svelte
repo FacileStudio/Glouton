@@ -62,10 +62,14 @@
     window.location.reload();
   }
 
+  // Référence locale : le composant peut être rendu plusieurs fois (sidebar
+  // desktop + page settings mobile), un id global pointerait toujours sur la
+  // première instance et fermerait les autres au moindre clic.
+  let container = $state<HTMLElement | null>(null);
+
   function handleClickOutside(event: MouseEvent) {
     const target = event.target as HTMLElement;
-    const dropdown = document.getElementById('team-context-dropdown');
-    if (dropdown && !dropdown.contains(target)) {
+    if (container && !container.contains(target)) {
       closeDropdown();
     }
   }
@@ -87,7 +91,7 @@
   });
 </script>
 
-<div class="relative" id="team-context-dropdown">
+<div class="relative" bind:this={container}>
   <button
     onclick={toggleDropdown}
     class="inline-flex h-9 w-full items-center gap-2 rounded-lg border border-border bg-background px-3 text-sm font-medium transition-colors hover:bg-muted"
