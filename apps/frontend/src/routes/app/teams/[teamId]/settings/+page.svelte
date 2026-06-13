@@ -3,6 +3,7 @@
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { trpc } from '$lib/trpc';
+  import { teamContextStore } from '$lib/stores/team-context.svelte';
   import { Input, Button, Spinner, Toggle, Alert } from '@repo/ui';
   import { toast } from '@repo/utils';
   import { fade, slide } from 'svelte/transition';
@@ -219,6 +220,11 @@
     deleting = true;
     try {
       await trpc.team.delete.mutate({ teamId });
+      // Si l'équipe supprimée était le contexte actif, revenir au personnel
+      // pour ne pas laisser un teamId mort dans le localStorage.
+      if (teamContextStore.getTeamId() === teamId) {
+        teamContextStore.setPersonal();
+      }
       toast.push('Équipe supprimée avec succès', 'success');
       goto('/app/teams');
     } catch (error: any) {

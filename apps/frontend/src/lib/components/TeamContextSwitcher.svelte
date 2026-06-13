@@ -28,6 +28,17 @@
     try {
       const result = await trpc.team.list.query();
       teams = result;
+
+      // Contexte orphelin : l'équipe active a été supprimée (ou on en a été
+      // retiré). On revient au personnel pour ne pas envoyer un teamId mort.
+      const ctx = teamContextStore.context;
+      if (ctx.type === 'team' && !result.some((team) => team.id === ctx.teamId)) {
+        teamContextStore.setPersonal();
+        toast.push("L'équipe active n'existe plus, retour à l'espace personnel", 'info');
+        await invalidateAll();
+        window.location.reload();
+        return;
+      }
     } catch (err) {
       console.error('Failed to load teams:', err);
       if (teams.length === 0) error = 'Échec du chargement des équipes';
