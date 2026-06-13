@@ -18,6 +18,62 @@
   let deleteConfirmationText = $state('');
   let deleting = $state(false);
 
+  // Mirror of the server-side catalog (@repo/webhooks is server-only)
+  const WEBHOOK_EVENTS: Array<{ key: string; label: string; description: string }> = [
+    {
+      key: 'opportunity.new',
+      label: 'Nouvelles missions freelance',
+      description: 'À chaque scan qui découvre de nouvelles missions',
+    },
+    {
+      key: 'hunt.completed',
+      label: 'Chasse terminée',
+      description: "Quand une chasse de l'équipe se termine avec succès",
+    },
+    {
+      key: 'hunt.failed',
+      label: 'Chasse échouée',
+      description: "Quand une chasse de l'équipe échoue",
+    },
+    {
+      key: 'audit.completed',
+      label: 'Audit de site terminé',
+      description: "Quand un audit de l'équipe se termine",
+    },
+    {
+      key: 'team.member_added',
+      label: 'Membre ajouté',
+      description: "Quand quelqu'un rejoint l'équipe",
+    },
+    {
+      key: 'team.member_removed',
+      label: 'Membre retiré',
+      description: "Quand quelqu'un est retiré de l'équipe",
+    },
+  ];
+
+  interface TeamWebhook {
+    id: string;
+    name: string;
+    url: string;
+    enabled: boolean;
+    events: string[];
+    createdAt: string;
+    updatedAt: string;
+  }
+
+  let webhooks = $state<TeamWebhook[]>([]);
+  let webhookForm = $state({ name: '', url: '', events: [] as string[] });
+  let creatingWebhook = $state(false);
+  let testingWebhookUrl = $state<string | null>(null);
+  let updatingWebhookId = $state<string | null>(null);
+
+  let canCreateWebhook = $derived(
+    webhookForm.name.trim().length > 0 &&
+    webhookForm.url.trim().startsWith('http') &&
+    webhookForm.events.length > 0
+  );
+
   let generalForm = $state({
     name: '',
     description: '',
@@ -66,7 +122,7 @@
       originalGeneralForm.description = team.description || '';
 
       if (team.userRole === 'OWNER' || team.userRole === 'ADMIN') {
-        await loadSmtpConfig();
+        await Promise.all([loadSmtpConfig(), loadWebhooks()]);
       }
     } catch (error: any) {
       console.error('Error loading team:', error);
@@ -177,9 +233,112 @@
     goto(`/app/teams/${teamId}`);
   }
 
+  async function loadWebhooks() {
+    try {
+      webhooks = (await trpc.team.listWebhooks.query({ teamId })) as TeamWebhook[];
+    } catch (error) {
+      console.error('Error loading webhooks:', error);
+    }
+  }
+
+  function toggleFormEvent(key: string) {
+    webhookForm.events = webhookForm.events.includes(key)
+      ? webhookForm.events.filter((e) => e !== key)
+      : [...webhookForm.events, key];
+  }
+
+  async function handleCreateWebhook() {
+    if (!canManage || !canCreateWebhook) return;
+    creatingWebhook = true;
+    try {
+      await trpc.team.createWebhook.mutate({
+        teamId,
+        name: webhookForm.name.trim(),
+        url: webhookForm.url.trim(),
+        events: webhookForm.events as any,
+      });
+      webhookForm = { name: '', url: '', events: [] };
+      toast.push('Webhook créé avec succès', 'success');
+      await loadWebhooks();
+    } catch (error: any) {
+      toast.push(error?.message || 'Échec de la création du webhook', 'error');
+    } finally {
+      creatingWebhook = false;
+    }
+  }
+
+  async function handleToggleWebhook(webhook: TeamWebhook) {
+    if (!canManage) return;
+    updatingWebhookId = webhook.id;
+    try {
+      await trpc.team.updateWebhook.mutate({
+        teamId,
+        webhookId: webhook.id,
+        enabled: !webhook.enabled,
+      });
+      await loadWebhooks();
+    } catch (error: any) {
+      toast.push(error?.message || 'Échec de la mise à jour du webhook', 'error');
+    } finally {
+      updatingWebhookId = null;
+    }
+  }
+
+  async function handleToggleWebhookEvent(webhook: TeamWebhook, key: string) {
+    if (!canManage) return;
+    const events = webhook.events.includes(key)
+      ? webhook.events.filter((e) => e !== key)
+      : [...webhook.events, key];
+    if (events.length === 0) {
+      toast.push('Un webhook doit écouter au moins un événement', 'error');
+      return;
+    }
+    updatingWebhookId = webhook.id;
+    try {
+      await trpc.team.updateWebhook.mutate({
+        teamId,
+        webhookId: webhook.id,
+        events: events as any,
+      });
+      await loadWebhooks();
+    } catch (error: any) {
+      toast.push(error?.message || 'Échec de la mise à jour du webhook', 'error');
+    } finally {
+      updatingWebhookId = null;
+    }
+  }
+
+  async function handleDeleteWebhook(webhook: TeamWebhook) {
+    if (!canManage) return;
+    updatingWebhookId = webhook.id;
+    try {
+      await trpc.team.deleteWebhook.mutate({ teamId, webhookId: webhook.id });
+      toast.push('Webhook supprimé', 'success');
+      await loadWebhooks();
+    } catch (error: any) {
+      toast.push(error?.message || 'Échec de la suppression du webhook', 'error');
+    } finally {
+      updatingWebhookId = null;
+    }
+  }
+
+  async function handleTestWebhook(url: string) {
+    if (!canManage || !url.trim().startsWith('http')) return;
+    testingWebhookUrl = url;
+    try {
+      const result = await trpc.team.testWebhook.mutate({ teamId, url: url.trim() });
+      toast.push(result.message, 'success');
+    } catch (error: any) {
+      toast.push(error?.message || "Échec de l'envoi du test", 'error');
+    } finally {
+      testingWebhookUrl = null;
+    }
+  }
+
   const tabs = [
     { id: 'general', name: 'Général', icon: 'solar:settings-linear' },
     { id: 'smtp', name: 'SMTP', icon: 'solar:letter-linear' },
+    { id: 'webhooks', name: 'Webhooks', icon: 'solar:link-circle-linear' },
   ];
 </script>
 
@@ -214,7 +373,7 @@
     {/if}
 
     <div class="rounded-xl border border-border bg-card p-1">
-      <div class="grid grid-cols-2 gap-1">
+      <div class="grid grid-cols-3 gap-1">
         {#each tabs as tab (tab.id)}
           <button
             onclick={() => (activeTab = tab.id)}
@@ -435,6 +594,175 @@
                   <span>Enregistrer</span>
                 {/if}
               </button>
+            </div>
+          {/if}
+        </div>
+      </div>
+    {:else if activeTab === 'webhooks'}
+      <div in:fade={{ duration: 200 }} class="space-y-6">
+        <div class="rounded-xl border border-border bg-card p-6">
+          <div class="mb-6">
+            <h2 class="text-lg font-semibold text-foreground">Notifications & Webhooks (Nook)</h2>
+            <p class="text-sm text-muted-foreground mt-1">
+              Envoyez les événements de ce workspace vers un webhook (Nook, Matrix, etc.).
+              Chaque webhook reçoit un POST JSON pour les événements sélectionnés.
+            </p>
+          </div>
+
+          {#if !canManage}
+            <Alert variant="warning">
+              Seuls les administrateurs peuvent gérer les webhooks de l'équipe.
+            </Alert>
+          {:else}
+            <!-- Existing webhooks -->
+            {#if webhooks.length === 0}
+              <div class="rounded-lg border border-dashed border-border bg-muted/30 p-6 text-center">
+                <iconify-icon icon="solar:link-broken-minimalistic-linear" width="28" class="text-muted-foreground"></iconify-icon>
+                <p class="mt-2 text-sm text-muted-foreground">
+                  Aucun webhook configuré pour ce workspace.
+                </p>
+              </div>
+            {:else}
+              <div class="space-y-4">
+                {#each webhooks as webhook (webhook.id)}
+                  <div
+                    transition:slide={{ duration: 150 }}
+                    class="rounded-lg border border-border bg-background p-4 space-y-4 {updatingWebhookId === webhook.id ? 'opacity-60 pointer-events-none' : ''}"
+                  >
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                      <div class="min-w-0">
+                        <div class="flex items-center gap-2">
+                          <span class="font-medium text-foreground truncate">{webhook.name}</span>
+                          <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium {webhook.enabled ? 'bg-green-500/10 text-green-600 dark:text-green-400' : 'bg-muted text-muted-foreground'}">
+                            {webhook.enabled ? 'Actif' : 'Désactivé'}
+                          </span>
+                        </div>
+                        <p class="text-xs text-muted-foreground font-mono truncate mt-1">{webhook.url}</p>
+                      </div>
+                      <div class="flex items-center gap-2 shrink-0">
+                        <!-- Capture phase: read the pre-flip value before Toggle's own onclick -->
+                        <div role="none" onclickcapture={() => handleToggleWebhook(webhook)}>
+                          <Toggle checked={webhook.enabled} label="Activer ou désactiver le webhook" />
+                        </div>
+                        <button
+                          onclick={() => handleTestWebhook(webhook.url)}
+                          disabled={testingWebhookUrl !== null}
+                          class="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-3 text-xs font-medium transition-colors hover:bg-muted disabled:opacity-50"
+                        >
+                          {#if testingWebhookUrl === webhook.url}
+                            <Spinner size="sm" />
+                          {:else}
+                            <iconify-icon icon="solar:test-tube-linear" width="14"></iconify-icon>
+                          {/if}
+                          Tester
+                        </button>
+                        <button
+                          aria-label="Supprimer le webhook"
+                          onclick={() => handleDeleteWebhook(webhook)}
+                          class="inline-flex size-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+                        >
+                          <iconify-icon icon="solar:trash-bin-trash-linear" width="15"></iconify-icon>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {#each WEBHOOK_EVENTS as event (event.key)}
+                        <label class="flex items-start gap-2.5 rounded-lg border px-3 py-2 cursor-pointer transition-colors {webhook.events.includes(event.key) ? 'border-primary/40 bg-primary/5' : 'border-border hover:bg-muted/50'}">
+                          <input
+                            type="checkbox"
+                            checked={webhook.events.includes(event.key)}
+                            onchange={() => handleToggleWebhookEvent(webhook, event.key)}
+                            class="mt-0.5 accent-[hsl(var(--primary))]"
+                          />
+                          <span class="min-w-0">
+                            <span class="block text-sm font-medium text-foreground">{event.label}</span>
+                            <span class="block text-xs text-muted-foreground">{event.description}</span>
+                          </span>
+                        </label>
+                      {/each}
+                    </div>
+                  </div>
+                {/each}
+              </div>
+            {/if}
+
+            <!-- Add webhook -->
+            <div class="pt-6 mt-6 border-t border-border space-y-4">
+              <div>
+                <h3 class="text-sm font-semibold text-foreground">Ajouter un webhook</h3>
+                <p class="text-xs text-muted-foreground mt-0.5">
+                  Collez l'URL de votre webhook Nook puis choisissez les événements à recevoir.
+                </p>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="space-y-1.5">
+                  <label for="webhookName" class="text-sm font-medium text-foreground block">Nom</label>
+                  <Input
+                    id="webhookName"
+                    bind:value={webhookForm.name}
+                    placeholder="Nook — salon Matrix"
+                  />
+                </div>
+                <div class="space-y-1.5">
+                  <label for="webhookUrl" class="text-sm font-medium text-foreground block">URL du webhook</label>
+                  <Input
+                    id="webhookUrl"
+                    bind:value={webhookForm.url}
+                    placeholder="https://nook.example.com/webhook/..."
+                  />
+                </div>
+              </div>
+
+              <div class="space-y-1.5">
+                <span class="text-sm font-medium text-foreground block">Événements</span>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {#each WEBHOOK_EVENTS as event (event.key)}
+                    <label class="flex items-start gap-2.5 rounded-lg border px-3 py-2 cursor-pointer transition-colors {webhookForm.events.includes(event.key) ? 'border-primary/40 bg-primary/5' : 'border-border hover:bg-muted/50'}">
+                      <input
+                        type="checkbox"
+                        checked={webhookForm.events.includes(event.key)}
+                        onchange={() => toggleFormEvent(event.key)}
+                        class="mt-0.5 accent-[hsl(var(--primary))]"
+                      />
+                      <span class="min-w-0">
+                        <span class="block text-sm font-medium text-foreground">{event.label}</span>
+                        <span class="block text-xs text-muted-foreground">{event.description}</span>
+                      </span>
+                    </label>
+                  {/each}
+                </div>
+              </div>
+
+              <div class="flex flex-col md:flex-row gap-2 justify-end">
+                <button
+                  onclick={() => handleTestWebhook(webhookForm.url)}
+                  disabled={testingWebhookUrl !== null || !webhookForm.url.trim().startsWith('http')}
+                  class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50"
+                >
+                  {#if testingWebhookUrl === webhookForm.url}
+                    <Spinner size="sm" />
+                    <span>Test en cours...</span>
+                  {:else}
+                    <iconify-icon icon="solar:test-tube-linear" width="16"></iconify-icon>
+                    <span>Tester l'URL</span>
+                  {/if}
+                </button>
+                <button
+                  onclick={handleCreateWebhook}
+                  disabled={creatingWebhook || !canCreateWebhook}
+                  class="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85 disabled:opacity-50"
+                >
+                  {#if creatingWebhook}
+                    <Spinner size="sm" />
+                    <span>Création...</span>
+                  {:else}
+                    <iconify-icon icon="solar:add-circle-linear" width="16"></iconify-icon>
+                    <span>Ajouter le webhook</span>
+                  {/if}
+                </button>
+              </div>
             </div>
           {/if}
         </div>

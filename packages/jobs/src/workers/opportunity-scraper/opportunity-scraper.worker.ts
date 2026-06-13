@@ -1,4 +1,5 @@
 import type { Job as BullJob } from 'bullmq';
+import { dispatchWebhookEvent } from '@repo/webhooks';
 import type { JobDefinition } from '../../types';
 import type { EventEmitter } from '../index';
 import { OpportunityScraperProcessor } from './opportunity-scraper.processor';
@@ -23,6 +24,30 @@ export function createOpportunityScraperWorker(events?: EventEmitter): JobDefini
           totalFound: result.totalFound,
           durationMs: result.durationMs,
         });
+
+        // Notify webhook subscribers (e.g. Nook) about genuinely new missions.
+        // Global event: every team subscribed to opportunity.new receives it.
+        if (result.newOpportunities.length > 0) {
+          const top = [...result.newOpportunities]
+            .sort((a, b) => b.relevanceScore - a.relevanceScore)
+            .slice(0, 10);
+          dispatchWebhookEvent({
+            event: 'opportunity.new',
+            data: {
+              count: result.newOpportunities.length,
+              missions: top.map((m) => ({
+                id: m.id,
+                title: m.title,
+                company: m.company,
+                source: m.source,
+                budget: m.budget,
+                relevanceScore: m.relevanceScore,
+                url: m.url,
+              })),
+            },
+          }).catch(() => {});
+        }
+
         await job.updateProgress(100);
       } catch (err) {
         console.error('[OpportunityScraper] Fatal error:', err);

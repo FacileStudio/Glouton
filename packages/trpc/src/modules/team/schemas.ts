@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { WEBHOOK_EVENT_KEYS, type WebhookEvent } from '@repo/webhooks';
 import { TeamRole } from './permissions';
 
 export const teamRoleSchema = z.enum(['OWNER', 'ADMIN', 'MEMBER']);
@@ -38,6 +39,44 @@ export const leaveTeamSchema = z.object({
 
 export const teamIdSchema = z.object({
   teamId: z.string(),
+});
+
+const webhookEventSchema = z
+  .enum(WEBHOOK_EVENT_KEYS as [WebhookEvent, ...WebhookEvent[]]);
+
+const webhookUrlSchema = z
+  .string()
+  .url('URL invalide')
+  .max(2000, 'URL trop longue')
+  .refine((url) => url.startsWith('http://') || url.startsWith('https://'), {
+    message: 'Seuls les schémas http(s) sont acceptés',
+  });
+
+export const createWebhookSchema = z.object({
+  teamId: z.string(),
+  name: z.string().min(1, 'Nom requis').max(100, 'Nom trop long'),
+  url: webhookUrlSchema,
+  events: z.array(webhookEventSchema).min(1, 'Sélectionnez au moins un événement'),
+  enabled: z.boolean().optional(),
+});
+
+export const updateWebhookSchema = z.object({
+  teamId: z.string(),
+  webhookId: z.string(),
+  name: z.string().min(1, 'Nom requis').max(100, 'Nom trop long').optional(),
+  url: webhookUrlSchema.optional(),
+  events: z.array(webhookEventSchema).min(1, 'Sélectionnez au moins un événement').optional(),
+  enabled: z.boolean().optional(),
+});
+
+export const deleteWebhookSchema = z.object({
+  teamId: z.string(),
+  webhookId: z.string(),
+});
+
+export const testWebhookSchema = z.object({
+  teamId: z.string(),
+  url: webhookUrlSchema,
 });
 
 export const updateSmtpConfigSchema = z.object({

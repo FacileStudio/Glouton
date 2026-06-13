@@ -1,5 +1,5 @@
 import { prisma } from '@repo/database';
-import type { ScraperStats, OpportunityScraperResult, ScrapeProgress } from './opportunity-scraper.types';
+import type { ScraperStats, OpportunityScraperResult, ScrapeProgress, NewOpportunitySummary } from './opportunity-scraper.types';
 import { type ScrapedOpportunity, decodeEntities } from './scrapers/types';
 import { scrapeRemotive } from './scrapers/remotive';
 import { scrapeRemoteOK } from './scrapers/remoteok';
@@ -28,6 +28,7 @@ export class OpportunityScraperProcessor {
     const start = Date.now();
     const stats: ScraperStats[] = [];
     const seenKeys = new Set<string>();
+    const newOpportunities: NewOpportunitySummary[] = [];
     let totalInserted = 0;
     let totalFound = 0;
 
@@ -42,7 +43,7 @@ export class OpportunityScraperProcessor {
 
     for (let i = 0; i < SCRAPERS.length; i++) {
       const scraper = SCRAPERS[i];
-      const stat = await this.runScraper(scraper.name, scraper.fn, seenKeys);
+      const stat = await this.runScraper(scraper.name, scraper.fn, seenKeys, newOpportunities);
       stats.push(stat);
       totalFound += stat.found;
       totalInserted += stat.inserted;
@@ -61,11 +62,17 @@ export class OpportunityScraperProcessor {
       stats,
       totalInserted,
       totalFound,
+      newOpportunities,
       durationMs: Date.now() - start,
     };
   }
 
-  private async runScraper(name: string, fn: ScraperFn, seenKeys: Set<string>): Promise<ScraperStats> {
+  private async runScraper(
+    name: string,
+    fn: ScraperFn,
+    seenKeys: Set<string>,
+    newOpportunities: NewOpportunitySummary[]
+  ): Promise<ScraperStats> {
     const stat: ScraperStats = { source: name, found: 0, inserted: 0, skipped: 0 };
 
     try {
@@ -82,8 +89,19 @@ export class OpportunityScraperProcessor {
         seenKeys.add(dedupKey);
 
         try {
-          await this.upsertOpportunity(opp);
+          const upserted = await this.upsertOpportunity(opp);
           stat.inserted++;
+          if (upserted.isNew) {
+            newOpportunities.push({
+              id: upserted.id,
+              title: opp.title,
+              company: opp.company ?? null,
+              source: name,
+              budget: opp.budget ?? null,
+              relevanceScore: opp.relevanceScore,
+              url: opp.sourceUrl,
+            });
+          }
         } catch (err: any) {
           if (err?.code === 'P2002') {
             stat.skipped++;
@@ -121,8 +139,15 @@ export class OpportunityScraperProcessor {
     };
   }
 
-  private async upsertOpportunity(rawOpp: ScrapedOpportunity): Promise<void> {
+  private async upsertOpportunity(rawOpp: ScrapedOpportunity): Promise<{ id: string; isNew: boolean }> {
     const opp = this.sanitize(rawOpp);
+
+    // Detect genuine creations (vs refreshes) so the worker can notify
+    // webhook subscribers about truly new missions only.
+    const existing = await prisma.opportunity.findUnique({
+      where: { sourceId: opp.sourceId },
+      select: { id: true },
+    });
 
     // Shared between create and update: re-scraped rows get refreshed data
     // (cleaned entities, newly scraped detail fields) instead of staying
@@ -145,7 +170,7 @@ export class OpportunityScraperProcessor {
       duration: opp.duration ?? null,
     };
 
-    await prisma.opportunity.upsert({
+    const row = await prisma.opportunity.upsert({
       where: { sourceId: opp.sourceId },
       create: {
         ...refreshed,
@@ -161,6 +186,9 @@ export class OpportunityScraperProcessor {
         ...(opp.applicantCount !== undefined ? { applicantCount: opp.applicantCount } : {}),
         updatedAt: new Date(),
       },
+      select: { id: true },
     });
+
+    return { id: row.id, isNew: !existing };
   }
 }

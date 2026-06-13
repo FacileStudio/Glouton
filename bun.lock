@@ -190,6 +190,7 @@
         "@repo/audit": "workspace:*",
         "@repo/logger": "workspace:*",
         "@repo/maps": "workspace:*",
+        "@repo/webhooks": "workspace:*",
         "bullmq": "^5.77.0",
         "ioredis": "^5.10.1",
       },
@@ -244,6 +245,7 @@
       "dependencies": {
         "@repo/database": "workspace:*",
         "@repo/logger": "workspace:*",
+        "@repo/webhooks": "workspace:*",
         "@trpc/server": "^11.17.0",
         "bcryptjs": "^3.0.3",
         "jsonwebtoken": "^9.0.3",
@@ -341,6 +343,18 @@
         "@repo/eslint-config": "workspace:*",
         "eslint": "^9.39.2",
         "typescript": "^5.9.3",
+      },
+    },
+    "packages/webhooks": {
+      "name": "@repo/webhooks",
+      "version": "0.0.0",
+      "dependencies": {
+        "@repo/database": "workspace:*",
+      },
+      "devDependencies": {
+        "@repo/tsconfig": "workspace:*",
+        "@types/node": "^22.10.5",
+        "typescript": "^5.7.3",
       },
     },
   },
@@ -778,6 +792,8 @@
     "@repo/ui": ["@repo/ui@workspace:packages/ui"],
 
     "@repo/utils": ["@repo/utils@workspace:packages/utils"],
+
+    "@repo/webhooks": ["@repo/webhooks@workspace:packages/webhooks"],
 
     "@rolldown/binding-android-arm64": ["@rolldown/binding-android-arm64@1.0.2", "", { "os": "android", "cpu": "arm64" }, "sha512-ZS4D1JPGn/MYQN/SYDWftIE/nVsM8j/AFOYEzAoOE2O3NktQOZru+/vYXGbR/qtdLdIfGCP0lcoJiYVzsEz+iQ=="],
 

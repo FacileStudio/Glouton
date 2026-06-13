@@ -1,5 +1,6 @@
 import { TRPCError } from '@trpc/server';
 import { prisma } from '@repo/database/prisma';
+import { dispatchWebhookEvent, sendWebhook, type WebhookEvent } from '@repo/webhooks';
 import { TeamRole, checkTeamPermission, checkTeamMembership, isTeamOwner } from './permissions';
 import type { AuthManager } from '@repo/auth';
 
@@ -232,6 +233,17 @@ export const teamService = {
       },
     });
 
+    dispatchWebhookEvent({
+      event: 'team.member_added',
+      teamId,
+      data: {
+        email: targetUser.email,
+        firstName: targetUser.firstName,
+        lastName: targetUser.lastName,
+        role: member.role,
+      },
+    }).catch(() => {});
+
     return {
       id: member.id,
       userId: targetUser.id,
@@ -255,6 +267,11 @@ export const teamService = {
         teamId_userId: {
           teamId,
           userId: targetUserId,
+        },
+      },
+      include: {
+        user: {
+          select: { email: true, firstName: true, lastName: true },
         },
       },
     });
@@ -288,6 +305,17 @@ export const teamService = {
         },
       },
     });
+
+    dispatchWebhookEvent({
+      event: 'team.member_removed',
+      teamId,
+      data: {
+        email: targetMember.user.email,
+        firstName: targetMember.user.firstName,
+        lastName: targetMember.user.lastName,
+        role: targetMember.role,
+      },
+    }).catch(() => {});
 
     return { success: true, userId: targetUserId };
   },
@@ -540,6 +568,147 @@ export const teamService = {
     });
 
     return team;
+  },
+
+  // --- Webhooks sortants (Nook) --------------------------------------------
+
+  listTeamWebhooks: async (teamId: string, userId: string) => {
+    await checkTeamPermission(userId, teamId, TeamRole.ADMIN);
+
+    return prisma.teamWebhook.findMany({
+      where: { teamId },
+      orderBy: { createdAt: 'asc' },
+      select: {
+        id: true,
+        name: true,
+        url: true,
+        enabled: true,
+        events: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+  },
+
+  createTeamWebhook: async (
+    teamId: string,
+    userId: string,
+    data: { name: string; url: string; events: WebhookEvent[]; enabled?: boolean }
+  ) => {
+    await checkTeamPermission(userId, teamId, TeamRole.ADMIN);
+
+    return prisma.teamWebhook.create({
+      data: {
+        teamId,
+        name: data.name,
+        url: data.url,
+        events: data.events,
+        enabled: data.enabled ?? true,
+      },
+      select: {
+        id: true,
+        name: true,
+        url: true,
+        enabled: true,
+        events: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+  },
+
+  updateTeamWebhook: async (
+    teamId: string,
+    userId: string,
+    webhookId: string,
+    data: { name?: string; url?: string; events?: WebhookEvent[]; enabled?: boolean }
+  ) => {
+    await checkTeamPermission(userId, teamId, TeamRole.ADMIN);
+
+    // Scoped lookup: a webhook id from another team must 404, not update.
+    const webhook = await prisma.teamWebhook.findFirst({
+      where: { id: webhookId, teamId },
+      select: { id: true },
+    });
+
+    if (!webhook) {
+      throw new TRPCError({
+        code: 'NOT_FOUND',
+        message: 'Webhook introuvable',
+      });
+    }
+
+    return prisma.teamWebhook.update({
+      where: { id: webhookId },
+      data: {
+        ...(data.name !== undefined ? { name: data.name } : {}),
+        ...(data.url !== undefined ? { url: data.url } : {}),
+        ...(data.events !== undefined ? { events: data.events } : {}),
+        ...(data.enabled !== undefined ? { enabled: data.enabled } : {}),
+      },
+      select: {
+        id: true,
+        name: true,
+        url: true,
+        enabled: true,
+        events: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+  },
+
+  deleteTeamWebhook: async (teamId: string, userId: string, webhookId: string) => {
+    await checkTeamPermission(userId, teamId, TeamRole.ADMIN);
+
+    const webhook = await prisma.teamWebhook.findFirst({
+      where: { id: webhookId, teamId },
+      select: { id: true },
+    });
+
+    if (!webhook) {
+      throw new TRPCError({
+        code: 'NOT_FOUND',
+        message: 'Webhook introuvable',
+      });
+    }
+
+    await prisma.teamWebhook.delete({ where: { id: webhookId } });
+
+    return { success: true, webhookId };
+  },
+
+  testTeamWebhook: async (teamId: string, userId: string, url: string) => {
+    await checkTeamPermission(userId, teamId, TeamRole.ADMIN);
+
+    const team = await prisma.team.findUnique({
+      where: { id: teamId },
+      select: { id: true, name: true },
+    });
+
+    if (!team) {
+      throw new TRPCError({
+        code: 'NOT_FOUND',
+        message: 'Équipe introuvable',
+      });
+    }
+
+    try {
+      await sendWebhook(url, {
+        app: 'glouton',
+        event: 'webhook.test',
+        timestamp: new Date().toISOString(),
+        team: { id: team.id, name: team.name },
+        data: { message: 'Test de webhook envoyé depuis les paramètres de l\'équipe.' },
+      });
+      return { success: true, message: 'Webhook joignable, payload de test envoyé.' };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: `Échec de l'envoi du test : ${errorMessage}`,
+      });
+    }
   },
 };
 

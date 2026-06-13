@@ -10,10 +10,23 @@ export interface ScraperStats {
   error?: string;
 }
 
+/** Compact summary of a freshly created opportunity, used for webhook notifications */
+export interface NewOpportunitySummary {
+  id: string;
+  title: string;
+  company: string | null;
+  source: string;
+  budget: string | null;
+  relevanceScore: number;
+  url: string;
+}
+
 export interface OpportunityScraperResult {
   stats: ScraperStats[];
   totalInserted: number;
   totalFound: number;
+  /** Opportunities created (not just refreshed) during this run */
+  newOpportunities: NewOpportunitySummary[];
   durationMs: number;
 }
 

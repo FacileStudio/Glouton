@@ -17,6 +17,24 @@ model Team {
   huntSessions       HuntSession[]
   auditSessions      AuditSession[]
   emailOutreaches    EmailOutreach[]
+  webhooks           TeamWebhook[]
+}
+
+// Outgoing webhooks configured per workspace (e.g. towards Nook): the team
+// picks which application events get POSTed to the URL.
+model TeamWebhook {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Text
+  teamId    String   @db.Text
+  name      String   @db.Text
+  url       String   @db.Text
+  enabled   Boolean  @default(true)
+  events    String[]
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @default(now()) @updatedAt @db.Timestamptz(3)
+
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([teamId])
 }
 
 model TeamMember {

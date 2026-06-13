@@ -12,6 +12,10 @@ import {
   leaveTeamSchema,
   teamIdSchema,
   updateSmtpConfigSchema,
+  createWebhookSchema,
+  updateWebhookSchema,
+  deleteWebhookSchema,
+  testWebhookSchema,
 } from './schemas';
 
 export const teamRouter = router({
@@ -196,6 +200,56 @@ export const teamRouter = router({
           message: `Configuration SMTP invalide : ${errorMessage}`,
         });
       }
+    }),
+
+  listWebhooks: protectedProcedure.input(teamIdSchema).query(async ({ ctx, input }) => {
+    ctx.log.info(
+      { userId: ctx.user.id, teamId: input.teamId },
+      '[TEAM] Listing team webhooks'
+    );
+    return await teamService.listTeamWebhooks(input.teamId, ctx.user.id);
+  }),
+
+  createWebhook: protectedProcedure
+    .input(createWebhookSchema)
+    .mutation(async ({ ctx, input }) => {
+      ctx.log.info(
+        { userId: ctx.user.id, teamId: input.teamId, name: input.name },
+        '[TEAM] Creating team webhook'
+      );
+      const { teamId, ...data } = input;
+      return await teamService.createTeamWebhook(teamId, ctx.user.id, data);
+    }),
+
+  updateWebhook: protectedProcedure
+    .input(updateWebhookSchema)
+    .mutation(async ({ ctx, input }) => {
+      ctx.log.info(
+        { userId: ctx.user.id, teamId: input.teamId, webhookId: input.webhookId },
+        '[TEAM] Updating team webhook'
+      );
+      const { teamId, webhookId, ...data } = input;
+      return await teamService.updateTeamWebhook(teamId, ctx.user.id, webhookId, data);
+    }),
+
+  deleteWebhook: protectedProcedure
+    .input(deleteWebhookSchema)
+    .mutation(async ({ ctx, input }) => {
+      ctx.log.info(
+        { userId: ctx.user.id, teamId: input.teamId, webhookId: input.webhookId },
+        '[TEAM] Deleting team webhook'
+      );
+      return await teamService.deleteTeamWebhook(input.teamId, ctx.user.id, input.webhookId);
+    }),
+
+  testWebhook: protectedProcedure
+    .input(testWebhookSchema)
+    .mutation(async ({ ctx, input }) => {
+      ctx.log.info(
+        { userId: ctx.user.id, teamId: input.teamId },
+        '[TEAM] Testing team webhook'
+      );
+      return await teamService.testTeamWebhook(input.teamId, ctx.user.id, input.url);
     }),
 });
 
