@@ -25,6 +25,10 @@
   }
 
   async function handleSubmit() {
+    // Garde anti double-clic : sans elle, un second clic pendant la création
+    // (ou pendant la navigation post-succès) crée une équipe en double.
+    if (creating) return;
+
     if (!validateForm()) {
       toast.push('Veuillez corriger les erreurs du formulaire', 'error');
       return;
@@ -38,12 +42,14 @@
       });
 
       toast.push('Équipe créée avec succès !', 'success');
-      goto(`/app/teams/${newTeam.id}`);
+      // On laisse creating à true : le bouton reste désactivé jusqu'à ce que
+      // la navigation démonte la page, sinon il se réactive entre la fin de
+      // la mutation et la fin du goto.
+      await goto(`/app/teams/${newTeam.id}`);
     } catch (error: any) {
       const errorMessage = error?.message || 'Échec de la création de l\'équipe';
       console.error('Error creating team:', error);
       toast.push(errorMessage, 'error');
-    } finally {
       creating = false;
     }
   }

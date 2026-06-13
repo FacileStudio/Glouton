@@ -153,6 +153,10 @@
   }
 
   async function startLocalBusinessHunt() {
+    // Garde anti double-clic : sans elle, un second clic pendant la création
+    // (ou pendant la navigation post-succès) lance une deuxième chasse.
+    if (loading) return;
+
     if (localBusinessFilters.categories.length === 0) {
       toast.push('Veuillez sélectionner au moins une catégorie d\'activité', 'error');
       return;
@@ -179,17 +183,19 @@
       });
 
       const huntSessionId = result?.huntSessionId;
-      goto(huntSessionId ? `/app/hunts/${huntSessionId}` : '/app/hunts');
       const categoryCount = localBusinessFilters.categories.length;
       toast.push(
         `Chasse locale démarrée pour ${categoryCount} catégorie${categoryCount > 1 ? 's' : ''} !`,
         'success',
       );
+      // On laisse loading à true : le bouton reste désactivé jusqu'à ce que
+      // la navigation démonte la page, sinon il se réactive entre la fin de
+      // la mutation et la fin du goto.
+      await goto(huntSessionId ? `/app/hunts/${huntSessionId}` : '/app/hunts');
     } catch (error: any) {
       const errorMessage = error?.message || 'Échec du démarrage de la chasse locale';
       toast.push(errorMessage, 'error');
       console.error('Error starting local business hunt:', error);
-    } finally {
       loading = false;
     }
   }
