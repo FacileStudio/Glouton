@@ -2,6 +2,7 @@
   import authStore from '$lib/auth-store';
   import { trpc } from '$lib/trpc';
   import { Button, Input, Spinner, Alert, Toggle } from '@repo/ui';
+  import TeamContextSwitcher from '$lib/components/TeamContextSwitcher.svelte';
   import { toast } from '@repo/utils';
   import { logger } from '@repo/logger';
   import 'iconify-icon';
@@ -285,6 +286,17 @@
       Gérez vos préférences de compte et la sécurité
     </p>
   </header>
+
+  <!-- Switch d'espace de travail : la sidebar (et son switcher) est masquée sur mobile -->
+  <div class="md:hidden rounded-xl border border-border bg-card p-4 space-y-3">
+    <div>
+      <h2 class="text-sm font-semibold text-foreground">Espace de travail</h2>
+      <p class="text-xs text-muted-foreground mt-0.5">
+        Basculez entre votre espace personnel et vos équipes
+      </p>
+    </div>
+    <TeamContextSwitcher />
+  </div>
 
   <div class="rounded-xl border border-border bg-card p-1">
     <div class="grid grid-cols-2 gap-1">
