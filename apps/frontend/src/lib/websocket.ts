@@ -9,10 +9,17 @@ class WebSocketClient {
 	private eventSource: EventSource | null = null;
 	private handlers = new Map<string, Set<MessageHandler>>();
 	private token: string | null = null;
+	private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+	private reconnectAttempts = 0;
 	public connectionState = writable<ConnectionState>('disconnected');
 
 	connect(token: string) {
 		if (!browser) return;
+
+		if (this.reconnectTimer) {
+			clearTimeout(this.reconnectTimer);
+			this.reconnectTimer = null;
+		}
 
 		if (this.eventSource) {
 			this.eventSource.close();
@@ -28,6 +35,7 @@ class WebSocketClient {
 			this.eventSource = new EventSource(url);
 
 			this.eventSource.onopen = () => {
+				this.reconnectAttempts = 0;
 				this.connectionState.set('connected');
 			};
 
@@ -48,11 +56,27 @@ class WebSocketClient {
 
 			this.eventSource.onerror = () => {
 				this.connectionState.set('reconnecting');
+				// EventSource ne réessaie jamais après une réponse non-200
+				// (ex: 404 Traefik pendant un deploy) : readyState passe à
+				// CLOSED et il faut reconnecter nous-mêmes, avec backoff.
+				if (this.eventSource?.readyState === EventSource.CLOSED) {
+					this.scheduleReconnect();
+				}
 			};
 		} catch (error) {
 			console.error('[Events] Connection error:', error);
 			this.connectionState.set('disconnected');
 		}
+	}
+
+	private scheduleReconnect() {
+		if (this.reconnectTimer || !this.token) return;
+		const delay = Math.min(1000 * 2 ** this.reconnectAttempts, 30000);
+		this.reconnectAttempts++;
+		this.reconnectTimer = setTimeout(() => {
+			this.reconnectTimer = null;
+			if (this.token) this.connect(this.token);
+		}, delay);
 	}
 
 	resetConnection() {
@@ -79,6 +103,13 @@ class WebSocketClient {
 	}
 
 	disconnect() {
+		if (this.reconnectTimer) {
+			clearTimeout(this.reconnectTimer);
+			this.reconnectTimer = null;
+		}
+		this.token = null;
+		this.reconnectAttempts = 0;
+
 		if (this.eventSource) {
 			this.eventSource.close();
 			this.eventSource = null;
