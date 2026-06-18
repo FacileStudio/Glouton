@@ -186,7 +186,7 @@
         <h3 class="text-lg font-semibold text-foreground mb-4">Informations</h3>
         <div class="space-y-4">
           <div>
-            <p class="text-xs text-muted-foreground mb-1">Créée le</p>
+            <p class="text-xs text-muted-foreground mb-1">Créé le</p>
             <p class="text-sm text-foreground">
               {new Date(team.createdAt).toLocaleDateString('fr-FR', {
                 day: 'numeric',
