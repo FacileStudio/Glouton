@@ -320,7 +320,7 @@
       <div class="flex-1 space-y-1">
         <h3 class="text-sm font-semibold text-foreground">Configuration SMTP manquante</h3>
         <p class="text-sm text-muted-foreground">
-          Vous devez configurer vos paramètres SMTP pour pouvoir envoyer des e-mails. Rendez-vous dans les paramètres de l'équipe pour ajouter votre configuration SMTP.
+          Vous devez configurer vos paramètres SMTP pour pouvoir envoyer des e-mails. Rendez-vous dans les paramètres de l'espace pour ajouter votre configuration SMTP.
         </p>
         <div class="pt-2">
           <button
@@ -614,7 +614,7 @@
                             <div class="flex-1">
                               <p class="text-sm font-medium text-foreground">SMTP non configuré</p>
                               <p class="text-xs text-muted-foreground mt-0.5">
-                                Configurez vos paramètres SMTP dans les paramètres de l'équipe pour envoyer des e-mails.
+                                Configurez vos paramètres SMTP dans les paramètres de l'espace pour envoyer des e-mails.
                               </p>
                             </div>
                           </div>

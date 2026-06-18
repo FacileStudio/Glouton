@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { invalidateAll, afterNavigate } from '$app/navigation';
+  import { invalidateAll } from '$app/navigation';
   import { teamContextStore } from '$lib/stores/team-context.svelte';
   import trpc from '$lib/trpc';
   import { toast } from '@repo/utils';
@@ -21,27 +21,15 @@
   let displayName = $derived(teamContextStore.getName());
 
   async function loadTeams() {
-    // Only show the spinner on the very first load; background refreshes
-    // keep the current list visible.
-    if (teams.length === 0) loading = true;
+    loading = true;
     error = null;
     try {
       const result = await trpc.team.list.query();
       teams = result;
-
-      // Contexte orphelin : l'équipe active a été supprimée (ou on en a été
-      // retiré). On revient au personnel pour ne pas envoyer un teamId mort.
-      const ctx = teamContextStore.context;
-      if (ctx.type === 'team' && !result.some((team) => team.id === ctx.teamId)) {
-        teamContextStore.setPersonal();
-        toast.push("L'équipe active n'existe plus, retour à l'espace personnel", 'info');
-        await invalidateAll();
-        window.location.reload();
-        return;
-      }
     } catch (err) {
       console.error('Failed to load teams:', err);
-      if (teams.length === 0) error = 'Échec du chargement des équipes';
+      error = 'Failed to load spaces';
+      toast.push('Failed to load spaces', 'error');
     } finally {
       loading = false;
     }
@@ -49,8 +37,6 @@
 
   function toggleDropdown() {
     isOpen = !isOpen;
-    // Refresh on open: always up to date, and retries after a network error.
-    if (isOpen) loadTeams();
   }
 
   function closeDropdown() {
@@ -60,7 +46,7 @@
   async function switchToPersonal() {
     teamContextStore.setPersonal();
     closeDropdown();
-    toast.push('Switched to personal context', 'success');
+    toast.push('Contexte personnel activé', 'success');
     await invalidateAll();
     window.location.reload();
   }
@@ -68,31 +54,22 @@
   async function switchToTeam(teamId: string, name: string, role: 'OWNER' | 'ADMIN' | 'MEMBER') {
     teamContextStore.setTeam(teamId, name, role);
     closeDropdown();
-    toast.push(`Switched to ${name}`, 'success');
+    toast.push(`Espace ${name} activé`, 'success');
     await invalidateAll();
     window.location.reload();
   }
 
-  // Référence locale : le composant peut être rendu plusieurs fois (sidebar
-  // desktop + page settings mobile), un id global pointerait toujours sur la
-  // première instance et fermerait les autres au moindre clic.
-  let container = $state<HTMLElement | null>(null);
-
   function handleClickOutside(event: MouseEvent) {
     const target = event.target as HTMLElement;
-    if (container && !container.contains(target)) {
+    const dropdown = document.getElementById('team-context-dropdown');
+    if (dropdown && !dropdown.contains(target)) {
       closeDropdown();
     }
   }
 
-  // Re-fetch after client-side navigations so a newly created team shows up
-  // immediately without a manual reload. The initial load is done in onMount.
-  afterNavigate((nav) => {
-    if (nav.from) loadTeams();
-  });
-
   onMount(() => {
     loadTeams();
+
     if (typeof document !== 'undefined') {
       document.addEventListener('click', handleClickOutside);
       return () => {
@@ -102,7 +79,7 @@
   });
 </script>
 
-<div class="relative" bind:this={container}>
+<div class="relative" id="team-context-dropdown">
   <button
     onclick={toggleDropdown}
     class="inline-flex h-9 w-full items-center gap-2 rounded-lg border border-border bg-background px-3 text-sm font-medium transition-colors hover:bg-muted"
@@ -111,13 +88,13 @@
       <iconify-icon
         icon="solar:user-linear"
         width="16"
-        class="text-muted-foreground shrink-0"
+        class="text-muted-foreground flex-shrink-0"
       ></iconify-icon>
     {:else}
       <iconify-icon
         icon="solar:users-group-rounded-linear"
         width="16"
-        class="text-foreground shrink-0"
+        class="text-foreground flex-shrink-0"
       ></iconify-icon>
     {/if}
 
@@ -201,7 +178,7 @@
               icon="mdi:plus-circle"
               width="16"
             ></iconify-icon>
-            <span>Nouvelle équipe</span>
+            <span>Nouvel espace</span>
           </a>
         </div>
       {/if}

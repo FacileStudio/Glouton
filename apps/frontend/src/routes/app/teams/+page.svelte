@@ -28,7 +28,7 @@
       teams = result || [];
     } catch (error) {
       console.error('Error loading teams:', error);
-      toast.push('Échec du chargement des équipes', 'error');
+      toast.push('Échec du chargement des espaces', 'error');
       teams = [];
     } finally {
       loading = false;
@@ -62,9 +62,9 @@
 <div class="max-w-[1600px] mx-auto px-6 py-6 space-y-6">
   <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
     <div class="space-y-1">
-      <h1 class="text-2xl font-bold tracking-tight text-foreground">Équipes</h1>
+      <h1 class="text-2xl font-bold tracking-tight text-foreground">Espaces</h1>
       <p class="text-sm text-muted-foreground">
-        Gérez vos équipes et collaborez avec vos collègues
+        Gérez vos espaces et collaborez avec vos collègues
       </p>
     </div>
 
@@ -73,7 +73,7 @@
       class="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85"
     >
       <iconify-icon icon="mdi:plus-circle" width="16"></iconify-icon>
-      <span>Créer une équipe</span>
+      <span>Créer un espace</span>
     </button>
   </div>
 
@@ -87,7 +87,7 @@
       <input
         type="text"
         bind:value={searchQuery}
-        placeholder="Rechercher une équipe..."
+        placeholder="Rechercher un espace..."
         class="w-full h-9 rounded-lg border border-input bg-background pl-9 pr-3 text-sm"
       />
     </div>
@@ -102,14 +102,14 @@
       <div class="flex flex-col items-center justify-center py-16 space-y-3">
         <iconify-icon icon="solar:users-group-two-rounded-linear" width="48" class="text-muted-foreground"></iconify-icon>
         <p class="text-sm text-muted-foreground">
-          {searchQuery ? 'Aucune équipe trouvée' : 'Aucune équipe'}
+          {searchQuery ? 'Aucun espace trouvé' : 'Aucun espace'}
         </p>
         {#if !searchQuery}
           <button
             onclick={handleCreateTeam}
             class="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85"
           >
-            Créer une équipe
+            Créer un espace
           </button>
         {/if}
       </div>
@@ -160,8 +160,8 @@
   {#if !loading && filteredTeams.length > 0}
     <div class="flex items-center justify-center">
       <p class="text-xs text-muted-foreground">
-        {filteredTeams.length} équipe{filteredTeams.length !== 1 ? 's' : ''}
-        {searchQuery ? ' trouvée' + (filteredTeams.length !== 1 ? 's' : '') : ''}
+        {filteredTeams.length} espace{filteredTeams.length !== 1 ? 's' : ''}
+        {searchQuery ? ' trouvé' + (filteredTeams.length !== 1 ? 's' : '') : ''}
       </p>
     </div>
   {/if}

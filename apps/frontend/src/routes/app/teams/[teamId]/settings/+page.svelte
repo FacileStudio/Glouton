@@ -3,7 +3,6 @@
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { trpc } from '$lib/trpc';
-  import { teamContextStore } from '$lib/stores/team-context.svelte';
   import { Input, Button, Spinner, Toggle, Alert } from '@repo/ui';
   import { toast } from '@repo/utils';
   import { fade, slide } from 'svelte/transition';
@@ -19,65 +18,14 @@
   let deleteConfirmationText = $state('');
   let deleting = $state(false);
 
-  // Mirror of the server-side catalog (@repo/webhooks is server-only)
-  const WEBHOOK_EVENTS: Array<{ key: string; label: string; description: string }> = [
-    {
-      key: 'opportunity.new',
-      label: 'Nouvelles missions freelance',
-      description: 'À chaque scan qui découvre de nouvelles missions',
-    },
-    {
-      key: 'hunt.completed',
-      label: 'Chasse terminée',
-      description: "Quand une chasse de l'équipe se termine avec succès",
-    },
-    {
-      key: 'hunt.failed',
-      label: 'Chasse échouée',
-      description: "Quand une chasse de l'équipe échoue",
-    },
-    {
-      key: 'audit.completed',
-      label: 'Audit de site terminé',
-      description: "Quand un audit de l'équipe se termine",
-    },
-    {
-      key: 'team.member_added',
-      label: 'Membre ajouté',
-      description: "Quand quelqu'un rejoint l'équipe",
-    },
-    {
-      key: 'team.member_removed',
-      label: 'Membre retiré',
-      description: "Quand quelqu'un est retiré de l'équipe",
-    },
-  ];
-
-  interface TeamWebhook {
-    id: string;
-    name: string;
-    url: string;
-    enabled: boolean;
-    events: string[];
-    createdAt: string;
-    updatedAt: string;
-  }
-
-  let webhooks = $state<TeamWebhook[]>([]);
-  let webhookForm = $state({ name: '', url: '', events: [] as string[] });
-  let creatingWebhook = $state(false);
-  let testingWebhookUrl = $state<string | null>(null);
-  let updatingWebhookId = $state<string | null>(null);
-
-  let canCreateWebhook = $derived(
-    webhookForm.name.trim().length > 0 &&
-    webhookForm.url.trim().startsWith('http') &&
-    webhookForm.events.length > 0
-  );
-
   let generalForm = $state({
     name: '',
     description: '',
+  });
+
+  let apiKeysForm = $state({
+    hunterApiKey: '',
+    googleMapsApiKey: '',
   });
 
   let smtpForm = $state({
@@ -90,14 +38,26 @@
     smtpFromEmail: '',
   });
 
+  let showApiKeys = $state({
+    hunterApiKey: false,
+    googleMapsApiKey: false,
+  });
+
   let showSmtpPass = $state(false);
 
   let originalGeneralForm = $state({ name: '', description: '' });
+  let originalApiKeysForm = $state({ ...apiKeysForm });
   let originalSmtpForm = $state({ ...smtpForm });
 
   let hasGeneralChanges = $derived(
     generalForm.name !== originalGeneralForm.name ||
     generalForm.description !== originalGeneralForm.description
+  );
+
+  let hasApiKeysChanges = $derived(
+    Object.keys(apiKeysForm).some(
+      (key) => apiKeysForm[key as keyof typeof apiKeysForm] !== originalApiKeysForm[key as keyof typeof originalApiKeysForm]
+    )
   );
 
   let hasSmtpChanges = $derived(
@@ -123,14 +83,25 @@
       originalGeneralForm.description = team.description || '';
 
       if (team.userRole === 'OWNER' || team.userRole === 'ADMIN') {
-        await Promise.all([loadSmtpConfig(), loadWebhooks()]);
+        await Promise.all([loadApiKeys(), loadSmtpConfig()]);
       }
     } catch (error: any) {
       console.error('Error loading team:', error);
-      toast.push(error?.message || 'Échec du chargement de l\'équipe', 'error');
+      toast.push(error?.message || 'Échec du chargement de l\'espace', 'error');
       goto('/app/teams');
     } finally{
       loading = false;
+    }
+  }
+
+  async function loadApiKeys() {
+    try {
+      const apiKeys = await trpc.team.getApiKeys.query({ teamId });
+      apiKeysForm.hunterApiKey = apiKeys.hunterApiKey || '';
+      apiKeysForm.googleMapsApiKey = apiKeys.googleMapsApiKey || '';
+      originalApiKeysForm = { ...apiKeysForm };
+    } catch (error) {
+      console.error('Error loading API keys:', error);
     }
   }
 
@@ -165,6 +136,24 @@
       await loadTeam();
     } catch (error: any) {
       toast.push(error?.message || 'Échec de la mise à jour', 'error');
+    } finally {
+      saving = false;
+    }
+  }
+
+  async function handleUpdateApiKeys() {
+    if (!canManage) return;
+    saving = true;
+    try {
+      await trpc.team.updateApiKeys.mutate({
+        teamId,
+        hunterApiKey: apiKeysForm.hunterApiKey || undefined,
+        googleMapsApiKey: apiKeysForm.googleMapsApiKey || undefined,
+      });
+      await loadApiKeys();
+      toast.push('Clés API mises à jour avec succès', 'success');
+    } catch (error: any) {
+      toast.push(error?.message || 'Échec de la mise à jour des clés API', 'error');
     } finally {
       saving = false;
     }
@@ -220,15 +209,10 @@
     deleting = true;
     try {
       await trpc.team.delete.mutate({ teamId });
-      // Si l'équipe supprimée était le contexte actif, revenir au personnel
-      // pour ne pas laisser un teamId mort dans le localStorage.
-      if (teamContextStore.getTeamId() === teamId) {
-        teamContextStore.setPersonal();
-      }
-      toast.push('Équipe supprimée avec succès', 'success');
+      toast.push('Espace supprimé avec succès', 'success');
       goto('/app/teams');
     } catch (error: any) {
-      toast.push(error?.message || 'Échec de la suppression de l\'équipe', 'error');
+      toast.push(error?.message || 'Échec de la suppression de l\'espace', 'error');
       deleteModalOpen = false;
     } finally {
       deleting = false;
@@ -239,112 +223,10 @@
     goto(`/app/teams/${teamId}`);
   }
 
-  async function loadWebhooks() {
-    try {
-      webhooks = (await trpc.team.listWebhooks.query({ teamId })) as TeamWebhook[];
-    } catch (error) {
-      console.error('Error loading webhooks:', error);
-    }
-  }
-
-  function toggleFormEvent(key: string) {
-    webhookForm.events = webhookForm.events.includes(key)
-      ? webhookForm.events.filter((e) => e !== key)
-      : [...webhookForm.events, key];
-  }
-
-  async function handleCreateWebhook() {
-    if (!canManage || !canCreateWebhook) return;
-    creatingWebhook = true;
-    try {
-      await trpc.team.createWebhook.mutate({
-        teamId,
-        name: webhookForm.name.trim(),
-        url: webhookForm.url.trim(),
-        events: webhookForm.events as any,
-      });
-      webhookForm = { name: '', url: '', events: [] };
-      toast.push('Webhook créé avec succès', 'success');
-      await loadWebhooks();
-    } catch (error: any) {
-      toast.push(error?.message || 'Échec de la création du webhook', 'error');
-    } finally {
-      creatingWebhook = false;
-    }
-  }
-
-  async function handleToggleWebhook(webhook: TeamWebhook) {
-    if (!canManage) return;
-    updatingWebhookId = webhook.id;
-    try {
-      await trpc.team.updateWebhook.mutate({
-        teamId,
-        webhookId: webhook.id,
-        enabled: !webhook.enabled,
-      });
-      await loadWebhooks();
-    } catch (error: any) {
-      toast.push(error?.message || 'Échec de la mise à jour du webhook', 'error');
-    } finally {
-      updatingWebhookId = null;
-    }
-  }
-
-  async function handleToggleWebhookEvent(webhook: TeamWebhook, key: string) {
-    if (!canManage) return;
-    const events = webhook.events.includes(key)
-      ? webhook.events.filter((e) => e !== key)
-      : [...webhook.events, key];
-    if (events.length === 0) {
-      toast.push('Un webhook doit écouter au moins un événement', 'error');
-      return;
-    }
-    updatingWebhookId = webhook.id;
-    try {
-      await trpc.team.updateWebhook.mutate({
-        teamId,
-        webhookId: webhook.id,
-        events: events as any,
-      });
-      await loadWebhooks();
-    } catch (error: any) {
-      toast.push(error?.message || 'Échec de la mise à jour du webhook', 'error');
-    } finally {
-      updatingWebhookId = null;
-    }
-  }
-
-  async function handleDeleteWebhook(webhook: TeamWebhook) {
-    if (!canManage) return;
-    updatingWebhookId = webhook.id;
-    try {
-      await trpc.team.deleteWebhook.mutate({ teamId, webhookId: webhook.id });
-      toast.push('Webhook supprimé', 'success');
-      await loadWebhooks();
-    } catch (error: any) {
-      toast.push(error?.message || 'Échec de la suppression du webhook', 'error');
-    } finally {
-      updatingWebhookId = null;
-    }
-  }
-
-  async function handleTestWebhook(url: string) {
-    if (!canManage || !url.trim().startsWith('http')) return;
-    testingWebhookUrl = url;
-    try {
-      const result = await trpc.team.testWebhook.mutate({ teamId, url: url.trim() });
-      toast.push(result.message, 'success');
-    } catch (error: any) {
-      toast.push(error?.message || "Échec de l'envoi du test", 'error');
-    } finally {
-      testingWebhookUrl = null;
-    }
-  }
-
   const tabs = [
     { id: 'general', name: 'Général', icon: 'solar:settings-linear' },
+    { id: 'api-keys', name: 'Clés API', icon: 'solar:key-linear' },
     { id: 'smtp', name: 'SMTP', icon: 'solar:letter-linear' },
-    { id: 'webhooks', name: 'Webhooks', icon: 'solar:link-circle-linear' },
   ];
 </script>
 
@@ -367,7 +249,7 @@
           Paramètres de {team.name}
         </h1>
         <p class="text-sm text-muted-foreground">
-          Gérez les paramètres de votre équipe
+          Gérez les paramètres de votre espace
         </p>
       </div>
     </div>
@@ -400,19 +282,19 @@
         <div class="rounded-xl border border-border bg-card p-6">
           <div class="mb-6">
             <h2 class="text-lg font-semibold text-foreground">Informations générales</h2>
-            <p class="text-sm text-muted-foreground mt-1">Modifiez les informations de base de votre équipe</p>
+            <p class="text-sm text-muted-foreground mt-1">Modifiez les informations de base de votre espace</p>
           </div>
 
           <div class="space-y-4">
             <div class="space-y-1.5">
               <label for="name" class="text-sm font-medium text-foreground block">
-                Nom de l'équipe
+                Nom de l'espace
               </label>
               <Input
                 id="name"
                 bind:value={generalForm.name}
                 disabled={!canManage}
-                placeholder="Équipe Marketing"
+                placeholder="Espace Marketing"
               />
             </div>
 
@@ -424,7 +306,7 @@
                 id="description"
                 bind:value={generalForm.description}
                 disabled={!canManage}
-                placeholder="Décrivez l'objectif de cette équipe..."
+                placeholder="Décrivez l'objectif de cet espace..."
                 rows="4"
                 class="w-full min-h-24 rounded-lg border border-input bg-background px-3 py-2 text-sm resize-none disabled:opacity-50 disabled:cursor-not-allowed"
               ></textarea>
@@ -459,26 +341,98 @@
                   Zone de danger
                 </h3>
                 <p class="text-sm text-muted-foreground mt-1 max-w-md">
-                  La suppression de cette équipe est définitive. Toutes les données associées seront effacées immédiatement.
+                  La suppression de cet espace est définitive. Toutes les données associées seront effacées immédiatement.
                 </p>
               </div>
               <button
                 onclick={() => { deleteModalOpen = true; deleteConfirmationText = ''; }}
-                class="inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors shrink-0"
+                class="inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors flex-shrink-0"
               >
                 <iconify-icon icon="solar:trash-bin-trash-linear" width="16"></iconify-icon>
-                Supprimer l'équipe
+                Supprimer l'espace
               </button>
             </div>
           </div>
         {/if}
+      </div>
+    {:else if activeTab === 'api-keys'}
+      <div in:fade={{ duration: 200 }}>
+        <div class="rounded-xl border border-border bg-card p-6">
+          <div class="mb-6">
+            <h2 class="text-lg font-semibold text-foreground">Clés API</h2>
+            <p class="text-sm text-muted-foreground mt-1">Configurez les clés API pour les sources de leads de l'espace</p>
+          </div>
+
+          <div class="space-y-4">
+            {#each [
+              { key: 'hunterApiKey', label: 'Hunter.io', url: 'https://hunter.io/api' },
+              { key: 'googleMapsApiKey', label: 'Google Maps', url: 'https://console.cloud.google.com' },
+            ] as provider}
+              <div class="space-y-1.5">
+                <label for={provider.key} class="text-sm font-medium text-foreground flex items-center gap-2">
+                  {provider.label}
+                  {#if apiKeysForm[provider.key as keyof typeof apiKeysForm]}
+                    <span class="rounded-full bg-muted text-foreground px-2.5 py-0.5 text-xs font-medium flex items-center gap-1">
+                      <iconify-icon icon="solar:check-circle-linear" width="12"></iconify-icon>
+                      Configuré
+                    </span>
+                  {/if}
+                </label>
+                <div class="relative">
+                  <Input
+                    id={provider.key}
+                    type={showApiKeys[provider.key as keyof typeof showApiKeys] ? 'text' : 'password'}
+                    bind:value={apiKeysForm[provider.key as keyof typeof apiKeysForm]}
+                    disabled={!canManage}
+                    placeholder={`Entrez votre clé API ${provider.label}`}
+                    class="font-mono pr-10"
+                  />
+                  {#if apiKeysForm[provider.key as keyof typeof apiKeysForm]}
+                    <button
+                      type="button"
+                      aria-label="Afficher ou masquer la clé API"
+                      onclick={() => (showApiKeys[provider.key as keyof typeof showApiKeys] = !showApiKeys[provider.key as keyof typeof showApiKeys])}
+                      class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <iconify-icon
+                        icon={showApiKeys[provider.key as keyof typeof showApiKeys] ? 'solar:eye-linear' : 'solar:eye-closed-linear'}
+                        width="16"
+                      ></iconify-icon>
+                    </button>
+                  {/if}
+                </div>
+                <p class="text-xs text-muted-foreground">
+                  Obtenez votre clé sur <a href={provider.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-foreground">{provider.url}</a>
+                </p>
+              </div>
+            {/each}
+          </div>
+
+          {#if canManage}
+            <div class="flex justify-end pt-6 mt-6 border-t border-border">
+              <button
+                onclick={handleUpdateApiKeys}
+                disabled={saving || !hasApiKeysChanges}
+                class="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85 disabled:opacity-50"
+              >
+                {#if saving}
+                  <Spinner size="sm" />
+                  <span>Enregistrement...</span>
+                {:else}
+                  <iconify-icon icon="solar:diskette-linear" width="16"></iconify-icon>
+                  <span>Enregistrer</span>
+                {/if}
+              </button>
+            </div>
+          {/if}
+        </div>
       </div>
     {:else if activeTab === 'smtp'}
       <div in:fade={{ duration: 200 }}>
         <div class="rounded-xl border border-border bg-card p-6">
           <div class="mb-6">
             <h2 class="text-lg font-semibold text-foreground">Configuration SMTP</h2>
-            <p class="text-sm text-muted-foreground mt-1">Configurez le serveur SMTP pour l'envoi d'emails de l'équipe</p>
+            <p class="text-sm text-muted-foreground mt-1">Configurez le serveur SMTP pour l'envoi d'emails de l'espace</p>
           </div>
 
           <div class="space-y-4">
@@ -556,7 +510,7 @@
                   id="smtpFromName"
                   bind:value={smtpForm.smtpFromName}
                   disabled={!canManage}
-                  placeholder="Votre Équipe"
+                  placeholder="Votre Espace"
                 />
               </div>
               <div class="space-y-1.5">
@@ -566,7 +520,7 @@
                   type="email"
                   bind:value={smtpForm.smtpFromEmail}
                   disabled={!canManage}
-                  placeholder="equipe@votredomain.com"
+                  placeholder="espace@votredomain.com"
                 />
               </div>
             </div>
@@ -604,175 +558,6 @@
           {/if}
         </div>
       </div>
-    {:else if activeTab === 'webhooks'}
-      <div in:fade={{ duration: 200 }} class="space-y-6">
-        <div class="rounded-xl border border-border bg-card p-6">
-          <div class="mb-6">
-            <h2 class="text-lg font-semibold text-foreground">Notifications & Webhooks (Nook)</h2>
-            <p class="text-sm text-muted-foreground mt-1">
-              Envoyez les événements de ce workspace vers un webhook (Nook, Matrix, etc.).
-              Chaque webhook reçoit un POST JSON pour les événements sélectionnés.
-            </p>
-          </div>
-
-          {#if !canManage}
-            <Alert variant="warning">
-              Seuls les administrateurs peuvent gérer les webhooks de l'équipe.
-            </Alert>
-          {:else}
-            <!-- Existing webhooks -->
-            {#if webhooks.length === 0}
-              <div class="rounded-lg border border-dashed border-border bg-muted/30 p-6 text-center">
-                <iconify-icon icon="solar:link-broken-minimalistic-linear" width="28" class="text-muted-foreground"></iconify-icon>
-                <p class="mt-2 text-sm text-muted-foreground">
-                  Aucun webhook configuré pour ce workspace.
-                </p>
-              </div>
-            {:else}
-              <div class="space-y-4">
-                {#each webhooks as webhook (webhook.id)}
-                  <div
-                    transition:slide={{ duration: 150 }}
-                    class="rounded-lg border border-border bg-background p-4 space-y-4 {updatingWebhookId === webhook.id ? 'opacity-60 pointer-events-none' : ''}"
-                  >
-                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                      <div class="min-w-0">
-                        <div class="flex items-center gap-2">
-                          <span class="font-medium text-foreground truncate">{webhook.name}</span>
-                          <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium {webhook.enabled ? 'bg-green-500/10 text-green-600 dark:text-green-400' : 'bg-muted text-muted-foreground'}">
-                            {webhook.enabled ? 'Actif' : 'Désactivé'}
-                          </span>
-                        </div>
-                        <p class="text-xs text-muted-foreground font-mono truncate mt-1">{webhook.url}</p>
-                      </div>
-                      <div class="flex items-center gap-2 shrink-0">
-                        <!-- Capture phase: read the pre-flip value before Toggle's own onclick -->
-                        <div role="none" onclickcapture={() => handleToggleWebhook(webhook)}>
-                          <Toggle checked={webhook.enabled} label="Activer ou désactiver le webhook" />
-                        </div>
-                        <button
-                          onclick={() => handleTestWebhook(webhook.url)}
-                          disabled={testingWebhookUrl !== null}
-                          class="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-3 text-xs font-medium transition-colors hover:bg-muted disabled:opacity-50"
-                        >
-                          {#if testingWebhookUrl === webhook.url}
-                            <Spinner size="sm" />
-                          {:else}
-                            <iconify-icon icon="solar:test-tube-linear" width="14"></iconify-icon>
-                          {/if}
-                          Tester
-                        </button>
-                        <button
-                          aria-label="Supprimer le webhook"
-                          onclick={() => handleDeleteWebhook(webhook)}
-                          class="inline-flex size-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
-                        >
-                          <iconify-icon icon="solar:trash-bin-trash-linear" width="15"></iconify-icon>
-                        </button>
-                      </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-                      {#each WEBHOOK_EVENTS as event (event.key)}
-                        <label class="flex items-start gap-2.5 rounded-lg border px-3 py-2 cursor-pointer transition-colors {webhook.events.includes(event.key) ? 'border-primary/40 bg-primary/5' : 'border-border hover:bg-muted/50'}">
-                          <input
-                            type="checkbox"
-                            checked={webhook.events.includes(event.key)}
-                            onchange={() => handleToggleWebhookEvent(webhook, event.key)}
-                            class="mt-0.5 accent-[hsl(var(--primary))]"
-                          />
-                          <span class="min-w-0">
-                            <span class="block text-sm font-medium text-foreground">{event.label}</span>
-                            <span class="block text-xs text-muted-foreground">{event.description}</span>
-                          </span>
-                        </label>
-                      {/each}
-                    </div>
-                  </div>
-                {/each}
-              </div>
-            {/if}
-
-            <!-- Add webhook -->
-            <div class="pt-6 mt-6 border-t border-border space-y-4">
-              <div>
-                <h3 class="text-sm font-semibold text-foreground">Ajouter un webhook</h3>
-                <p class="text-xs text-muted-foreground mt-0.5">
-                  Collez l'URL de votre webhook Nook puis choisissez les événements à recevoir.
-                </p>
-              </div>
-
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="space-y-1.5">
-                  <label for="webhookName" class="text-sm font-medium text-foreground block">Nom</label>
-                  <Input
-                    id="webhookName"
-                    bind:value={webhookForm.name}
-                    placeholder="Nook — salon Matrix"
-                  />
-                </div>
-                <div class="space-y-1.5">
-                  <label for="webhookUrl" class="text-sm font-medium text-foreground block">URL du webhook</label>
-                  <Input
-                    id="webhookUrl"
-                    bind:value={webhookForm.url}
-                    placeholder="https://nook.example.com/webhook/..."
-                  />
-                </div>
-              </div>
-
-              <div class="space-y-1.5">
-                <span class="text-sm font-medium text-foreground block">Événements</span>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  {#each WEBHOOK_EVENTS as event (event.key)}
-                    <label class="flex items-start gap-2.5 rounded-lg border px-3 py-2 cursor-pointer transition-colors {webhookForm.events.includes(event.key) ? 'border-primary/40 bg-primary/5' : 'border-border hover:bg-muted/50'}">
-                      <input
-                        type="checkbox"
-                        checked={webhookForm.events.includes(event.key)}
-                        onchange={() => toggleFormEvent(event.key)}
-                        class="mt-0.5 accent-[hsl(var(--primary))]"
-                      />
-                      <span class="min-w-0">
-                        <span class="block text-sm font-medium text-foreground">{event.label}</span>
-                        <span class="block text-xs text-muted-foreground">{event.description}</span>
-                      </span>
-                    </label>
-                  {/each}
-                </div>
-              </div>
-
-              <div class="flex flex-col md:flex-row gap-2 justify-end">
-                <button
-                  onclick={() => handleTestWebhook(webhookForm.url)}
-                  disabled={testingWebhookUrl !== null || !webhookForm.url.trim().startsWith('http')}
-                  class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50"
-                >
-                  {#if testingWebhookUrl === webhookForm.url}
-                    <Spinner size="sm" />
-                    <span>Test en cours...</span>
-                  {:else}
-                    <iconify-icon icon="solar:test-tube-linear" width="16"></iconify-icon>
-                    <span>Tester l'URL</span>
-                  {/if}
-                </button>
-                <button
-                  onclick={handleCreateWebhook}
-                  disabled={creatingWebhook || !canCreateWebhook}
-                  class="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85 disabled:opacity-50"
-                >
-                  {#if creatingWebhook}
-                    <Spinner size="sm" />
-                    <span>Création...</span>
-                  {:else}
-                    <iconify-icon icon="solar:add-circle-linear" width="16"></iconify-icon>
-                    <span>Ajouter le webhook</span>
-                  {/if}
-                </button>
-              </div>
-            </div>
-          {/if}
-        </div>
-      </div>
     {/if}
   {/if}
 </div>
@@ -784,9 +569,9 @@
   >
     <div class="rounded-xl border border-border bg-card p-6 max-w-md w-full space-y-4">
       <div class="space-y-1">
-        <h3 class="text-lg font-semibold text-foreground">Supprimer l'équipe ?</h3>
+        <h3 class="text-lg font-semibold text-foreground">Supprimer l'espace ?</h3>
         <p class="text-sm text-muted-foreground">
-          Cette action est définitive. Toutes les données de l'équipe seront supprimées.
+          Cette action est définitive. Toutes les données de l'espace seront supprimées.
         </p>
       </div>
 
