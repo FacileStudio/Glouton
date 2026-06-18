@@ -2,7 +2,7 @@
   import authStore from '$lib/auth-store';
   import { trpc } from '$lib/trpc';
   import { Button, Input, Spinner, Alert, Toggle } from '@repo/ui';
-  import TeamContextSwitcher from '$lib/components/TeamContextSwitcher.svelte';
+  import SpaceSwitcher from '$lib/components/SpaceSwitcher.svelte';
   import { toast } from '@repo/utils';
   import { logger } from '@repo/logger';
   import 'iconify-icon';
@@ -295,7 +295,7 @@
         Basculez entre votre espace personnel et vos équipes
       </p>
     </div>
-    <TeamContextSwitcher />
+    <SpaceSwitcher />
   </div>
 
   <div class="rounded-xl border border-border bg-card p-1">
