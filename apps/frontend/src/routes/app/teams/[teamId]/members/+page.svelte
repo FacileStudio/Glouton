@@ -41,7 +41,7 @@
       team = await trpc.team.get.query({ teamId });
     } catch (error: any) {
       console.error('Error loading team:', error);
-      toast.push(error?.message || 'Échec du chargement de l\'équipe', 'error');
+      toast.push(error?.message || 'Échec du chargement de l\'espace', 'error');
       goto('/app/teams');
     } finally {
       loading = false;
@@ -155,17 +155,17 @@
 
   async function handleLeaveTeam() {
     if (isOwner) {
-      toast.push('Le propriétaire ne peut pas quitter l\'équipe. Supprimez l\'équipe ou transférez la propriété.', 'error');
+      toast.push('Le propriétaire ne peut pas quitter l\'espace. Supprimez l\'espace ou transférez la propriété.', 'error');
       return;
     }
 
     leavingTeam = true;
     try {
       await trpc.team.leave.mutate({ teamId });
-      toast.push('Vous avez quitté l\'équipe', 'success');
+      toast.push('Vous avez quitté l\'espace', 'success');
       goto('/app/teams');
     } catch (error: any) {
-      toast.push(error?.message || 'Échec du départ de l\'équipe', 'error');
+      toast.push(error?.message || 'Échec du départ de l\'espace', 'error');
       leaveConfirmModalOpen = false;
     } finally {
       leavingTeam = false;
@@ -209,7 +209,7 @@
             class="inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
           >
             <iconify-icon icon="solar:logout-2-linear" width="16"></iconify-icon>
-            <span>Quitter l'équipe</span>
+            <span>Quitter l'espace</span>
           </button>
         {/if}
 
@@ -234,7 +234,7 @@
         <div class="p-8">
           <EmptyState
             title="Aucun membre"
-            description="Ajoutez des membres pour collaborer sur cette équipe"
+            description="Ajoutez des membres pour collaborer sur cet espace"
             icon="solar:users-group-rounded-linear"
           >
             <div slot="action">
@@ -385,7 +385,7 @@
       <div class="space-y-1">
         <h3 class="text-lg font-semibold text-foreground">Retirer ce membre ?</h3>
         <p class="text-sm text-muted-foreground">
-          {memberToRemove.firstName || memberToRemove.email} sera retiré de l'équipe et perdra l'accès aux ressources partagées.
+          {memberToRemove.firstName || memberToRemove.email} sera retiré de l'espace et perdra l'accès aux ressources partagées.
         </p>
       </div>
 
@@ -415,9 +415,9 @@
   >
     <div class="rounded-xl border border-border bg-card p-6 max-w-md w-full space-y-4">
       <div class="space-y-1">
-        <h3 class="text-lg font-semibold text-foreground">Quitter l'équipe ?</h3>
+        <h3 class="text-lg font-semibold text-foreground">Quitter l'espace ?</h3>
         <p class="text-sm text-muted-foreground">
-          Vous perdrez l'accès aux ressources de cette équipe. Vous pourrez être réinvité par un administrateur.
+          Vous perdrez l'accès aux ressources de cet espace. Vous pourrez être réinvité par un administrateur.
         </p>
       </div>
 

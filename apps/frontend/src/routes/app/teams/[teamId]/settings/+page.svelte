@@ -87,7 +87,7 @@
       }
     } catch (error: any) {
       console.error('Error loading team:', error);
-      toast.push(error?.message || 'Échec du chargement de l\'équipe', 'error');
+      toast.push(error?.message || 'Échec du chargement de l\'espace', 'error');
       goto('/app/teams');
     } finally{
       loading = false;
@@ -209,10 +209,10 @@
     deleting = true;
     try {
       await trpc.team.delete.mutate({ teamId });
-      toast.push('Équipe supprimée avec succès', 'success');
+      toast.push('Espace supprimé avec succès', 'success');
       goto('/app/teams');
     } catch (error: any) {
-      toast.push(error?.message || 'Échec de la suppression de l\'équipe', 'error');
+      toast.push(error?.message || 'Échec de la suppression de l\'espace', 'error');
       deleteModalOpen = false;
     } finally {
       deleting = false;
@@ -249,7 +249,7 @@
           Paramètres de {team.name}
         </h1>
         <p class="text-sm text-muted-foreground">
-          Gérez les paramètres de votre équipe
+          Gérez les paramètres de votre espace
         </p>
       </div>
     </div>
@@ -282,19 +282,19 @@
         <div class="rounded-xl border border-border bg-card p-6">
           <div class="mb-6">
             <h2 class="text-lg font-semibold text-foreground">Informations générales</h2>
-            <p class="text-sm text-muted-foreground mt-1">Modifiez les informations de base de votre équipe</p>
+            <p class="text-sm text-muted-foreground mt-1">Modifiez les informations de base de votre espace</p>
           </div>
 
           <div class="space-y-4">
             <div class="space-y-1.5">
               <label for="name" class="text-sm font-medium text-foreground block">
-                Nom de l'équipe
+                Nom de l'espace
               </label>
               <Input
                 id="name"
                 bind:value={generalForm.name}
                 disabled={!canManage}
-                placeholder="Équipe Marketing"
+                placeholder="Espace Marketing"
               />
             </div>
 
@@ -306,7 +306,7 @@
                 id="description"
                 bind:value={generalForm.description}
                 disabled={!canManage}
-                placeholder="Décrivez l'objectif de cette équipe..."
+                placeholder="Décrivez l'objectif de cet espace..."
                 rows="4"
                 class="w-full min-h-24 rounded-lg border border-input bg-background px-3 py-2 text-sm resize-none disabled:opacity-50 disabled:cursor-not-allowed"
               ></textarea>
@@ -341,7 +341,7 @@
                   Zone de danger
                 </h3>
                 <p class="text-sm text-muted-foreground mt-1 max-w-md">
-                  La suppression de cette équipe est définitive. Toutes les données associées seront effacées immédiatement.
+                  La suppression de cet espace est définitive. Toutes les données associées seront effacées immédiatement.
                 </p>
               </div>
               <button
@@ -349,7 +349,7 @@
                 class="inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors flex-shrink-0"
               >
                 <iconify-icon icon="solar:trash-bin-trash-linear" width="16"></iconify-icon>
-                Supprimer l'équipe
+                Supprimer l'espace
               </button>
             </div>
           </div>
@@ -360,7 +360,7 @@
         <div class="rounded-xl border border-border bg-card p-6">
           <div class="mb-6">
             <h2 class="text-lg font-semibold text-foreground">Clés API</h2>
-            <p class="text-sm text-muted-foreground mt-1">Configurez les clés API pour les sources de leads de l'équipe</p>
+            <p class="text-sm text-muted-foreground mt-1">Configurez les clés API pour les sources de leads de l'espace</p>
           </div>
 
           <div class="space-y-4">
@@ -432,7 +432,7 @@
         <div class="rounded-xl border border-border bg-card p-6">
           <div class="mb-6">
             <h2 class="text-lg font-semibold text-foreground">Configuration SMTP</h2>
-            <p class="text-sm text-muted-foreground mt-1">Configurez le serveur SMTP pour l'envoi d'emails de l'équipe</p>
+            <p class="text-sm text-muted-foreground mt-1">Configurez le serveur SMTP pour l'envoi d'emails de l'espace</p>
           </div>
 
           <div class="space-y-4">
@@ -510,7 +510,7 @@
                   id="smtpFromName"
                   bind:value={smtpForm.smtpFromName}
                   disabled={!canManage}
-                  placeholder="Votre Équipe"
+                  placeholder="Votre Espace"
                 />
               </div>
               <div class="space-y-1.5">
@@ -520,7 +520,7 @@
                   type="email"
                   bind:value={smtpForm.smtpFromEmail}
                   disabled={!canManage}
-                  placeholder="equipe@votredomain.com"
+                  placeholder="espace@votredomain.com"
                 />
               </div>
             </div>
@@ -569,9 +569,9 @@
   >
     <div class="rounded-xl border border-border bg-card p-6 max-w-md w-full space-y-4">
       <div class="space-y-1">
-        <h3 class="text-lg font-semibold text-foreground">Supprimer l'équipe ?</h3>
+        <h3 class="text-lg font-semibold text-foreground">Supprimer l'espace ?</h3>
         <p class="text-sm text-muted-foreground">
-          Cette action est définitive. Toutes les données de l'équipe seront supprimées.
+          Cette action est définitive. Toutes les données de l'espace seront supprimées.
         </p>
       </div>
 

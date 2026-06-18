@@ -23,7 +23,7 @@
       team = await trpc.team.get.query({ teamId });
     } catch (error: any) {
       console.error('Error loading team:', error);
-      toast.push(error?.message || 'Échec du chargement de l\'équipe', 'error');
+      toast.push(error?.message || 'Échec du chargement de l\'espace', 'error');
       goto('/app/teams');
     } finally {
       loading = false;

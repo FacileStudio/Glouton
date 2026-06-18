@@ -17,7 +17,7 @@
     errors = {};
 
     if (!formData.name || formData.name.trim().length < 3) {
-      errors.name = 'Le nom de l\'équipe doit contenir au moins 3 caractères';
+      errors.name = 'Le nom de l\'espace doit contenir au moins 3 caractères';
       return false;
     }
 
@@ -37,10 +37,10 @@
         description: formData.description.trim() || undefined,
       });
 
-      toast.push('Équipe créée avec succès !', 'success');
+      toast.push('Espace créé avec succès !', 'success');
       goto(`/app/teams/${newTeam.id}`);
     } catch (error: any) {
-      const errorMessage = error?.message || 'Échec de la création de l\'équipe';
+      const errorMessage = error?.message || 'Échec de la création de l\'espace';
       console.error('Error creating team:', error);
       toast.push(errorMessage, 'error');
     } finally {
@@ -63,9 +63,9 @@
       <iconify-icon icon="solar:arrow-left-linear" width="16"></iconify-icon>
     </button>
     <div class="space-y-1">
-      <h1 class="text-2xl font-bold tracking-tight text-foreground">Créer une équipe</h1>
+      <h1 class="text-2xl font-bold tracking-tight text-foreground">Créer un espace</h1>
       <p class="text-sm text-muted-foreground">
-        Créez une nouvelle équipe pour collaborer avec vos collègues
+        Créez un nouvel espace pour collaborer avec vos collègues
       </p>
     </div>
   </div>
@@ -74,12 +74,12 @@
     <div class="space-y-4">
       <div class="space-y-1.5">
         <label for="name" class="text-sm font-medium text-foreground block">
-          Nom de l'équipe <span class="text-destructive">*</span>
+          Nom de l'espace <span class="text-destructive">*</span>
         </label>
         <Input
           id="name"
           bind:value={formData.name}
-          placeholder="Équipe Marketing"
+          placeholder="Espace Marketing"
           error={!!errors.name}
         />
         {#if errors.name}
@@ -94,7 +94,7 @@
         <textarea
           id="description"
           bind:value={formData.description}
-          placeholder="Décrivez l'objectif de cette équipe..."
+          placeholder="Décrivez l'objectif de cet espace..."
           rows="4"
           class="w-full min-h-24 rounded-lg border border-input bg-background px-3 py-2 text-sm resize-none"
         ></textarea>
@@ -119,7 +119,7 @@
           <span>Création...</span>
         {:else}
           <iconify-icon icon="mdi:plus-circle" width="16"></iconify-icon>
-          <span>Créer l'équipe</span>
+          <span>Créer l'espace</span>
         {/if}
       </button>
     </div>
@@ -129,10 +129,10 @@
     <div class="flex gap-3">
       <iconify-icon icon="solar:info-circle-linear" width="18" class="text-muted-foreground flex-shrink-0 mt-0.5"></iconify-icon>
       <div>
-        <h3 class="text-sm font-semibold text-foreground mb-1">À propos des équipes</h3>
+        <h3 class="text-sm font-semibold text-foreground mb-1">À propos des espaces</h3>
         <p class="text-sm text-muted-foreground">
-          En créant une équipe, vous deviendrez automatiquement propriétaire. Vous pourrez inviter des membres,
-          configurer les clés API et les paramètres SMTP pour l'équipe.
+          En créant un espace, vous deviendrez automatiquement propriétaire. Vous pourrez inviter des membres,
+          configurer les clés API et les paramètres SMTP pour l'espace.
         </p>
       </div>
     </div>

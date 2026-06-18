@@ -28,8 +28,8 @@
       teams = result;
     } catch (err) {
       console.error('Failed to load teams:', err);
-      error = 'Failed to load teams';
-      toast.push('Failed to load teams', 'error');
+      error = 'Failed to load spaces';
+      toast.push('Failed to load spaces', 'error');
     } finally {
       loading = false;
     }
@@ -46,7 +46,7 @@
   async function switchToPersonal() {
     teamContextStore.setPersonal();
     closeDropdown();
-    toast.push('Switched to personal context', 'success');
+    toast.push('Contexte personnel activé', 'success');
     await invalidateAll();
     window.location.reload();
   }
@@ -54,7 +54,7 @@
   async function switchToTeam(teamId: string, name: string, role: 'OWNER' | 'ADMIN' | 'MEMBER') {
     teamContextStore.setTeam(teamId, name, role);
     closeDropdown();
-    toast.push(`Switched to ${name}`, 'success');
+    toast.push(`Espace ${name} activé`, 'success');
     await invalidateAll();
     window.location.reload();
   }
@@ -178,7 +178,7 @@
               icon="mdi:plus-circle"
               width="16"
             ></iconify-icon>
-            <span>Nouvelle équipe</span>
+            <span>Nouvel espace</span>
           </a>
         </div>
       {/if}

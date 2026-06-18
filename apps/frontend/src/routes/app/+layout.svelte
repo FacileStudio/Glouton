@@ -5,7 +5,7 @@
   import authStore from '$lib/auth-store';
   import { Sidebar } from '@repo/ui';
   import { ws } from '$lib/websocket';
-  import TeamContextSwitcher from '$lib/components/TeamContextSwitcher.svelte';
+  import SpaceSwitcher from '$lib/components/SpaceSwitcher.svelte';
   import 'iconify-icon';
 
   let { children } = $props();
@@ -14,7 +14,7 @@
     { label: 'Chasses', icon: 'solar:radar-2-linear', href: '/app/hunts' },
     { label: 'Leads', icon: 'solar:magnet-wave-bold-duotone', href: '/app/leads' },
     { label: 'Prospection', icon: 'solar:letter-linear', href: '/app/outreach' },
-    { label: 'Équipes', icon: 'solar:users-group-rounded-linear', href: '/app/teams' },
+    { label: 'Espaces', icon: 'solar:users-group-rounded-linear', href: '/app/teams' },
   ];
 
   let userInitials = $derived($authStore.user?.firstName?.[0] || 'U');
@@ -28,11 +28,11 @@
     if (path.match(/^\/app\/leads\/.+/)) return 'Lead — Glouton';
     if (path === '/app/leads') return 'Leads — Glouton';
     if (path === '/app/outreach') return 'Prospection — Glouton';
-    if (path === '/app/teams/new') return 'Nouvelle Équipe — Glouton';
-    if (path.match(/^\/app\/teams\/.+\/settings/)) return 'Paramètres d\'équipe — Glouton';
+    if (path === '/app/teams/new') return 'Nouvel Espace — Glouton';
+    if (path.match(/^\/app\/teams\/.+\/settings/)) return 'Paramètres d\'espace — Glouton';
     if (path.match(/^\/app\/teams\/.+\/members/)) return 'Membres — Glouton';
-    if (path.match(/^\/app\/teams\/.+/)) return 'Équipe — Glouton';
-    if (path === '/app/teams') return 'Équipes — Glouton';
+    if (path.match(/^\/app\/teams\/.+/)) return 'Espace — Glouton';
+    if (path === '/app/teams') return 'Espaces — Glouton';
     if (path === '/app/settings') return 'Paramètres — Glouton';
     if (path === '/app/premium') return 'Premium — Glouton';
     return 'Glouton';
@@ -75,7 +75,7 @@
     userHref="/app/settings"
     logoIcon="solar:magnet-wave-bold-duotone"
   >
-    <TeamContextSwitcher slot="context-switcher" />
+    <SpaceSwitcher slot="context-switcher" />
 
     <div
       slot="user-avatar"
