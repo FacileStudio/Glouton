@@ -32,7 +32,6 @@ services:
     build:
       context: .
       dockerfile: apps/backend/Dockerfile
-      network: host
       args:
         DATABASE_URL: postgresql://glouton:${POSTGRES_PASSWORD:-glouton}@glouton-postgres:5432/glouton
         CACHE_BUST: ${CACHE_BUST:-2026-05-15-1}
@@ -68,7 +67,6 @@ services:
     build:
       context: .
       dockerfile: apps/frontend/Dockerfile
-      network: host
     container_name: glouton-frontend
     environment:
       NODE_ENV: production
