@@ -69,7 +69,7 @@ CORS is built from `DOMAIN` alone, so a mismatch between the Traefik hostname an
 up as browser CORS failures rather than a server error.
 
 One caveat: the proxy in `apps/frontend/server.js` forwards `/trpc`, `/auth/config`,
-`/auth/oidc`, `/docs` and `/openapi.json` and nothing else. `/ws` is **not** in that list, so the
+`/auth/oidc` and `/docs/*` and nothing else. `/ws` is **not** in that list, so the
 WebSocket upgrade does not traverse the frontend container. Live hunt and audit progress
 therefore depends on a route to the backend's `/ws` that this Compose file does not provide —
 verify it before assuming real-time updates work in a given deployment.

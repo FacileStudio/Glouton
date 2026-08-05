@@ -26,10 +26,6 @@ export default defineConfig({
         target: backendUrl,
         changeOrigin: true,
       },
-      '/openapi.json': {
-        target: backendUrl,
-        changeOrigin: true,
-      },
     },
     fs: {
       allow: ['..', '../../packages']

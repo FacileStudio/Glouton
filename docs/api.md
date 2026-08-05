@@ -20,8 +20,13 @@ Stacks are stripped in production.
 Many procedures take an optional `teamId`. Omit it and the call is scoped to the caller's personal
 data; supply it and the call is scoped to that team, subject to the caller's membership.
 
-An OpenAPI document is generated from the router (`trpc-to-openapi`) and served at
-`GET /openapi.json`, with a Scalar reference UI at `GET /docs`.
+A Scalar API reference is served at `GET /docs`, over an OpenAPI document at
+`GET /docs/openapi.json` — the same two paths every Facile backend uses.
+
+The document is produced by `trpc-to-openapi` from the tRPC router, but **no procedure declares
+`.meta({ openapi: … })`**, so it currently ships an empty `paths` object. It does not document the
+tRPC procedures above, and it does not document the plain Hono routes below either. Adding
+`openapi` meta to the procedures you want exposed is what fills it in.
 
 ## `auth`
 
@@ -191,8 +196,8 @@ All protected. Freelance missions scraped from public boards.
 | `GET` | `/auth/config` | none | yes | `{ sso_only, oidc_enabled }`, so the login page knows whether to show the password form |
 | `GET` | `/auth/oidc` | none | yes | Starts the OIDC flow, setting an `oidc_state` cookie with a 10 minute TTL. Registered only when OIDC is enabled |
 | `GET` | `/auth/oidc/callback` | state cookie | yes | Verifies `state`, exchanges the code, verifies the id token against the cached JWKS, upserts the user, redirects to `OIDC_SUCCESS_URL#token=<jwt>` |
-| `GET` | `/openapi.json` | none | yes | Generated OpenAPI document |
 | `GET` | `/docs` | none | yes | Scalar API reference UI |
+| `GET` | `/docs/openapi.json` | none | yes | Generated OpenAPI document |
 | `GET` | `/ws` | bearer | **no** | Bun WebSocket for live hunt, audit and lead events |
 | `GET` | `/internal/ws-status` | `x-internal-secret` | **no** | Connected users and socket counts |
 | `POST` | `/internal/broadcast` | `x-internal-secret` | **no** | `{ message, userId? , broadcastAll? }` — emits to one user or everyone |
@@ -201,7 +206,7 @@ All protected. Freelance missions scraped from public boards.
 | `GET` | `/` | none | **no** | `{ message: "Welcome to the Glouton's API !" }` |
 
 The "proxied publicly" column matters: `apps/frontend/server.js` forwards only `/trpc`,
-`/auth/config`, `/auth/oidc`, `/docs` and `/openapi.json`. Everything else is reachable only from
+`/auth/config`, `/auth/oidc` and `/docs/*`. Everything else is reachable only from
 inside the Docker network. `x-internal-secret` is compared against `ENCRYPTION_SECRET`, the same
 value that signs JWTs.
 

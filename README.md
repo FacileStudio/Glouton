@@ -49,8 +49,8 @@ bash scripts/migrate.sh "$DATABASE_URL"
 just dev
 ```
 
-The frontend listens on port 3000 and proxies `/trpc`, `/auth/config`, `/auth/oidc`, `/docs` and
-`/openapi.json` through to the backend on 3001, so the browser only ever talks to one origin.
+The frontend listens on port 3000 and proxies `/trpc`, `/auth/config`, `/auth/oidc` and `/docs/*`
+through to the backend on 3001, so the browser only ever talks to one origin.
 
 ## Configuration
 

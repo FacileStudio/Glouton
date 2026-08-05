@@ -12,7 +12,7 @@ SvelteKit request handler. One public hostname, one Traefik router.
 ```
 Internet ──▶ Traefik ──▶ glouton-frontend (:3000)  server.js
                               ├──▶ /trpc, /auth/config, /auth/oidc,
-                              │    /docs, /openapi.json  ─── proxied ───┐
+                              │    /docs/*              ─── proxied ───┐
                               └──▶ everything else  SvelteKit handler   │
                                                                         ▼
                                             glouton-backend (:3001)  Hono, not exposed

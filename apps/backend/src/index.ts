@@ -107,8 +107,8 @@ app.use('*', async (c, next) => {
   }
 });
 
-app.get('/openapi.json', openApiHandler);
-app.get('/docs', apiReference({ url: '/openapi.json', pageTitle: 'Glouton API' }));
+app.get('/docs/openapi.json', openApiHandler);
+app.get('/docs', apiReference({ url: '/docs/openapi.json', pageTitle: 'Glouton API' }));
 
 app.get('/health/live', createLivenessHandler());
 app.get('/health/ready', createReadinessHandler({ prisma }));

@@ -47,14 +47,14 @@ just dev-frontend   # frontend only, port 3000
 `just dev` is `bun run dev`, which is `turbo run dev`. The `dev` and `build` tasks depend on
 `check-env`, so a bad environment fails before either app comes up.
 
-In development the Vite dev server proxies `/trpc`, `/auth/config`, `/auth/oidc`, `/docs` and
-`/openapi.json` to `BACKEND_URL`. In production the same list is proxied by
+In development the Vite dev server proxies `/trpc`, `/auth/config`, `/auth/oidc` and `/docs/*`
+to `BACKEND_URL`. In production the same list is proxied by
 `apps/frontend/server.js`. **Keep the two lists in sync** — a route added to one and not the
 other works in development and 404s in production.
 
 Once running: the app is at <http://localhost:3000>, the API reference at
 <http://localhost:3000/docs>, and the raw OpenAPI document at
-<http://localhost:3000/openapi.json>.
+<http://localhost:3000/docs/openapi.json>.
 
 ## Database: two migration stories
 
