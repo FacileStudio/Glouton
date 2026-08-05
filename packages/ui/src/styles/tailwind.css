@@ -110,6 +110,7 @@
 
 @theme inline {
   --font-sans: 'Goga', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --font-heading: 'Goga', 'Helvetica Neue', Helvetica, Arial, sans-serif;
   --font-title: 'Goga', 'Helvetica Neue', Helvetica, Arial, sans-serif;
   --font-body: 'Goga', 'Helvetica Neue', Helvetica, Arial, sans-serif;
   --color-background: var(--background);

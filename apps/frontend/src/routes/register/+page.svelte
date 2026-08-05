@@ -6,7 +6,12 @@
   import { getTrpcErrorMessage } from '$lib/utils/trpc-error';
   import 'iconify-icon';
 
-  let step = 1;
+  const inputClass =
+    'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50';
+  const labelClass = 'text-sm font-medium leading-none';
+  const primaryButtonClass =
+    'inline-flex h-10 w-full items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50';
+
   let email = '';
   let password = '';
   let confirmPassword = '';
@@ -14,20 +19,6 @@
   let lastName = '';
   let loading = false;
   let error = '';
-
-  const steps = ['Identité', 'Email', 'Sécurité'];
-
-  function nextStep() {
-    error = '';
-    if (step === 1 && firstName && lastName) step = 2;
-    else if (step === 2 && email) step = 3;
-  }
-
-  function prevStep() {
-    error = '';
-    if (step > 1) step -= 1;
-    else void goto(resolve('/login'));
-  }
 
   async function handleRegister() {
     if (password !== confirmPassword) {
@@ -58,172 +49,147 @@
   <title>Créer un compte — Glouton</title>
 </svelte:head>
 
-<div class="flex min-h-screen bg-background text-foreground">
-  <aside class="hidden w-1/2 flex-col bg-foreground px-12 py-10 text-background lg:flex">
-    <a href={resolve('/')} class="mb-auto flex items-center gap-3">
-      <iconify-icon icon="solar:magnet-wave-bold-duotone" width="28"></iconify-icon>
-      <span class="text-xl font-bold">Glouton</span>
+<div class="flex min-h-screen">
+  <aside class="hidden lg:flex lg:w-1/2 flex-col bg-black px-12 py-10">
+    <a href={resolve('/')} class="flex items-center gap-3 mb-auto">
+      <iconify-icon icon="solar:magnet-wave-bold-duotone" width="28" class="text-white"></iconify-icon>
+      <span class="text-xl font-bold font-heading tracking-tight text-white">Glouton</span>
     </a>
 
     <div class="mb-auto">
-      <h1 class="text-4xl font-bold leading-tight">
+      <h2 class="text-4xl font-bold font-heading text-white leading-tight tracking-tight">
         Créer un pipeline<br />qui reste lisible.
-      </h1>
-      <p class="mt-4 max-w-xs text-sm leading-relaxed text-background/55">
+      </h2>
+      <p class="mt-4 text-sm text-white/50 max-w-xs leading-relaxed">
         Inscription courte. Prospection longue. Mauvais ratio pour les formulaires, bon ratio pour le business.
       </p>
     </div>
 
-    <p class="text-xs text-background/35">© {new Date().getFullYear()} Glouton by Facile.</p>
+    <p class="text-xs text-white/30">© {new Date().getFullYear()} Glouton par Facile.</p>
   </aside>
 
-  <main class="flex w-full flex-col items-center justify-center px-8 py-12 lg:w-1/2">
+  <main class="flex w-full lg:w-1/2 flex-col items-center justify-center px-8 py-12 bg-background">
     <div class="w-full max-w-sm">
       <a href={resolve('/')} class="mb-10 flex items-center gap-3 lg:hidden">
         <iconify-icon icon="solar:magnet-wave-bold-duotone" width="28"></iconify-icon>
-        <span class="text-xl font-bold">Glouton</span>
+        <span class="text-xl font-bold font-heading tracking-tight">Glouton</span>
       </a>
 
       <div class="mb-8">
-        <div class="mb-4 grid grid-cols-3 gap-2">
-          {#each steps as item, index}
-            <div class="h-1 rounded-full {index + 1 <= step ? 'bg-foreground' : 'bg-muted'}"></div>
-          {/each}
-        </div>
-        <p class="text-sm text-muted-foreground">Étape {step} sur 3 — {steps[step - 1]}</p>
-        <h2 class="mt-1.5 text-2xl font-bold">
-          {#if step === 1}
-            Votre identité
-          {:else if step === 2}
-            Votre email
-          {:else}
-            Votre accès
-          {/if}
-        </h2>
+        <h1 class="text-2xl font-bold font-heading tracking-tight text-foreground">Créer un compte</h1>
+        <p class="mt-1.5 text-sm text-muted-foreground">
+          Créez votre accès à l'espace de prospection.
+        </p>
       </div>
 
-      {#if step === 1}
-        <form
-          class="space-y-4"
-          onsubmit={(event) => {
-            event.preventDefault();
-            nextStep();
-          }}
-        >
-          <div class="grid gap-4 sm:grid-cols-2">
-            <label class="space-y-1.5 block">
-              <span class="text-sm font-medium">Prénom</span>
-              <input
-                bind:value={firstName}
-                placeholder="Yann"
-                class="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-1 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                required
-              />
-            </label>
-            <label class="space-y-1.5 block">
-              <span class="text-sm font-medium">Nom</span>
-              <input
-                bind:value={lastName}
-                placeholder="Facile"
-                class="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-1 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                required
-              />
-            </label>
+      <div class="mb-6 flex rounded-lg border border-border bg-muted p-1 gap-1">
+        <a
+          href={resolve('/login')}
+          class="flex-1 rounded-md py-1.5 text-center text-sm font-medium transition-colors text-muted-foreground hover:text-foreground"
+        >Connexion</a>
+        <a
+          href={resolve('/register')}
+          aria-current="page"
+          class="flex-1 rounded-md py-1.5 text-center text-sm font-medium transition-colors bg-background text-foreground shadow-sm"
+        >Inscription</a>
+      </div>
+
+      <form
+        class="space-y-4"
+        onsubmit={(event) => {
+          event.preventDefault();
+          void handleRegister();
+        }}
+      >
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div class="space-y-1.5">
+            <label for="firstName" class={labelClass}>Prénom</label>
+            <input
+              id="firstName"
+              type="text"
+              bind:value={firstName}
+              placeholder="Yann"
+              autocomplete="given-name"
+              required
+              disabled={loading}
+              class={inputClass}
+            />
           </div>
-          <button
-            type="submit"
-            disabled={!firstName || !lastName}
-            class="inline-flex h-9 w-full items-center justify-center rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85 disabled:pointer-events-none disabled:opacity-50"
-          >
-            Continuer
-          </button>
-        </form>
-      {:else if step === 2}
-        <form
-          class="space-y-4"
-          onsubmit={(event) => {
-            event.preventDefault();
-            nextStep();
-          }}
-        >
-          <label class="space-y-1.5 block">
-            <span class="text-sm font-medium">Email</span>
+          <div class="space-y-1.5">
+            <label for="lastName" class={labelClass}>Nom</label>
             <input
-              type="email"
-              bind:value={email}
-              placeholder="vous@entreprise.com"
-              class="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-1 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+              id="lastName"
+              type="text"
+              bind:value={lastName}
+              placeholder="Facile"
+              autocomplete="family-name"
               required
+              disabled={loading}
+              class={inputClass}
             />
-          </label>
-          <button
-            type="submit"
-            disabled={!email}
-            class="inline-flex h-9 w-full items-center justify-center rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85 disabled:pointer-events-none disabled:opacity-50"
-          >
-            Continuer
-          </button>
-        </form>
-      {:else}
-        <form
-          class="space-y-4"
-          onsubmit={(event) => {
-            event.preventDefault();
-            void handleRegister();
-          }}
-        >
-          <label class="space-y-1.5 block">
-            <span class="text-sm font-medium">Mot de passe</span>
-            <input
-              type="password"
-              bind:value={password}
-              placeholder="••••••••"
-              class="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-1 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-              required
-            />
-          </label>
-          <label class="space-y-1.5 block">
-            <span class="text-sm font-medium">Confirmation</span>
-            <input
-              type="password"
-              bind:value={confirmPassword}
-              placeholder="••••••••"
-              class="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-1 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-              required
-            />
-          </label>
+          </div>
+        </div>
 
-          {#if error}
-            <p class="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              {error}
-            </p>
-          {/if}
+        <div class="space-y-1.5">
+          <label for="email" class={labelClass}>Email</label>
+          <input
+            id="email"
+            type="email"
+            bind:value={email}
+            placeholder="vous@entreprise.com"
+            autocomplete="email"
+            required
+            disabled={loading}
+            class={inputClass}
+          />
+        </div>
 
-          <button
-            type="submit"
-            disabled={loading || !password || !confirmPassword}
-            class="inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85 disabled:pointer-events-none disabled:opacity-50"
-          >
-            {#if loading}
-              <iconify-icon icon="svg-spinners:180-ring" width="16"></iconify-icon>
-              Création
-            {:else}
-              Créer le compte
-            {/if}
-          </button>
-        </form>
-      {/if}
+        <div class="space-y-1.5">
+          <label for="password" class={labelClass}>Mot de passe</label>
+          <input
+            id="password"
+            type="password"
+            bind:value={password}
+            placeholder="••••••••"
+            autocomplete="new-password"
+            required
+            disabled={loading}
+            class={inputClass}
+          />
+        </div>
 
-      <div class="mt-5 flex items-center justify-between text-sm">
+        <div class="space-y-1.5">
+          <label for="confirmPassword" class={labelClass}>Confirmation</label>
+          <input
+            id="confirmPassword"
+            type="password"
+            bind:value={confirmPassword}
+            placeholder="••••••••"
+            autocomplete="new-password"
+            required
+            disabled={loading}
+            class={inputClass}
+          />
+        </div>
+
+        {#if error}
+          <p class="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {error}
+          </p>
+        {/if}
+
         <button
-          type="button"
-          onclick={prevStep}
-          class="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+          type="submit"
+          disabled={loading || !firstName || !lastName || !email || !password || !confirmPassword}
+          class={primaryButtonClass}
         >
-          {step === 1 ? 'Connexion' : 'Précédent'}
+          {loading ? 'Création…' : 'Créer le compte'}
         </button>
-        <a href={resolve('/login')} class="font-medium underline-offset-4 hover:underline">
-          Déjà un compte
+      </form>
+
+      <div class="mt-5 text-sm">
+        <a href={resolve('/')} class="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+          Accueil
         </a>
       </div>
     </div>
