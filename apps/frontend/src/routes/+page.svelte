@@ -48,20 +48,20 @@
         {#if !$authStore.session}
           <a
             href={resolve('/login')}
-            class="inline-flex h-9 items-center justify-center rounded-lg px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            class="inline-flex h-9 items-center justify-center rounded-md px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             Connexion
           </a>
           <a
             href={resolve('/register')}
-            class="inline-flex h-9 items-center justify-center rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85"
+            class="inline-flex h-9 items-center justify-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85"
           >
             Commencer
           </a>
         {:else}
           <a
             href={resolve('/app/leads')}
-            class="inline-flex h-9 items-center justify-center rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85"
+            class="inline-flex h-9 items-center justify-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85"
           >
             Ouvrir l'app
           </a>
@@ -82,14 +82,14 @@
       <div class="mt-10 flex flex-col justify-center gap-2 sm:flex-row">
         <a
           href={resolve($authStore.session ? '/app/leads' : '/register')}
-          class="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85"
+          class="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85"
         >
           {$authStore.session ? "Ouvrir l'app" : 'Créer un compte'}
           <iconify-icon icon="solar:arrow-right-linear" width="16"></iconify-icon>
         </a>
         <a
           href={resolve('/login')}
-          class="inline-flex h-9 items-center justify-center rounded-lg border border-border bg-background px-4 text-sm font-medium transition-colors hover:bg-muted"
+          class="inline-flex h-9 items-center justify-center rounded-md border border-border bg-background px-4 text-sm font-medium transition-colors hover:bg-muted"
         >
           Connexion
         </a>
