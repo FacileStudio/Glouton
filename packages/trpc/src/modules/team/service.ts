@@ -570,7 +570,7 @@ export const teamService = {
     return team;
   },
 
-  // --- Webhooks sortants (Nook) --------------------------------------------
+  // --- Webhooks sortants (Antenne) -----------------------------------------
 
   listTeamWebhooks: async (teamId: string, userId: string) => {
     await checkTeamPermission(userId, teamId, TeamRole.ADMIN);

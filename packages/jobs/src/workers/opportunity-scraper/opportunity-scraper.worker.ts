@@ -25,7 +25,7 @@ export function createOpportunityScraperWorker(events?: EventEmitter): JobDefini
           durationMs: result.durationMs,
         });
 
-        // Notify webhook subscribers (e.g. Nook) about genuinely new missions.
+        // Notify webhook subscribers (e.g. Antenne) about genuinely new missions.
         // Global event: every team subscribed to opportunity.new receives it.
         if (result.newOpportunities.length > 0) {
           const top = [...result.newOpportunities]

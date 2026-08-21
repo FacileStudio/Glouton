@@ -20,7 +20,7 @@ model Team {
   webhooks           TeamWebhook[]
 }
 
-// Outgoing webhooks configured per workspace (e.g. towards Nook): the team
+// Outgoing webhooks configured per workspace (e.g. towards Antenne): the team
 // picks which application events get POSTed to the URL.
 model TeamWebhook {
   id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Text

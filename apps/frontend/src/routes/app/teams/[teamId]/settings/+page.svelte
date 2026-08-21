@@ -608,9 +608,9 @@
       <div in:fade={{ duration: 200 }} class="space-y-6">
         <div class="rounded-xl border border-border bg-card p-6">
           <div class="mb-6">
-            <h2 class="text-lg font-semibold text-foreground">Notifications & Webhooks (Nook)</h2>
+            <h2 class="text-lg font-semibold text-foreground">Notifications & Webhooks (Antenne)</h2>
             <p class="text-sm text-muted-foreground mt-1">
-              Envoyez les événements de ce workspace vers un webhook (Nook, Matrix, etc.).
+              Envoyez les événements de ce workspace vers un webhook (Antenne, Matrix, etc.).
               Chaque webhook reçoit un POST JSON pour les événements sélectionnés.
             </p>
           </div>
@@ -698,7 +698,7 @@
               <div>
                 <h3 class="text-sm font-semibold text-foreground">Ajouter un webhook</h3>
                 <p class="text-xs text-muted-foreground mt-0.5">
-                  Collez l'URL de votre webhook Nook puis choisissez les événements à recevoir.
+                  Collez l'URL de votre webhook Antenne puis choisissez les événements à recevoir.
                 </p>
               </div>
 
@@ -708,7 +708,7 @@
                   <Input
                     id="webhookName"
                     bind:value={webhookForm.name}
-                    placeholder="Nook — salon Matrix"
+                    placeholder="Antenne — salon Matrix"
                   />
                 </div>
                 <div class="space-y-1.5">
@@ -716,7 +716,7 @@
                   <Input
                     id="webhookUrl"
                     bind:value={webhookForm.url}
-                    placeholder="https://nook.example.com/webhook/..."
+                    placeholder="https://antenne.example.com/webhook/..."
                   />
                 </div>
               </div>

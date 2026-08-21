@@ -36,7 +36,7 @@ const SEND_TIMEOUT_MS = 10_000;
  *   new freelance missions).
  *
  * Fire-and-forget by design: failures are logged, never thrown, so a dead
- * Nook endpoint can never break a worker or a tRPC mutation.
+ * Antenne endpoint can never break a worker or a tRPC mutation.
  */
 export async function dispatchWebhookEvent(options: {
   event: WebhookEvent;
