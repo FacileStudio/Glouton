@@ -1,0 +1,101 @@
+[settings]
+lockfile = true
+
+[tools]
+bun = "1.3.13"
+node = "22.23.2"
+
+[env]
+BUN_BIN = { value = "{{tools.bun.path}}/bin/bun", tools = true }
+NODE_BIN_DIR = { value = "{{tools.node.path}}/bin", tools = true }
+
+[tasks.install]
+description = "Install workspace dependencies with Bun"
+run = 'PATH="$NODE_BIN_DIR:$PATH" "$BUN_BIN" install --frozen-lockfile'
+
+[tasks.setup]
+description = "Quick setup for local development"
+run = "./local-dev.sh"
+
+[tasks.dev]
+description = "Run the monorepo dev servers (frontend + backend)"
+depends = ["install"]
+run = 'PATH="$NODE_BIN_DIR:$PATH" "$BUN_BIN" run dev'
+
+[tasks."dev:backend"]
+description = "Run the backend only"
+depends = ["install"]
+dir = "apps/backend"
+run = 'PATH="$NODE_BIN_DIR:$PATH" "$BUN_BIN" run dev'
+
+[tasks."dev:frontend"]
+description = "Run the frontend only"
+depends = ["install"]
+dir = "apps/frontend"
+run = 'PATH="$NODE_BIN_DIR:$PATH" "$BUN_BIN" run dev'
+
+[tasks.build]
+description = "Build the monorepo"
+depends = ["install"]
+run = 'PATH="$NODE_BIN_DIR:$PATH" "$BUN_BIN" run build'
+
+[tasks.typecheck]
+description = "Typecheck the codebase"
+depends = ["install"]
+run = 'PATH="$NODE_BIN_DIR:$PATH" "$BUN_BIN" run typecheck'
+
+[tasks.lint]
+description = "Lint the codebase"
+depends = ["install"]
+run = 'PATH="$NODE_BIN_DIR:$PATH" "$BUN_BIN" run lint'
+
+[tasks.check]
+description = "Run lint and typecheck"
+depends = ["install"]
+run = [
+  'PATH="$NODE_BIN_DIR:$PATH" "$BUN_BIN" run lint',
+  'PATH="$NODE_BIN_DIR:$PATH" "$BUN_BIN" run typecheck',
+]
+
+[tasks.format]
+description = "Format the code"
+depends = ["install"]
+run = 'PATH="$NODE_BIN_DIR:$PATH" "$BUN_BIN" run format'
+
+[tasks.clean]
+description = "Clean build outputs and reinstall dependencies"
+run = 'PATH="$NODE_BIN_DIR:$PATH" "$BUN_BIN" run clean'
+
+[tasks.migrate]
+description = "Run the database migrations"
+run = "bash scripts/migrate.sh"
+
+[tasks."docker:up"]
+description = "Start the local infrastructure (PostgreSQL, Redis)"
+env = { DOMAIN = "http://localhost:3000", ENCRYPTION_SECRET = "local-dev-encryption-secret-change-me" }
+run = "docker compose up -d postgres redis"
+
+[tasks."docker:down"]
+description = "Stop all Docker services"
+env = { DOMAIN = "http://localhost:3000", ENCRYPTION_SECRET = "local-dev-encryption-secret-change-me" }
+run = "docker compose down"
+
+[tasks."docker:clean"]
+description = "Stop Docker services and remove volumes"
+env = { DOMAIN = "http://localhost:3000", ENCRYPTION_SECRET = "local-dev-encryption-secret-change-me" }
+run = "docker compose down -v"
+
+[tasks."docker:restart"]
+description = "Restart Docker services"
+env = { DOMAIN = "http://localhost:3000", ENCRYPTION_SECRET = "local-dev-encryption-secret-change-me" }
+run = "docker compose restart"
+
+[tasks."docker:status"]
+description = "Show Docker service status"
+env = { DOMAIN = "http://localhost:3000", ENCRYPTION_SECRET = "local-dev-encryption-secret-change-me" }
+run = "docker compose ps"
+
+[tasks."docker:logs"]
+description = "Follow Docker logs, optionally for one service: mise run docker:logs postgres"
+env = { DOMAIN = "http://localhost:3000", ENCRYPTION_SECRET = "local-dev-encryption-secret-change-me" }
+run = 'docker compose logs -f {{arg(name="service", default="")}}'
