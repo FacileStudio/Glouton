@@ -7,47 +7,27 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-glouton}
       POSTGRES_DB: glouton
     volumes:
-    - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test:
-      - CMD
-      - nc
-      - -z
-      - localhost
-      - '3000'
-      interval: 30s
+      test: ["CMD-SHELL", "pg_isready -U glouton -d glouton"]
+      interval: 10s
       timeout: 5s
-      retries: 3
+      retries: 5
     restart: unless-stopped
-    deploy:
-      update_config:
-        order: start-first
-        parallelism: 1
-      restart_policy:
-        condition: any
+
   glouton-redis:
     image: redis:7-alpine
     container_name: glouton-redis
     command: redis-server --appendonly yes --maxmemory-policy noeviction
     volumes:
-    - redis_data:/data
+      - redis_data:/data
     healthcheck:
-      test:
-      - CMD
-      - nc
-      - -z
-      - localhost
-      - '3000'
-      interval: 30s
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
       timeout: 5s
-      retries: 3
+      retries: 5
     restart: unless-stopped
-    deploy:
-      update_config:
-        order: start-first
-        parallelism: 1
-      restart_policy:
-        condition: any
+
   glouton-backend:
     build:
       context: .
@@ -61,8 +41,7 @@ services:
       PORT: 3001
       DOMAIN: ${DOMAIN:?Set DOMAIN to your public URL, for example https://glouton.facile.studio}
       DATABASE_URL: postgresql://glouton:${POSTGRES_PASSWORD:-glouton}@glouton-postgres:5432/glouton
-      ENCRYPTION_SECRET: ${ENCRYPTION_SECRET:?Set ENCRYPTION_SECRET to a stable random
-        value}
+      ENCRYPTION_SECRET: ${ENCRYPTION_SECRET:?Set ENCRYPTION_SECRET to a stable random value}
       REDIS_HOST: glouton-redis
       REDIS_PORT: 6379
       REDIS_DB: 0
@@ -78,22 +57,12 @@ services:
       glouton-redis:
         condition: service_healthy
     healthcheck:
-      test:
-      - CMD
-      - nc
-      - -z
-      - localhost
-      - '3000'
-      interval: 30s
+      test: ["CMD-SHELL", "bun -e \"fetch('http://localhost:3001/health/ready').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
+      interval: 15s
       timeout: 5s
-      retries: 3
+      retries: 10
     restart: unless-stopped
-    deploy:
-      update_config:
-        order: start-first
-        parallelism: 1
-      restart_policy:
-        condition: any
+
   glouton-frontend:
     build:
       context: .
@@ -106,27 +75,17 @@ services:
       DOMAIN: ${DOMAIN:?Set DOMAIN to your public URL, for example https://glouton.facile.studio}
       BACKEND_URL: http://glouton-backend:3001
     expose:
-    - '3000'
+      - "3000"
     depends_on:
       glouton-backend:
         condition: service_healthy
     healthcheck:
-      test:
-      - CMD
-      - nc
-      - -z
-      - localhost
-      - '3000'
-      interval: 30s
+      test: ["CMD-SHELL", "bun -e \"fetch('http://localhost:3000/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
+      interval: 15s
       timeout: 5s
-      retries: 3
+      retries: 10
     restart: unless-stopped
-    deploy:
-      update_config:
-        order: start-first
-        parallelism: 1
-      restart_policy:
-        condition: any
+
 volumes:
-  postgres_data: null
-  redis_data: null
+  postgres_data:
+  redis_data:
