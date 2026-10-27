@@ -18,7 +18,18 @@ services:
   glouton-redis:
     image: redis:7-alpine
     container_name: glouton-redis
-    command: redis-server --appendonly yes --maxmemory-policy noeviction
+    command:
+      - sh
+      - -c
+      - |
+        m=/data/appendonlydir/appendonly.aof.manifest
+        if [ -f "$$m" ] && ! redis-check-aof "$$m" >/dev/null 2>&1; then
+          if ! ls -d /data/appendonlydir.bak-* >/dev/null 2>&1; then
+            cp -a /data/appendonlydir "/data/appendonlydir.bak-$$(date +%s)" || exit 1
+          fi
+          echo y | redis-check-aof --fix "$$m" || exit 1
+        fi
+        exec docker-entrypoint.sh redis-server --appendonly yes --maxmemory-policy noeviction
     volumes:
       - redis_data:/data
     healthcheck:
