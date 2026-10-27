@@ -91,7 +91,7 @@ bun run clean                  # Clean and reinstall dependencies
 - `packages/smtp/` - Email sending utilities
 - `packages/logger/` - Structured logging
 - `packages/types/` - Shared TypeScript types
-- `packages/ui/` - Shared Svelte components
+- UI comes from `@facile/muse` (pinned in `apps/frontend/package.json`), the shared Facile design system
 - `packages/utils/` - Shared utility functions
 
 ### tRPC API Structure

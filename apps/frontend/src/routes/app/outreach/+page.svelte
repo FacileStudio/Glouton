@@ -1,13 +1,30 @@
 <script lang="ts">
   import { fade, slide } from 'svelte/transition';
   import { onMount } from 'svelte';
-  import { goto, replaceState } from '$app/navigation';
+  import { replaceState } from '$app/navigation';
   import { trpc } from '$lib/trpc';
-  import { toast } from '@repo/utils';
-  import { Spinner, Skeleton } from '@repo/ui';
+  import {
+    toast,
+    Alert,
+    Badge,
+    Button,
+    Card,
+    EmptyState,
+    Field,
+    Icon,
+    IconButton,
+    Input,
+    PageHeader,
+    Select,
+    Skeleton,
+    Spinner,
+    StatCard,
+    Tabs,
+    icons,
+  } from '@facile/muse';
+  import type { BadgeProps } from '@facile/muse';
   import { getFaviconUrl, handleFaviconError } from '$lib/utils/favicon';
   import { teamContextStore } from '$lib/stores/team-context.svelte';
-  import 'iconify-icon';
 
   let teamId = $derived(teamContextStore.getTeamId());
   let settingsUrl = $derived(teamId ? `/app/teams/${teamId}/settings` : '/app/settings');
@@ -118,7 +135,7 @@
       templates = templatesData;
     } catch (error) {
       console.error('[OUTREACH] Error loading data:', error);
-      toast.push('Échec du chargement des données de prospection', 'error');
+      toast.danger('Échec du chargement des données de prospection');
 
       outreachLeads = [];
       stats = null;
@@ -156,7 +173,7 @@
     try {
       panelHistory = (await trpc.email.getLeadOutreach.query({ leadId: lead.leadId, teamId })) as EmailHistory[];
     } catch {
-      toast.push("Échec du chargement de l'historique", 'error');
+      toast.danger("Échec du chargement de l'historique");
     } finally {
       panelLoading = false;
     }
@@ -178,17 +195,17 @@
 
   async function sendFromPanel(lead: OutreachLead) {
     if (!lead.email) {
-      toast.push("Ce lead n'a pas d'adresse e-mail", 'error');
+      toast.danger("Ce lead n'a pas d'adresse e-mail");
       return;
     }
     const template = templates.find((t) => t.id === selectedTemplate);
     if (!template) {
-      toast.push('Sélectionnez un modèle', 'error');
+      toast.danger('Sélectionnez un modèle');
       return;
     }
     for (const v of template.variables) {
       if (!composeVariables[v]) {
-        toast.push(`Veuillez remplir : ${v}`, 'error');
+        toast.danger(`Veuillez remplir : ${v}`);
         return;
       }
     }
@@ -200,11 +217,11 @@
         templateId: selectedTemplate,
         variables: composeVariables,
       });
-      toast.push('E-mail envoyé avec succès !', 'success');
+      toast.success('E-mail envoyé avec succès !');
       panelHistory = (await trpc.email.getLeadOutreach.query({ leadId: lead.leadId, teamId })) as EmailHistory[];
       await loadData();
     } catch (e: any) {
-      toast.push(e?.message || "Échec de l'envoi", 'error');
+      toast.danger(e?.message || "Échec de l'envoi");
     } finally {
       sending = false;
     }
@@ -243,38 +260,36 @@
     });
   }
 
-  function getEmailStatusConfig(status: string, needsFollowUp: boolean) {
-    if (needsFollowUp) return { label: 'À relancer', cls: 'bg-muted text-foreground' };
-    switch (status) {
-      case 'REPLIED': return { label: 'Répondu', cls: 'bg-muted text-foreground' };
-      case 'OPENED': return { label: 'Ouvert', cls: 'bg-muted text-foreground' };
-      case 'CLICKED': return { label: 'Cliqué', cls: 'bg-muted text-foreground' };
-      case 'SENT': return { label: 'Envoyé', cls: 'bg-muted text-foreground' };
-      case 'FAILED': return { label: 'Échoué', cls: 'bg-destructive/10 text-destructive' };
-      case 'BOUNCED': return { label: 'Rejeté', cls: 'bg-destructive/10 text-destructive' };
-      default: return { label: status, cls: 'bg-muted text-foreground' };
-    }
-  }
+  type Tone = NonNullable<BadgeProps['tone']>;
 
-  function getLeadStatusColor(_status: string): string {
-    return 'bg-muted text-foreground';
+  function getEmailStatusConfig(status: string, needsFollowUp: boolean): { label: string; tone: Tone } {
+    if (needsFollowUp) return { label: 'À relancer', tone: 'neutral' };
+    switch (status) {
+      case 'REPLIED': return { label: 'Répondu', tone: 'neutral' };
+      case 'OPENED': return { label: 'Ouvert', tone: 'neutral' };
+      case 'CLICKED': return { label: 'Cliqué', tone: 'neutral' };
+      case 'SENT': return { label: 'Envoyé', tone: 'neutral' };
+      case 'FAILED': return { label: 'Échoué', tone: 'danger' };
+      case 'BOUNCED': return { label: 'Rejeté', tone: 'danger' };
+      default: return { label: status, tone: 'neutral' };
+    }
   }
 
   function getHistoryStatusIcon(status: string): string {
     switch (status) {
       case 'REPLIED': return 'solar:reply-linear';
-      case 'OPENED': return 'solar:eye-linear';
+      case 'OPENED': return icons.eye;
       case 'CLICKED': return 'solar:cursor-linear';
-      case 'SENT': return 'solar:letter-linear';
-      case 'FAILED': case 'BOUNCED': return 'solar:danger-triangle-linear';
-      default: return 'solar:clock-circle-linear';
+      case 'SENT': return icons.mail;
+      case 'FAILED': case 'BOUNCED': return icons.warning;
+      default: return icons.clock;
     }
   }
 
   function getHistoryStatusColor(status: string): string {
     switch (status) {
-      case 'FAILED': case 'BOUNCED': return 'bg-destructive/10 text-destructive';
-      default: return 'bg-muted text-foreground';
+      case 'FAILED': case 'BOUNCED': return 'bg-fc-danger/10 text-fc-danger';
+      default: return 'bg-fc-surface text-fc-fg';
     }
   }
 
@@ -306,378 +321,314 @@
     : tabLeads);
 
   let expandedLead = $derived(outreachLeads.find((l) => l.leadId === expandedLeadId) ?? null);
+
+  let tabItems = $derived([
+    { id: 'all', label: 'Tous', badge: outreachLeads.length },
+    { id: 'followup', label: 'À relancer', badge: followUpLeads.length },
+    { id: 'pending', label: 'En attente', badge: pendingLeads.length },
+    { id: 'replied', label: 'Répondu', badge: repliedLeads.length },
+  ]);
+
+  let stat = $derived([
+    { label: 'Envoyés', val: (stats?.totalEmails ?? 0).toString() },
+    { label: 'Contactés', val: (stats?.contactedLeads ?? 0).toString() },
+    { label: 'À relancer', val: (stats?.needsFollowUp ?? 0).toString() },
+  ]);
 </script>
 
-<div class="max-w-[1600px] mx-auto px-6 py-6 space-y-6">
-  <div class="space-y-1">
-    <h1 class="text-2xl font-bold tracking-tight text-foreground">Prospection</h1>
-    <p class="text-sm text-muted-foreground">Historique des e-mails, relances et réponses</p>
-  </div>
+<div class="flex flex-col gap-6">
+  <PageHeader title="Prospection" description="Historique des e-mails, relances et réponses" />
 
   {#if !checkingSmtp && !smtpConfigured}
-    <div class="rounded-xl border border-border bg-card p-4 flex items-start gap-3" transition:slide={{ duration: 200 }}>
-      <iconify-icon icon="solar:danger-triangle-linear" width="20" class="text-muted-foreground shrink-0 mt-0.5"></iconify-icon>
-      <div class="flex-1 space-y-1">
-        <h3 class="text-sm font-semibold text-foreground">Configuration SMTP manquante</h3>
-        <p class="text-sm text-muted-foreground">
-          Vous devez configurer vos paramètres SMTP pour pouvoir envoyer des e-mails. Rendez-vous dans les paramètres de l'espace pour ajouter votre configuration SMTP.
-        </p>
-        <div class="pt-2">
-          <button
-            onclick={() => goto(settingsUrl)}
-            class="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85"
-          >
-            <iconify-icon icon="solar:settings-linear" width="16"></iconify-icon>
-            Configurer SMTP
-          </button>
+    <div transition:slide={{ duration: 200 }}>
+      <Alert tone="warning" title="Configuration SMTP manquante">
+        <div class="flex flex-col items-start gap-3">
+          <p class="text-fc-fg-muted">
+            Vous devez configurer vos paramètres SMTP pour pouvoir envoyer des e-mails. Rendez-vous dans les paramètres de l'espace pour ajouter votre configuration SMTP.
+          </p>
+          <Button href={settingsUrl} icon={icons.settings}>Configurer SMTP</Button>
         </div>
-      </div>
+      </Alert>
     </div>
   {/if}
 
-  <section class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+  <section class="grid grid-cols-1 gap-4 sm:grid-cols-3">
     {#if initialLoading}
       {#each Array(3) as _}
-        <div class="rounded-xl border border-border bg-card p-4">
-          <div class="flex items-start justify-between mb-3">
-            <Skeleton width="120px" height="1rem" rounded="md" />
-            <Skeleton width="20px" height="20px" rounded="md" />
-          </div>
-          <Skeleton width="80px" height="1.5rem" rounded="md" />
-        </div>
+        <Card class="flex flex-col gap-2">
+          <Skeleton class="h-3 w-[120px]" />
+          <Skeleton class="h-7 w-[80px]" />
+        </Card>
       {/each}
     {:else}
-      {#each [
-        {
-          label: 'Envoyés',
-          val: (stats?.totalEmails ?? 0).toString(),
-          icon: 'solar:letter-linear',
-        },
-        {
-          label: 'Contactés',
-          val: (stats?.contactedLeads ?? 0).toString(),
-          icon: 'solar:users-group-rounded-linear',
-        },
-        {
-          label: 'À relancer',
-          val: (stats?.needsFollowUp ?? 0).toString(),
-          icon: 'solar:bell-bing-linear',
-        },
-      ] as stat}
-        <div class="rounded-xl border border-border bg-card p-4">
-          <div class="flex items-start justify-between mb-3">
-            <h3 class="text-sm text-muted-foreground">{stat.label}</h3>
-            <iconify-icon icon={stat.icon} class="text-muted-foreground" width="18"></iconify-icon>
-          </div>
-          <p class="text-2xl font-bold tracking-tight text-foreground">{stat.val}</p>
-        </div>
+      {#each stat as item}
+        <StatCard label={item.label} value={item.val} />
       {/each}
     {/if}
   </section>
 
-  <div class="rounded-xl border border-border bg-card p-4 space-y-3">
+  <Card class="flex flex-col gap-3 p-4">
     <div class="relative">
-      <iconify-icon
-        icon="solar:magnifer-linear"
-        width="16"
-        class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
-      ></iconify-icon>
-      <input
+      <Icon
+        icon={icons.search}
+        size={16}
+        class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fc-fg-muted"
+      />
+      <Input
         type="text"
         bind:value={search}
         placeholder="Rechercher par nom, e-mail, domaine..."
-        class="w-full h-9 rounded-lg border border-input bg-background pl-9 pr-9 text-sm"
+        aria-label="Rechercher"
+        class="pl-9 pr-11"
       />
       {#if search}
-        <button
-          onclick={() => (search = '')}
+        <IconButton
+          variant="ghost"
           aria-label="Effacer la recherche"
-          class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+          onclick={() => (search = '')}
+          class="absolute right-0 top-0"
         >
-          <iconify-icon icon="solar:close-circle-linear" width="16"></iconify-icon>
-        </button>
+          <Icon icon={icons.close} />
+        </IconButton>
       {/if}
     </div>
 
     <div class="flex flex-wrap items-center justify-between gap-2">
-      <div class="flex flex-wrap items-center gap-1">
-        {#each [
-          { key: 'all', label: 'Tous', count: outreachLeads.length },
-          { key: 'followup', label: 'À relancer', count: followUpLeads.length },
-          { key: 'pending', label: 'En attente', count: pendingLeads.length },
-          { key: 'replied', label: 'Répondu', count: repliedLeads.length },
-        ] as tab}
-          <button
-            onclick={() => { activeTab = tab.key as typeof activeTab; expandedLeadId = null; }}
-            class="inline-flex h-9 items-center gap-2 rounded-lg px-3 text-sm font-medium transition-colors {activeTab === tab.key
-              ? 'bg-muted text-foreground'
-              : 'text-muted-foreground hover:bg-muted hover:text-foreground'}"
-          >
-            {tab.label}
-            <span class="rounded-full bg-muted text-foreground px-2 py-0.5 text-xs font-medium {activeTab === tab.key ? 'bg-background' : ''}">
-              {tab.count}
-            </span>
-          </button>
-        {/each}
-      </div>
-      <p class="text-xs text-muted-foreground">Seuil de relance : 5 jours</p>
+      <Tabs
+        items={tabItems}
+        value={activeTab}
+        label="Filtrer les contacts"
+        onChange={(id) => { activeTab = id as typeof activeTab; expandedLeadId = null; }}
+        class="w-auto min-w-0 flex-1"
+      />
+      <p class="text-fc-xs text-fc-fg-muted">Seuil de relance : 5 jours</p>
     </div>
-  </div>
+  </Card>
 
-  <section class="rounded-xl border border-border bg-card overflow-hidden">
-
-    {#if initialLoading}
-      <div class="p-4 space-y-2">
-        {#each Array(5) as _}
-          <div class="flex items-center gap-3 p-3 rounded-lg">
-            <Skeleton width="36px" height="36px" rounded="lg" />
-            <div class="flex-1 space-y-2">
-              <Skeleton width="200px" height="0.875rem" rounded="md" />
-              <Skeleton width="140px" height="0.75rem" rounded="md" />
-            </div>
-            <Skeleton width="80px" height="1.25rem" rounded="md" />
+  {#if initialLoading}
+    <Card class="flex flex-col gap-2 p-4">
+      {#each Array(5) as _}
+        <div class="flex items-center gap-3 p-3">
+          <Skeleton class="size-9 rounded-fc-md" />
+          <div class="flex flex-1 flex-col gap-2">
+            <Skeleton class="h-3.5 w-[200px] max-w-full" />
+            <Skeleton class="h-3 w-[140px] max-w-full" />
           </div>
-        {/each}
-      </div>
-    {:else if filteredLeads.length === 0}
-      <div class="flex flex-col items-center justify-center py-16 space-y-3">
-        <iconify-icon icon="solar:inbox-line-linear" width="48" class="text-muted-foreground"></iconify-icon>
-        <p class="text-sm text-muted-foreground">
-          {activeTab === 'all'
-            ? 'Aucun e-mail envoyé'
-            : activeTab === 'followup'
-              ? 'Aucune relance nécessaire'
-              : activeTab === 'pending'
-                ? 'Aucun contact en attente'
-                : 'Aucune réponse'}
-        </p>
-        {#if activeTab === 'all'}
-          <button
-            onclick={() => goto('/app/leads')}
-            class="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85"
-          >
-            Aller aux leads
-          </button>
-        {/if}
-      </div>
-    {:else}
-      <div class="divide-y divide-border">
+          <Skeleton class="h-5 w-[80px]" />
+        </div>
+      {/each}
+    </Card>
+  {:else if filteredLeads.length === 0}
+    <EmptyState
+      icon="solar:inbox-line-linear"
+      title={activeTab === 'all'
+        ? 'Aucun e-mail envoyé'
+        : activeTab === 'followup'
+          ? 'Aucune relance nécessaire'
+          : activeTab === 'pending'
+            ? 'Aucun contact en attente'
+            : 'Aucune réponse'}
+    >
+      {#if activeTab === 'all'}
+        <Button href="/app/leads">Aller aux leads</Button>
+      {/if}
+    </EmptyState>
+  {:else}
+    <Card class="overflow-hidden p-0">
+      <div class="divide-y divide-fc-border">
         {#each filteredLeads as lead (lead.leadId)}
           {@const statusConfig = getEmailStatusConfig(lead.lastEmailStatus, lead.needsFollowUp)}
           {@const isExpanded = expandedLeadId === lead.leadId}
           <div in:fade={{ duration: 150 }}>
             <button
+              type="button"
               onclick={() => togglePanel(lead)}
-              class="w-full px-4 py-3 flex items-center gap-3 hover:bg-muted/50 transition-colors text-left {isExpanded ? 'bg-muted/30' : ''}"
+              aria-expanded={isExpanded}
+              class="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-fc-surface focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-fc-ring {isExpanded ? 'bg-fc-surface' : ''}"
             >
-              <div class="size-9 rounded-lg border border-border bg-background flex items-center justify-center overflow-hidden shrink-0">
+              <div class="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-fc-md bg-fc-bg">
                 <img
                   src={getFaviconUrl(getFaviconSource(lead), 64)}
                   alt="favicon"
-                  class="w-5 h-5"
+                  class="h-5 w-5"
                   loading="lazy"
                   onerror={(e) => handleFaviconError(e.currentTarget)}
                 />
               </div>
 
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2 flex-wrap">
-                  <span class="text-sm font-medium text-foreground truncate">{getLeadName(lead)}</span>
-                  <span class="rounded-full px-2.5 py-0.5 text-xs font-medium {getLeadStatusColor(lead.status)}">
-                    {lead.status}
-                  </span>
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="truncate text-fc-sm font-medium text-fc-fg">{getLeadName(lead)}</span>
+                  <Badge>{lead.status}</Badge>
                 </div>
                 {#if getLeadSubtitle(lead)}
-                  <p class="text-xs text-muted-foreground mt-0.5 truncate">{getLeadSubtitle(lead)}</p>
+                  <p class="mt-0.5 truncate text-fc-xs text-fc-fg-muted">{getLeadSubtitle(lead)}</p>
                 {/if}
               </div>
 
-              <div class="hidden md:block flex-1 min-w-0 px-4">
-                <p class="text-sm text-foreground truncate">{lead.lastEmailSubject}</p>
-                <p class="text-xs text-muted-foreground mt-0.5">{lead.emailsSentCount} e-mail{lead.emailsSentCount !== 1 ? 's' : ''} envoyé{lead.emailsSentCount !== 1 ? 's' : ''}</p>
+              <div class="hidden min-w-0 flex-1 px-4 md:block">
+                <p class="truncate text-fc-sm text-fc-fg">{lead.lastEmailSubject}</p>
+                <p class="mt-0.5 text-fc-xs text-fc-fg-muted">{lead.emailsSentCount} e-mail{lead.emailsSentCount !== 1 ? 's' : ''} envoyé{lead.emailsSentCount !== 1 ? 's' : ''}</p>
               </div>
 
-              <div class="flex items-center gap-3 shrink-0">
-                <span class="rounded-full px-2.5 py-0.5 text-xs font-medium {statusConfig.cls}">
-                  {statusConfig.label}
-                </span>
+              <div class="flex shrink-0 items-center gap-3">
+                <Badge tone={statusConfig.tone}>{statusConfig.label}</Badge>
 
-                <div class="hidden sm:flex items-center gap-1.5 text-muted-foreground">
-                  <iconify-icon
-                    icon={lead.needsFollowUp ? 'solar:bell-bing-linear' : 'solar:calendar-linear'}
-                    width="14"
-                  ></iconify-icon>
-                  <span class="text-xs">{formatDays(lead.daysSinceLastContact)}</span>
+                <div class="hidden items-center gap-1.5 text-fc-fg-muted sm:flex">
+                  <Icon icon={lead.needsFollowUp ? 'solar:bell-bing-linear' : icons.calendar} size={14} />
+                  <span class="text-fc-xs">{formatDays(lead.daysSinceLastContact)}</span>
                 </div>
 
-                <div class="hidden lg:flex items-center gap-2">
-                  <div class="w-12 h-1.5 bg-muted rounded-full overflow-hidden">
+                <div class="hidden items-center gap-2 lg:flex">
+                  <div class="h-1.5 w-12 overflow-hidden rounded-fc-pill bg-fc-surface">
                     <div
-                      class="h-full bg-foreground"
+                      class="h-full bg-fc-fg"
                       style="width: {Math.min(lead.score, 100)}%"
                     ></div>
                   </div>
-                  <span class="text-xs text-muted-foreground">{lead.score}</span>
+                  <span class="text-fc-xs text-fc-fg-muted">{lead.score}</span>
                 </div>
 
-                <iconify-icon
-                  icon={isExpanded ? 'solar:alt-arrow-up-linear' : 'solar:alt-arrow-down-linear'}
-                  width="14"
-                  class="text-muted-foreground shrink-0"
-                ></iconify-icon>
+                <Icon
+                  icon={isExpanded ? icons.chevronUp : icons.chevronDown}
+                  size={16}
+                  class="text-fc-fg-muted"
+                />
               </div>
             </button>
 
             {#if isExpanded}
               <div
-                class="border-t border-border bg-background"
+                class="border-t border-fc-border bg-fc-bg"
                 transition:slide={{ duration: 200 }}
               >
                 {#if panelLoading}
                   <div class="flex items-center justify-center py-12">
-                    <Spinner size="md" color="neutral" />
+                    <Spinner size="md" label="Chargement" />
                   </div>
                 {:else}
-                  <div class="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-border">
-                    <div class="p-6 space-y-3">
-                      <div class="flex items-center justify-between mb-3">
-                        <h3 class="text-sm font-semibold text-foreground flex items-center gap-2">
-                          <iconify-icon icon="solar:history-linear" width="16"></iconify-icon>
+                  <div class="grid grid-cols-1 divide-y divide-fc-border lg:grid-cols-2 lg:divide-x lg:divide-y-0">
+                    <div class="flex flex-col gap-3 p-4 sm:p-6">
+                      <div class="flex items-center justify-between gap-2">
+                        <h3 class="flex items-center gap-2 text-fc-sm font-semibold text-fc-fg">
+                          <Icon icon={icons.history} size={16} />
                           Historique des e-mails
                         </h3>
-                        <button
-                          onclick={(e) => { e.stopPropagation(); goto(`/app/leads/${lead.leadId}`); }}
-                          class="inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                        <Button
+                          href={`/app/leads/${lead.leadId}`}
+                          variant="ghost"
+                          size="sm"
+                          iconRight="solar:arrow-right-up-linear"
                         >
                           Profil complet
-                          <iconify-icon icon="solar:arrow-right-up-linear" width="14"></iconify-icon>
-                        </button>
+                        </Button>
                       </div>
 
                       {#if panelHistory.length === 0}
-                        <div class="py-6 text-center">
-                          <p class="text-sm text-muted-foreground">Aucun e-mail envoyé</p>
-                        </div>
+                        <p class="py-6 text-center text-fc-sm text-fc-fg-muted">Aucun e-mail envoyé</p>
                       {:else}
-                        <div class="space-y-1 max-h-64 overflow-y-auto pr-1">
+                        <div class="flex max-h-64 flex-col gap-1 overflow-y-auto pr-1">
                           {#each panelHistory as email}
                             <button
+                              type="button"
                               onclick={(e) => { e.stopPropagation(); expandedEmailId = expandedEmailId === email.id ? null : email.id; }}
-                              class="w-full text-left"
+                              aria-expanded={expandedEmailId === email.id}
+                              class="flex w-full items-start gap-3 rounded-fc-md p-3 text-left transition-colors hover:bg-fc-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fc-ring"
                             >
-                              <div class="flex items-start gap-3 p-3 rounded-lg hover:bg-muted transition-colors">
-                                <div class="size-7 rounded-lg flex items-center justify-center shrink-0 {getHistoryStatusColor(email.status)}">
-                                  <iconify-icon icon={getHistoryStatusIcon(email.status)} width="14"></iconify-icon>
-                                </div>
-                                <div class="flex-1 min-w-0">
-                                  <p class="text-sm font-medium text-foreground truncate">{email.subject}</p>
-                                  <p class="text-xs text-muted-foreground mt-0.5">{formatDate(email.sentAt || email.createdAt)}</p>
-                                  {#if expandedEmailId === email.id && email.textBody}
-                                    <p class="text-sm text-foreground mt-2 leading-relaxed whitespace-pre-wrap border-t border-border pt-2" in:slide={{ duration: 150 }}>
-                                      {email.textBody}
-                                    </p>
-                                  {/if}
-                                  {#if email.error}
-                                    <p class="text-xs text-destructive mt-1">{email.error}</p>
-                                  {/if}
-                                </div>
-                                <iconify-icon
-                                  icon={expandedEmailId === email.id ? 'solar:alt-arrow-up-linear' : 'solar:alt-arrow-down-linear'}
-                                  width="12"
-                                  class="text-muted-foreground shrink-0 mt-1"
-                                ></iconify-icon>
+                              <div class="flex size-7 shrink-0 items-center justify-center rounded-fc-md {getHistoryStatusColor(email.status)}">
+                                <Icon icon={getHistoryStatusIcon(email.status)} size={14} />
                               </div>
+                              <div class="min-w-0 flex-1">
+                                <p class="truncate text-fc-sm font-medium text-fc-fg">{email.subject}</p>
+                                <p class="mt-0.5 text-fc-xs text-fc-fg-muted">{formatDate(email.sentAt || email.createdAt)}</p>
+                                {#if expandedEmailId === email.id && email.textBody}
+                                  <p class="mt-2 whitespace-pre-wrap border-t border-fc-border pt-2 text-fc-sm leading-relaxed text-fc-fg" in:slide={{ duration: 150 }}>
+                                    {email.textBody}
+                                  </p>
+                                {/if}
+                                {#if email.error}
+                                  <p class="mt-1 text-fc-xs text-fc-danger">{email.error}</p>
+                                {/if}
+                              </div>
+                              <Icon
+                                icon={expandedEmailId === email.id ? icons.chevronUp : icons.chevronDown}
+                                size={14}
+                                class="mt-1 text-fc-fg-muted"
+                              />
                             </button>
                           {/each}
                         </div>
                       {/if}
                     </div>
 
-                    <div class="p-6 space-y-4" role="presentation" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
-                      <h3 class="text-sm font-semibold text-foreground flex items-center gap-2">
-                        <iconify-icon icon="solar:rocket-2-linear" width="16"></iconify-icon>
+                    <div class="flex flex-col gap-4 p-4 sm:p-6" role="presentation" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
+                      <h3 class="flex items-center gap-2 text-fc-sm font-semibold text-fc-fg">
+                        <Icon icon="solar:rocket-2-linear" size={16} />
                         {lead.emailsSentCount > 0 ? 'Envoyer une relance' : 'Envoyer un e-mail'}
                       </h3>
 
                       {#if !lead.email}
-                        <div class="py-6 text-center rounded-lg border border-dashed border-border">
-                          <p class="text-sm text-muted-foreground">Aucune adresse e-mail</p>
-                        </div>
+                        <p class="rounded-fc-md bg-fc-component py-6 text-center text-fc-sm text-fc-fg-muted">Aucune adresse e-mail</p>
                       {:else if templates.length === 0}
-                        <div class="py-6 text-center rounded-lg border border-dashed border-border">
-                          <p class="text-sm text-muted-foreground">Aucun modèle disponible</p>
-                        </div>
+                        <p class="rounded-fc-md bg-fc-component py-6 text-center text-fc-sm text-fc-fg-muted">Aucun modèle disponible</p>
                       {:else}
                         {#if !smtpConfigured}
-                          <div class="rounded-lg border border-border bg-muted/50 p-3 flex items-start gap-2">
-                            <iconify-icon icon="solar:danger-triangle-linear" width="16" class="text-muted-foreground shrink-0 mt-0.5"></iconify-icon>
-                            <div class="flex-1">
-                              <p class="text-sm font-medium text-foreground">SMTP non configuré</p>
-                              <p class="text-xs text-muted-foreground mt-0.5">
-                                Configurez vos paramètres SMTP dans les paramètres de l'espace pour envoyer des e-mails.
-                              </p>
-                            </div>
-                          </div>
+                          <Alert tone="warning" title="SMTP non configuré">
+                            <p class="text-fc-xs text-fc-fg-muted">
+                              Configurez vos paramètres SMTP dans les paramètres de l'espace pour envoyer des e-mails.
+                            </p>
+                          </Alert>
                         {/if}
 
-                        <div class="space-y-3">
-                          <div class="space-y-1.5">
-                            <label for="template-select-{lead.id}" class="block text-sm font-medium text-foreground">
-                              Modèle
-                            </label>
-                            <select
-                              id="template-select-{lead.id}"
+                        <div class="flex flex-col gap-3">
+                          <Field label="Modèle">
+                            <Select
                               bind:value={selectedTemplate}
                               onchange={() => handleTemplateChange(lead)}
-                              class="w-full h-9 rounded-lg border border-input bg-background px-3 text-sm"
                             >
                               {#each templates as template}
                                 <option value={template.id}>{template.name}</option>
                               {/each}
-                            </select>
-                          </div>
+                            </Select>
+                          </Field>
 
                           {#if selectedTemplate}
                             {@const tpl = templates.find((t) => t.id === selectedTemplate)}
                             {#if tpl && tpl.variables.length > 0}
-                              <div class="space-y-2">
-                                <p class="text-sm font-medium text-foreground">Variables</p>
+                              <div class="flex flex-col gap-2">
+                                <p class="text-fc-sm font-medium text-fc-fg">Variables</p>
 
                                 {#each tpl.variables as variable}
-                                  <div class="space-y-1.5">
-                                    <label for="var-{lead.id}-{variable}" class="block text-xs text-muted-foreground capitalize">
-                                      {variable.replace(/([A-Z])/g, ' $1').trim()}
-                                    </label>
-                                    <input
-                                      id="var-{lead.id}-{variable}"
+                                  <Field label={variable.replace(/([A-Z])/g, ' $1').trim()} class="capitalize">
+                                    <Input
                                       type="text"
                                       bind:value={composeVariables[variable]}
                                       placeholder={variable.replace(/([A-Z])/g, ' $1').trim().toLowerCase()}
-                                      class="w-full h-9 rounded-lg border border-input bg-background px-3 text-sm"
+                                      class="normal-case"
                                     />
-                                  </div>
+                                  </Field>
                                 {/each}
                               </div>
                             {/if}
                           {/if}
 
-                          <div class="pt-1">
-                            <p class="text-xs text-muted-foreground mb-3">
-                              Envoi à <span class="text-foreground font-medium">{lead.email}</span>
+                          <div class="flex flex-col gap-3 pt-1">
+                            <p class="text-fc-xs text-fc-fg-muted">
+                              Envoi à <span class="font-medium text-fc-fg">{lead.email}</span>
                             </p>
-                            <button
+                            <Button
                               onclick={() => sendFromPanel(lead)}
                               disabled={sending || !selectedTemplate || !smtpConfigured}
-                              class="inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85 disabled:opacity-50 disabled:cursor-not-allowed"
+                              icon={sending ? undefined : 'solar:rocket-2-linear'}
+                              class="w-full"
                             >
                               {#if sending}
-                                <Spinner size="sm" color="white" />
+                                <Spinner size="sm" label="Envoi" class="border-fc-accent-fg/30 border-t-fc-accent-fg" />
                                 Envoi...
                               {:else}
-                                <iconify-icon icon="solar:rocket-2-linear" width="16"></iconify-icon>
                                 {lead.emailsSentCount > 0 ? 'Envoyer une relance' : 'Envoyer un e-mail'}
                               {/if}
-                            </button>
+                            </Button>
                           </div>
                         </div>
                       {/if}
@@ -689,6 +640,6 @@
           </div>
         {/each}
       </div>
-    {/if}
-  </section>
+    </Card>
+  {/if}
 </div>

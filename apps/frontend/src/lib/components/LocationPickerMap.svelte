@@ -2,10 +2,17 @@
   import { onMount, onDestroy } from 'svelte';
   import 'leaflet/dist/leaflet.css';
 
-  export let onLocationSelected: (location: { lat: number; lng: number; address: string }) => void;
-  export let initialLat = 40.7128;
-  export let initialLng = -74.006;
-  export let initialZoom = 12;
+  let {
+    onLocationSelected,
+    initialLat = 40.7128,
+    initialLng = -74.006,
+    initialZoom = 12,
+  }: {
+    onLocationSelected: (location: { lat: number; lng: number; address: string }) => void;
+    initialLat?: number;
+    initialLng?: number;
+    initialZoom?: number;
+  } = $props();
 
   let mapContainer: HTMLDivElement;
   let map: any;
@@ -37,8 +44,7 @@
     marker = L.marker([initialLat, initialLng], { draggable: true }).addTo(map);
 
     circle = L.circle([initialLat, initialLng], {
-      color: '#FCD34D',
-      fillColor: '#FCD34D',
+      className: 'fc-radius-circle',
       fillOpacity: 0.2,
       radius: radiusInMeters,
     }).addTo(map);
@@ -113,10 +119,15 @@
   });
 </script>
 
-<div bind:this={mapContainer} class="w-full h-full rounded-xl"></div>
+<div bind:this={mapContainer} class="h-full w-full rounded-fc-lg"></div>
 
 <style>
   :global(.leaflet-container) {
-    border-radius: 0.75rem;
+    border-radius: var(--radius-fc-lg);
+  }
+
+  :global(.fc-radius-circle) {
+    stroke: var(--color-fc-warning);
+    fill: var(--color-fc-warning);
   }
 </style>

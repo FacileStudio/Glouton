@@ -10,7 +10,7 @@ export function handleFaviconError(element: HTMLImageElement): void {
   const parent = element.parentElement;
   if (parent) {
     element.style.display = 'none';
-    const iconHtml = '<iconify-icon icon="solar:global-linear" width="24" class="text-neutral-300"></iconify-icon>';
+    const iconHtml = '<iconify-icon icon="solar:global-linear" width="24" class="text-fc-fg-muted"></iconify-icon>';
     parent.innerHTML = iconHtml;
   }
 }

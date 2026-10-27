@@ -1,9 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { trpc } from '$lib/trpc';
-  import { Input, Button, Spinner, Alert } from '@repo/ui';
-  import { toast } from '@repo/utils';
-  import 'iconify-icon';
+  import { Alert, Button, Card, Field, Input, PageHeader, Textarea, icons, toast } from '@facile/muse';
 
   let formData = $state({
     name: '',
@@ -26,7 +24,7 @@
 
   async function handleSubmit() {
     if (!validateForm()) {
-      toast.push('Veuillez corriger les erreurs du formulaire', 'error');
+      toast.danger('Veuillez corriger les erreurs du formulaire');
       return;
     }
 
@@ -37,12 +35,12 @@
         description: formData.description.trim() || undefined,
       });
 
-      toast.push('Espace créé avec succès !', 'success');
+      toast.success('Espace créé avec succès !');
       goto(`/app/teams/${newTeam.id}`);
     } catch (error: any) {
       const errorMessage = error?.message || 'Échec de la création de l\'espace';
       console.error('Error creating team:', error);
-      toast.push(errorMessage, 'error');
+      toast.danger(errorMessage);
     } finally {
       creating = false;
     }
@@ -53,88 +51,38 @@
   }
 </script>
 
-<div class="max-w-[1600px] mx-auto px-6 py-6 space-y-6">
-  <div class="flex items-center gap-3">
-    <button
-      aria-label="Annuler"
-      onclick={handleCancel}
-      class="inline-flex size-8 items-center justify-center rounded-lg border border-border bg-background hover:bg-muted"
-    >
-      <iconify-icon icon="solar:arrow-left-linear" width="16"></iconify-icon>
-    </button>
-    <div class="space-y-1">
-      <h1 class="text-2xl font-bold tracking-tight text-foreground">Créer un espace</h1>
-      <p class="text-sm text-muted-foreground">
-        Créez un nouvel espace pour collaborer avec vos collègues
-      </p>
-    </div>
-  </div>
+<div class="mx-auto flex w-full max-w-fc-md flex-col gap-10">
+  <PageHeader
+    title="Créer un espace"
+    description="Créez un nouvel espace pour collaborer avec vos collègues"
+    back={{ href: '/app/teams', label: 'Espaces' }}
+  />
 
-  <div class="rounded-xl border border-border bg-card p-6 space-y-6">
-    <div class="space-y-4">
-      <div class="space-y-1.5">
-        <label for="name" class="text-sm font-medium text-foreground block">
-          Nom de l'espace <span class="text-destructive">*</span>
-        </label>
-        <Input
-          id="name"
-          bind:value={formData.name}
-          placeholder="Espace Marketing"
-          error={!!errors.name}
-        />
-        {#if errors.name}
-          <p class="text-xs text-destructive">{errors.name}</p>
-        {/if}
-      </div>
+  <Card class="flex flex-col gap-4">
+    <Field label="Nom de l'espace *" for="name" error={errors.name}>
+      <Input id="name" bind:value={formData.name} placeholder="Espace Marketing" required />
+    </Field>
 
-      <div class="space-y-1.5">
-        <label for="description" class="text-sm font-medium text-foreground block">
-          Description (optionnel)
-        </label>
-        <textarea
-          id="description"
-          bind:value={formData.description}
-          placeholder="Décrivez l'objectif de cet espace..."
-          rows="4"
-          class="w-full min-h-24 rounded-lg border border-input bg-background px-3 py-2 text-sm resize-none"
-        ></textarea>
-      </div>
-    </div>
+    <Field label="Description (optionnel)" for="description">
+      <Textarea
+        id="description"
+        bind:value={formData.description}
+        placeholder="Décrivez l'objectif de cet espace..."
+        rows={4}
+        class="min-h-24 resize-none"
+      />
+    </Field>
 
-    <div class="pt-4 border-t border-border flex items-center justify-end gap-2">
-      <button
-        onclick={handleCancel}
-        disabled={creating}
-        class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50"
-      >
-        Annuler
-      </button>
-      <button
-        onclick={handleSubmit}
-        disabled={creating || !formData.name.trim()}
-        class="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85 disabled:opacity-50"
-      >
-        {#if creating}
-          <Spinner size="sm" />
-          <span>Création...</span>
-        {:else}
-          <iconify-icon icon="mdi:plus-circle" width="16"></iconify-icon>
-          <span>Créer l'espace</span>
-        {/if}
-      </button>
+    <div class="flex flex-col-reverse gap-2 border-t border-fc-border pt-4 sm:flex-row sm:justify-end">
+      <Button variant="ghost" onclick={handleCancel} disabled={creating}>Annuler</Button>
+      <Button icon={icons.plus} onclick={handleSubmit} disabled={creating || !formData.name.trim()}>
+        {creating ? 'Création...' : "Créer l'espace"}
+      </Button>
     </div>
-  </div>
+  </Card>
 
-  <div class="rounded-xl border border-border bg-card p-4">
-    <div class="flex gap-3">
-      <iconify-icon icon="solar:info-circle-linear" width="18" class="text-muted-foreground flex-shrink-0 mt-0.5"></iconify-icon>
-      <div>
-        <h3 class="text-sm font-semibold text-foreground mb-1">À propos des espaces</h3>
-        <p class="text-sm text-muted-foreground">
-          En créant un espace, vous deviendrez automatiquement propriétaire. Vous pourrez inviter des membres,
-          configurer les clés API et les paramètres SMTP pour l'espace.
-        </p>
-      </div>
-    </div>
-  </div>
+  <Alert tone="neutral" title="À propos des espaces">
+    En créant un espace, vous deviendrez automatiquement propriétaire. Vous pourrez inviter des
+    membres, configurer les clés API et les paramètres SMTP pour l'espace.
+  </Alert>
 </div>

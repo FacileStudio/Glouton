@@ -1,53 +1,89 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { browser } from '$app/environment';
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
+  import { SideBar, MobileNav, PageTransition, toast } from '@facile/muse';
   import authStore from '$lib/auth-store';
-  import { Sidebar } from '@repo/ui';
-  import MobileNav from '$lib/components/MobileNav.svelte';
+  import { teamContextStore } from '$lib/stores/team-context.svelte';
   import { ws } from '$lib/websocket';
-  import SpaceSwitcher from '$lib/components/SpaceSwitcher.svelte';
-  import 'iconify-icon';
+  import trpc from '$lib/trpc';
+
+  type Team = { id: string; name: string; role: 'OWNER' | 'ADMIN' | 'MEMBER' };
 
   let { children } = $props();
 
-  const menuItems = [
-    { label: 'Chasses', icon: 'solar:radar-2-linear', href: '/app/hunts' },
-    { label: 'Leads', icon: 'solar:magnet-wave-bold-duotone', href: '/app/leads' },
-    { label: 'Missions', icon: 'solar:case-round-linear', href: '/app/missions' },
-    { label: 'Prospection', icon: 'solar:letter-linear', href: '/app/outreach' },
-    { label: 'Espaces', icon: 'solar:users-group-rounded-linear', href: '/app/teams' },
-  ];
+  let collapsed = $state(false);
+  let teams = $state<Team[]>([]);
 
-  let userInitials = $derived($authStore.user?.firstName?.[0] || 'U');
-  let userName = $derived($authStore.user?.firstName || 'Utilisateur');
-  let userEmail = $derived($authStore.user?.email || 'user@example.com');
-  let userAvatarUrl = $derived($authStore.user?.avatarUrl ?? null);
+  function isActive(href: string) {
+    return page.url.pathname === href || page.url.pathname.startsWith(href + '/');
+  }
+
+  const navPages = $derived([
+    { label: 'Chasses', icon: 'solar:radar-2-linear', href: '/app/hunts', active: isActive('/app/hunts') },
+    { label: 'Leads', icon: 'solar:magnet-linear', href: '/app/leads', active: isActive('/app/leads') },
+    { label: 'Missions', icon: 'solar:case-round-linear', href: '/app/missions', active: isActive('/app/missions') },
+    { label: 'Prospection', icon: 'solar:letter-linear', href: '/app/outreach', active: isActive('/app/outreach') },
+    { label: 'Espaces', icon: 'solar:users-group-rounded-linear', href: '/app/teams', active: isActive('/app/teams') },
+  ]);
+
+  const navUser = $derived(
+    $authStore.user
+      ? {
+          name: $authStore.user.firstName?.trim() || $authStore.user.email,
+          avatar: $authStore.user.avatarUrl ?? undefined,
+        }
+      : undefined,
+  );
+  const settingsActive = $derived(isActive('/app/settings'));
+  const activeSpaceId = $derived(
+    teamContextStore.context.type === 'team' ? teamContextStore.context.teamId : null,
+  );
 
   function getPageTitle(path: string): string {
-    if (path.startsWith('/app/hunts/new')) return 'Nouvelle Chasse — Glouton';
-    if (path.match(/^\/app\/hunts\/.+/)) return 'Chasse — Glouton';
-    if (path === '/app/hunts') return 'Chasses — Glouton';
-    if (path.match(/^\/app\/leads\/.+/)) return 'Lead — Glouton';
-    if (path === '/app/leads') return 'Leads — Glouton';
-    if (path === '/app/missions') return 'Missions — Glouton';
-    if (path === '/app/outreach') return 'Prospection — Glouton';
-    if (path === '/app/teams/new') return 'Nouvel Espace — Glouton';
-    if (path.match(/^\/app\/teams\/.+\/settings/)) return 'Paramètres d\'espace — Glouton';
-    if (path.match(/^\/app\/teams\/.+\/members/)) return 'Membres — Glouton';
-    if (path.match(/^\/app\/teams\/.+/)) return 'Espace — Glouton';
-    if (path === '/app/teams') return 'Espaces — Glouton';
-    if (path === '/app/settings') return 'Paramètres — Glouton';
+    if (path.startsWith('/app/hunts/new')) return 'Nouvelle chasse · Glouton';
+    if (path.match(/^\/app\/hunts\/.+/)) return 'Chasse · Glouton';
+    if (path === '/app/hunts') return 'Chasses · Glouton';
+    if (path.match(/^\/app\/leads\/.+/)) return 'Lead · Glouton';
+    if (path === '/app/leads') return 'Leads · Glouton';
+    if (path.startsWith('/app/missions')) return 'Missions · Glouton';
+    if (path === '/app/outreach') return 'Prospection · Glouton';
+    if (path === '/app/teams/new') return 'Nouvel espace · Glouton';
+    if (path.match(/^\/app\/teams\/.+\/settings/)) return "Paramètres d'espace · Glouton";
+    if (path.match(/^\/app\/teams\/.+\/members/)) return 'Membres · Glouton';
+    if (path.match(/^\/app\/teams\/.+/)) return 'Espace · Glouton';
+    if (path === '/app/teams') return 'Espaces · Glouton';
+    if (path === '/app/settings') return 'Paramètres · Glouton';
     return 'Glouton';
   }
 
-  let pageTitle = $derived(getPageTitle($page.url.pathname));
+  const pageTitle = $derived(getPageTitle(page.url.pathname));
+
+  function selectSpace(id: string | null) {
+    if (id === null) {
+      teamContextStore.setPersonal();
+    } else {
+      const team = teams.find((t) => t.id === id);
+      if (!team) return;
+      teamContextStore.setTeam(team.id, team.name, team.role);
+    }
+    window.location.reload();
+  }
 
   let connectionState = ws.connectionState;
 
-  onMount(() => {
+  onMount(async () => {
     const token = $authStore.session?.token;
     if (token) ws.connect(token);
+    try {
+      teams = await trpc.team.list.query();
+      if (activeSpaceId && !teams.some((t) => t.id === activeSpaceId)) {
+        teamContextStore.setPersonal();
+        window.location.reload();
+      }
+    } catch {
+      toast.danger('Échec du chargement des espaces');
+    }
   });
 
   onDestroy(() => {
@@ -70,61 +106,38 @@
   <title>{pageTitle}</title>
 </svelte:head>
 
-<div class="fixed inset-0 flex h-screen w-screen overflow-hidden bg-background text-foreground">
-  <Sidebar
-    items={menuItems}
-    activeHref={$page.url.pathname}
-    userHref="/app/settings"
-    logoIcon="solar:magnet-wave-bold-duotone"
-  >
-    <SpaceSwitcher slot="context-switcher" />
-
+<div class="flex h-dvh w-full overflow-hidden bg-fc-page text-fc-fg">
+  <div class="hidden h-full shrink-0 p-3 md:block">
+    <SideBar
+      class="h-full"
+      icon="solar:magnet-wave-bold-duotone"
+      title="Glouton"
+      bind:collapsed
+      pages={navPages}
+      user={navUser}
+      userHref="/app/settings"
+      userActive={settingsActive}
+      spaces={teams}
+      {activeSpaceId}
+      onSpaceSelect={selectSpace}
+      manageSpacesHref="/app/teams"
+      personalSpaceLabel="Personnel"
+      manageSpacesLabel="Gérer les espaces"
+    />
+  </div>
+  <main class="min-w-0 flex-1 overflow-auto overscroll-contain pb-28 md:pb-0">
     <div
-      slot="user-avatar"
-      class="flex h-full w-full items-center justify-center text-xs font-semibold"
+      class="mx-auto flex w-full max-w-fc-xl flex-col gap-10 px-4 py-8 sm:px-6 md:px-10 md:pt-24 md:pb-10"
     >
-      {#if userAvatarUrl}
-        <img
-          src={userAvatarUrl}
-          alt={userName}
-          class="h-full w-full rounded-full object-cover"
-        />
-      {:else}
-        {userInitials}
-      {/if}
+      <PageTransition key={page.url.pathname}>
+        {@render children()}
+      </PageTransition>
     </div>
-
-    <span slot="user-name">
-      {userName}
-    </span>
-
-    <span slot="user-email">
-      {userEmail}
-    </span>
-
-    <button
-      slot="logout"
-      type="button"
-      onclick={() => authStore.logout()}
-      class="inline-flex h-9 w-full items-center justify-start gap-2 rounded-lg px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-    >
-      <iconify-icon icon="solar:logout-2-linear" width="16"></iconify-icon>
-      Déconnexion
-    </button>
-  </Sidebar>
-
-  <main
-    class="relative h-full w-full flex-1 overflow-y-auto bg-background pb-24 selection:bg-foreground selection:text-background md:pb-0"
-  >
-    {@render children()}
   </main>
-
   <MobileNav
-    items={menuItems}
-    activeHref={$page.url.pathname}
-    settingsHref="/app/settings"
-    {userAvatarUrl}
-    {userInitials}
-    {userName}
+    items={navPages}
+    user={navUser}
+    profileHref="/app/settings"
+    profileActive={settingsActive}
   />
 </div>

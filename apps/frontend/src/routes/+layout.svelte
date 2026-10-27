@@ -1,13 +1,16 @@
 <script lang="ts">
+  import '../app.css';
   import { onMount } from 'svelte';
-  import { authStore } from '$lib/auth-store';
+  import { browser } from '$app/environment';
   import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
-  import { page } from '$app/stores';
-  import { ToastContainer } from '@repo/ui';
-  import '../app.css';
+  import { page } from '$app/state';
+  import { Spinner, Toaster } from '@facile/muse';
+  import { authStore } from '$lib/auth-store';
 
   let { children } = $props();
+
+  if (browser) void import('iconify-icon');
 
   onMount(async () => {
     await authStore.init();
@@ -15,7 +18,7 @@
 
   $effect(() => {
     if (!$authStore.loading) {
-      const path = $page.url.pathname;
+      const path = page.url.pathname;
       const user = $authStore.user;
 
       if (path.startsWith('/app') && !user) goto(resolve('/login'));
@@ -26,12 +29,11 @@
 </script>
 
 {#if $authStore.loading}
-  <div class="flex h-screen flex-col items-center justify-center gap-6">
-    <iconify-icon icon="solar:magnet-wave-bold-duotone" width="48" class="text-foreground"
-    ></iconify-icon>
+  <div class="flex h-dvh items-center justify-center bg-fc-page text-fc-fg-muted">
+    <Spinner />
   </div>
 {:else}
   {@render children()}
 {/if}
 
-<ToastContainer />
+<Toaster class="pb-28 md:pb-6" />

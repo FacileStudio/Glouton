@@ -2,8 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { replaceState } from '$app/navigation';
   import { trpc } from '$lib/trpc';
-  import { toast } from '@repo/utils';
-  import { Spinner } from '@repo/ui';
+  import { Button, Card, EmptyState, PageHeader, Spinner, toast } from '@facile/muse';
   import StatsCards from '$lib/components/leads/StatsCards.svelte';
   import FilterPanel from '$lib/components/leads/FilterPanel.svelte';
   import AuditBanner from '$lib/components/leads/AuditBanner.svelte';
@@ -12,7 +11,6 @@
   import PaginationControls from '$lib/components/leads/PaginationControls.svelte';
   import { setupAuditListeners, setupHuntListeners, type AuditSession, type HuntSession } from '$lib/websocket-events.svelte';
   import { teamContextStore } from '$lib/stores/team-context.svelte';
-  import 'iconify-icon';
 
   let teamId = $derived(teamContextStore.getTeamId());
 
@@ -203,7 +201,7 @@
       }
     } catch (error) {
       console.error('Error loading data:', error);
-      toast.push('Échec du chargement des leads', 'error');
+      toast.danger('Échec du chargement des leads');
       leads = [];
       auditSessions = [];
     } finally {
@@ -238,7 +236,7 @@
     try {
       startingAudit = true;
       const result = await trpc.lead.audit.start.mutate({ teamId: teamId || undefined });
-      toast.push('Audit démarré ! Vérification des leads pour les données manquantes...', 'success');
+      toast.success('Audit démarré ! Vérification des leads pour les données manquantes...');
 
       
       if (result?.auditSessionId) {
@@ -257,7 +255,7 @@
         });
       }
     } catch (error) {
-      toast.push("Échec du démarrage de l'audit", 'error');
+      toast.danger("Échec du démarrage de l'audit");
       console.error('Audit error:', error);
     } finally {
       startingAudit = false;
@@ -271,7 +269,7 @@
       
       
     } catch (error) {
-      toast.push("Échec de l'annulation de l'audit", 'error');
+      toast.danger("Échec de l'annulation de l'audit");
       console.error('Error cancelling audit:', error);
     } finally {
       cancellingAuditId = null;
@@ -332,9 +330,9 @@
       link.click();
       document.body.removeChild(link);
 
-      toast.push(`${result.count} lead(s) exporté(s) avec succès`, 'success');
+      toast.success(`${result.count} lead(s) exporté(s) avec succès`);
     } catch (error) {
-      toast.push("Échec de l'exportation des leads", 'error');
+      toast.danger("Échec de l'exportation des leads");
       console.error('Export error:', error);
     } finally {
       exporting = false;
@@ -347,7 +345,7 @@
 
     if (!file) return;
     if (!file.name.endsWith('.csv')) {
-      toast.push('Veuillez télécharger un fichier CSV', 'error');
+      toast.danger('Veuillez télécharger un fichier CSV');
       return;
     }
 
@@ -359,11 +357,11 @@
         teamId: teamId || undefined,
       });
 
-      toast.push('Import CSV démarré ! Redirection...', 'success');
+      toast.success('Import CSV démarré ! Redirection...');
       window.location.href = `/app/hunts/${result.huntSessionId}`;
     } catch (error: any) {
       const errorMessage = error?.message || "Échec de l'importation du CSV";
-      toast.push(errorMessage, 'error');
+      toast.danger(errorMessage);
       console.error('Import error:', error);
       importing = false;
       if (fileInput) fileInput.value = '';
@@ -380,6 +378,15 @@
   );
 
   let processedLeads = $derived(leads);
+
+  const sortOptions = [
+    { label: 'Date', value: 'createdAt' },
+    { label: 'Score', value: 'score' },
+    { label: 'Domaine', value: 'domain' },
+    { label: 'E-mail', value: 'email' },
+    { label: 'Localisation', value: 'city' },
+    { label: 'Priorité', value: 'status' },
+  ];
 </script>
 
 <input
@@ -387,146 +394,102 @@
   type="file"
   accept=".csv"
   onchange={handleFileUpload}
-  style="display: none;"
+  class="hidden"
 />
 
-<div class="max-w-[1600px] mx-auto px-6 py-6 space-y-6">
-  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-    <div>
-      <h1 class="text-2xl font-bold tracking-tight text-foreground">Leads</h1>
-      <p class="text-sm text-muted-foreground mt-1">
-        {processedLeads.length} résultat{processedLeads.length !== 1 ? 's' : ''}
-      </p>
-    </div>
+<PageHeader
+  title="Leads"
+  description="{processedLeads.length} résultat{processedLeads.length !== 1 ? 's' : ''}"
+>
+  {#snippet actions()}
+    <Button variant="outline" href="/app/leads/favorites" icon="solar:heart-linear">Favoris</Button>
 
-    <div class="flex items-center gap-2 flex-wrap">
-      <a
-        href="/app/leads/favorites"
-        class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 text-sm font-medium transition-colors hover:bg-muted"
-      >
-        <iconify-icon icon="solar:heart-linear" width="16"></iconify-icon>
-        <span>Favoris</span>
-      </a>
-
-      <button
-        onclick={triggerFileUpload}
-        disabled={importing}
-        class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50"
-      >
-        {#if importing}
-          <Spinner size="sm" />
-          Importation...
-        {:else}
-          <iconify-icon icon="solar:upload-linear" width="16"></iconify-icon>
-          <span>Importer CSV</span>
-        {/if}
-      </button>
-
-      <button
-        onclick={exportToCSV}
-        disabled={exporting}
-        class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50"
-      >
-        {#if exporting}
-          <Spinner size="sm" />
-          Exportation...
-        {:else}
-          <iconify-icon icon="solar:download-linear" width="16"></iconify-icon>
-          <span>Exporter CSV</span>
-        {/if}
-      </button>
-
-      <button
-        onclick={startAudit}
-        disabled={startingAudit || !!activeAudit}
-        class="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85 disabled:opacity-50"
-      >
-        {#if startingAudit}
-          <Spinner size="sm" />
-          Démarrage...
-        {:else}
-          <iconify-icon icon="solar:shield-check-linear" width="16"></iconify-icon>
-          <span>Lancer l'audit</span>
-        {/if}
-      </button>
-    </div>
-  </div>
-
-  <div class="space-y-6">
-    {#if activeAudit}
-      <AuditBanner
-        session={activeAudit}
-        onCancel={cancelAudit}
-        cancelling={cancellingAuditId === activeAudit.id}
-      />
-    {/if}
-
-    {#if !initialLoading}
-      <StatsCards {stats} />
-    {/if}
-
-    <FilterPanel bind:filters bind:filtersExpanded leads={leads} onReset={resetFilters} />
-
-    <div class="flex items-center gap-1.5 flex-wrap">
-      {#each [
-        { label: 'Date', value: 'createdAt' },
-        { label: 'Score', value: 'score' },
-        { label: 'Domaine', value: 'domain' },
-        { label: 'E-mail', value: 'email' },
-        { label: 'Localisation', value: 'city' },
-        { label: 'Priorité', value: 'status' },
-      ] as opt}
-        <button
-          onclick={() => handleSort(opt.value)}
-          class="inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition-colors {sortBy === opt.value ? 'bg-primary text-primary-foreground' : 'border border-border bg-background text-foreground hover:bg-muted'}"
-        >
-          {opt.label}
-          {#if sortBy === opt.value}
-            <iconify-icon
-              icon={sortOrder === 'asc' ? 'solar:arrow-up-linear' : 'solar:arrow-down-linear'}
-              width="12"
-            ></iconify-icon>
-          {/if}
-        </button>
-      {/each}
-    </div>
-
-    {#if !initialLoading && processedLeads.some(l => l.coordinates)}
-      <LeadsMap leads={processedLeads} />
-    {/if}
-
-    <div class="rounded-xl border border-border bg-card overflow-hidden">
-      {#if loadingData && !initialLoading}
-        <div class="flex items-center justify-center py-16">
-          <Spinner size="lg" />
-        </div>
-      {:else if processedLeads.length === 0}
-        <div class="flex flex-col items-center justify-center py-16 space-y-3">
-          <iconify-icon icon="solar:ghost-linear" width="48" class="text-muted-foreground"></iconify-icon>
-          <p class="text-sm text-muted-foreground">
-            {filters.search ||
-            filters.status ||
-            filters.contacted ||
-            filters.country ||
-            filters.city
-              ? 'Aucun lead ne correspond à vos filtres'
-              : 'Aucun lead disponible'}
-          </p>
-        </div>
+    <Button variant="outline" onclick={triggerFileUpload} disabled={importing} icon={importing ? undefined : 'solar:upload-linear'}>
+      {#if importing}
+        <Spinner size="sm" />
+        Importation...
       {:else}
-        <LeadsTable leads={processedLeads} bind:sortBy bind:sortOrder onSort={handleSort} />
+        Importer CSV
       {/if}
-    </div>
+    </Button>
 
-    {#if totalPages > 1}
-      <PaginationControls
-        bind:currentPage
-        {totalPages}
-        bind:pageSize
-        totalItems={totalLeads}
-        onPageChange={handlePageChange}
-      />
-    {/if}
+    <Button variant="outline" onclick={exportToCSV} disabled={exporting} icon={exporting ? undefined : 'solar:download-linear'}>
+      {#if exporting}
+        <Spinner size="sm" />
+        Exportation...
+      {:else}
+        Exporter CSV
+      {/if}
+    </Button>
+
+    <Button onclick={startAudit} disabled={startingAudit || !!activeAudit} icon={startingAudit ? undefined : 'solar:shield-check-linear'}>
+      {#if startingAudit}
+        <Spinner size="sm" class="border-t-fc-accent-fg" />
+        Démarrage...
+      {:else}
+        Lancer l'audit
+      {/if}
+    </Button>
+  {/snippet}
+</PageHeader>
+
+<div class="flex flex-col gap-4">
+  {#if activeAudit}
+    <AuditBanner
+      session={activeAudit}
+      onCancel={cancelAudit}
+      cancelling={cancellingAuditId === activeAudit.id}
+    />
+  {/if}
+
+  {#if !initialLoading}
+    <StatsCards {stats} />
+  {/if}
+
+  <FilterPanel bind:filters bind:filtersExpanded leads={leads} onReset={resetFilters} />
+
+  <div class="flex flex-wrap items-center gap-1.5" role="group" aria-label="Trier par">
+    {#each sortOptions as opt (opt.value)}
+      <button
+        type="button"
+        onclick={() => handleSort(opt.value)}
+        aria-pressed={sortBy === opt.value}
+        class="inline-flex h-11 items-center gap-1.5 rounded-fc-pill px-3 text-fc-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fc-ring md:h-8 {sortBy === opt.value ? 'bg-fc-accent text-fc-accent-fg' : 'border border-fc-border text-fc-fg hover:bg-fc-surface'}"
+      >
+        {opt.label}
+        {#if sortBy === opt.value}
+          <iconify-icon icon={sortOrder === 'asc' ? 'solar:arrow-up-linear' : 'solar:arrow-down-linear'} width="12" height="12" class="block"></iconify-icon>
+        {/if}
+      </button>
+    {/each}
   </div>
-</div>
 
+  {#if !initialLoading && processedLeads.some(l => l.coordinates)}
+    <LeadsMap leads={processedLeads} />
+  {/if}
+
+  {#if loadingData && !initialLoading}
+    <Card class="flex items-center justify-center py-16">
+      <Spinner size="lg" />
+    </Card>
+  {:else if processedLeads.length === 0}
+    <EmptyState
+      icon="solar:ghost-linear"
+      title={filters.search || filters.status || filters.contacted || filters.country || filters.city
+        ? 'Aucun lead ne correspond à vos filtres'
+        : 'Aucun lead disponible'}
+    />
+  {:else}
+    <LeadsTable leads={processedLeads} bind:sortBy bind:sortOrder onSort={handleSort} />
+  {/if}
+
+  {#if totalPages > 1}
+    <PaginationControls
+      bind:currentPage
+      {totalPages}
+      bind:pageSize
+      totalItems={totalLeads}
+      onPageChange={handlePageChange}
+    />
+  {/if}
+</div>

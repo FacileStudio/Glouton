@@ -1,13 +1,23 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import { goto } from '$app/navigation';
   import { trpc } from '$lib/trpc';
-  import { Spinner, EmptyState } from '@repo/ui';
-  import { toast } from '@repo/utils';
-  import 'iconify-icon';
+  import {
+    Badge,
+    Button,
+    Card,
+    Icon,
+    PageHeader,
+    SettingsRow,
+    SettingsSection,
+    Spinner,
+    StatCard,
+    icons,
+    toast,
+  } from '@facile/muse';
 
-  let teamId = $derived($page.params.teamId);
+  let teamId = $derived(page.params.teamId);
   let team = $state<any>(null);
   let stats = $state<any>(null);
   let loading = $state(true);
@@ -23,7 +33,7 @@
       team = await trpc.team.get.query({ teamId });
     } catch (error: any) {
       console.error('Error loading team:', error);
-      toast.push(error?.message || 'Échec du chargement de l\'espace', 'error');
+      toast.danger(error?.message || 'Échec du chargement de l\'espace');
       goto('/app/teams');
     } finally {
       loading = false;
@@ -42,8 +52,10 @@
     }
   }
 
-  function getRoleBadgeColor(_role: string) {
-    return 'bg-muted text-foreground';
+  function getRoleTone(role: string): 'owner' | 'admin' | 'neutral' {
+    if (role === 'OWNER') return 'owner';
+    if (role === 'ADMIN') return 'admin';
+    return 'neutral';
   }
 
   function getRoleLabel(role: string) {
@@ -61,160 +73,79 @@
     goto(`/app/teams/${teamId}${path}`);
   }
 
-  function handleBack() {
-    goto('/app/teams');
+  function formatDate(value: string | Date) {
+    return new Date(value).toLocaleDateString('fr-FR', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
+  }
+
+  function statValue(value: number | undefined) {
+    return loadingStats ? '...' : value || 0;
   }
 </script>
 
-<div class="max-w-[1600px] mx-auto px-6 py-6 space-y-6">
-  {#if loading}
-    <div class="flex items-center justify-center py-16">
-      <Spinner size="lg" />
-    </div>
-  {:else if team}
-    <div class="flex items-center gap-3">
-      <button
-        aria-label="Retour"
-        onclick={handleBack}
-        class="inline-flex size-8 items-center justify-center rounded-lg border border-border bg-background hover:bg-muted"
-      >
-        <iconify-icon icon="solar:arrow-left-linear" width="16"></iconify-icon>
-      </button>
-      <div class="flex-1 space-y-1">
-        <div class="flex items-center gap-2">
-          <h1 class="text-2xl font-bold tracking-tight text-foreground">
-            {team.name}
-          </h1>
-          <span class="rounded-full px-2.5 py-0.5 text-xs font-medium {getRoleBadgeColor(team.userRole)}">
-            {getRoleLabel(team.userRole)}
-          </span>
-        </div>
-        {#if team.description}
-          <p class="text-sm text-muted-foreground">
-            {team.description}
-          </p>
-        {/if}
-      </div>
-      <button
-        onclick={() => handleNavigate('/settings')}
-        class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 text-sm font-medium transition-colors hover:bg-muted"
-      >
-        <iconify-icon icon="solar:settings-linear" width="16"></iconify-icon>
-        <span>Paramètres</span>
-      </button>
-    </div>
+{#if loading}
+  <div class="flex items-center justify-center py-16">
+    <Spinner size="lg" label="Chargement de l'espace" />
+  </div>
+{:else if team}
+  <PageHeader
+    title={team.name}
+    description={team.description || undefined}
+    back={{ href: '/app/teams', label: 'Espaces' }}
+  >
+    {#snippet actions()}
+      <Badge tone={getRoleTone(team.userRole)}>{getRoleLabel(team.userRole)}</Badge>
+      <Button variant="outline" icon={icons.settings} onclick={() => handleNavigate('/settings')}>
+        Paramètres
+      </Button>
+    {/snippet}
+  </PageHeader>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <button
-        onclick={() => handleNavigate('/members')}
-        class="rounded-xl border border-border bg-card p-4 hover:bg-muted/30 transition-colors text-left"
-      >
-        <div class="flex items-center justify-between mb-2">
-          <iconify-icon icon="solar:users-group-rounded-linear" width="20" class="text-muted-foreground"></iconify-icon>
-          <iconify-icon icon="solar:arrow-right-linear" width="16" class="text-muted-foreground"></iconify-icon>
-        </div>
-        <h3 class="text-sm text-muted-foreground">Membres</h3>
-        <p class="text-2xl font-bold tracking-tight text-foreground mt-1">
-          {loadingStats ? '...' : stats?.memberCount || 0}
-        </p>
-      </button>
+  <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+    <Card href="/app/teams/{teamId}/members" class="flex flex-col gap-1">
+      <span class="flex items-center justify-between text-fc-fg-muted">
+        <Icon icon={icons.usersGroup} size={20} />
+        <Icon icon={icons.arrow} size={16} class="transition-transform group-hover:translate-x-0.5" />
+      </span>
+      <span class="text-fc-sm text-fc-fg-muted">Membres</span>
+      <span class="text-fc-2xl font-semibold text-fc-fg">{statValue(stats?.memberCount)}</span>
+    </Card>
 
-      <button
-        onclick={() => goto('/app/leads')}
-        class="rounded-xl border border-border bg-card p-4 hover:bg-muted/30 transition-colors text-left"
-      >
-        <div class="flex items-center justify-between mb-2">
-          <iconify-icon icon="solar:chart-square-linear" width="20" class="text-muted-foreground"></iconify-icon>
-          <iconify-icon icon="solar:arrow-right-linear" width="16" class="text-muted-foreground"></iconify-icon>
-        </div>
-        <h3 class="text-sm text-muted-foreground">Leads</h3>
-        <p class="text-2xl font-bold tracking-tight text-foreground mt-1">
-          {loadingStats ? '...' : stats?.totalLeads || 0}
-        </p>
-      </button>
-    </div>
+    <Card href="/app/leads" class="flex flex-col gap-1">
+      <span class="flex items-center justify-between text-fc-fg-muted">
+        <iconify-icon icon="solar:chart-square-linear" width="20" height="20" class="block"></iconify-icon>
+        <Icon icon={icons.arrow} size={16} class="transition-transform group-hover:translate-x-0.5" />
+      </span>
+      <span class="text-fc-sm text-fc-fg-muted">Leads</span>
+      <span class="text-fc-2xl font-semibold text-fc-fg">{statValue(stats?.totalLeads)}</span>
+    </Card>
+  </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div class="rounded-xl border border-border bg-card p-4">
-        <div class="flex items-center gap-2 mb-2">
-          <iconify-icon icon="solar:fire-linear" width="18" class="text-muted-foreground"></iconify-icon>
-          <h3 class="text-sm text-muted-foreground">Leads Chauds</h3>
-        </div>
-        <p class="text-2xl font-bold tracking-tight text-foreground">
-          {loadingStats ? '...' : stats?.hotLeads || 0}
-        </p>
-      </div>
+  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <StatCard label="Leads chauds" value={statValue(stats?.hotLeads)} />
+    <StatCard
+      label="Chasses"
+      value={statValue(stats?.totalHunts)}
+      delta={stats?.activeHunts > 0
+        ? `${stats.activeHunts} active${stats.activeHunts !== 1 ? 's' : ''}`
+        : undefined}
+    />
+    <StatCard label="Audits" value={statValue(stats?.totalAudits)} />
+    <StatCard label="Emails envoyés" value={statValue(stats?.emailsSent)} />
+  </div>
 
-      <div class="rounded-xl border border-border bg-card p-4">
-        <div class="flex items-center gap-2 mb-2">
-          <iconify-icon icon="solar:lightning-linear" width="18" class="text-muted-foreground"></iconify-icon>
-          <h3 class="text-sm text-muted-foreground">Chasses</h3>
-        </div>
-        <p class="text-2xl font-bold tracking-tight text-foreground">
-          {loadingStats ? '...' : stats?.totalHunts || 0}
-        </p>
-        {#if stats?.activeHunts > 0}
-          <p class="text-xs text-muted-foreground mt-1">
-            {stats.activeHunts} active{stats.activeHunts !== 1 ? 's' : ''}
-          </p>
-        {/if}
-      </div>
-
-      <div class="rounded-xl border border-border bg-card p-4">
-        <div class="flex items-center gap-2 mb-2">
-          <iconify-icon icon="solar:shield-check-linear" width="18" class="text-muted-foreground"></iconify-icon>
-          <h3 class="text-sm text-muted-foreground">Audits</h3>
-        </div>
-        <p class="text-2xl font-bold tracking-tight text-foreground">
-          {loadingStats ? '...' : stats?.totalAudits || 0}
-        </p>
-      </div>
-
-      <div class="rounded-xl border border-border bg-card p-4">
-        <div class="flex items-center gap-2 mb-2">
-          <iconify-icon icon="solar:letter-linear" width="18" class="text-muted-foreground"></iconify-icon>
-          <h3 class="text-sm text-muted-foreground">Emails Envoyés</h3>
-        </div>
-        <p class="text-2xl font-bold tracking-tight text-foreground">
-          {loadingStats ? '...' : stats?.emailsSent || 0}
-        </p>
-      </div>
-    </div>
-
-    <div class="max-w-2xl">
-      <div class="rounded-xl border border-border bg-card p-6">
-        <h3 class="text-lg font-semibold text-foreground mb-4">Informations</h3>
-        <div class="space-y-4">
-          <div>
-            <p class="text-xs text-muted-foreground mb-1">Créé le</p>
-            <p class="text-sm text-foreground">
-              {new Date(team.createdAt).toLocaleDateString('fr-FR', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric'
-              })}
-            </p>
-          </div>
-
-          <div>
-            <p class="text-xs text-muted-foreground mb-1">Dernière mise à jour</p>
-            <p class="text-sm text-foreground">
-              {new Date(team.updatedAt).toLocaleDateString('fr-FR', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric'
-              })}
-            </p>
-          </div>
-
-          <div>
-            <p class="text-xs text-muted-foreground mb-1">Votre rôle</p>
-            <span class="rounded-full px-2.5 py-0.5 text-xs font-medium {getRoleBadgeColor(team.userRole)}">
-              {getRoleLabel(team.userRole)}
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
-  {/if}
-</div>
+  <SettingsSection title="Informations" class="max-w-fc-md">
+    <SettingsRow label="Créé le">
+      <span class="text-fc-sm text-fc-fg">{formatDate(team.createdAt)}</span>
+    </SettingsRow>
+    <SettingsRow label="Dernière mise à jour">
+      <span class="text-fc-sm text-fc-fg">{formatDate(team.updatedAt)}</span>
+    </SettingsRow>
+    <SettingsRow label="Votre rôle">
+      <Badge tone={getRoleTone(team.userRole)}>{getRoleLabel(team.userRole)}</Badge>
+    </SettingsRow>
+  </SettingsSection>
+{/if}

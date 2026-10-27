@@ -1,14 +1,13 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { trpc } from '$lib/trpc';
-  import { toast } from '@repo/utils';
+  import { toast, PageHeader, Button, Card, Field, Input, Select, Spinner, Icon, icons } from '@facile/muse';
   import LocationPickerMap from '$lib/components/LocationPickerMap.svelte';
   import { teamContextStore } from '$lib/stores/team-context.svelte';
-  import 'iconify-icon';
 
   let teamId = $derived(teamContextStore.getTeamId());
 
-  let mapComponent: LocationPickerMap;
+  let mapComponent = $state<LocationPickerMap>();
   let showMap = $state(false);
 
   let loading = $state(false);
@@ -137,7 +136,7 @@
       const cityName = location.city || 'Unknown city';
       const countryName = location.country || 'Unknown country';
 
-      toast.push(`Localisation détectée : ${cityName}, ${countryName}`, 'success');
+      toast.success(`Localisation détectée : ${cityName}, ${countryName}`);
     } catch (error: any) {
       console.error('Error detecting location:', error);
 
@@ -146,24 +145,22 @@
           ? 'Accès à la localisation refusé. Cliquez sur "Détecter la localisation" pour réessayer ou saisissez-la manuellement.'
           : 'Impossible de détecter la localisation. Veuillez la saisir manuellement ou réessayer.';
 
-      toast.push(errorMessage, 'info');
+      toast.info(errorMessage);
     } finally {
       loadingLocation = false;
     }
   }
 
   async function startLocalBusinessHunt() {
-    // Garde anti double-clic : sans elle, un second clic pendant la création
-    // (ou pendant la navigation post-succès) lance une deuxième chasse.
     if (loading) return;
 
     if (localBusinessFilters.categories.length === 0) {
-      toast.push('Veuillez sélectionner au moins une catégorie d\'activité', 'error');
+      toast.danger('Veuillez sélectionner au moins une catégorie d\'activité');
       return;
     }
 
     if (!localBusinessFilters.location.city && !localBusinessFilters.location.coordinates) {
-      toast.push('Veuillez indiquer une localisation (ville ou GPS)', 'error');
+      toast.danger('Veuillez indiquer une localisation (ville ou GPS)');
       return;
     }
 
@@ -184,198 +181,168 @@
 
       const huntSessionId = result?.huntSessionId;
       const categoryCount = localBusinessFilters.categories.length;
-      toast.push(
+      toast.success(
         `Chasse locale démarrée pour ${categoryCount} catégorie${categoryCount > 1 ? 's' : ''} !`,
-        'success',
       );
-      // On laisse loading à true : le bouton reste désactivé jusqu'à ce que
-      // la navigation démonte la page, sinon il se réactive entre la fin de
-      // la mutation et la fin du goto.
       await goto(huntSessionId ? `/app/hunts/${huntSessionId}` : '/app/hunts');
     } catch (error: any) {
       const errorMessage = error?.message || 'Échec du démarrage de la chasse locale';
-      toast.push(errorMessage, 'error');
+      toast.danger(errorMessage);
       console.error('Error starting local business hunt:', error);
       loading = false;
     }
   }
 </script>
 
-<div class="sticky top-0 z-20 bg-background border-b border-border px-6 py-3">
-  <div class="max-w-[1600px] mx-auto flex items-center justify-between gap-4">
-    <div class="flex items-center gap-3 min-w-0">
-      <a
-        href="/app/hunts"
-        aria-label="Retour aux chasses"
-        class="inline-flex size-8 items-center justify-center rounded-lg border border-border bg-background hover:bg-muted transition-colors"
-      >
-        <iconify-icon icon="solar:arrow-left-linear" width="16"></iconify-icon>
-      </a>
+<PageHeader
+  title="Nouvelle chasse"
+  description="Recherche locale par localisation (OpenStreetMap, 100% gratuit)"
+  back={{ href: '/app/hunts', label: 'Retour aux chasses' }}
+>
+  {#snippet actions()}
+    <Button href="/app/hunts" variant="ghost">Annuler</Button>
+  {/snippet}
+</PageHeader>
 
-      <div class="min-w-0">
-        <h1 class="text-lg font-semibold text-foreground truncate">
-          Nouvelle chasse
-        </h1>
-        <p class="text-xs text-muted-foreground truncate">
-          Recherche locale par localisation (OpenStreetMap, 100% gratuit)
-        </p>
-      </div>
-    </div>
-
-    <div class="flex items-center gap-2 shrink-0">
-      <a
-        href="/app/hunts"
-        class="inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-      >
-        Annuler
-      </a>
-    </div>
+<Card class="flex w-full max-w-fc-lg flex-col gap-6">
+  <div class="flex flex-col gap-1">
+    <h2 class="text-fc-lg font-semibold text-fc-fg">Recherche locale d'entreprises</h2>
+    <p class="text-fc-sm text-fc-fg-muted">Trouvez des entreprises près d'une localisation via OpenStreetMap</p>
   </div>
-</div>
 
-<div class="max-w-[1600px] mx-auto px-6 py-6">
-  <div class="max-w-4xl mx-auto space-y-6">
-    <div class="rounded-xl border border-border bg-card p-6 space-y-6">
-      <div>
-        <h2 class="text-lg font-semibold text-foreground">Recherche locale d'entreprises</h2>
-        <p class="text-sm text-muted-foreground mt-0.5">Trouvez des entreprises près d'une localisation via OpenStreetMap</p>
-      </div>
-
-      <div class="space-y-3">
-        <span class="text-sm font-medium text-foreground block">Catégories d'activité (sélection multiple)</span>
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-          {#each businessCategories as category}
-            <label
-              class="rounded-lg border p-3 transition-colors cursor-pointer {localBusinessFilters.categories.includes(category.value)
-                ? 'border-foreground bg-muted'
-                : 'border-border bg-background hover:bg-muted'}"
-            >
-              <div class="flex items-center gap-2 min-w-0">
-                <input
-                  type="checkbox"
-                  value={category.value}
-                  bind:group={localBusinessFilters.categories}
-                  class="w-4 h-4 shrink-0"
-                />
-                <iconify-icon icon={category.icon} width="16" class="text-foreground shrink-0"></iconify-icon>
-                <span class="text-sm text-foreground truncate">{category.label}</span>
-              </div>
-            </label>
-          {/each}
-        </div>
-      </div>
-
-      <div class="space-y-3">
-        <div class="flex items-center justify-between">
-          <span class="text-sm font-medium text-foreground">Localisation</span>
-          <button
-            type="button"
-            onclick={() => detectLocation('auto')}
-            disabled={loadingLocation}
-            class="inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-50"
-          >
-            {#if loadingLocation}
-              <iconify-icon icon="svg-spinners:blocks-shuffle-3" width="14"></iconify-icon>
-              Détection
-            {:else}
-              <iconify-icon icon="solar:map-point-linear" width="14"></iconify-icon>
-              {userLocation ? 'Re-détecter' : 'Utiliser le GPS'}
-            {/if}
-          </button>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <input
-            bind:value={localBusinessFilters.location.city}
-            type="text"
-            placeholder="Ville (ex. : Paris, Lyon)"
-            class="h-9 rounded-lg border border-input bg-background px-3 text-sm"
-          />
-          <input
-            bind:value={localBusinessFilters.location.country}
-            type="text"
-            placeholder="Pays (ex. : FR, BE)"
-            class="h-9 rounded-lg border border-input bg-background px-3 text-sm"
-          />
-        </div>
-
-        <div>
-          <button
-            type="button"
-            onclick={() => showMap = !showMap}
-            class="inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-          >
-            <iconify-icon icon={showMap ? 'solar:map-arrow-down-linear' : 'solar:map-arrow-up-linear'} width="14"></iconify-icon>
-            {showMap ? 'Masquer la carte' : 'Choisir sur la carte'}
-          </button>
-
-          {#if showMap}
-            <div class="mt-3 h-96 rounded-xl overflow-hidden border border-border">
-              <LocationPickerMap
-                bind:this={mapComponent}
-                initialLat={localBusinessFilters.location.coordinates?.lat || 48.8566}
-                initialLng={localBusinessFilters.location.coordinates?.lng || 2.3522}
-                onLocationSelected={(location) => {
-                  localBusinessFilters.location.coordinates = { lat: location.lat, lng: location.lng };
-                  const parts = location.address.split(', ');
-                  if (parts.length >= 2) {
-                    localBusinessFilters.location.city = parts[parts.length - 2] || '';
-                    localBusinessFilters.location.country = parts[parts.length - 1] || '';
-                  }
-                }}
-              />
-            </div>
-            <p class="mt-2 text-xs text-muted-foreground">
-              Cliquez sur la carte ou déplacez le marqueur pour sélectionner une localisation. Le rayon de recherche est affiché en cercle.
-            </p>
-          {/if}
-        </div>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <label class="block">
-          <span class="text-sm font-medium text-foreground mb-2 block">Filtre site web</span>
-          <select
-            bind:value={localBusinessFilters.hasWebsite}
-            class="w-full h-9 rounded-lg border border-input bg-background px-3 text-sm"
-          >
-            <option value="all">Toutes les entreprises</option>
-            <option value="with">Avec site web uniquement</option>
-            <option value="without">Sans site web uniquement</option>
-          </select>
-        </label>
-
-        <label class="block">
-          <span class="text-sm font-medium text-foreground mb-2 block">Rayon de recherche</span>
-          <select
-            bind:value={localBusinessFilters.radius}
-            onchange={() => mapComponent?.setRadius(localBusinessFilters.radius * 1000)}
-            class="w-full h-9 rounded-lg border border-input bg-background px-3 text-sm"
-          >
-            <option value={1}>1 km</option>
-            <option value={5}>5 km</option>
-            <option value={10}>10 km</option>
-            <option value={25}>25 km</option>
-            <option value={50}>50 km</option>
-          </select>
-        </label>
-      </div>
-
-      <div class="pt-6 border-t border-border">
-        <button
-          onclick={startLocalBusinessHunt}
-          disabled={loading}
-          class="inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85 disabled:opacity-50 disabled:cursor-not-allowed"
+  <fieldset class="flex flex-col gap-3">
+    <legend class="mb-3 text-fc-sm font-medium text-fc-fg">Catégories d'activité (sélection multiple)</legend>
+    <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3">
+      {#each businessCategories as category}
+        <label
+          class="flex min-h-11 cursor-pointer items-center gap-2 rounded-fc-md border p-3 transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-fc-ring {localBusinessFilters.categories.includes(category.value)
+            ? 'border-fc-fg bg-fc-surface'
+            : 'border-fc-border bg-fc-bg hover:bg-fc-surface'}"
         >
-          {#if loading}
-            <iconify-icon icon="svg-spinners:blocks-shuffle-3" width="16"></iconify-icon>
-            <span>Recherche</span>
-          {:else}
-            <iconify-icon icon="solar:map-point-linear" width="16"></iconify-icon>
-            <span>Lancer la chasse locale</span>
-          {/if}
-        </button>
-      </div>
+          <input
+            type="checkbox"
+            value={category.value}
+            bind:group={localBusinessFilters.categories}
+            class="size-4 shrink-0 accent-fc-accent"
+          />
+          <Icon icon={category.icon} class="text-fc-fg" />
+          <span class="truncate text-fc-sm text-fc-fg">{category.label}</span>
+        </label>
+      {/each}
+    </div>
+  </fieldset>
+
+  <div class="flex flex-col gap-3">
+    <div class="flex items-center justify-between gap-2">
+      <span class="text-fc-sm font-medium text-fc-fg">Localisation</span>
+      <Button
+        variant="ghost"
+        size="sm"
+        icon={loadingLocation ? undefined : 'solar:map-point-linear'}
+        onclick={() => detectLocation('auto')}
+        disabled={loadingLocation}
+      >
+        {#if loadingLocation}
+          <Spinner size="sm" label="Détection" />
+          Détection
+        {:else}
+          {userLocation ? 'Re-détecter' : 'Utiliser le GPS'}
+        {/if}
+      </Button>
+    </div>
+
+    <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+      <Input
+        bind:value={localBusinessFilters.location.city}
+        type="text"
+        placeholder="Ville (ex. : Paris, Lyon)"
+        aria-label="Ville"
+      />
+      <Input
+        bind:value={localBusinessFilters.location.country}
+        type="text"
+        placeholder="Pays (ex. : FR, BE)"
+        aria-label="Pays"
+      />
+    </div>
+
+    <div class="flex flex-col gap-3">
+      <Button
+        variant="ghost"
+        size="sm"
+        class="w-fit"
+        icon={showMap ? 'solar:map-arrow-down-linear' : 'solar:map-arrow-up-linear'}
+        onclick={() => (showMap = !showMap)}
+      >
+        {showMap ? 'Masquer la carte' : 'Choisir sur la carte'}
+      </Button>
+
+      {#if showMap}
+        <div class="h-96 overflow-hidden rounded-fc-lg">
+          <LocationPickerMap
+            bind:this={mapComponent}
+            initialLat={localBusinessFilters.location.coordinates?.lat || 48.8566}
+            initialLng={localBusinessFilters.location.coordinates?.lng || 2.3522}
+            onLocationSelected={(location) => {
+              localBusinessFilters.location.coordinates = { lat: location.lat, lng: location.lng };
+              const parts = location.address.split(', ');
+              if (parts.length >= 2) {
+                localBusinessFilters.location.city = parts[parts.length - 2] || '';
+                localBusinessFilters.location.country = parts[parts.length - 1] || '';
+              }
+            }}
+          />
+        </div>
+        <p class="text-fc-xs text-fc-fg-muted">
+          Cliquez sur la carte ou déplacez le marqueur pour sélectionner une localisation. Le rayon de recherche est affiché en cercle.
+        </p>
+      {/if}
     </div>
   </div>
-</div>
+
+  <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+    <Field label="Filtre site web">
+      <Select
+        value={localBusinessFilters.hasWebsite}
+        onchange={(e) => (localBusinessFilters.hasWebsite = e.currentTarget.value as 'all' | 'with' | 'without')}
+      >
+        <option value="all">Toutes les entreprises</option>
+        <option value="with">Avec site web uniquement</option>
+        <option value="without">Sans site web uniquement</option>
+      </Select>
+    </Field>
+
+    <Field label="Rayon de recherche">
+      <Select
+        value={String(localBusinessFilters.radius)}
+        onchange={(e) => {
+          localBusinessFilters.radius = Number(e.currentTarget.value);
+          mapComponent?.setRadius(localBusinessFilters.radius * 1000);
+        }}
+      >
+        <option value="1">1 km</option>
+        <option value="5">5 km</option>
+        <option value="10">10 km</option>
+        <option value="25">25 km</option>
+        <option value="50">50 km</option>
+      </Select>
+    </Field>
+  </div>
+
+  <div class="border-t border-fc-border pt-6">
+    <Button
+      class="w-full"
+      size="lg"
+      icon={loading ? undefined : 'solar:map-point-linear'}
+      onclick={startLocalBusinessHunt}
+      disabled={loading}
+    >
+      {#if loading}
+        <Spinner size="sm" label="Recherche" class="border-fc-accent-fg/30 border-t-fc-accent-fg" />
+        Recherche
+      {:else}
+        Lancer la chasse locale
+      {/if}
+    </Button>
+  </div>
+</Card>

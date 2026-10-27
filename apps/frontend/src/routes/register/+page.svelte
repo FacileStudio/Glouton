@@ -1,24 +1,21 @@
 <script lang="ts">
-  import authStore from '$lib/auth-store';
   import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
+  import { Alert, Button, Field, Input } from '@facile/muse';
+  import authStore from '$lib/auth-store';
   import { trpc } from '$lib/trpc';
   import { getTrpcErrorMessage } from '$lib/utils/trpc-error';
-  import 'iconify-icon';
 
-  const inputClass =
-    'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50';
-  const labelClass = 'text-sm font-medium leading-none';
-  const primaryButtonClass =
-    'inline-flex h-10 w-full items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50';
+  const tabClass =
+    'flex-1 rounded-fc-md py-1.5 text-center text-fc-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fc-ring';
 
-  let email = '';
-  let password = '';
-  let confirmPassword = '';
-  let firstName = '';
-  let lastName = '';
-  let loading = false;
-  let error = '';
+  let email = $state('');
+  let password = $state('');
+  let confirmPassword = $state('');
+  let firstName = $state('');
+  let lastName = $state('');
+  let loading = $state(false);
+  let error = $state('');
 
   async function handleRegister() {
     if (password !== confirmPassword) {
@@ -49,48 +46,48 @@
   <title>Créer un compte — Glouton</title>
 </svelte:head>
 
-<div class="flex min-h-screen">
-  <aside class="hidden lg:flex lg:w-1/2 flex-col bg-black px-12 py-10">
-    <a href={resolve('/')} class="flex items-center gap-3 mb-auto">
-      <iconify-icon icon="solar:magnet-wave-bold-duotone" width="28" class="text-white"></iconify-icon>
-      <span class="text-xl font-bold font-heading tracking-tight text-white">Glouton</span>
+<div class="flex min-h-dvh bg-fc-page text-fc-fg">
+  <aside class="hidden flex-col border-r border-fc-border bg-black px-12 py-10 lg:flex lg:w-1/2">
+    <a href={resolve('/')} class="mb-auto flex items-center gap-3">
+      <iconify-icon icon="solar:magnet-wave-bold-duotone" width="24" height="24" class="block shrink-0 text-white"></iconify-icon>
+      <span class="font-fc-title text-fc-xl font-semibold tracking-tight text-white">Glouton</span>
     </a>
 
     <div class="mb-auto">
-      <h2 class="text-4xl font-bold font-heading text-white leading-tight tracking-tight">
+      <h2 class="font-fc-title text-fc-3xl leading-tight font-semibold tracking-tight text-white">
         Créer un pipeline<br />qui reste lisible.
       </h2>
-      <p class="mt-4 text-sm text-white/50 max-w-xs leading-relaxed">
+      <p class="mt-4 max-w-xs text-fc-sm leading-relaxed text-white/50">
         Inscription courte. Prospection longue. Mauvais ratio pour les formulaires, bon ratio pour le business.
       </p>
     </div>
 
-    <p class="text-xs text-white/30">© {new Date().getFullYear()} Glouton par Facile.</p>
+    <p class="text-fc-xs text-white/30">© {new Date().getFullYear()} Glouton par Facile.</p>
   </aside>
 
-  <main class="flex w-full lg:w-1/2 flex-col items-center justify-center px-8 py-12 bg-background">
+  <main class="flex w-full flex-col items-center justify-center px-4 py-12 sm:px-8 lg:w-1/2">
     <div class="w-full max-w-sm">
       <a href={resolve('/')} class="mb-10 flex items-center gap-3 lg:hidden">
-        <iconify-icon icon="solar:magnet-wave-bold-duotone" width="28"></iconify-icon>
-        <span class="text-xl font-bold font-heading tracking-tight">Glouton</span>
+        <iconify-icon icon="solar:magnet-wave-bold-duotone" width="24" height="24" class="block shrink-0"></iconify-icon>
+        <span class="font-fc-title text-fc-xl font-semibold tracking-tight">Glouton</span>
       </a>
 
       <div class="mb-8">
-        <h1 class="text-2xl font-bold font-heading tracking-tight text-foreground">Créer un compte</h1>
-        <p class="mt-1.5 text-sm text-muted-foreground">
+        <h1 class="font-fc-title text-fc-2xl font-semibold tracking-tight">Créer un compte</h1>
+        <p class="mt-1.5 text-fc-sm text-fc-fg-muted">
           Créez votre accès à l'espace de prospection.
         </p>
       </div>
 
-      <div class="mb-6 flex rounded-lg border border-border bg-muted p-1 gap-1">
+      <div class="mb-6 flex gap-1 rounded-fc-lg border border-fc-border bg-fc-surface p-1">
         <a
           href={resolve('/login')}
-          class="flex-1 rounded-md py-1.5 text-center text-sm font-medium transition-colors text-muted-foreground hover:text-foreground"
+          class="{tabClass} text-fc-fg-muted hover:text-fc-fg"
         >Connexion</a>
         <a
           href={resolve('/register')}
           aria-current="page"
-          class="flex-1 rounded-md py-1.5 text-center text-sm font-medium transition-colors bg-background text-foreground shadow-sm"
+          class="{tabClass} bg-fc-page text-fc-fg shadow-sm"
         >Inscription</a>
       </div>
 
@@ -102,9 +99,8 @@
         }}
       >
         <div class="grid gap-4 sm:grid-cols-2">
-          <div class="space-y-1.5">
-            <label for="firstName" class={labelClass}>Prénom</label>
-            <input
+          <Field label="Prénom" for="firstName">
+            <Input
               id="firstName"
               type="text"
               bind:value={firstName}
@@ -112,12 +108,10 @@
               autocomplete="given-name"
               required
               disabled={loading}
-              class={inputClass}
             />
-          </div>
-          <div class="space-y-1.5">
-            <label for="lastName" class={labelClass}>Nom</label>
-            <input
+          </Field>
+          <Field label="Nom" for="lastName">
+            <Input
               id="lastName"
               type="text"
               bind:value={lastName}
@@ -125,14 +119,12 @@
               autocomplete="family-name"
               required
               disabled={loading}
-              class={inputClass}
             />
-          </div>
+          </Field>
         </div>
 
-        <div class="space-y-1.5">
-          <label for="email" class={labelClass}>Email</label>
-          <input
+        <Field label="Email" for="email">
+          <Input
             id="email"
             type="email"
             bind:value={email}
@@ -140,13 +132,11 @@
             autocomplete="email"
             required
             disabled={loading}
-            class={inputClass}
           />
-        </div>
+        </Field>
 
-        <div class="space-y-1.5">
-          <label for="password" class={labelClass}>Mot de passe</label>
-          <input
+        <Field label="Mot de passe" for="password">
+          <Input
             id="password"
             type="password"
             bind:value={password}
@@ -154,13 +144,11 @@
             autocomplete="new-password"
             required
             disabled={loading}
-            class={inputClass}
           />
-        </div>
+        </Field>
 
-        <div class="space-y-1.5">
-          <label for="confirmPassword" class={labelClass}>Confirmation</label>
-          <input
+        <Field label="Confirmation" for="confirmPassword">
+          <Input
             id="confirmPassword"
             type="password"
             bind:value={confirmPassword}
@@ -168,27 +156,28 @@
             autocomplete="new-password"
             required
             disabled={loading}
-            class={inputClass}
           />
-        </div>
+        </Field>
 
         {#if error}
-          <p class="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {error}
-          </p>
+          <Alert tone="danger">{error}</Alert>
         {/if}
 
-        <button
+        <Button
           type="submit"
+          size="lg"
           disabled={loading || !firstName || !lastName || !email || !password || !confirmPassword}
-          class={primaryButtonClass}
+          class="w-full rounded-fc-md"
         >
           {loading ? 'Création…' : 'Créer le compte'}
-        </button>
+        </Button>
       </form>
 
-      <div class="mt-5 text-sm">
-        <a href={resolve('/')} class="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+      <div class="mt-5 text-fc-sm">
+        <a
+          href={resolve('/')}
+          class="text-fc-fg-muted underline-offset-4 hover:text-fc-fg hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fc-ring"
+        >
           Accueil
         </a>
       </div>

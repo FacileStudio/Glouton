@@ -1,8 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { goto } from '$app/navigation';
   import 'leaflet/dist/leaflet.css';
-  import 'iconify-icon';
+  import { Card } from '@facile/muse';
 
   interface Lead {
     id: string;
@@ -30,20 +29,40 @@
   function getDisplayName(lead: Lead): string {
     if (lead.firstName || lead.lastName) return [lead.firstName, lead.lastName].filter(Boolean).join(' ');
     if (lead.businessName) return lead.businessName;
-    return lead.domain ?? 'Unknown';
+    return lead.domain ?? 'Inconnu';
   }
 
   function getStatusColor(status?: string): string {
-    if (status === 'HOT') return '#000000';
-    return '#737373';
+    if (status === 'HOT') return 'text-black';
+    return 'text-black/50';
   }
 
-  function makePinSvg(color: string): string {
-    return `<svg width="28" height="40" viewBox="0 0 28 40" xmlns="http://www.w3.org/2000/svg">
-      <path fill="${color}" d="M14 0C6.268 0 0 6.268 0 14c0 10.5 14 26 14 26S28 24.5 28 14C28 6.268 21.732 0 14 0z"/>
-      <circle fill="#fff" cx="14" cy="14" r="5.5"/>
-      <circle fill="${color}" cx="14" cy="14" r="3"/>
+  const pinSvg = `<svg width="28" height="40" viewBox="0 0 28 40" xmlns="http://www.w3.org/2000/svg" class="block">
+      <path fill="currentColor" d="M14 0C6.268 0 0 6.268 0 14c0 10.5 14 26 14 26S28 24.5 28 14C28 6.268 21.732 0 14 0z"/>
+      <circle class="fill-white" cx="14" cy="14" r="5.5"/>
+      <circle fill="currentColor" cx="14" cy="14" r="3"/>
     </svg>`;
+
+  function makePopup(lead: Lead): HTMLElement {
+    const root = document.createElement('div');
+    root.className = 'flex min-w-40 flex-col gap-0.5';
+    const title = document.createElement('p');
+    title.className = 'm-0 text-fc-sm font-semibold';
+    title.textContent = getDisplayName(lead);
+    root.append(title);
+    const location = [lead.city, lead.country].filter(Boolean).join(', ');
+    if (location) {
+      const sub = document.createElement('p');
+      sub.className = 'm-0 mb-1.5 text-fc-xs opacity-70';
+      sub.textContent = location;
+      root.append(sub);
+    }
+    const link = document.createElement('a');
+    link.href = `/app/leads/${lead.id}`;
+    link.className = 'inline-flex items-center gap-1 text-fc-xs font-medium no-underline';
+    link.textContent = 'Voir le lead →';
+    root.append(link);
+    return root;
   }
 
   async function initMap() {
@@ -71,29 +90,17 @@
     const bounds: [number, number][] = [];
 
     for (const lead of leadsWithCoords) {
-      const color = getStatusColor(lead.status);
-      const svg = makePinSvg(color);
-      const icon = L.icon({
-        iconUrl: 'data:image/svg+xml;base64,' + btoa(svg),
+      const icon = L.divIcon({
+        className: getStatusColor(lead.status),
+        html: pinSvg,
         iconSize: [28, 40],
         iconAnchor: [14, 40],
         popupAnchor: [0, -42],
       });
 
-      const name = getDisplayName(lead);
-      const location = [lead.city, lead.country].filter(Boolean).join(', ');
-
       const marker = L.marker([lead.coordinates.lat, lead.coordinates.lng], { icon }).addTo(markersLayer);
 
-      marker.bindPopup(`
-        <div style="min-width:160px;font-family:sans-serif;">
-          <p style="font-weight:600;font-size:13px;margin:0 0 2px">${name}</p>
-          ${location ? `<p style="font-size:11px;color:#737373;margin:0 0 6px">${location}</p>` : ''}
-          <a href="/app/leads/${lead.id}" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:500;color:#000000;text-decoration:none;">
-            View lead →
-          </a>
-        </div>
-      `);
+      marker.bindPopup(makePopup(lead));
 
       marker.on('click', () => {
         marker.openPopup();
@@ -134,46 +141,49 @@
 </script>
 
 {#if leadsWithCoords.length > 0}
-  <div class="rounded-xl border border-border bg-card overflow-hidden">
+  <Card class="overflow-hidden p-0">
     <button
+      type="button"
       onclick={toggleExpand}
-      class="w-full flex items-center justify-between px-6 py-4 hover:bg-muted/40 transition-colors"
+      aria-expanded={expanded}
+      class="flex min-h-11 w-full items-center justify-between gap-3 px-5 py-4 transition-colors hover:bg-fc-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fc-ring"
     >
-      <div class="flex items-center gap-3">
-        <div class="inline-flex size-9 items-center justify-center rounded-lg bg-muted text-foreground shrink-0">
-          <iconify-icon icon="solar:map-linear" width="18"></iconify-icon>
+      <div class="flex min-w-0 items-center gap-3">
+        <div class="inline-flex size-9 shrink-0 items-center justify-center rounded-fc-md bg-fc-surface text-fc-fg">
+          <iconify-icon icon="solar:map-linear" width="18" height="18" class="block"></iconify-icon>
         </div>
-        <div class="text-left">
-          <p class="text-sm font-semibold text-foreground">Carte des leads</p>
-          <p class="text-xs text-muted-foreground">{leadsWithCoords.length} lead{leadsWithCoords.length !== 1 ? 's' : ''} avec localisation</p>
+        <div class="min-w-0 text-left">
+          <p class="text-fc-sm font-semibold text-fc-fg">Carte des leads</p>
+          <p class="text-fc-xs text-fc-fg-muted">{leadsWithCoords.length} lead{leadsWithCoords.length !== 1 ? 's' : ''} avec localisation</p>
         </div>
       </div>
-      <div class="flex items-center gap-3">
-        <div class="hidden sm:flex items-center gap-3 text-xs text-muted-foreground">
+      <div class="flex shrink-0 items-center gap-3">
+        <div class="hidden items-center gap-3 text-fc-xs text-fc-fg-muted sm:flex">
           <span class="inline-flex items-center gap-1.5">
-            <span class="w-2 h-2 rounded-full bg-foreground"></span>
+            <span class="size-2 rounded-fc-pill bg-fc-fg"></span>
             HOT
           </span>
           <span class="inline-flex items-center gap-1.5">
-            <span class="w-2 h-2 rounded-full bg-muted-foreground"></span>
+            <span class="size-2 rounded-fc-pill bg-fc-fg-muted"></span>
             Autres
           </span>
         </div>
         <iconify-icon
-          icon="solar:alt-arrow-down-linear"
-          width="16"
-          class="text-muted-foreground transition-transform duration-300 {expanded ? 'rotate-180' : ''}"
+          icon="mdi:chevron-down"
+          width="18"
+          height="18"
+          class="block text-fc-fg-muted transition-transform duration-300 {expanded ? 'rotate-180' : ''}"
         ></iconify-icon>
       </div>
     </button>
 
     <div
-      class="overflow-hidden transition-all duration-300 ease-in-out"
+      class="overflow-hidden transition-all duration-300 ease-fc"
       style="max-height: {expanded ? '480px' : '0px'}; opacity: {expanded ? '1' : '0'};"
     >
-      <div class="px-3 pb-3 h-[440px]">
-        <div bind:this={mapContainer} class="w-full h-full rounded-lg overflow-hidden border border-border"></div>
+      <div class="h-[440px] px-3 pb-3">
+        <div bind:this={mapContainer} class="h-full w-full overflow-hidden rounded-fc-md"></div>
       </div>
     </div>
-  </div>
+  </Card>
 {/if}

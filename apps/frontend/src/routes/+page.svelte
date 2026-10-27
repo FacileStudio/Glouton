@@ -1,7 +1,7 @@
 <script lang="ts">
   import { resolve } from '$app/paths';
+  import { Button, Divider, icons } from '@facile/muse';
   import authStore from '$lib/auth-store';
-  import 'iconify-icon';
 
   const features = [
     {
@@ -36,106 +36,93 @@
   />
 </svelte:head>
 
-<div class="min-h-screen bg-background text-foreground">
-  <header class="border-b border-border">
-    <div class="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-      <a href={resolve('/')} class="flex h-14 items-center gap-3">
-        <iconify-icon icon="solar:magnet-wave-bold-duotone" width="28"></iconify-icon>
-        <span class="text-2xl font-bold">Glouton</span>
+<div class="min-h-dvh bg-fc-page text-fc-fg">
+  <header class="border-b border-fc-border">
+    <div class="mx-auto flex max-w-5xl items-center justify-between px-4 py-4 sm:px-6">
+      <a
+        href={resolve('/')}
+        class="flex h-14 items-center gap-3 rounded-fc-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fc-ring"
+      >
+        <iconify-icon icon="solar:magnet-wave-bold-duotone" width="24" height="24" class="block shrink-0"></iconify-icon>
+        <span class="font-fc-title text-fc-xl font-semibold tracking-tight">Glouton</span>
       </a>
 
       <div class="flex items-center gap-2">
         {#if !$authStore.session}
-          <a
-            href={resolve('/login')}
-            class="inline-flex h-9 items-center justify-center rounded-md px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
-            Connexion
-          </a>
-          <a
-            href={resolve('/register')}
-            class="inline-flex h-9 items-center justify-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85"
-          >
-            Commencer
-          </a>
+          <Button variant="ghost" href={resolve('/login')} class="rounded-fc-md">Connexion</Button>
+          <Button href={resolve('/register')} class="rounded-fc-md">Commencer</Button>
         {:else}
-          <a
-            href={resolve('/app/leads')}
-            class="inline-flex h-9 items-center justify-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85"
-          >
-            Ouvrir l'app
-          </a>
+          <Button href={resolve('/app/leads')} class="rounded-fc-md">Ouvrir l'app</Button>
         {/if}
       </div>
     </div>
   </header>
 
   <main>
-    <section class="mx-auto max-w-5xl px-6 py-24 text-center">
-      <h1 class="text-5xl font-bold tracking-tight md:text-6xl">
+    <section class="mx-auto max-w-5xl px-4 py-24 text-center sm:px-6">
+      <h1 class="font-fc-title text-fc-3xl font-semibold tracking-tight">
         Trouver. Qualifier.<br />Prospecter.
       </h1>
-      <p class="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
+      <p class="mx-auto mt-6 max-w-xl text-fc-md leading-relaxed text-fc-fg-muted">
         Glouton transforme les recherches commerciales en pistes propres, priorisées et prêtes à contacter.
       </p>
 
-      <div class="mt-10 flex flex-col justify-center gap-2 sm:flex-row">
-        <a
+      <div class="mt-10 flex flex-col justify-center gap-3 sm:flex-row">
+        <Button
+          size="lg"
           href={resolve($authStore.session ? '/app/leads' : '/register')}
-          class="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85"
+          iconRight={icons.arrow}
+          class="rounded-fc-md"
         >
           {$authStore.session ? "Ouvrir l'app" : 'Créer un compte'}
-          <iconify-icon icon="solar:arrow-right-linear" width="16"></iconify-icon>
-        </a>
-        <a
-          href={resolve('/login')}
-          class="inline-flex h-9 items-center justify-center rounded-md border border-border bg-background px-4 text-sm font-medium transition-colors hover:bg-muted"
-        >
-          Connexion
-        </a>
+        </Button>
+        <Button size="lg" variant="outline" href={resolve('/login')} class="rounded-fc-md">Connexion</Button>
       </div>
     </section>
 
-    <div class="border-t border-border"></div>
+    <Divider class="my-0" />
 
-    <section class="mx-auto max-w-5xl px-6 py-20">
+    <section class="mx-auto max-w-5xl px-4 py-20 sm:px-6">
       <div class="grid gap-6 md:grid-cols-3">
-        {#each features as feature}
-          <article class="rounded-xl border border-border bg-card p-6 text-card-foreground">
-            <div class="mb-5 flex size-10 items-center justify-center rounded-md border border-border">
-              <iconify-icon icon={feature.icon} width="22"></iconify-icon>
+        {#each features as feature (feature.title)}
+          <article class="rounded-fc-lg bg-fc-component p-6">
+            <div class="mb-5 flex size-10 items-center justify-center rounded-fc-md bg-fc-surface">
+              <iconify-icon icon={feature.icon} width="20" height="20" class="block shrink-0"></iconify-icon>
             </div>
-            <h2 class="text-lg font-semibold">{feature.title}</h2>
-            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">{feature.desc}</p>
+            <h2 class="text-fc-lg font-semibold">{feature.title}</h2>
+            <p class="mt-2 text-fc-sm leading-relaxed text-fc-fg-muted">{feature.desc}</p>
           </article>
         {/each}
       </div>
     </section>
 
-    <div class="border-t border-border"></div>
+    <Divider class="my-0" />
 
-    <section class="mx-auto grid max-w-5xl gap-6 px-6 py-20 md:grid-cols-[1fr_1.2fr] md:items-center">
+    <section class="mx-auto grid max-w-5xl gap-6 px-4 py-20 sm:px-6 md:grid-cols-[1fr_1.2fr] md:items-center">
       <div>
-        <h2 class="text-3xl font-bold">Une seule table de vérité pour les leads.</h2>
-        <p class="mt-4 text-muted-foreground">
+        <h2 class="font-fc-title text-fc-2xl font-semibold tracking-tight">Une seule table de vérité pour les leads.</h2>
+        <p class="mt-4 text-fc-fg-muted">
           Chasses, audits, cartes, qualification, relance: tout converge dans un espace lisible.
         </p>
       </div>
-      <div class="rounded-xl border border-border">
-        {#each metrics as metric}
-          <div class="flex items-center justify-between border-b border-border px-5 py-4 last:border-b-0">
+      <div class="divide-y divide-fc-border rounded-fc-lg bg-fc-component">
+        {#each metrics as metric (metric[0])}
+          <div class="flex items-center justify-between gap-4 px-5 py-4">
             <span class="font-medium">{metric[0]}</span>
-            <span class="text-sm text-muted-foreground">{metric[1]}</span>
+            <span class="text-right text-fc-sm text-fc-fg-muted">{metric[1]}</span>
           </div>
         {/each}
       </div>
     </section>
   </main>
 
-  <footer class="border-t border-border">
-    <div class="mx-auto max-w-5xl px-6 py-6 text-center text-sm text-muted-foreground">
+  <footer class="border-t border-fc-border">
+    <div class="mx-auto max-w-5xl px-4 py-6 text-center text-fc-sm text-fc-fg-muted sm:px-6">
       © {new Date().getFullYear()} Glouton by
-      <a href="https://facile.studio" class="font-semibold underline">Facile.</a>
+      <a
+        href="https://facile.studio"
+        class="font-semibold underline underline-offset-2 transition-colors hover:text-fc-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fc-ring"
+      >Facile.</a>
     </div>
   </footer>
 </div>

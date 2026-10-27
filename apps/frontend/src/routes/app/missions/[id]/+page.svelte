@@ -1,10 +1,9 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import { trpc } from '$lib/trpc';
-  import { toast } from '@repo/utils';
-  import { Spinner } from '@repo/ui';
-  import 'iconify-icon';
+  import { toast, Badge, Button, Card, EmptyState, Icon, Spinner, icons } from '@facile/muse';
+  import type { BadgeProps } from '@facile/muse';
 
   type Tier = 'HOT' | 'WARM' | 'COLD';
 
@@ -51,10 +50,12 @@
     HIMALAYAS: 'Himalayas',
   };
 
-  const TIER_COLORS: Record<Tier, string> = {
-    HOT: 'bg-red-500/10 text-red-400 border-red-500/20',
-    WARM: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-    COLD: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+  type Tone = NonNullable<BadgeProps['tone']>;
+
+  const TIER_TONES: Record<Tier, Tone> = {
+    HOT: 'danger',
+    WARM: 'warning',
+    COLD: 'info',
   };
 
   const TIER_ICONS: Record<Tier, string> = {
@@ -111,21 +112,21 @@
     return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
   }
 
-  function applicantBadgeClass(count: number): string {
-    if (count <= 3) return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
-    if (count <= 10) return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
-    return 'bg-red-500/10 text-red-400 border-red-500/20';
+  function applicantTone(count: number): Tone {
+    if (count <= 3) return 'success';
+    if (count <= 10) return 'warning';
+    return 'danger';
   }
 
   async function loadOpportunity() {
     loading = true;
     try {
-      opportunity = (await trpc.opportunity.get.query({ id: $page.params.id })) as Opportunity;
+      opportunity = (await trpc.opportunity.get.query({ id: page.params.id ?? '' })) as Opportunity;
     } catch (err: any) {
       if (err?.data?.code === 'NOT_FOUND') {
         notFound = true;
       } else {
-        toast.push('Erreur lors du chargement de la mission', 'error');
+        toast.danger('Erreur lors du chargement de la mission');
       }
     } finally {
       loading = false;
@@ -134,7 +135,6 @@
 
   function openSource() {
     if (!opportunity) return;
-    // Fire-and-forget click tracking; never block the navigation on it.
     trpc.opportunity.markClicked.mutate({ id: opportunity.id }).catch(() => {});
     window.open(opportunity.sourceUrl, '_blank', 'noopener');
   }
@@ -142,59 +142,39 @@
   onMount(loadOpportunity);
 </script>
 
-<div class="flex flex-col gap-6 p-6 max-w-4xl mx-auto w-full">
-  <!-- Back link -->
-  <a
-    href="/app/missions"
-    class="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-fit"
-  >
-    <iconify-icon icon="solar:arrow-left-linear" width="16"></iconify-icon>
+<div class="flex w-full flex-col gap-6">
+  <Button href="/app/missions" variant="ghost" size="sm" icon={icons.chevronLeft} class="-ml-3 w-fit">
     Retour aux missions
-  </a>
+  </Button>
 
   {#if loading}
     <div class="flex items-center justify-center py-24">
-      <Spinner size="lg" />
+      <Spinner size="lg" label="Chargement" />
     </div>
   {:else if notFound || !opportunity}
-    <div class="flex flex-col items-center gap-3 py-24 text-center">
-      <iconify-icon icon="solar:ghost-linear" width="48" class="text-muted-foreground"></iconify-icon>
-      <h2 class="text-lg font-semibold">Mission introuvable</h2>
-      <p class="text-sm text-muted-foreground">
-        Cette mission n'existe plus ou a été retirée des sources.
-      </p>
-      <a
-        href="/app/missions"
-        class="mt-2 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent"
-      >
-        Voir toutes les missions
-      </a>
-    </div>
+    <EmptyState
+      icon="solar:ghost-linear"
+      title="Mission introuvable"
+      description="Cette mission n'existe plus ou a été retirée des sources."
+    >
+      <Button href="/app/missions" variant="outline">Voir toutes les missions</Button>
+    </EmptyState>
   {:else}
-    <!-- Header card -->
-    <div class="rounded-xl border border-border bg-card p-6 flex flex-col gap-4">
+    <Card class="flex flex-col gap-4 p-6">
       <div class="flex flex-wrap items-center gap-2">
-        <span
-          class={`flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium ${TIER_COLORS[opportunity.tier]}`}
-        >
-          <iconify-icon icon={TIER_ICONS[opportunity.tier]} width="13"></iconify-icon>
+        <Badge tone={TIER_TONES[opportunity.tier]}>
+          <Icon icon={TIER_ICONS[opportunity.tier]} size={13} />
           {opportunity.tier} · {opportunity.relevanceScore}
-        </span>
-        <span class="rounded-full border border-border bg-background px-2.5 py-0.5 text-xs font-medium">
-          {sourceLabel(opportunity.sourcePlatform)}
-        </span>
+        </Badge>
+        <Badge>{sourceLabel(opportunity.sourcePlatform)}</Badge>
         {#if opportunity.category}
-          <span class="rounded-full border border-border bg-background px-2.5 py-0.5 text-xs font-medium">
-            {CATEGORY_LABELS[opportunity.category] ?? opportunity.category}
-          </span>
+          <Badge>{CATEGORY_LABELS[opportunity.category] ?? opportunity.category}</Badge>
         {/if}
         {#if opportunity.applicantCount !== null && opportunity.applicantCount !== undefined}
-          <span
-            class={`flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium ${applicantBadgeClass(opportunity.applicantCount)}`}
-          >
-            <iconify-icon icon="solar:users-group-rounded-linear" width="13"></iconify-icon>
+          <Badge tone={applicantTone(opportunity.applicantCount)}>
+            <Icon icon="solar:users-group-rounded-linear" size={13} />
             {opportunity.applicantCount} sur le coup
-          </span>
+          </Badge>
         {/if}
       </div>
 
@@ -203,57 +183,57 @@
           <img
             src={opportunity.companyLogo}
             alt={opportunity.company ?? 'Logo'}
-            class="size-12 rounded-lg border border-border bg-background object-contain shrink-0"
+            class="size-12 shrink-0 rounded-fc-md bg-fc-bg object-contain"
             onerror={() => (logoFailed = true)}
           />
         {/if}
-        <h1 class="text-2xl font-bold tracking-tight">{opportunity.title}</h1>
+        <h1 class="min-w-0 break-words text-fc-2xl font-semibold text-fc-fg">{opportunity.title}</h1>
       </div>
 
-      <div class="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
+      <div class="flex flex-wrap items-center gap-x-5 gap-y-2 text-fc-sm text-fc-fg-muted">
         {#if opportunity.company}
           <span class="flex items-center gap-1.5">
-            <iconify-icon icon="solar:buildings-2-linear" width="15"></iconify-icon>
+            <Icon icon="solar:buildings-2-linear" size={15} />
             {opportunity.company}
           </span>
         {/if}
         <span class="flex items-center gap-1.5">
-          <iconify-icon icon="solar:calendar-linear" width="15"></iconify-icon>
+          <Icon icon={icons.calendar} size={15} />
           Publiée {formatDate(opportunity.postedAt)}
         </span>
         {#if opportunity.location}
           <span class="flex items-center gap-1.5">
-            <iconify-icon icon="solar:map-point-linear" width="15"></iconify-icon>
+            <Icon icon="solar:map-point-linear" size={15} />
             {opportunity.location}
           </span>
         {/if}
         {#if opportunity.isRemote}
           <span class="flex items-center gap-1.5">
-            <iconify-icon icon="solar:home-wifi-linear" width="15"></iconify-icon>
+            <Icon icon="solar:home-wifi-linear" size={15} />
             Remote
           </span>
         {/if}
         {#if opportunity.contractType}
           <span class="flex items-center gap-1.5">
-            <iconify-icon icon="solar:case-minimalistic-linear" width="15"></iconify-icon>
+            <Icon icon="solar:case-minimalistic-linear" size={15} />
             {opportunity.contractType}
           </span>
         {/if}
         {#if opportunity.experienceLevel}
           <span class="flex items-center gap-1.5">
-            <iconify-icon icon="solar:medal-ribbons-star-linear" width="15"></iconify-icon>
+            <Icon icon="solar:medal-ribbons-star-linear" size={15} />
             {opportunity.experienceLevel}
           </span>
         {/if}
         {#if opportunity.duration}
           <span class="flex items-center gap-1.5">
-            <iconify-icon icon="solar:hourglass-line-linear" width="15"></iconify-icon>
+            <Icon icon="solar:hourglass-line-linear" size={15} />
             {opportunity.duration}
           </span>
         {/if}
         {#if formatBudget(opportunity)}
-          <span class="flex items-center gap-1.5 font-medium text-foreground">
-            <iconify-icon icon="solar:wallet-money-linear" width="15"></iconify-icon>
+          <span class="flex items-center gap-1.5 font-medium text-fc-fg">
+            <Icon icon="solar:wallet-money-linear" size={15} />
             {formatBudget(opportunity)}
           </span>
         {/if}
@@ -262,28 +242,23 @@
       {#if opportunity.tags.length > 0}
         <div class="flex flex-wrap gap-1.5">
           {#each opportunity.tags as tag}
-            <span class="rounded-md bg-accent px-2 py-0.5 text-xs text-muted-foreground">{tag}</span>
+            <Badge>{tag}</Badge>
           {/each}
         </div>
       {/if}
 
       <div class="flex items-center gap-3 pt-1">
-        <button
-          onclick={openSource}
-          class="flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
-        >
-          <iconify-icon icon="solar:square-top-down-linear" width="16"></iconify-icon>
+        <Button size="lg" icon="solar:square-top-down-linear" onclick={openSource}>
           Voir l'annonce sur {sourceLabel(opportunity.sourcePlatform)}
-        </button>
+        </Button>
       </div>
-    </div>
+    </Card>
 
-    <!-- Description -->
-    <div class="rounded-xl border border-border bg-card p-6">
-      <h2 class="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3">
+    <Card class="p-6">
+      <h2 class="mb-3 text-fc-sm font-semibold uppercase tracking-wide text-fc-fg-muted">
         Description
       </h2>
-      <p class="text-sm leading-relaxed whitespace-pre-line">{opportunity.description}</p>
-    </div>
+      <p class="whitespace-pre-line text-fc-sm leading-relaxed text-fc-fg">{opportunity.description}</p>
+    </Card>
   {/if}
 </div>

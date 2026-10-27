@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { goto } from '$app/navigation';
-  import 'iconify-icon';
+  import { Badge, Button, Spinner } from '@facile/muse';
 
   interface HuntSession {
     id: string;
@@ -128,40 +128,38 @@
 {#if session}
   <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
   <div
-    class="rounded-xl border border-border bg-card p-6 transition-colors {clickable ? 'cursor-pointer hover:bg-muted/40' : ''}"
+    class="flex flex-col gap-5 rounded-fc-md bg-fc-component p-5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fc-ring {clickable ? 'cursor-pointer hover:bg-fc-surface' : ''}"
     role={clickable ? 'button' : 'region'}
     tabindex={clickable ? 0 : -1}
     onclick={handleClick}
     onkeydown={(e) => clickable && e.key === 'Enter' && handleClick()}
   >
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-5">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div class="flex items-center gap-3 min-w-0">
-        <div class="inline-flex size-9 items-center justify-center rounded-lg bg-muted text-foreground shrink-0">
-          <iconify-icon icon={huntIcon} width="18"></iconify-icon>
+        <div class="inline-flex size-9 shrink-0 items-center justify-center rounded-fc-md bg-fc-surface text-fc-fg">
+          <iconify-icon icon={huntIcon} width="18" height="18" class="block"></iconify-icon>
         </div>
         <div class="min-w-0">
-          <h3 class="text-lg font-semibold text-foreground">{huntTitle}</h3>
-          <div class="flex items-center gap-2 mt-1 flex-wrap text-xs text-muted-foreground">
-            <span class="rounded-full bg-muted px-2.5 py-0.5 font-medium text-foreground">
-              {session.status}
-            </span>
-            <span class="truncate max-w-full sm:max-w-xs">
+          <h3 class="text-fc-lg font-semibold text-fc-fg">{huntTitle}</h3>
+          <div class="mt-1 flex flex-wrap items-center gap-2 text-fc-xs text-fc-fg-muted">
+            <Badge>{session.status}</Badge>
+            <span class="max-w-full truncate sm:max-w-xs">
               {huntLabel}
             </span>
             {#if session.successfulLeads > 0}
               <span class="inline-flex items-center gap-1">
-                <iconify-icon icon="solar:check-circle-linear" width="12"></iconify-icon>
+                <iconify-icon icon="solar:check-circle-linear" width="12" height="12" class="block"></iconify-icon>
                 {session.successfulLeads} trouvés
               </span>
             {:else if session.totalLeads > 0 && session.progress === 0}
               <span class="inline-flex items-center gap-1">
-                <iconify-icon icon="solar:map-point-search-linear" width="12"></iconify-icon>
+                <iconify-icon icon="solar:map-point-search-linear" width="12" height="12" class="block"></iconify-icon>
                 {session.totalLeads} découverts
               </span>
             {/if}
             {#if session.lastDiscoveredDomain}
-              <span class="inline-flex items-center gap-1 truncate max-w-[200px]">
-                <iconify-icon icon="solar:globe-linear" width="12"></iconify-icon>
+              <span class="inline-flex max-w-[200px] items-center gap-1 truncate">
+                <iconify-icon icon="solar:globe-linear" width="12" height="12" class="block"></iconify-icon>
                 {session.lastDiscoveredDomain}
               </span>
             {/if}
@@ -170,37 +168,37 @@
       </div>
 
       <div class="flex items-center justify-between gap-4 sm:shrink-0 sm:justify-start">
-        <div class="text-left sm:text-right text-xs text-muted-foreground">
-          <div>En cours : <span class="text-foreground font-medium">{elapsedTime}</span></div>
-          <div>ETA : <span class="text-foreground font-medium">{eta}</span></div>
+        <div class="text-left text-fc-xs text-fc-fg-muted sm:text-right">
+          <div>En cours : <span class="font-medium text-fc-fg">{elapsedTime}</span></div>
+          <div>ETA : <span class="font-medium text-fc-fg">{eta}</span></div>
         </div>
-        <button
+        <Button
+          variant="ghost-danger"
+          icon={cancelling ? undefined : 'solar:close-circle-linear'}
           onclick={(e) => {
             e.stopPropagation();
             if (session) onCancel(session.id);
           }}
           disabled={cancelling}
-          class="inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {#if cancelling}
-            <iconify-icon icon="solar:close-circle-linear" width="16" class="animate-spin"></iconify-icon>
+            <Spinner size="sm" />
             Annulation...
           {:else}
-            <iconify-icon icon="solar:close-circle-linear" width="16"></iconify-icon>
             Annuler
           {/if}
-        </button>
+        </Button>
       </div>
     </div>
 
-    <div class="space-y-2">
-      <div class="flex justify-between text-xs text-muted-foreground">
+    <div class="flex flex-col gap-2">
+      <div class="flex justify-between text-fc-xs text-fc-fg-muted">
         <span>Progression</span>
-        <span class="font-medium text-foreground">{session.progress}%</span>
+        <span class="font-medium text-fc-fg">{session.progress}%</span>
       </div>
-      <div class="bg-muted rounded-full h-1.5 overflow-hidden">
+      <div class="h-1.5 overflow-hidden rounded-fc-pill bg-fc-surface">
         <div
-          class="bg-foreground h-full transition-all duration-500 ease-out"
+          class="h-full bg-fc-accent transition-all duration-500 ease-fc"
           style="width: {session.progress}%"
         ></div>
       </div>

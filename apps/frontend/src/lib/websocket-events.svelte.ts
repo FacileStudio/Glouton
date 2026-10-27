@@ -1,5 +1,5 @@
 import { ws } from '$lib/websocket';
-import { toast } from '@repo/utils';
+import { toast } from '@facile/muse';
 
 type EventCallback = (data: any) => void;
 type EventUnsubscriber = () => void;
@@ -162,7 +162,7 @@ export function setupAuditListeners(
         addSession(newSession);
       }
 
-      toast.push('Audit started', 'info');
+      toast.info('Audit started');
     })
   );
 
@@ -191,7 +191,7 @@ export function setupAuditListeners(
       });
 
       if (found) {
-        toast.push(`Audit completed! ${data.updatedLeads || 0} leads updated`, 'success');
+        toast.success(`Audit completed! ${data.updatedLeads || 0} leads updated`);
         if (onDataChange) await onDataChange();
       }
     })
@@ -204,7 +204,7 @@ export function setupAuditListeners(
         error: data.error || 'Unknown error',
         completedAt: new Date(),
       });
-      toast.push('Audit failed: ' + (data.error || 'Unknown error'), 'error');
+      toast.danger('Audit failed: ' + (data.error || 'Unknown error'));
     })
   );
 
@@ -214,7 +214,7 @@ export function setupAuditListeners(
         status: 'CANCELLED',
         completedAt: new Date(),
       });
-      toast.push('Audit cancelled', 'info');
+      toast.info('Audit cancelled');
     })
   );
 
@@ -263,7 +263,7 @@ export function setupHuntListeners(
       }
 
       const huntType = data.huntType === 'LOCAL_BUSINESS' ? 'Local business' : 'Domain';
-      toast.push(`${huntType} hunt started`, 'info');
+      toast.info(`${huntType} hunt started`);
     })
   );
 
@@ -327,7 +327,7 @@ export function setupHuntListeners(
         const message = failCount > 0
           ? `Hunt completed! Found ${successCount} leads (${failCount} failed)`
           : `Hunt completed! Found ${successCount} leads`;
-        toast.push(message, 'success');
+        toast.success(message);
 
         if (onDataChange) await onDataChange();
         if (onStatsChange) await onStatsChange();
@@ -342,7 +342,7 @@ export function setupHuntListeners(
         error: data.error || 'Unknown error',
         completedAt: new Date(),
       });
-      toast.push(`Hunt failed: ${data.error || 'Unknown error'}`, 'error');
+      toast.danger(`Hunt failed: ${data.error || 'Unknown error'}`);
     })
   );
 
@@ -352,7 +352,7 @@ export function setupHuntListeners(
         status: 'CANCELLED',
         completedAt: new Date(),
       });
-      toast.push('Hunt cancelled', 'info');
+      toast.info('Hunt cancelled');
     })
   );
 
@@ -386,7 +386,7 @@ export function setupHuntListeners(
           totalLeads: data.count,
         });
         const message = `Found ${data.count} businesses in ${data.location}`;
-        toast.push(message, 'info');
+        toast.info(message);
       }
     })
   );
@@ -394,7 +394,7 @@ export function setupHuntListeners(
   unsubscribers.push(
     wsEvents.on('leads-created', (data) => {
       if (data.huntSessionId) {
-        toast.push(data.message || `${data.count} new leads created`, 'success');
+        toast.success(data.message || `${data.count} new leads created`);
       }
     })
   );
@@ -402,7 +402,7 @@ export function setupHuntListeners(
   unsubscribers.push(
     wsEvents.on('leads-updated', (data) => {
       if (data.huntSessionId) {
-        toast.push(data.message || `${data.count} leads updated`, 'info');
+        toast.info(data.message || `${data.count} leads updated`);
       }
     })
   );
@@ -413,7 +413,7 @@ export function setupHuntListeners(
         updateSession(data.huntSessionId, {
           error: data.error,
         });
-        toast.push(`Erreur de chasse : ${data.error}`, 'error');
+        toast.danger(`Erreur de chasse : ${data.error}`);
       }
     })
   );

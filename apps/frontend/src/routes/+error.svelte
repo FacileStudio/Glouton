@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
-  import 'iconify-icon';
+  import { Button, icons } from '@facile/muse';
 
-  $: status = $page.status;
-  $: message = $page.error?.message || 'Something went wrong';
+  const status = $derived(page.status);
+  const message = $derived(page.error?.message || 'Une erreur est survenue');
 
   function goHome() {
     goto(resolve('/'));
@@ -16,10 +16,10 @@
   }
 </script>
 
-<div class="flex min-h-screen items-center justify-center bg-background px-6 text-foreground">
+<div class="flex min-h-dvh items-center justify-center bg-fc-page px-4 text-fc-fg sm:px-6">
   <div class="mx-auto w-full max-w-md text-center">
-    <p class="text-sm text-muted-foreground">Erreur {status}</p>
-    <h1 class="mt-2 text-5xl font-bold tracking-tight md:text-6xl">
+    <p class="text-fc-sm text-fc-fg-muted">Erreur {status}</p>
+    <h1 class="mt-2 font-fc-title text-fc-3xl font-semibold tracking-tight">
       {#if status === 404}
         Page introuvable
       {:else if status === 500}
@@ -29,7 +29,7 @@
       {/if}
     </h1>
 
-    <p class="mx-auto mt-4 max-w-sm text-sm leading-relaxed text-muted-foreground">
+    <p class="mx-auto mt-4 max-w-sm text-fc-sm leading-relaxed text-fc-fg-muted">
       {#if status === 404}
         La page demandée n'existe pas ou a été déplacée.
       {:else if status === 500}
@@ -40,20 +40,10 @@
     </p>
 
     <div class="mt-8 flex flex-col items-center justify-center gap-2 sm:flex-row">
-      <button
-        on:click={goHome}
-        class="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85"
-      >
-        <iconify-icon icon="solar:home-2-linear" width="16"></iconify-icon>
-        Accueil
-      </button>
-      <button
-        on:click={goBack}
-        class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 text-sm font-medium transition-colors hover:bg-muted"
-      >
-        <iconify-icon icon="solar:arrow-left-linear" width="16"></iconify-icon>
+      <Button icon={icons.home} onclick={goHome} class="rounded-fc-md">Accueil</Button>
+      <Button variant="outline" icon="solar:arrow-left-linear" onclick={goBack} class="rounded-fc-md">
         Retour
-      </button>
+      </Button>
     </div>
   </div>
 </div>

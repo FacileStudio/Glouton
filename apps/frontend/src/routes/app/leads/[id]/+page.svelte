@@ -1,16 +1,13 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { page } from '$app/stores';
-  import { goto } from '$app/navigation';
+  import { page } from '$app/state';
   import { fade, fly } from 'svelte/transition';
   import DOMPurify from 'isomorphic-dompurify';
   import { trpc } from '$lib/trpc';
-  import { toast } from '@repo/utils';
-  import { Spinner } from '@repo/ui';
+  import { Alert, Badge, Button, Card, EmptyState, Field, Input, PageHeader, Select, Spinner, toast } from '@facile/muse';
   import { getFaviconUrl, handleFaviconError } from '$lib/utils/favicon';
   import LeadLocationMap from '$lib/components/leads/LeadLocationMap.svelte';
   import { teamContextStore } from '$lib/stores/team-context.svelte';
-  import 'iconify-icon';
 
   let teamId = $derived(teamContextStore.getTeamId());
   let settingsUrl = $derived(teamId ? `/app/teams/${teamId}/settings` : '/app/settings');
@@ -111,7 +108,7 @@
   let smtpConfigured = $state<boolean>(true);
   let checkingSmtp = $state(true);
 
-  const leadId = $page.params.id;
+  const leadId = page.params.id;
 
   onMount(async () => {
     await Promise.all([loadData(), checkSmtpConfiguration()]);
@@ -147,7 +144,7 @@
         });
       }
     } catch (error) {
-      toast.push('Échec du chargement du lead', 'error');
+      toast.danger('Échec du chargement du lead');
       console.error(error);
     } finally {
       isInitialLoad = false;
@@ -218,19 +215,19 @@
 
   async function sendEmail() {
     if (!lead || !lead.email) {
-      toast.push("Ce lead n'a pas d'adresse e-mail", 'error');
+      toast.danger("Ce lead n'a pas d'adresse e-mail");
       return;
     }
 
     const template = templates.find((t) => t.id === selectedTemplate);
     if (!template) {
-      toast.push('Veuillez sélectionner un modèle', 'error');
+      toast.danger('Veuillez sélectionner un modèle');
       return;
     }
 
     for (const variable of template.variables) {
       if (!variables[variable]) {
-        toast.push(`Veuillez remplir : ${variable}`, 'error');
+        toast.danger(`Veuillez remplir : ${variable}`);
         return;
       }
     }
@@ -244,10 +241,10 @@
         variables,
       });
 
-      toast.push('E-mail envoyé avec succès !', 'success');
+      toast.success('E-mail envoyé avec succès !');
       await loadData();
     } catch (error: any) {
-      toast.push(error?.message || "Échec de l'envoi de l'e-mail", 'error');
+      toast.danger(error?.message || "Échec de l'envoi de l'e-mail");
       console.error(error);
     } finally {
       sending = false;
@@ -265,15 +262,16 @@
     });
   }
 
-  function getStatusColor(status: string): string {
-    if (status === 'FAILED') return 'bg-destructive/10 text-destructive';
-    return 'bg-muted text-foreground';
+  function getStatusTone(status: string): 'danger' | 'neutral' {
+    return status === 'FAILED' ? 'danger' : 'neutral';
   }
 
-  function getPriorityColor(status: Lead['status']): string {
-    if (status === 'HOT') return 'bg-destructive/10 text-destructive';
-    return 'bg-muted text-foreground';
+  function getPriorityTone(status: Lead['status']): 'danger' | 'neutral' {
+    return status === 'HOT' ? 'danger' : 'neutral';
   }
+
+  const rowLinkClass =
+    'flex items-center gap-3 rounded-fc-md border border-fc-border px-3 py-2.5 transition-colors hover:bg-fc-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fc-ring';
 
   function toggleEmailExpansion(emailId: string) {
     expandedEmails = new Set(expandedEmails);
@@ -293,7 +291,7 @@
 
   function getSocialMeta(platform: string): SocialMeta {
     const p = platform.toLowerCase();
-    const base = { color: 'text-foreground', bg: 'bg-muted' };
+    const base = { color: 'text-fc-fg', bg: 'bg-fc-surface' };
     if (p.includes('linkedin')) return { ...base, icon: 'mdi:linkedin', label: 'LinkedIn' };
     if (p.includes('instagram')) return { ...base, icon: 'mdi:instagram', label: 'Instagram' };
     if (p.includes('facebook')) return { ...base, icon: 'mdi:facebook', label: 'Facebook' };
@@ -352,12 +350,10 @@
     try {
       const result = await trpc.lead.favorite.toggle.mutate({ leadId });
       isFavorite = result.isFavorite;
-      toast.push(
-        isFavorite ? 'Lead ajouté aux favoris' : 'Lead retiré des favoris',
-        'success'
-      );
+      toast.success(
+        isFavorite ? 'Lead ajouté aux favoris' : 'Lead retiré des favoris');
     } catch (error) {
-      toast.push('Échec de la mise à jour des favoris', 'error');
+      toast.danger('Échec de la mise à jour des favoris');
       console.error(error);
     } finally {
       togglingFavorite = false;
@@ -372,7 +368,7 @@
   let sanitizedPreviewHtml = $derived(
     emailPreview.html
       ? DOMPurify.sanitize(emailPreview.html)
-      : '<p class="text-muted-foreground italic text-sm">Fill in the variables to see the preview...</p>'
+      : '<p class="text-fc-sm text-fc-fg-muted italic">Remplissez les variables pour voir l\'aperçu...</p>'
   );
 
   $effect(() => {
@@ -383,603 +379,502 @@
   });
 </script>
 
+{#snippet contactRow(icon: string, label: string, value: string)}
+  <div class="flex min-w-0 flex-1 items-center gap-3">
+    <div class="inline-flex size-8 shrink-0 items-center justify-center rounded-fc-md bg-fc-surface text-fc-fg">
+      <iconify-icon {icon} width="14" height="14" class="block"></iconify-icon>
+    </div>
+    <div class="min-w-0 flex-1">
+      <p class="text-fc-xs text-fc-fg-muted">{label}</p>
+      <p class="truncate text-fc-sm text-fc-fg">{value}</p>
+    </div>
+  </div>
+{/snippet}
+
 {#if loading}
-  <div class="flex flex-col items-center justify-center h-screen space-y-4" in:fade>
-    <Spinner size="xl" />
+  <div class="flex items-center justify-center py-24" in:fade>
+    <Spinner size="lg" />
   </div>
 {:else if !lead}
-  <div class="flex flex-col items-center justify-center h-screen space-y-4" in:fade>
-    <iconify-icon icon="solar:close-circle-linear" width="48" class="text-muted-foreground"></iconify-icon>
-    <p class="text-sm font-medium text-foreground">Lead introuvable</p>
-    <button
-      onclick={() => goto('/app/leads')}
-      class="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85"
-    >
-      Retour aux leads
-    </button>
+  <div in:fade>
+    <EmptyState icon="solar:close-circle-linear" title="Lead introuvable">
+      <Button href="/app/leads">Retour aux leads</Button>
+    </EmptyState>
   </div>
 {:else}
-  <div in:fade>
+  <div class="flex flex-col gap-10" in:fade>
+    <PageHeader
+      title={getDisplayName(lead)}
+      description={(lead.firstName || lead.lastName) && lead.domain
+        ? `${lead.domain}${lead.position ? ` · ${lead.position}` : ''}`
+        : (lead.position ?? undefined)}
+      back={{ href: '/app/leads', label: 'Leads' }}
+    >
+      {#snippet actions()}
+        <Badge tone={getPriorityTone(lead!.status)}>{lead!.status}</Badge>
 
-    <div class="sticky top-0 z-20 bg-background/95 backdrop-blur border-b border-border px-6 py-3">
-      <div class="max-w-[1600px] mx-auto flex items-center justify-between gap-4">
-        <div class="flex items-center gap-3 min-w-0">
-          <button
-            aria-label="Retour aux leads"
-            onclick={() => goto('/app/leads')}
-            class="inline-flex size-8 items-center justify-center rounded-lg border border-border bg-background hover:bg-muted transition-colors"
-          >
-            <iconify-icon icon="solar:arrow-left-linear" width="16"></iconify-icon>
-          </button>
+        {#if lead!.contacted}
+          <Badge>
+            <iconify-icon icon="solar:check-circle-linear" width="12" height="12" class="block"></iconify-icon>
+            Contacté
+          </Badge>
+        {:else}
+          <Badge>
+            <iconify-icon icon="solar:clock-circle-linear" width="12" height="12" class="block"></iconify-icon>
+            Non contacté
+          </Badge>
+        {/if}
 
-          <div class="size-8 shrink-0 rounded-lg border border-border bg-background flex items-center justify-center overflow-hidden">
-            <img
-              src={getFaviconUrl(lead.domain ?? '', 64)}
-              alt="{lead.domain ?? ''} favicon"
-              class="w-5 h-5"
-              loading="lazy"
-              onerror={(e) => handleFaviconError(e.currentTarget)}
-            />
-          </div>
-
-          <div class="min-w-0">
-            <h1 class="text-lg font-semibold text-foreground truncate">{getDisplayName(lead)}</h1>
-            {#if (lead.firstName || lead.lastName) && lead.domain}
-              <p class="text-xs text-muted-foreground truncate">{lead.domain}{lead.position ? ` · ${lead.position}` : ''}</p>
-            {:else if lead.position}
-              <p class="text-xs text-muted-foreground truncate">{lead.position}</p>
-            {/if}
-          </div>
-        </div>
-
-        <div class="flex items-center gap-2 shrink-0">
-          <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {getPriorityColor(lead.status)}">
-            {lead.status}
-          </span>
-
-          {#if lead.contacted}
-            <span class="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-foreground gap-1">
-              <iconify-icon icon="solar:check-circle-linear" width="12"></iconify-icon>
-              Contacté
-            </span>
-          {:else}
-            <span class="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground gap-1">
-              <iconify-icon icon="solar:clock-circle-linear" width="12"></iconify-icon>
-              Non contacté
-            </span>
+        <Button
+          variant="outline"
+          onclick={toggleFavorite}
+          disabled={togglingFavorite}
+          icon={togglingFavorite ? undefined : isFavorite ? 'solar:heart-broken-linear' : 'solar:heart-linear'}
+        >
+          {#if togglingFavorite}
+            <Spinner size="sm" />
           {/if}
+          {isFavorite ? 'Retirer favori' : 'Ajouter favori'}
+        </Button>
 
-          <button
-            onclick={toggleFavorite}
-            disabled={togglingFavorite}
-            class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50"
-          >
-            {#if togglingFavorite}
-              <Spinner size="xs" />
-            {:else}
-              <iconify-icon icon={isFavorite ? "solar:heart-broken-linear" : "solar:heart-linear"} width="16"></iconify-icon>
-            {/if}
-            {isFavorite ? 'Retirer favori' : 'Ajouter favori'}
-          </button>
+        {#if lead!.email}
+          <Button href="#email-section" icon="solar:letter-linear">Envoyer un e-mail</Button>
+        {/if}
+      {/snippet}
+    </PageHeader>
 
-          {#if lead.email}
-            <a
-              href="#email-section"
-              class="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85"
-            >
-              <iconify-icon icon="solar:letter-linear" width="16"></iconify-icon>
-              Envoyer un e-mail
-            </a>
-          {/if}
-        </div>
-      </div>
-    </div>
-
-    <div class="max-w-[1600px] mx-auto px-6 py-6 grid grid-cols-1 lg:grid-cols-5 gap-6">
-
-      <div class="lg:col-span-2 space-y-6">
-
-        <div class="rounded-xl border border-border bg-card p-6">
+    <div class="grid grid-cols-1 gap-4 lg:grid-cols-5">
+      <div class="flex flex-col gap-4 lg:col-span-2">
+        <Card class="flex flex-col gap-4">
           <div class="flex items-start gap-4">
-            <div class="size-12 rounded-lg bg-muted flex items-center justify-center shrink-0 text-lg font-semibold text-muted-foreground">
-              {(lead.firstName?.[0] || lead.businessName?.[0] || lead.companyInfo?.name?.[0] || lead.domain?.[0] || '?').toUpperCase()}
+            <div class="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-fc-md bg-fc-surface text-fc-lg font-semibold text-fc-fg-muted">
+              {#if lead.domain}
+                <img
+                  src={getFaviconUrl(lead.domain, 64)}
+                  alt="{lead.domain} favicon"
+                  class="h-6 w-6"
+                  loading="lazy"
+                  onerror={(e) => handleFaviconError(e.currentTarget)}
+                />
+              {:else}
+                {(lead.firstName?.[0] || lead.businessName?.[0] || lead.companyInfo?.name?.[0] || '?').toUpperCase()}
+              {/if}
             </div>
-            <div class="flex-1 min-w-0">
-              <h2 class="text-lg font-semibold text-foreground truncate">{getDisplayName(lead)}</h2>
+            <div class="min-w-0 flex-1">
+              <h2 class="truncate text-fc-lg font-semibold text-fc-fg">{getDisplayName(lead)}</h2>
               {#if lead.position}
-                <p class="text-sm text-muted-foreground mt-0.5">{lead.position}</p>
+                <p class="mt-0.5 text-fc-sm text-fc-fg-muted">{lead.position}</p>
               {/if}
               {#if lead.department}
-                <p class="text-xs text-muted-foreground mt-0.5">{lead.department}</p>
+                <p class="mt-0.5 text-fc-xs text-fc-fg-muted">{lead.department}</p>
               {/if}
-              <div class="flex items-center gap-2 mt-3">
-                <div class="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-                  <div
-                    class="h-full bg-foreground transition-all"
-                    style="width: {Math.min(lead.score, 100)}%"
-                  ></div>
+              <div class="mt-3 flex items-center gap-2">
+                <div
+                  class="h-1.5 flex-1 overflow-hidden rounded-fc-pill bg-fc-surface"
+                  role="progressbar"
+                  aria-label="Score"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={Math.min(lead.score, 100)}
+                >
+                  <div class="h-full bg-fc-accent transition-all" style="width: {Math.min(lead.score, 100)}%"></div>
                 </div>
-                <span class="text-xs font-medium text-foreground">{lead.score}/100</span>
+                <span class="text-fc-xs font-medium text-fc-fg">{lead.score}/100</span>
               </div>
             </div>
           </div>
 
-          <div class="mt-4 pt-4 border-t border-border grid grid-cols-2 gap-3">
+          <div class="grid grid-cols-2 gap-3 border-t border-fc-border pt-4">
             <div>
-              <p class="text-xs text-muted-foreground">E-mails envoyés</p>
-              <p class="text-xl font-semibold text-foreground mt-0.5">{lead.emailsSentCount}</p>
+              <p class="text-fc-xs text-fc-fg-muted">E-mails envoyés</p>
+              <p class="mt-0.5 text-fc-xl font-semibold text-fc-fg">{lead.emailsSentCount}</p>
             </div>
             <div>
-              <p class="text-xs text-muted-foreground">Dernier contact</p>
-              <p class="text-sm text-foreground mt-0.5">{lead.lastContactedAt ? formatDate(lead.lastContactedAt) : '—'}</p>
+              <p class="text-fc-xs text-fc-fg-muted">Dernier contact</p>
+              <p class="mt-0.5 text-fc-sm text-fc-fg">{lead.lastContactedAt ? formatDate(lead.lastContactedAt) : '—'}</p>
             </div>
           </div>
-        </div>
+        </Card>
 
-        <div class="rounded-xl border border-border bg-card p-6 space-y-3">
-          <h3 class="text-lg font-semibold text-foreground flex items-center gap-2">
-            <iconify-icon icon="solar:user-id-linear" width="18"></iconify-icon>
+        <Card class="flex flex-col gap-3">
+          <h3 class="flex items-center gap-2 text-fc-md font-semibold text-fc-fg">
+            <iconify-icon icon="solar:user-id-linear" width="18" height="18" class="block"></iconify-icon>
             Coordonnées
           </h3>
 
           {#if lead.email}
-            <a
-              href="mailto:{lead.email}"
-              class="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border bg-background hover:bg-muted transition-colors"
-            >
-              <div class="inline-flex size-8 items-center justify-center rounded-lg bg-muted text-foreground shrink-0">
-                <iconify-icon icon="solar:letter-linear" width="14"></iconify-icon>
-              </div>
-              <div class="flex-1 min-w-0">
-                <p class="text-xs text-muted-foreground">E-mail principal</p>
-                <p class="text-sm text-foreground truncate">{lead.email}</p>
-              </div>
+            <a href="mailto:{lead.email}" class={rowLinkClass}>
+              {@render contactRow('solar:letter-linear', 'E-mail principal', lead.email)}
               {#if lead.emailVerified === true}
-                <span title="Email vérifié le {lead.emailVerifiedAt ? formatDate(lead.emailVerifiedAt) : ''}" class="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-foreground shrink-0">
-                  <iconify-icon icon="solar:check-circle-linear" width="12"></iconify-icon>
+                <Badge tone="success" class="shrink-0" title="Email vérifié le {lead.emailVerifiedAt ? formatDate(lead.emailVerifiedAt) : ''}">
+                  <iconify-icon icon="solar:check-circle-linear" width="12" height="12" class="block"></iconify-icon>
                   Vérifié
-                </span>
+                </Badge>
               {:else if lead.emailVerified === false}
-                <span title="Email invalide ({lead.emailVerificationMethod ?? ''})" class="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive shrink-0">
-                  <iconify-icon icon="solar:close-circle-linear" width="12"></iconify-icon>
+                <Badge tone="danger" class="shrink-0" title="Email invalide ({lead.emailVerificationMethod ?? ''})">
+                  <iconify-icon icon="solar:close-circle-linear" width="12" height="12" class="block"></iconify-icon>
                   Invalide
-                </span>
+                </Badge>
               {:else}
-                <span class="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground shrink-0">
-                  <iconify-icon icon="solar:question-circle-linear" width="12"></iconify-icon>
+                <Badge class="shrink-0">
+                  <iconify-icon icon="solar:question-circle-linear" width="12" height="12" class="block"></iconify-icon>
                   Non vérifié
-                </span>
+                </Badge>
               {/if}
-              <iconify-icon icon="solar:arrow-right-up-linear" width="14" class="text-muted-foreground shrink-0"></iconify-icon>
+              <iconify-icon icon="solar:arrow-right-up-linear" width="14" height="14" class="block shrink-0 text-fc-fg-muted"></iconify-icon>
             </a>
           {/if}
 
           {#each additionalEmails as email, i}
-            <a
-              href="mailto:{email}"
-              class="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border bg-background hover:bg-muted transition-colors"
-            >
-              <div class="inline-flex size-8 items-center justify-center rounded-lg bg-muted text-foreground shrink-0">
-                <iconify-icon icon="solar:letter-outline" width="14"></iconify-icon>
-              </div>
-              <div class="flex-1 min-w-0">
-                <p class="text-xs text-muted-foreground">Email {i + 2}</p>
-                <p class="text-sm text-foreground truncate">{email}</p>
-              </div>
-              <iconify-icon icon="solar:arrow-right-up-linear" width="14" class="text-muted-foreground shrink-0"></iconify-icon>
+            <a href="mailto:{email}" class={rowLinkClass}>
+              {@render contactRow('solar:letter-linear', `E-mail ${i + 2}`, email)}
+              <iconify-icon icon="solar:arrow-right-up-linear" width="14" height="14" class="block shrink-0 text-fc-fg-muted"></iconify-icon>
             </a>
           {/each}
 
           {#each phoneNumbers as phone}
-            <a
-              href="tel:{phone}"
-              class="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border bg-background hover:bg-muted transition-colors"
-            >
-              <div class="inline-flex size-8 items-center justify-center rounded-lg bg-muted text-foreground shrink-0">
-                <iconify-icon icon="solar:phone-linear" width="14"></iconify-icon>
-              </div>
-              <div class="flex-1 min-w-0">
-                <p class="text-xs text-muted-foreground">Téléphone</p>
-                <p class="text-sm text-foreground truncate">{phone}</p>
-              </div>
-              <iconify-icon icon="solar:arrow-right-up-linear" width="14" class="text-muted-foreground shrink-0"></iconify-icon>
+            <a href="tel:{phone}" class={rowLinkClass}>
+              {@render contactRow('solar:phone-linear', 'Téléphone', phone)}
+              <iconify-icon icon="solar:arrow-right-up-linear" width="14" height="14" class="block shrink-0 text-fc-fg-muted"></iconify-icon>
             </a>
           {/each}
 
           {#if lead.domain}
-            <a
-              href="https://{lead.domain}"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border bg-background hover:bg-muted transition-colors"
-            >
-              <div class="inline-flex size-8 items-center justify-center rounded-lg bg-muted text-foreground shrink-0">
-                <iconify-icon icon="solar:global-linear" width="14"></iconify-icon>
-              </div>
-              <div class="flex-1 min-w-0">
-                <p class="text-xs text-muted-foreground">Site web</p>
-                <p class="text-sm text-foreground truncate">{lead.domain}</p>
-              </div>
-              <iconify-icon icon="solar:arrow-right-up-linear" width="14" class="text-muted-foreground shrink-0"></iconify-icon>
+            <a href="https://{lead.domain}" target="_blank" rel="noopener noreferrer" class={rowLinkClass}>
+              {@render contactRow('solar:global-linear', 'Site web', lead.domain)}
+              <iconify-icon icon="solar:arrow-right-up-linear" width="14" height="14" class="block shrink-0 text-fc-fg-muted"></iconify-icon>
             </a>
           {/if}
 
           {#if lead.city || lead.country}
-            <div class="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border bg-background">
-              <div class="inline-flex size-8 items-center justify-center rounded-lg bg-muted text-foreground shrink-0">
-                <iconify-icon icon="solar:map-point-linear" width="14"></iconify-icon>
-              </div>
-              <div class="flex-1 min-w-0">
-                <p class="text-xs text-muted-foreground">Localisation</p>
-                <p class="text-sm text-foreground truncate">
-                  {[lead.city, lead.country].filter(Boolean).join(', ')}
-                </p>
-              </div>
+            <div class="flex items-center gap-3 rounded-fc-md border border-fc-border px-3 py-2.5">
+              {@render contactRow('solar:map-point-linear', 'Localisation', [lead.city, lead.country].filter(Boolean).join(', '))}
             </div>
           {/if}
 
           {#if !lead.email && additionalEmails.length === 0 && phoneNumbers.length === 0}
-            <div class="rounded-lg border border-border bg-destructive/10 px-3 py-2.5">
-              <p class="text-xs text-destructive flex items-center gap-2">
-                <iconify-icon icon="solar:danger-triangle-linear" width="14"></iconify-icon>
-                Aucune information de contact disponible
-              </p>
-            </div>
+            <Alert tone="danger" class="flex items-center gap-2 text-fc-xs">
+              <iconify-icon icon="solar:danger-triangle-linear" width="14" height="14" class="block shrink-0"></iconify-icon>
+              Aucune information de contact disponible
+            </Alert>
           {/if}
-        </div>
+        </Card>
 
         {#if lead.coordinates}
-          <div class="rounded-xl border border-border bg-card overflow-hidden">
-            <div class="px-6 pt-6 pb-3 flex items-center justify-between gap-3">
-              <h3 class="text-lg font-semibold text-foreground flex items-center gap-2">
-                <iconify-icon icon="solar:map-point-linear" width="18"></iconify-icon>
+          <Card class="flex flex-col gap-3 overflow-hidden p-0">
+            <div class="flex items-center justify-between gap-3 px-5 pt-5">
+              <h3 class="flex items-center gap-2 text-fc-md font-semibold text-fc-fg">
+                <iconify-icon icon="solar:map-point-linear" width="18" height="18" class="block"></iconify-icon>
                 Localisation
               </h3>
-              <a
+              <Button
+                variant="outline"
+                size="sm"
+                icon="solar:map-arrow-right-linear"
                 href={getGoogleMapsCoordsUrl(lead.coordinates.lat, lead.coordinates.lng)}
                 target="_blank"
                 rel="noopener noreferrer"
-                class="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-3 text-xs font-medium transition-colors hover:bg-muted"
               >
-                <iconify-icon icon="solar:map-arrow-right-linear" width="12"></iconify-icon>
                 Google Maps
-              </a>
+              </Button>
             </div>
-            <div class="px-3 pb-3 h-56">
+            <div class="h-56 px-3 pb-3">
               <LeadLocationMap
                 lat={lead.coordinates.lat}
                 lng={lead.coordinates.lng}
                 name={lead.businessName || lead.companyInfo?.name || lead.domain || getDisplayName(lead)}
               />
             </div>
-          </div>
+          </Card>
         {/if}
 
         {#if socialProfiles.length > 0}
-          <div class="rounded-xl border border-border bg-card p-6">
-            <h3 class="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
-              <iconify-icon icon="solar:share-linear" width="18"></iconify-icon>
+          <Card class="flex flex-col gap-3">
+            <h3 class="flex items-center gap-2 text-fc-md font-semibold text-fc-fg">
+              <iconify-icon icon="solar:share-linear" width="18" height="18" class="block"></iconify-icon>
               Profils sociaux
-              <span class="ml-auto rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-foreground">{socialProfiles.length}</span>
+              <Badge class="ml-auto">{socialProfiles.length}</Badge>
             </h3>
-            <div class="space-y-2">
+            <div class="flex flex-col gap-2">
               {#each socialProfiles as profile}
                 {@const meta = getSocialMeta(profile.platform)}
-                <a
-                  href={profile.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border bg-background hover:bg-muted transition-colors group"
-                >
-                  <div class="inline-flex size-8 items-center justify-center rounded-lg {meta.bg} {meta.color} shrink-0">
-                    <iconify-icon icon={meta.icon} width="16"></iconify-icon>
+                <a href={profile.url} target="_blank" rel="noopener noreferrer" class="group {rowLinkClass}">
+                  <div class="inline-flex size-8 shrink-0 items-center justify-center rounded-fc-md {meta.bg} {meta.color}">
+                    <iconify-icon icon={meta.icon} width="16" height="16" class="block"></iconify-icon>
                   </div>
-                  <div class="flex-1 min-w-0">
-                    <p class="text-sm font-medium text-foreground">{meta.label}</p>
-                    <p class="text-xs text-muted-foreground truncate">{profile.url.replace(/^https?:\/\//, '').replace(/\/$/, '')}</p>
+                  <div class="min-w-0 flex-1">
+                    <p class="text-fc-sm font-medium text-fc-fg">{meta.label}</p>
+                    <p class="truncate text-fc-xs text-fc-fg-muted">{profile.url.replace(/^https?:\/\//, '').replace(/\/$/, '')}</p>
                   </div>
-                  <iconify-icon icon="solar:arrow-right-up-linear" width="14" class="text-muted-foreground shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"></iconify-icon>
+                  <iconify-icon icon="solar:arrow-right-up-linear" width="14" height="14" class="block shrink-0 text-fc-fg-muted opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"></iconify-icon>
                 </a>
               {/each}
             </div>
-          </div>
+          </Card>
         {/if}
 
         {#if lead.companyInfo}
-          <div class="rounded-xl border border-border bg-card p-6">
-            <h3 class="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-              <iconify-icon icon="solar:buildings-2-linear" width="18"></iconify-icon>
+          <Card class="flex flex-col gap-4">
+            <h3 class="flex items-center gap-2 text-fc-md font-semibold text-fc-fg">
+              <iconify-icon icon="solar:buildings-2-linear" width="18" height="18" class="block"></iconify-icon>
               Entreprise
             </h3>
-            <div class="space-y-3">
+            <div class="flex flex-col gap-3">
               {#if lead.companyInfo.name}
                 <div>
-                  <p class="text-xs text-muted-foreground">Nom</p>
-                  <p class="text-sm font-medium text-foreground mt-0.5">{lead.companyInfo.name}</p>
+                  <p class="text-fc-xs text-fc-fg-muted">Nom</p>
+                  <p class="mt-0.5 text-fc-sm font-medium text-fc-fg">{lead.companyInfo.name}</p>
                 </div>
               {/if}
               <div class="grid grid-cols-2 gap-3">
                 {#if lead.companyInfo.industry}
                   <div>
-                    <p class="text-xs text-muted-foreground">Secteur</p>
-                    <p class="text-sm text-foreground mt-0.5">{lead.companyInfo.industry}</p>
+                    <p class="text-fc-xs text-fc-fg-muted">Secteur</p>
+                    <p class="mt-0.5 text-fc-sm text-fc-fg">{lead.companyInfo.industry}</p>
                   </div>
                 {/if}
                 {#if lead.companyInfo.size}
                   <div>
-                    <p class="text-xs text-muted-foreground">Taille</p>
-                    <p class="text-sm text-foreground mt-0.5">{lead.companyInfo.size}</p>
+                    <p class="text-fc-xs text-fc-fg-muted">Taille</p>
+                    <p class="mt-0.5 text-fc-sm text-fc-fg">{lead.companyInfo.size}</p>
                   </div>
                 {/if}
                 {#if lead.companyInfo.founded}
                   <div>
-                    <p class="text-xs text-muted-foreground">Fondée en</p>
-                    <p class="text-sm text-foreground mt-0.5">{lead.companyInfo.founded}</p>
+                    <p class="text-fc-xs text-fc-fg-muted">Fondée en</p>
+                    <p class="mt-0.5 text-fc-sm text-fc-fg">{lead.companyInfo.founded}</p>
                   </div>
                 {/if}
               </div>
               {#if lead.companyInfo.website}
                 <div>
-                  <p class="text-xs text-muted-foreground">Site web</p>
+                  <p class="text-fc-xs text-fc-fg-muted">Site web</p>
                   <a
                     href={lead.companyInfo.website}
                     target="_blank"
                     rel="noopener noreferrer"
-                    class="text-sm text-foreground hover:underline break-all mt-0.5 block"
+                    class="mt-0.5 block rounded-fc-xs text-fc-sm break-all text-fc-fg hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fc-ring"
                   >
                     {lead.companyInfo.website}
                   </a>
                 </div>
               {/if}
               {#if lead.companyInfo.description}
-                <div class="pt-3 border-t border-border">
-                  <p class="text-xs text-muted-foreground mb-1">À propos</p>
-                  <p class="text-sm text-foreground leading-relaxed">{lead.companyInfo.description}</p>
+                <div class="border-t border-fc-border pt-3">
+                  <p class="mb-1 text-fc-xs text-fc-fg-muted">À propos</p>
+                  <p class="text-fc-sm leading-relaxed text-fc-fg">{lead.companyInfo.description}</p>
                 </div>
               {/if}
             </div>
-          </div>
+          </Card>
         {/if}
 
-
         {#if technologies.length > 0}
-          <div class="rounded-xl border border-border bg-card p-6">
-            <h3 class="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
-              <iconify-icon icon="solar:code-linear" width="18"></iconify-icon>
+          <Card class="flex flex-col gap-3">
+            <h3 class="flex items-center gap-2 text-fc-md font-semibold text-fc-fg">
+              <iconify-icon icon="solar:code-linear" width="18" height="18" class="block"></iconify-icon>
               Stack technique
             </h3>
             <div class="flex flex-wrap gap-1.5">
               {#each technologies as tech}
-                <span class="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-foreground">
-                  {tech}
-                </span>
+                <Badge>{tech}</Badge>
               {/each}
             </div>
-          </div>
+          </Card>
         {/if}
 
         {#if lead.scrapedAt || lead.auditedAt}
-          <div class="rounded-xl border border-border bg-card px-5 py-4">
-            <div class="space-y-2">
-              {#if lead.scrapedAt}
-                <div class="flex items-center gap-2 text-xs text-muted-foreground">
-                  <iconify-icon icon="solar:refresh-linear" width="14"></iconify-icon>
-                  <span>Collecté :</span>
-                  <span class="text-foreground font-medium">{formatDate(lead.scrapedAt)}</span>
-                </div>
-              {/if}
-              {#if lead.auditedAt}
-                <div class="flex items-center gap-2 text-xs text-muted-foreground">
-                  <iconify-icon icon="solar:shield-check-linear" width="14"></iconify-icon>
-                  <span>Audité :</span>
-                  <span class="text-foreground font-medium">{formatDate(lead.auditedAt)}</span>
-                </div>
-              {/if}
-            </div>
-          </div>
+          <Card class="flex flex-col gap-2">
+            {#if lead.scrapedAt}
+              <div class="flex items-center gap-2 text-fc-xs text-fc-fg-muted">
+                <iconify-icon icon="solar:refresh-linear" width="14" height="14" class="block"></iconify-icon>
+                <span>Collecté :</span>
+                <span class="font-medium text-fc-fg">{formatDate(lead.scrapedAt)}</span>
+              </div>
+            {/if}
+            {#if lead.auditedAt}
+              <div class="flex items-center gap-2 text-fc-xs text-fc-fg-muted">
+                <iconify-icon icon="solar:shield-check-linear" width="14" height="14" class="block"></iconify-icon>
+                <span>Audité :</span>
+                <span class="font-medium text-fc-fg">{formatDate(lead.auditedAt)}</span>
+              </div>
+            {/if}
+          </Card>
         {/if}
       </div>
 
-      <div class="lg:col-span-3 space-y-6" id="email-section">
-
+      <div class="flex scroll-mt-24 flex-col gap-4 lg:col-span-3" id="email-section">
         {#if lead.email}
-          <div class="rounded-xl border border-border bg-card overflow-hidden">
-            <div class="px-6 py-5 border-b border-border">
-              <h2 class="text-lg font-semibold text-foreground flex items-center gap-2">
-                <iconify-icon icon="solar:letter-linear" width="20"></iconify-icon>
+          <Card class="overflow-hidden p-0">
+            <div class="flex flex-col gap-1 border-b border-fc-border p-5">
+              <h2 class="flex items-center gap-2 text-fc-lg font-semibold text-fc-fg">
+                <iconify-icon icon="solar:letter-linear" width="20" height="20" class="block"></iconify-icon>
                 Prospection par e-mail
               </h2>
-              <p class="text-sm text-muted-foreground mt-1">
-                Envoi à <span class="text-foreground font-medium">{lead.email}</span>
+              <p class="text-fc-sm text-fc-fg-muted">
+                Envoi à <span class="font-medium text-fc-fg">{lead.email}</span>
               </p>
             </div>
 
             {#if !checkingSmtp && !smtpConfigured}
-              <div class="mx-6 mt-4 rounded-lg border border-border bg-muted/40 p-4 flex items-start gap-3">
-                <iconify-icon icon="solar:danger-triangle-linear" width="18" class="text-muted-foreground shrink-0"></iconify-icon>
-                <div class="flex-1">
-                  <p class="text-sm font-medium text-foreground mb-1">Configuration SMTP manquante</p>
-                  <p class="text-xs text-muted-foreground leading-relaxed mb-2">
-                    Vous devez configurer vos paramètres SMTP pour pouvoir envoyer des e-mails.
-                  </p>
-                  <button
-                    onclick={() => goto(settingsUrl)}
-                    class="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-primary px-3 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/85"
-                  >
-                    <iconify-icon icon="solar:settings-linear" width="14"></iconify-icon>
-                    Configurer SMTP
-                  </button>
-                </div>
-              </div>
+              <Alert tone="warning" title="Configuration SMTP manquante" class="mx-5 mt-4 flex flex-col items-start gap-2">
+                <p class="text-fc-xs leading-relaxed">
+                  Vous devez configurer vos paramètres SMTP pour pouvoir envoyer des e-mails.
+                </p>
+                <Button href={settingsUrl} size="sm" icon="solar:settings-linear">Configurer SMTP</Button>
+              </Alert>
             {/if}
 
-            <div class="grid grid-cols-1 xl:grid-cols-2 gap-0">
-              <div class="p-6 space-y-4 xl:border-r border-border">
-                <label class="block">
-                  <span class="block text-xs text-muted-foreground mb-1.5">
-                    Modèle
-                  </span>
-                  <select
-                    bind:value={selectedTemplate}
-                    onchange={handleTemplateChange}
-                    class="w-full h-9 rounded-lg border border-input bg-background px-3 text-sm outline-none focus:border-ring transition-colors"
-                  >
-                    {#each templates as template}
+            <div class="grid grid-cols-1 xl:grid-cols-2">
+              <div class="flex flex-col gap-4 p-5 xl:border-r xl:border-fc-border">
+                <Field label="Modèle">
+                  <Select bind:value={selectedTemplate} onchange={handleTemplateChange} class="text-fc-sm">
+                    {#each templates as template (template.id)}
                       <option value={template.id}>{template.name}</option>
                     {/each}
-                  </select>
-                </label>
+                  </Select>
+                </Field>
 
                 {#if selectedTemplate}
                   {@const template = templates.find(t => t.id === selectedTemplate)}
                   {#if template && template.variables.length > 0}
-                    <div class="space-y-3">
-                      <p class="text-xs text-muted-foreground">Variables</p>
+                    <div class="flex flex-col gap-3">
+                      <p class="text-fc-xs text-fc-fg-muted">Variables</p>
 
                       {#each template.variables as variable}
-                        <label class="block">
-                          <span class="block text-xs text-muted-foreground mb-1.5 capitalize">
-                            {variable.replace(/([A-Z])/g, ' $1').trim()}
-                          </span>
-                          <input
+                        <Field label={variable.replace(/([A-Z])/g, ' $1').trim()} class="[&_label]:capitalize">
+                          <Input
                             type="text"
                             bind:value={variables[variable]}
                             placeholder={variable.replace(/([A-Z])/g, ' $1').trim().toLowerCase()}
-                            class="w-full h-9 rounded-lg border border-input bg-background px-3 text-sm placeholder:text-muted-foreground outline-none focus:border-ring transition-colors"
+                            class="text-fc-sm"
                           />
-                        </label>
+                        </Field>
                       {/each}
                     </div>
                   {/if}
                 {/if}
 
-                <button
+                <Button
                   onclick={sendEmail}
                   disabled={sending || !selectedTemplate || !smtpConfigured}
-                  class="w-full inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85 disabled:opacity-50 disabled:cursor-not-allowed"
+                  icon={sending ? undefined : 'solar:rocket-2-linear'}
+                  class="w-full"
                 >
                   {#if sending}
-                    <Spinner size="sm" color="white" />
+                    <Spinner size="sm" class="border-t-fc-accent-fg" />
                     Envoi...
                   {:else}
-                    <iconify-icon icon="solar:rocket-2-linear" width="16"></iconify-icon>
                     Envoyer l'e-mail
                   {/if}
-                </button>
+                </Button>
               </div>
 
-              <div class="p-6 space-y-3 border-t xl:border-t-0 border-border">
+              <div class="flex flex-col gap-3 border-t border-fc-border p-5 xl:border-t-0">
                 <div class="flex items-center justify-between">
-                  <p class="text-xs text-muted-foreground">Aperçu en direct</p>
+                  <p class="text-fc-xs text-fc-fg-muted">Aperçu en direct</p>
                   {#if previewLoading}
-                    <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Spinner size="xs" color="neutral" />
+                    <div class="flex items-center gap-1.5 text-fc-xs text-fc-fg-muted">
+                      <Spinner size="sm" />
                       Mise à jour
                     </div>
                   {:else}
-                    <span class="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-foreground">EN DIRECT</span>
+                    <Badge>EN DIRECT</Badge>
                   {/if}
                 </div>
 
                 {#if emailPreview.subject || emailPreview.html}
-                  <div class="rounded-lg border border-border bg-background overflow-hidden" class:opacity-60={previewLoading}>
-                    <div class="border-b border-border bg-muted/40 px-4 py-2.5">
-                      <p class="text-xs text-muted-foreground mb-0.5">Objet</p>
-                      <p class="text-sm font-medium text-foreground">{emailPreview.subject || '—'}</p>
+                  <div class="overflow-hidden rounded-fc-md border border-fc-border bg-fc-bg" class:opacity-60={previewLoading}>
+                    <div class="border-b border-fc-border bg-fc-surface px-4 py-2.5">
+                      <p class="mb-0.5 text-fc-xs text-fc-fg-muted">Objet</p>
+                      <p class="text-fc-sm font-medium text-fc-fg">{emailPreview.subject || '—'}</p>
                     </div>
-                    <div class="p-4 max-h-[500px] overflow-y-auto">
+                    <div class="max-h-[500px] overflow-y-auto p-4">
                       <div class="email-preview">
                         {@html sanitizedPreviewHtml}
                       </div>
                     </div>
                   </div>
                 {:else}
-                  <div class="rounded-lg border border-dashed border-border p-10 text-center">
-                    <iconify-icon icon="solar:document-linear" width="32" class="text-muted-foreground mb-2"></iconify-icon>
-                    <p class="text-sm text-muted-foreground">Sélectionnez un modèle pour l'aperçu</p>
-                  </div>
+                  <EmptyState bare icon="solar:document-linear" title="Sélectionnez un modèle pour l'aperçu" class="rounded-fc-md border border-dashed border-fc-border py-10" />
                 {/if}
               </div>
             </div>
-          </div>
+          </Card>
         {:else}
-          <div class="rounded-xl border border-dashed border-border p-8 text-center">
-            <iconify-icon icon="solar:letter-linear" width="32" class="text-muted-foreground mb-2"></iconify-icon>
-            <h3 class="text-sm font-medium text-foreground">Aucune adresse e-mail</h3>
-            <p class="text-sm text-muted-foreground mt-1">La prospection par e-mail n'est pas disponible pour ce lead.</p>
-          </div>
+          <EmptyState
+            icon="solar:letter-linear"
+            title="Aucune adresse e-mail"
+            description="La prospection par e-mail n'est pas disponible pour ce lead."
+          />
         {/if}
 
-        <div class="rounded-xl border border-border bg-card overflow-hidden">
-          <div class="px-6 py-4 border-b border-border flex items-center justify-between">
-            <h2 class="text-lg font-semibold text-foreground flex items-center gap-2">
-              <iconify-icon icon="solar:history-linear" width="18"></iconify-icon>
+        <Card class="overflow-hidden p-0">
+          <div class="flex items-center justify-between gap-3 border-b border-fc-border px-5 py-4">
+            <h2 class="flex items-center gap-2 text-fc-lg font-semibold text-fc-fg">
+              <iconify-icon icon="solar:history-linear" width="18" height="18" class="block"></iconify-icon>
               Historique des e-mails
             </h2>
-            <span class="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-foreground">
-              {outreachHistory.length} e-mail{outreachHistory.length !== 1 ? 's' : ''}
-            </span>
+            <Badge>{outreachHistory.length} e-mail{outreachHistory.length !== 1 ? 's' : ''}</Badge>
           </div>
 
-          <div class="p-6">
+          <div class="p-5">
             {#if outreachHistory.length === 0}
-              <div class="py-10 text-center">
-                <iconify-icon icon="solar:inbox-line-linear" width="40" class="text-muted-foreground mb-2"></iconify-icon>
-                <p class="text-sm text-muted-foreground">Aucun e-mail envoyé</p>
-              </div>
+              <EmptyState bare icon="solar:inbox-line-linear" title="Aucun e-mail envoyé" class="py-10" />
             {:else}
-              <div class="space-y-2">
-                {#each outreachHistory as email}
-                  <div class="rounded-lg border border-border bg-background overflow-hidden" in:fade>
+              <div class="flex flex-col gap-2">
+                {#each outreachHistory as email (email.id)}
+                  <div class="overflow-hidden rounded-fc-md border border-fc-border" in:fade>
                     <button
+                      type="button"
                       onclick={() => toggleEmailExpansion(email.id)}
-                      class="w-full px-4 py-3 text-left hover:bg-muted/40 transition-colors"
+                      aria-expanded={expandedEmails.has(email.id)}
+                      class="w-full px-4 py-3 text-left transition-colors hover:bg-fc-surface focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-fc-ring"
                     >
                       <div class="flex items-center justify-between gap-3">
-                        <div class="flex-1 min-w-0">
-                          <p class="text-sm font-medium text-foreground truncate">{email.subject}</p>
-                          <p class="text-xs text-muted-foreground mt-0.5 flex items-center gap-1.5">
-                            <iconify-icon icon="solar:calendar-linear" width="12"></iconify-icon>
+                        <div class="min-w-0 flex-1">
+                          <p class="truncate text-fc-sm font-medium text-fc-fg">{email.subject}</p>
+                          <p class="mt-0.5 flex items-center gap-1.5 text-fc-xs text-fc-fg-muted">
+                            <iconify-icon icon="solar:calendar-linear" width="12" height="12" class="block"></iconify-icon>
                             {formatDate(email.sentAt || email.createdAt)}
                           </p>
                         </div>
-                        <div class="flex items-center gap-2 shrink-0">
-                          <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {getStatusColor(email.status)}">
-                            {email.status}
-                          </span>
+                        <div class="flex shrink-0 items-center gap-2">
+                          <Badge tone={getStatusTone(email.status)}>{email.status}</Badge>
                           <iconify-icon
-                            icon={expandedEmails.has(email.id) ? "solar:alt-arrow-up-linear" : "solar:alt-arrow-down-linear"}
-                            width="14"
-                            class="text-muted-foreground"
+                            icon={expandedEmails.has(email.id) ? 'mdi:chevron-up' : 'mdi:chevron-down'}
+                            width="16"
+                            height="16"
+                            class="block text-fc-fg-muted"
                           ></iconify-icon>
                         </div>
                       </div>
                     </button>
 
                     {#if expandedEmails.has(email.id)}
-                      <div class="border-t border-border px-4 py-3 bg-muted/40 space-y-3" in:fly={{ y: -8, duration: 150 }}>
+                      <div class="flex flex-col gap-3 border-t border-fc-border bg-fc-surface px-4 py-3" in:fly={{ y: -8, duration: 150 }}>
                         {#if email.error}
-                          <div class="flex items-start gap-2 px-3 py-2.5 rounded-lg border border-border bg-destructive/10">
-                            <iconify-icon icon="solar:danger-triangle-linear" width="14" class="text-destructive shrink-0 mt-0.5"></iconify-icon>
-                            <p class="text-xs text-destructive">{email.error}</p>
-                          </div>
+                          <Alert tone="danger" class="flex items-start gap-2 text-fc-xs">
+                            <iconify-icon icon="solar:danger-triangle-linear" width="14" height="14" class="mt-0.5 block shrink-0"></iconify-icon>
+                            <p>{email.error}</p>
+                          </Alert>
                         {/if}
 
                         <div>
-                          <p class="text-xs text-muted-foreground mb-1.5">Contenu de l'e-mail</p>
-                          <div class="rounded-lg border border-border bg-background p-3">
-                            <p class="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{email.textBody || 'Aucun contenu'}</p>
+                          <p class="mb-1.5 text-fc-xs text-fc-fg-muted">Contenu de l'e-mail</p>
+                          <div class="rounded-fc-md border border-fc-border bg-fc-bg p-3">
+                            <p class="text-fc-sm leading-relaxed whitespace-pre-wrap text-fc-fg">{email.textBody || 'Aucun contenu'}</p>
                           </div>
                         </div>
 
                         {#if email.variables && Object.keys(email.variables).length > 0}
                           <div>
-                            <p class="text-xs text-muted-foreground mb-1.5">Variables utilisées</p>
+                            <p class="mb-1.5 text-fc-xs text-fc-fg-muted">Variables utilisées</p>
                             <div class="grid grid-cols-2 gap-2">
-                              {#each Object.entries(email.variables) as [key, value]}
-                                <div class="rounded-lg border border-border bg-background px-3 py-2">
-                                  <p class="text-xs text-muted-foreground">{key}</p>
-                                  <p class="text-sm text-foreground mt-0.5">{value}</p>
+                              {#each Object.entries(email.variables) as [key, value] (key)}
+                                <div class="rounded-fc-md border border-fc-border bg-fc-bg px-3 py-2">
+                                  <p class="text-fc-xs text-fc-fg-muted">{key}</p>
+                                  <p class="mt-0.5 text-fc-sm text-fc-fg">{value}</p>
                                 </div>
                               {/each}
                             </div>
@@ -992,7 +887,7 @@
               </div>
             {/if}
           </div>
-        </div>
+        </Card>
       </div>
     </div>
   </div>
@@ -1002,7 +897,7 @@
   :global(.email-preview) {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     line-height: 1.6;
-    color: #333;
+    color: var(--color-fc-fg);
     font-size: 14px;
   }
   :global(.email-preview p) { margin-bottom: 0.875em; }

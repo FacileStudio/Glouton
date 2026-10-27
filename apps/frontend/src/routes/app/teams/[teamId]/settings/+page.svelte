@@ -1,14 +1,28 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import { goto } from '$app/navigation';
   import { trpc } from '$lib/trpc';
-  import { Input, Button, Spinner, Toggle, Alert } from '@repo/ui';
-  import { toast } from '@repo/utils';
-  import { fade, slide } from 'svelte/transition';
-  import 'iconify-icon';
+  import {
+    Alert,
+    Badge,
+    Button,
+    Field,
+    Icon,
+    Input,
+    Modal,
+    PageHeader,
+    SettingsRow,
+    SettingsSection,
+    Spinner,
+    Switch,
+    Tabs,
+    Textarea,
+    icons,
+    toast,
+  } from '@facile/muse';
 
-  let teamId = $derived($page.params.teamId);
+  let teamId = $derived(page.params.teamId);
   let team = $state<any>(null);
   let loading = $state(true);
   let activeTab = $state('general');
@@ -87,7 +101,7 @@
       }
     } catch (error: any) {
       console.error('Error loading team:', error);
-      toast.push(error?.message || 'Échec du chargement de l\'espace', 'error');
+      toast.danger(error?.message || 'Échec du chargement de l\'espace');
       goto('/app/teams');
     } finally{
       loading = false;
@@ -132,10 +146,10 @@
       });
       originalGeneralForm.name = generalForm.name;
       originalGeneralForm.description = generalForm.description;
-      toast.push('Informations mises à jour avec succès', 'success');
+      toast.success('Informations mises à jour avec succès');
       await loadTeam();
     } catch (error: any) {
-      toast.push(error?.message || 'Échec de la mise à jour', 'error');
+      toast.danger(error?.message || 'Échec de la mise à jour');
     } finally {
       saving = false;
     }
@@ -151,9 +165,9 @@
         googleMapsApiKey: apiKeysForm.googleMapsApiKey || undefined,
       });
       await loadApiKeys();
-      toast.push('Clés API mises à jour avec succès', 'success');
+      toast.success('Clés API mises à jour avec succès');
     } catch (error: any) {
-      toast.push(error?.message || 'Échec de la mise à jour des clés API', 'error');
+      toast.danger(error?.message || 'Échec de la mise à jour des clés API');
     } finally {
       saving = false;
     }
@@ -173,9 +187,9 @@
         smtpFromName: smtpForm.smtpFromName,
         smtpFromEmail: smtpForm.smtpFromEmail,
       });
-      toast.push(result.message, 'success');
+      toast.success(result.message);
     } catch (error: any) {
-      toast.push(error?.message || 'Configuration SMTP invalide', 'error');
+      toast.danger(error?.message || 'Configuration SMTP invalide');
     } finally {
       testingSmtp = false;
     }
@@ -196,9 +210,9 @@
         smtpFromEmail: smtpForm.smtpFromEmail || undefined,
       });
       await loadSmtpConfig();
-      toast.push('Configuration SMTP mise à jour avec succès', 'success');
+      toast.success('Configuration SMTP mise à jour avec succès');
     } catch (error: any) {
-      toast.push(error?.message || 'Échec de la mise à jour de la config SMTP', 'error');
+      toast.danger(error?.message || 'Échec de la mise à jour de la config SMTP');
     } finally {
       saving = false;
     }
@@ -209,400 +223,294 @@
     deleting = true;
     try {
       await trpc.team.delete.mutate({ teamId });
-      toast.push('Espace supprimé avec succès', 'success');
+      toast.success('Espace supprimé avec succès');
       goto('/app/teams');
     } catch (error: any) {
-      toast.push(error?.message || 'Échec de la suppression de l\'espace', 'error');
+      toast.danger(error?.message || 'Échec de la suppression de l\'espace');
       deleteModalOpen = false;
     } finally {
       deleting = false;
     }
   }
 
-  function handleBack() {
-    goto(`/app/teams/${teamId}`);
+  function openDeleteModal() {
+    deleteModalOpen = true;
+    deleteConfirmationText = '';
   }
 
   const tabs = [
-    { id: 'general', name: 'Général', icon: 'solar:settings-linear' },
-    { id: 'api-keys', name: 'Clés API', icon: 'solar:key-linear' },
-    { id: 'smtp', name: 'SMTP', icon: 'solar:letter-linear' },
+    { id: 'general', label: 'Général', icon: icons.settings },
+    { id: 'api-keys', label: 'Clés API', icon: icons.key },
+    { id: 'smtp', label: 'SMTP', icon: icons.mail },
   ];
+
+  const providers: { key: keyof typeof apiKeysForm; label: string; url: string }[] = [
+    { key: 'hunterApiKey', label: 'Hunter.io', url: 'https://hunter.io/api' },
+    { key: 'googleMapsApiKey', label: 'Google Maps', url: 'https://console.cloud.google.com' },
+  ];
+
+  const revealButtonClass =
+    'absolute top-0 right-0 inline-flex size-11 items-center justify-center rounded-fc-md text-fc-fg-muted transition-colors hover:text-fc-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fc-ring';
 </script>
 
-<div class="max-w-[1600px] mx-auto px-6 py-6 space-y-6">
-  {#if loading}
-    <div class="flex items-center justify-center py-16">
-      <Spinner size="lg" />
-    </div>
-  {:else if team}
-    <div class="flex items-center gap-3">
-      <button
-        aria-label="Retour"
-        onclick={handleBack}
-        class="inline-flex size-8 items-center justify-center rounded-lg border border-border bg-background hover:bg-muted"
-      >
-        <iconify-icon icon="solar:arrow-left-linear" width="16"></iconify-icon>
-      </button>
-      <div class="space-y-1">
-        <h1 class="text-2xl font-bold tracking-tight text-foreground">
-          Paramètres de {team.name}
-        </h1>
-        <p class="text-sm text-muted-foreground">
-          Gérez les paramètres de votre espace
-        </p>
-      </div>
-    </div>
+{#if loading}
+  <div class="flex items-center justify-center py-16">
+    <Spinner size="lg" label="Chargement de l'espace" />
+  </div>
+{:else if team}
+  <div class="mx-auto flex w-full max-w-fc-lg flex-col gap-10">
+    <PageHeader
+      title="Paramètres de {team.name}"
+      description="Gérez les paramètres de votre espace"
+      back={{ href: `/app/teams/${teamId}`, label: team.name }}
+    />
 
-    {#if !loading && !canManage}
-      <Alert variant="warning">
-        Vous n'avez pas les permissions nécessaires pour modifier ces paramètres. Contactez un administrateur.
+    {#if !canManage}
+      <Alert tone="warning">
+        Vous n'avez pas les permissions nécessaires pour modifier ces paramètres. Contactez un
+        administrateur.
       </Alert>
     {/if}
 
-    <div class="rounded-xl border border-border bg-card p-1">
-      <div class="grid grid-cols-3 gap-1">
-        {#each tabs as tab (tab.id)}
-          <button
-            onclick={() => (activeTab = tab.id)}
-            class="inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium transition-colors
-            {activeTab === tab.id
-              ? 'bg-muted text-foreground'
-              : 'text-muted-foreground hover:bg-muted hover:text-foreground'}"
-          >
-            <iconify-icon icon={tab.icon} width="16"></iconify-icon>
-            {tab.name}
-          </button>
-        {/each}
-      </div>
-    </div>
+    <Tabs items={tabs} value={activeTab} onChange={(id) => (activeTab = id)} label="Sections des paramètres" />
 
     {#if activeTab === 'general'}
-      <div in:fade={{ duration: 200 }} class="space-y-6">
-        <div class="rounded-xl border border-border bg-card p-6">
-          <div class="mb-6">
-            <h2 class="text-lg font-semibold text-foreground">Informations générales</h2>
-            <p class="text-sm text-muted-foreground mt-1">Modifiez les informations de base de votre espace</p>
-          </div>
-
-          <div class="space-y-4">
-            <div class="space-y-1.5">
-              <label for="name" class="text-sm font-medium text-foreground block">
-                Nom de l'espace
-              </label>
-              <Input
-                id="name"
-                bind:value={generalForm.name}
-                disabled={!canManage}
-                placeholder="Espace Marketing"
-              />
-            </div>
-
-            <div class="space-y-1.5">
-              <label for="description" class="text-sm font-medium text-foreground block">
-                Description
-              </label>
-              <textarea
-                id="description"
-                bind:value={generalForm.description}
-                disabled={!canManage}
-                placeholder="Décrivez l'objectif de cet espace..."
-                rows="4"
-                class="w-full min-h-24 rounded-lg border border-input bg-background px-3 py-2 text-sm resize-none disabled:opacity-50 disabled:cursor-not-allowed"
-              ></textarea>
-            </div>
-          </div>
-
+      <SettingsSection
+        title="Informations générales"
+        description="Modifiez les informations de base de votre espace"
+      >
+        {#snippet actions()}
           {#if canManage}
-            <div class="flex justify-end pt-6 mt-6 border-t border-border">
-              <button
-                onclick={handleUpdateGeneral}
-                disabled={saving || !hasGeneralChanges}
-                class="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85 disabled:opacity-50"
-              >
-                {#if saving}
-                  <Spinner size="sm" />
-                  <span>Enregistrement...</span>
-                {:else}
-                  <iconify-icon icon="solar:diskette-linear" width="16"></iconify-icon>
-                  <span>Enregistrer</span>
-                {/if}
-              </button>
-            </div>
+            <Button icon={icons.check} onclick={handleUpdateGeneral} disabled={saving || !hasGeneralChanges}>
+              {saving ? 'Enregistrement...' : 'Enregistrer'}
+            </Button>
           {/if}
-        </div>
+        {/snippet}
 
-        {#if isOwner}
-          <div class="rounded-xl border border-border bg-card p-6">
-            <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-              <div>
-                <h3 class="text-lg font-semibold text-foreground flex items-center gap-2">
-                  <iconify-icon icon="solar:danger-triangle-linear" width="18"></iconify-icon>
-                  Zone de danger
-                </h3>
-                <p class="text-sm text-muted-foreground mt-1 max-w-md">
-                  La suppression de cet espace est définitive. Toutes les données associées seront effacées immédiatement.
-                </p>
-              </div>
-              <button
-                onclick={() => { deleteModalOpen = true; deleteConfirmationText = ''; }}
-                class="inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors flex-shrink-0"
-              >
-                <iconify-icon icon="solar:trash-bin-trash-linear" width="16"></iconify-icon>
-                Supprimer l'espace
-              </button>
-            </div>
-          </div>
-        {/if}
-      </div>
+        <SettingsRow stacked>
+          <Field label="Nom de l'espace" for="name">
+            <Input
+              id="name"
+              bind:value={generalForm.name}
+              disabled={!canManage}
+              placeholder="Espace Marketing"
+            />
+          </Field>
+        </SettingsRow>
+
+        <SettingsRow stacked>
+          <Field label="Description" for="description">
+            <Textarea
+              id="description"
+              bind:value={generalForm.description}
+              disabled={!canManage}
+              placeholder="Décrivez l'objectif de cet espace..."
+              rows={4}
+              class="min-h-24 resize-none disabled:cursor-not-allowed"
+            />
+          </Field>
+        </SettingsRow>
+      </SettingsSection>
+
+      {#if isOwner}
+        <SettingsSection title="Zone de danger" description="Ces actions sont irréversibles.">
+          <SettingsRow
+            label="Supprimer l'espace"
+            description="La suppression de cet espace est définitive. Toutes les données associées seront effacées immédiatement."
+          >
+            <Button variant="danger" icon={icons.remove} onclick={openDeleteModal}>
+              Supprimer l'espace
+            </Button>
+          </SettingsRow>
+        </SettingsSection>
+      {/if}
     {:else if activeTab === 'api-keys'}
-      <div in:fade={{ duration: 200 }}>
-        <div class="rounded-xl border border-border bg-card p-6">
-          <div class="mb-6">
-            <h2 class="text-lg font-semibold text-foreground">Clés API</h2>
-            <p class="text-sm text-muted-foreground mt-1">Configurez les clés API pour les sources de leads de l'espace</p>
-          </div>
-
-          <div class="space-y-4">
-            {#each [
-              { key: 'hunterApiKey', label: 'Hunter.io', url: 'https://hunter.io/api' },
-              { key: 'googleMapsApiKey', label: 'Google Maps', url: 'https://console.cloud.google.com' },
-            ] as provider}
-              <div class="space-y-1.5">
-                <label for={provider.key} class="text-sm font-medium text-foreground flex items-center gap-2">
-                  {provider.label}
-                  {#if apiKeysForm[provider.key as keyof typeof apiKeysForm]}
-                    <span class="rounded-full bg-muted text-foreground px-2.5 py-0.5 text-xs font-medium flex items-center gap-1">
-                      <iconify-icon icon="solar:check-circle-linear" width="12"></iconify-icon>
-                      Configuré
-                    </span>
-                  {/if}
-                </label>
-                <div class="relative">
-                  <Input
-                    id={provider.key}
-                    type={showApiKeys[provider.key as keyof typeof showApiKeys] ? 'text' : 'password'}
-                    bind:value={apiKeysForm[provider.key as keyof typeof apiKeysForm]}
-                    disabled={!canManage}
-                    placeholder={`Entrez votre clé API ${provider.label}`}
-                    class="font-mono pr-10"
-                  />
-                  {#if apiKeysForm[provider.key as keyof typeof apiKeysForm]}
-                    <button
-                      type="button"
-                      aria-label="Afficher ou masquer la clé API"
-                      onclick={() => (showApiKeys[provider.key as keyof typeof showApiKeys] = !showApiKeys[provider.key as keyof typeof showApiKeys])}
-                      class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      <iconify-icon
-                        icon={showApiKeys[provider.key as keyof typeof showApiKeys] ? 'solar:eye-linear' : 'solar:eye-closed-linear'}
-                        width="16"
-                      ></iconify-icon>
-                    </button>
-                  {/if}
-                </div>
-                <p class="text-xs text-muted-foreground">
-                  Obtenez votre clé sur <a href={provider.url} target="_blank" rel="noopener noreferrer" class="underline hover:text-foreground">{provider.url}</a>
-                </p>
-              </div>
-            {/each}
-          </div>
-
+      <SettingsSection
+        title="Clés API"
+        description="Configurez les clés API pour les sources de leads de l'espace"
+      >
+        {#snippet actions()}
           {#if canManage}
-            <div class="flex justify-end pt-6 mt-6 border-t border-border">
-              <button
-                onclick={handleUpdateApiKeys}
-                disabled={saving || !hasApiKeysChanges}
-                class="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85 disabled:opacity-50"
-              >
-                {#if saving}
-                  <Spinner size="sm" />
-                  <span>Enregistrement...</span>
-                {:else}
-                  <iconify-icon icon="solar:diskette-linear" width="16"></iconify-icon>
-                  <span>Enregistrer</span>
-                {/if}
-              </button>
-            </div>
+            <Button icon={icons.check} onclick={handleUpdateApiKeys} disabled={saving || !hasApiKeysChanges}>
+              {saving ? 'Enregistrement...' : 'Enregistrer'}
+            </Button>
           {/if}
-        </div>
-      </div>
+        {/snippet}
+
+        {#each providers as provider (provider.key)}
+          <SettingsRow stacked>
+            <div class="flex flex-col gap-1.5">
+              <div class="flex items-center gap-2">
+                <label for={provider.key} class="text-fc-sm text-fc-fg">{provider.label}</label>
+                {#if apiKeysForm[provider.key]}
+                  <Badge tone="success">
+                    <Icon icon={icons.check} size={12} />
+                    Configuré
+                  </Badge>
+                {/if}
+              </div>
+              <div class="relative">
+                <Input
+                  id={provider.key}
+                  type={showApiKeys[provider.key] ? 'text' : 'password'}
+                  bind:value={apiKeysForm[provider.key]}
+                  disabled={!canManage}
+                  placeholder={`Entrez votre clé API ${provider.label}`}
+                  class="pr-12 font-fc-mono"
+                />
+                {#if apiKeysForm[provider.key]}
+                  <button
+                    type="button"
+                    aria-label="Afficher ou masquer la clé API {provider.label}"
+                    aria-pressed={showApiKeys[provider.key]}
+                    onclick={() => (showApiKeys[provider.key] = !showApiKeys[provider.key])}
+                    class={revealButtonClass}
+                  >
+                    <Icon icon={showApiKeys[provider.key] ? icons.eye : icons.eyeClosed} size={16} />
+                  </button>
+                {/if}
+              </div>
+              <p class="text-fc-xs text-fc-fg-muted">
+                Obtenez votre clé sur <a
+                  href={provider.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="underline hover:text-fc-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fc-ring"
+                  >{provider.url}</a
+                >
+              </p>
+            </div>
+          </SettingsRow>
+        {/each}
+      </SettingsSection>
     {:else if activeTab === 'smtp'}
-      <div in:fade={{ duration: 200 }}>
-        <div class="rounded-xl border border-border bg-card p-6">
-          <div class="mb-6">
-            <h2 class="text-lg font-semibold text-foreground">Configuration SMTP</h2>
-            <p class="text-sm text-muted-foreground mt-1">Configurez le serveur SMTP pour l'envoi d'emails de l'espace</p>
-          </div>
-
-          <div class="space-y-4">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div class="space-y-1.5">
-                <label for="smtpHost" class="text-sm font-medium text-foreground block">Hôte SMTP</label>
-                <Input
-                  id="smtpHost"
-                  bind:value={smtpForm.smtpHost}
-                  disabled={!canManage}
-                  placeholder="smtp.gmail.com"
-                />
-              </div>
-              <div class="space-y-1.5">
-                <label for="smtpPort" class="text-sm font-medium text-foreground block">Port SMTP</label>
-                <Input
-                  id="smtpPort"
-                  type="number"
-                  bind:value={smtpForm.smtpPort}
-                  disabled={!canManage}
-                  placeholder="587"
-                />
-              </div>
-            </div>
-
-            <div class="space-y-1.5">
-              <label class="text-sm font-medium text-foreground flex items-center gap-2">
-                <Toggle bind:checked={smtpForm.smtpSecure} disabled={!canManage} />
-                Utiliser SSL/TLS (port 465)
-              </label>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div class="space-y-1.5">
-                <label for="smtpUser" class="text-sm font-medium text-foreground block">Nom d'utilisateur</label>
-                <Input
-                  id="smtpUser"
-                  bind:value={smtpForm.smtpUser}
-                  disabled={!canManage}
-                  placeholder="votre@email.com"
-                />
-              </div>
-              <div class="space-y-1.5">
-                <label for="smtpPass" class="text-sm font-medium text-foreground block">Mot de passe</label>
-                <div class="relative">
-                  <Input
-                    id="smtpPass"
-                    type={showSmtpPass ? 'text' : 'password'}
-                    bind:value={smtpForm.smtpPass}
-                    disabled={!canManage}
-                    placeholder="••••••••"
-                    class="pr-10"
-                  />
-                  {#if smtpForm.smtpPass}
-                    <button
-                      type="button"
-                      aria-label="Afficher ou masquer le mot de passe SMTP"
-                      onclick={() => (showSmtpPass = !showSmtpPass)}
-                      class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      <iconify-icon
-                        icon={showSmtpPass ? 'solar:eye-linear' : 'solar:eye-closed-linear'}
-                        width="16"
-                      ></iconify-icon>
-                    </button>
-                  {/if}
-                </div>
-              </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div class="space-y-1.5">
-                <label for="smtpFromName" class="text-sm font-medium text-foreground block">Nom de l'expéditeur</label>
-                <Input
-                  id="smtpFromName"
-                  bind:value={smtpForm.smtpFromName}
-                  disabled={!canManage}
-                  placeholder="Votre Espace"
-                />
-              </div>
-              <div class="space-y-1.5">
-                <label for="smtpFromEmail" class="text-sm font-medium text-foreground block">Email de l'expéditeur</label>
-                <Input
-                  id="smtpFromEmail"
-                  type="email"
-                  bind:value={smtpForm.smtpFromEmail}
-                  disabled={!canManage}
-                  placeholder="espace@votredomain.com"
-                />
-              </div>
-            </div>
-          </div>
-
+      <SettingsSection
+        title="Configuration SMTP"
+        description="Configurez le serveur SMTP pour l'envoi d'emails de l'espace"
+      >
+        {#snippet actions()}
           {#if canManage}
-            <div class="flex flex-col md:flex-row gap-2 justify-end pt-6 mt-6 border-t border-border">
-              <button
-                onclick={handleTestSmtp}
-                disabled={testingSmtp || saving}
-                class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50"
-              >
-                {#if testingSmtp}
-                  <Spinner size="sm" />
-                  <span>Test en cours...</span>
-                {:else}
-                  <iconify-icon icon="solar:test-tube-linear" width="16"></iconify-icon>
-                  <span>Tester la configuration</span>
-                {/if}
-              </button>
-              <button
-                onclick={handleUpdateSmtp}
-                disabled={saving || !hasSmtpChanges}
-                class="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/85 disabled:opacity-50"
-              >
-                {#if saving}
-                  <Spinner size="sm" />
-                  <span>Enregistrement...</span>
-                {:else}
-                  <iconify-icon icon="solar:diskette-linear" width="16"></iconify-icon>
-                  <span>Enregistrer</span>
-                {/if}
-              </button>
-            </div>
+            <Button variant="outline" onclick={handleTestSmtp} disabled={testingSmtp || saving}>
+              <iconify-icon icon="solar:test-tube-linear" width="16" height="16" class="block"></iconify-icon>
+              {testingSmtp ? 'Test en cours...' : 'Tester la configuration'}
+            </Button>
+            <Button icon={icons.check} onclick={handleUpdateSmtp} disabled={saving || !hasSmtpChanges}>
+              {saving ? 'Enregistrement...' : 'Enregistrer'}
+            </Button>
           {/if}
-        </div>
-      </div>
+        {/snippet}
+
+        <SettingsRow stacked>
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <Field label="Hôte SMTP" for="smtpHost">
+              <Input
+                id="smtpHost"
+                bind:value={smtpForm.smtpHost}
+                disabled={!canManage}
+                placeholder="smtp.gmail.com"
+              />
+            </Field>
+            <Field label="Port SMTP" for="smtpPort">
+              <Input
+                id="smtpPort"
+                type="number"
+                bind:value={smtpForm.smtpPort}
+                disabled={!canManage}
+                placeholder="587"
+              />
+            </Field>
+          </div>
+        </SettingsRow>
+
+        <SettingsRow label="Utiliser SSL/TLS (port 465)">
+          <Switch
+            bind:checked={smtpForm.smtpSecure}
+            disabled={!canManage}
+            aria-label="Utiliser SSL/TLS (port 465)"
+          />
+        </SettingsRow>
+
+        <SettingsRow stacked>
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <Field label="Nom d'utilisateur" for="smtpUser">
+              <Input
+                id="smtpUser"
+                bind:value={smtpForm.smtpUser}
+                disabled={!canManage}
+                placeholder="votre@email.com"
+              />
+            </Field>
+            <Field label="Mot de passe" for="smtpPass">
+              <div class="relative">
+                <Input
+                  id="smtpPass"
+                  type={showSmtpPass ? 'text' : 'password'}
+                  bind:value={smtpForm.smtpPass}
+                  disabled={!canManage}
+                  placeholder="••••••••"
+                  class="pr-12"
+                />
+                {#if smtpForm.smtpPass}
+                  <button
+                    type="button"
+                    aria-label="Afficher ou masquer le mot de passe SMTP"
+                    aria-pressed={showSmtpPass}
+                    onclick={() => (showSmtpPass = !showSmtpPass)}
+                    class={revealButtonClass}
+                  >
+                    <Icon icon={showSmtpPass ? icons.eye : icons.eyeClosed} size={16} />
+                  </button>
+                {/if}
+              </div>
+            </Field>
+          </div>
+        </SettingsRow>
+
+        <SettingsRow stacked>
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <Field label="Nom de l'expéditeur" for="smtpFromName">
+              <Input
+                id="smtpFromName"
+                bind:value={smtpForm.smtpFromName}
+                disabled={!canManage}
+                placeholder="Votre Espace"
+              />
+            </Field>
+            <Field label="Email de l'expéditeur" for="smtpFromEmail">
+              <Input
+                id="smtpFromEmail"
+                type="email"
+                bind:value={smtpForm.smtpFromEmail}
+                disabled={!canManage}
+                placeholder="espace@votredomain.com"
+              />
+            </Field>
+          </div>
+        </SettingsRow>
+      </SettingsSection>
     {/if}
-  {/if}
-</div>
-
-{#if deleteModalOpen}
-  <div
-    transition:fade={{ duration: 150 }}
-    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm"
-  >
-    <div class="rounded-xl border border-border bg-card p-6 max-w-md w-full space-y-4">
-      <div class="space-y-1">
-        <h3 class="text-lg font-semibold text-foreground">Supprimer l'espace ?</h3>
-        <p class="text-sm text-muted-foreground">
-          Cette action est définitive. Toutes les données de l'espace seront supprimées.
-        </p>
-      </div>
-
-      <div class="space-y-1.5">
-        <label for="deleteConfirm" class="text-sm font-medium text-foreground block">
-          Tapez "DELETE" pour confirmer
-        </label>
-        <input
-          id="deleteConfirm"
-          type="text"
-          bind:value={deleteConfirmationText}
-          placeholder="DELETE"
-          class="w-full h-9 rounded-lg border border-input bg-background px-3 text-sm"
-        />
-      </div>
-
-      <div class="flex items-center justify-end gap-2">
-        <button
-          onclick={() => (deleteModalOpen = false)}
-          class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 text-sm font-medium transition-colors hover:bg-muted"
-        >
-          Annuler
-        </button>
-        <button
-          onclick={handleDeleteTeam}
-          disabled={deleteConfirmationText !== 'DELETE' || deleting}
-          class="inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors disabled:opacity-50"
-        >
-          {deleting ? 'Suppression...' : 'Confirmer'}
-        </button>
-      </div>
-    </div>
   </div>
 {/if}
+
+<Modal bind:open={deleteModalOpen} title="Supprimer l'espace ?">
+  <p class="text-fc-sm text-fc-fg-muted">
+    Cette action est définitive. Toutes les données de l'espace seront supprimées.
+  </p>
+
+  <Field label={'Tapez "DELETE" pour confirmer'} for="deleteConfirm">
+    <Input id="deleteConfirm" type="text" bind:value={deleteConfirmationText} placeholder="DELETE" />
+  </Field>
+
+  {#snippet footer()}
+    <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+      <Button variant="ghost" onclick={() => (deleteModalOpen = false)}>Annuler</Button>
+      <Button
+        variant="danger"
+        onclick={handleDeleteTeam}
+        disabled={deleteConfirmationText !== 'DELETE' || deleting}
+      >
+        {deleting ? 'Suppression...' : 'Confirmer'}
+      </Button>
+    </div>
+  {/snippet}
+</Modal>

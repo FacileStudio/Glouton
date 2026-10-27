@@ -1,6 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
-  import 'iconify-icon';
+  import { Badge, Button, Icon, IconButton, Spinner, icons } from '@facile/muse';
 
   interface HuntSession {
     id: string;
@@ -77,11 +77,7 @@
     }
   });
 
-  const statusPillCls = $derived(
-    session.status === 'FAILED'
-      ? 'bg-destructive/10 text-destructive'
-      : 'bg-muted text-foreground'
-  );
+  const statusTone = $derived(session.status === 'FAILED' ? 'danger' : 'neutral');
 
   const successRate = $derived(
     session.totalLeads > 0 && session.successfulLeads > 0
@@ -97,115 +93,98 @@
   tabindex="0"
   onclick={() => goto(`/app/hunts/${session.id}`)}
   onkeydown={(e) => e.key === 'Enter' && goto(`/app/hunts/${session.id}`)}
-  class="group rounded-xl border border-border bg-card transition-colors cursor-pointer hover:bg-muted/40"
+  class="group flex cursor-pointer flex-col gap-4 rounded-fc-md bg-fc-component p-5 transition-colors hover:bg-fc-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fc-ring"
 >
-  <div class="p-5">
-    <div class="flex items-start gap-3 mb-4">
-      <div class="flex-1 min-w-0">
-        <p
-          class="font-semibold text-foreground text-sm leading-snug truncate mb-1.5"
-          title={huntTitle}
-        >
-          {huntTitle}
-        </p>
-        <div class="flex items-center gap-2 flex-wrap">
-          <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {statusPillCls}">
-            {statusLabel}
-          </span>
-          <span class="text-xs text-muted-foreground">
-            {formatTimeAgo(referenceDate)}
-          </span>
-          <span class="text-xs text-muted-foreground">
-            {isCsvImport ? 'CSV' : isLocal ? 'Local' : 'Domaine'}
-          </span>
-        </div>
-      </div>
-
-      <div
-        class="flex items-center gap-1 shrink-0"
-        role="presentation"
-        onclick={(e) => e.stopPropagation()}
-        onkeydown={(e) => e.stopPropagation()}
-      >
-        {#if session.status === 'PENDING' && onCancel}
-          <button
-            onclick={() => onCancel!(session.id)}
-            disabled={cancelling}
-            class="inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {#if cancelling}
-              <div class="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-              Annulation
-            {:else}
-              <iconify-icon icon="solar:close-circle-linear" width="14"></iconify-icon>
-              Annuler
-            {/if}
-          </button>
-        {/if}
-
-        {#if session.status === 'FAILED' && onRelaunch}
-          <button
-            onclick={() => onRelaunch!(session.id)}
-            disabled={relaunching}
-            class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-background px-3 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Relancer la chasse"
-          >
-            {#if relaunching}
-              <div class="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-              Relance
-            {:else}
-              <iconify-icon icon="solar:restart-linear" width="14"></iconify-icon>
-              Relancer
-            {/if}
-          </button>
-        {/if}
-
-        {#if (session.status === 'COMPLETED' || session.status === 'FAILED') && onDelete}
-          <button
-            onclick={() => onDelete!(session.id)}
-            disabled={deleting}
-            aria-label="Supprimer la chasse"
-            class="inline-flex size-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Supprimer la chasse"
-          >
-            {#if deleting}
-              <div class="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-            {:else}
-              <iconify-icon icon="solar:trash-bin-trash-linear" width="16"></iconify-icon>
-            {/if}
-          </button>
-        {/if}
+  <div class="flex items-start gap-3">
+    <div class="flex min-w-0 flex-1 flex-col gap-1.5">
+      <p class="truncate text-fc-sm font-semibold text-fc-fg" title={huntTitle}>
+        {huntTitle}
+      </p>
+      <div class="flex flex-wrap items-center gap-2 text-fc-xs text-fc-fg-muted">
+        <Badge tone={statusTone}>{statusLabel}</Badge>
+        <span>{formatTimeAgo(referenceDate)}</span>
+        <span>{isCsvImport ? 'CSV' : isLocal ? 'Local' : 'Domaine'}</span>
       </div>
     </div>
 
-    {#if session.status === 'FAILED' && session.error}
-      <div class="rounded-lg bg-destructive/10 px-3 py-2.5 mb-4">
-        <p class="text-xs text-destructive line-clamp-2 leading-relaxed break-words overflow-hidden">{session.error}</p>
-      </div>
-    {/if}
+    <div
+      class="flex shrink-0 items-center gap-1"
+      role="presentation"
+      onclick={(e) => e.stopPropagation()}
+      onkeydown={(e) => e.stopPropagation()}
+    >
+      {#if session.status === 'PENDING' && onCancel}
+        <Button
+          variant="ghost-danger"
+          size="sm"
+          icon={cancelling ? undefined : icons.error}
+          onclick={() => onCancel!(session.id)}
+          disabled={cancelling}
+        >
+          {#if cancelling}
+            <Spinner size="sm" label="Annulation" />
+            Annulation
+          {:else}
+            Annuler
+          {/if}
+        </Button>
+      {/if}
 
-    <div class="flex items-center gap-4 pt-3 border-t border-border">
-      <div class="flex items-center gap-1.5">
-        <iconify-icon
-          icon="solar:users-group-rounded-linear"
-          width="15"
-          class="text-muted-foreground"
-        ></iconify-icon>
-        <span class="text-sm font-medium text-foreground">{displayLeads}</span>
-        <span class="hidden text-sm text-muted-foreground sm:inline">leads</span>
-      </div>
+      {#if session.status === 'FAILED' && onRelaunch}
+        <Button
+          variant="outline"
+          size="sm"
+          icon={relaunching ? undefined : 'solar:restart-linear'}
+          onclick={() => onRelaunch!(session.id)}
+          disabled={relaunching}
+          title="Relancer la chasse"
+        >
+          {#if relaunching}
+            <Spinner size="sm" label="Relance" />
+            Relance
+          {:else}
+            Relancer
+          {/if}
+        </Button>
+      {/if}
 
-      {#if session.status === 'COMPLETED' && displayLeads > 0}
-        <div class="flex items-center gap-1.5">
-          <iconify-icon
-            icon="solar:chart-2-linear"
-            width="15"
-            class="text-muted-foreground"
-          ></iconify-icon>
-          <span class="text-sm font-medium text-foreground">{successRate}%</span>
-          <span class="hidden text-sm text-muted-foreground sm:inline">succès</span>
-        </div>
+      {#if (session.status === 'COMPLETED' || session.status === 'FAILED') && onDelete}
+        <IconButton
+          variant="danger"
+          onclick={() => onDelete!(session.id)}
+          disabled={deleting}
+          aria-label="Supprimer la chasse"
+          title="Supprimer la chasse"
+        >
+          {#if deleting}
+            <Spinner size="sm" label="Suppression" />
+          {:else}
+            <Icon icon="solar:trash-bin-trash-linear" />
+          {/if}
+        </IconButton>
       {/if}
     </div>
+  </div>
+
+  {#if session.status === 'FAILED' && session.error}
+    <div class="rounded-fc-sm bg-fc-danger/10 px-3 py-2.5">
+      <p class="line-clamp-2 overflow-hidden break-words text-fc-xs text-fc-danger">{session.error}</p>
+    </div>
+  {/if}
+
+  <div class="flex items-center gap-4 border-t border-fc-border pt-3">
+    <div class="flex items-center gap-1.5">
+      <Icon icon={icons.usersGroup} size={15} class="text-fc-fg-muted" />
+      <span class="text-fc-sm font-medium text-fc-fg">{displayLeads}</span>
+      <span class="hidden text-fc-sm text-fc-fg-muted sm:inline">leads</span>
+    </div>
+
+    {#if session.status === 'COMPLETED' && displayLeads > 0}
+      <div class="flex items-center gap-1.5">
+        <Icon icon={icons.dashboard} size={15} class="text-fc-fg-muted" />
+        <span class="text-fc-sm font-medium text-fc-fg">{successRate}%</span>
+        <span class="hidden text-fc-sm text-fc-fg-muted sm:inline">succès</span>
+      </div>
+    {/if}
   </div>
 </div>

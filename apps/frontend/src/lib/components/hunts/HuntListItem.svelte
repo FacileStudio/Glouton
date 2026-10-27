@@ -1,6 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
-  import 'iconify-icon';
+  import { Badge, Button, Icon, Spinner, icons } from '@facile/muse';
 
   interface HuntSession {
     id: string;
@@ -75,35 +75,28 @@
   const referenceDate = $derived(session.completedAt || session.startedAt || session.createdAt);
 </script>
 
-<div
-  class="group rounded-xl border border-border bg-card overflow-hidden"
->
+<div class="flex flex-col overflow-hidden rounded-fc-md bg-fc-component">
   <button
+    type="button"
     onclick={() => goto(`/app/hunts/${session.id}`)}
-    class="w-full p-5 text-left transition-colors hover:bg-muted/40"
+    class="group w-full p-5 text-left transition-colors hover:bg-fc-surface focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-fc-ring"
   >
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-      <div class="flex items-center gap-4 min-w-0 sm:flex-1">
-        <div class="flex items-center justify-center size-10 rounded-lg border border-border shrink-0">
-          <iconify-icon
-            icon={isLocal ? 'solar:map-point-linear' : 'solar:global-linear'}
-            width="20"
-            class="text-foreground"
-          ></iconify-icon>
+      <div class="flex min-w-0 items-center gap-4 sm:flex-1">
+        <div class="flex size-10 shrink-0 items-center justify-center rounded-fc-md bg-fc-surface text-fc-fg">
+          <Icon icon={isLocal ? 'solar:map-point-linear' : icons.globe} size={20} />
         </div>
 
-        <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-2 mb-1 min-w-0">
-            <h3 class="font-semibold text-sm text-foreground truncate">{huntTitle}</h3>
-            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-muted text-foreground shrink-0">
-              Terminée
-            </span>
+        <div class="flex min-w-0 flex-1 flex-col gap-1">
+          <div class="flex min-w-0 items-center gap-2">
+            <h3 class="truncate text-fc-sm font-semibold text-fc-fg">{huntTitle}</h3>
+            <Badge class="shrink-0">Terminée</Badge>
           </div>
-          <div class="flex items-center gap-2 flex-wrap text-xs text-muted-foreground">
+          <div class="flex flex-wrap items-center gap-2 text-fc-xs text-fc-fg-muted">
             <span>{formatTimeAgo(referenceDate)}</span>
             {#if session.startedAt && session.completedAt}
               <span>·</span>
-              <span>Durée: {formatDuration(session.startedAt, session.completedAt)}</span>
+              <span>Durée : {formatDuration(session.startedAt, session.completedAt)}</span>
             {/if}
             <span>·</span>
             <span>{isLocal ? 'Local' : 'Domaine'}</span>
@@ -111,82 +104,75 @@
         </div>
       </div>
 
-      <div class="flex items-center justify-between gap-6 shrink-0 pl-14 sm:pl-0 sm:justify-start">
+      <div class="flex shrink-0 items-center justify-between gap-6 pl-14 sm:justify-start sm:pl-0">
         <div class="flex items-center gap-4">
           <div class="text-right">
             <div class="flex items-center justify-end gap-1.5">
-              <iconify-icon
-                icon="solar:users-group-rounded-linear"
-                width="14"
-                class="text-muted-foreground"
-              ></iconify-icon>
-              <span class="text-sm font-medium text-foreground">{displayLeads}</span>
+              <Icon icon={icons.usersGroup} size={14} class="text-fc-fg-muted" />
+              <span class="text-fc-sm font-medium text-fc-fg">{displayLeads}</span>
             </div>
-            <p class="hidden text-xs text-muted-foreground sm:block">Leads</p>
+            <p class="hidden text-fc-xs text-fc-fg-muted sm:block">Leads</p>
           </div>
 
           {#if displayLeads > 0}
             <div class="text-right">
               <div class="flex items-center justify-end gap-1.5">
-                <iconify-icon
-                  icon="solar:chart-2-linear"
-                  width="14"
-                  class="text-muted-foreground"
-                ></iconify-icon>
-                <span class="text-sm font-medium text-foreground">{successRate}%</span>
+                <Icon icon={icons.dashboard} size={14} class="text-fc-fg-muted" />
+                <span class="text-fc-sm font-medium text-fc-fg">{successRate}%</span>
               </div>
-              <p class="hidden text-xs text-muted-foreground sm:block">Succès</p>
+              <p class="hidden text-fc-xs text-fc-fg-muted sm:block">Succès</p>
             </div>
           {/if}
         </div>
 
-        <iconify-icon
-          icon="solar:alt-arrow-right-linear"
-          width="16"
-          class="text-muted-foreground transition-transform group-hover:translate-x-0.5"
-        ></iconify-icon>
+        <Icon
+          icon={icons.arrow}
+          class="text-fc-fg-muted transition-transform group-hover:translate-x-0.5"
+        />
       </div>
     </div>
   </button>
 
   <div
-    class="border-t border-border px-5 py-3 flex items-center gap-2"
+    class="flex items-center gap-2 border-t border-fc-border px-5 py-3"
     role="presentation"
     onclick={(e) => e.stopPropagation()}
     onkeydown={(e) => e.stopPropagation()}
   >
     {#if onRelaunch}
-      <button
+      <Button
+        variant="outline"
+        size="sm"
+        icon={relaunching ? undefined : 'solar:restart-linear'}
         onclick={() => onRelaunch!(session.id)}
         disabled={relaunching}
-        class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {#if relaunching}
-          <div class="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+          <Spinner size="sm" label="Relance" />
           Relance
         {:else}
-          <iconify-icon icon="solar:restart-linear" width="14"></iconify-icon>
           Relancer
         {/if}
-      </button>
+      </Button>
     {/if}
 
     <div class="flex-1"></div>
 
     {#if onDelete}
-      <button
+      <Button
+        variant="ghost-danger"
+        size="sm"
+        icon={deleting ? undefined : 'solar:trash-bin-trash-linear'}
         onclick={() => onDelete!(session.id)}
         disabled={deleting}
-        class="inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         title="Supprimer la chasse"
       >
         {#if deleting}
-          <div class="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+          <Spinner size="sm" label="Suppression" />
         {:else}
-          <iconify-icon icon="solar:trash-bin-trash-linear" width="14"></iconify-icon>
           Supprimer
         {/if}
-      </button>
+      </Button>
     {/if}
   </div>
 </div>

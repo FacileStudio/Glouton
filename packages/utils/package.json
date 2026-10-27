@@ -7,7 +7,6 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./toast": "./src/toastStore.ts",
     "./csv": "./src/csv.ts"
   },
   "scripts": {

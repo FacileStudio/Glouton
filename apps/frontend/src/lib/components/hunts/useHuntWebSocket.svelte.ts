@@ -1,6 +1,6 @@
 import { onMount, onDestroy } from 'svelte';
 import { ws } from '$lib/websocket';
-import { toast } from '@repo/utils';
+import { toast } from '@facile/muse';
 
 interface HuntSession {
   id: string;
@@ -69,7 +69,7 @@ export function useHuntWebSocket(
         }
 
         const huntType = data.huntType === 'LOCAL_BUSINESS' ? 'Local business' : 'Domain';
-        toast.push(`${huntType} hunt started`, 'info');
+        toast.info(`${huntType} hunt started`);
       })
     );
 
@@ -122,7 +122,7 @@ export function useHuntWebSocket(
           const message = failCount > 0
             ? `Hunt completed! Found ${successCount} leads (${failCount} failed)`
             : `Hunt completed! Found ${successCount} leads`;
-          toast.push(message, 'success');
+          toast.success(message);
 
           await onDataChange();
           await onStatsChange();
@@ -137,7 +137,7 @@ export function useHuntWebSocket(
           error: data.error || 'Unknown error',
           completedAt: new Date(),
         });
-        toast.push(`Hunt failed: ${data.error || 'Unknown error'}`, 'error');
+        toast.danger(`Hunt failed: ${data.error || 'Unknown error'}`);
       })
     );
 
@@ -151,7 +151,7 @@ export function useHuntWebSocket(
             status: 'CANCELLED',
             completedAt: new Date(),
           });
-          toast.push('Hunt cancelled', 'info');
+          toast.info('Hunt cancelled');
         }
       })
     );
