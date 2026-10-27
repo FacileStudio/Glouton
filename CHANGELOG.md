@@ -11,6 +11,8 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-27
+
 ### Fixed
 
 - **Redis no longer refuses to boot on a corrupt append-only file.** A torn write
