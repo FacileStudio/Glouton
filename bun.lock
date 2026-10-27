@@ -1,5 +1,6 @@
 {
   "lockfileVersion": 1,
+  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "monorepo-template",
@@ -314,23 +315,26 @@
     },
   },
   "overrides": {
-    "lodash": ">=4.17.24",
-    "follow-redirects": ">=1.15.12",
-    "underscore": ">=1.13.8",
-    "flatted": ">=3.4.0",
-    "brace-expansion": ">=1.1.13",
-    "picomatch": ">=4.0.4",
-    "yaml": ">=2.8.3",
-    "postcss": ">=8.5.10",
-    "svelte": ">=5.55.7",
     "ajv": ">=6.14.0",
-    "undici": ">=7.24.0",
-    "devalue": ">=5.6.4",
-    "cookie": ">=0.7.0",
-    "minimatch": ">=3.1.3",
-    "rollup": ">=4.59.0",
     "axios": ">=1.15.2",
+    "brace-expansion": ">=1.1.13",
+    "cookie": ">=0.7.0",
+    "devalue": ">=5.6.4",
+    "flatted": ">=3.4.0",
+    "follow-redirects": ">=1.15.12",
+    "lodash": ">=4.17.24",
+    "minimatch": ">=3.1.3",
+    "picomatch": ">=4.0.4",
+    "postcss": ">=8.5.10",
+    "rollup": ">=4.59.0",
+    "storybook": ">=10.0.0",
+    "svelte": ">=5.55.7",
+    "underscore": ">=1.13.8",
+    "undici": ">=7.24.0",
+    "uuid": ">=11.1.1",
     "vite": ">=8.0.0",
+    "ws": ">=8.20.1",
+    "yaml": ">=2.8.3",
   },
   "packages": {
     "@ark/schema": ["@ark/schema@0.56.0", "", { "dependencies": { "@ark/util": "0.56.0" } }, "sha512-ECg3hox/6Z/nLajxXqNhgPtNdHWC9zNsDyskwO28WinoFEnWow4IsERNz9AnXRhTZJnYIlAJ4uGn3nlLk65vZA=="],
@@ -481,7 +485,7 @@
 
     "@exodus/schemasafe": ["@exodus/schemasafe@1.3.0", "", {}, "sha512-5Aap/GaRupgNx/feGBwLLTVv8OQFfv3pq2lPRzPg9R+IOBnDgghTGW7l7EuVXOvg5cc/xSAlRW8rBrjIC3Nvqw=="],
 
-    "@facile/muse": ["@facile/muse@github:FacileStudio/muse#97754f2", { "dependencies": { "gsap": "^3.13.0", "tailwind-merge": "^3.5.0" }, "peerDependencies": { "svelte": "^5.0.0", "tailwindcss": "^4.0.0" } }, "FacileStudio-muse-97754f2"],
+    "@facile/muse": ["@facile/muse@github:FacileStudio/muse#97754f2", { "dependencies": { "gsap": "^3.13.0", "tailwind-merge": "^3.5.0" }, "peerDependencies": { "svelte": "^5.0.0", "tailwindcss": "^4.0.0" } }, "FacileStudio-muse-97754f2", "sha512-OO1UtcfX/4P2HGIIj7EUnoruR3m2tghuPMuchqz3U5mY5ManwvxJ/5bYKT7wLdymD/FisHeTyWXC9PCVzpj+ug=="],
 
     "@faker-js/faker": ["@faker-js/faker@10.2.0", "", {}, "sha512-rTXwAsIxpCqzUnZvrxVh3L0QA0NzToqWBLAhV+zDV3MIIwiQhAZHMdPCIaj5n/yADu/tyk12wIPgL6YHGXJP+g=="],
 

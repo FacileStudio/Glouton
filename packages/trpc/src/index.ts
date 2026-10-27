@@ -5,6 +5,7 @@ import { leadRouter } from './modules/lead/router';
 import { emailRouter } from './modules/email/router';
 import { teamRouter } from './modules/team/router';
 import { opportunityRouter } from './modules/opportunity/router';
+import { companyCreationRouter } from './modules/company-creation/router';
 import { createOpenApiDocument } from './openapi';
 
 export const appRouter = router({
@@ -14,6 +15,7 @@ export const appRouter = router({
   email: emailRouter,
   team: teamRouter,
   opportunity: opportunityRouter,
+  companyCreation: companyCreationRouter,
 });
 
 export const openApiDocument = createOpenApiDocument(appRouter);

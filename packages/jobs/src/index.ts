@@ -1,4 +1,4 @@
-export { QueueManager } from './queue-manager';
+export { QueueManager, type KnownQueueName } from './queue-manager';
 export { JobScheduler } from './scheduler';
 export {
   createJobConfig,

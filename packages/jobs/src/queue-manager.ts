@@ -2,16 +2,30 @@ import { Queue, Worker, type Job as BullJob } from 'bullmq';
 import type { JobConfig, JobDefinition, AddJobOptions } from './types';
 import { logger } from '@repo/logger';
 
+export type KnownQueueName =
+  | 'local-business-hunt'
+  | 'lead-audit'
+  | 'csv-import'
+  | 'opportunity-scraper'
+  | 'company-creation';
+
 export class QueueManager {
+  private static instance?: QueueManager;
   private queues: Map<string, Queue> = new Map();
   private workers: Map<string, Worker> = new Map();
   private jobDefinitions: Map<string, Map<string, JobDefinition<any, any>>> = new Map();
   private config: JobConfig;
 
-  
-
   constructor(config: JobConfig) {
     this.config = config;
+    QueueManager.instance = this;
+  }
+
+  static getInstance(): QueueManager {
+    if (!QueueManager.instance) {
+      throw new Error('QueueManager has not been initialized');
+    }
+    return QueueManager.instance;
   }
 
   
@@ -98,8 +112,11 @@ export class QueueManager {
             throw new Error(`No job definitions registered for queue ${queueName}`);
           }
 
-          const definition = definitions.get(job.name);
-          
+          let definition = definitions.get(job.name);
+
+          if (!definition && definitions.size === 1) {
+            definition = definitions.values().next().value;
+          }
 
           if (!definition) {
             throw new Error(`No processor registered for job ${job.name} in queue ${queueName}`);

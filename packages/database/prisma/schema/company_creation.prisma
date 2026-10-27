@@ -1,0 +1,40 @@
+model CompanyCreation {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Text
+  country          String    @db.Text
+  registrationId   String    @unique @db.Text
+  name             String    @db.Text
+  legalForm        String?   @db.Text
+  activityCode     String?   @db.Text
+  activityLabel    String?   @db.Text
+  address          String?   @db.Text
+  city             String?   @db.Text
+  postalCode       String?   @db.Text
+  region           String?   @db.Text
+  capital          Float?
+  currency         String?   @default("EUR") @db.Text
+  directors        Json?
+  sourceUrl        String?   @db.Text
+  publishedAt      DateTime  @db.Timestamptz(3)
+  hasWebsite       Boolean   @default(false)
+  websiteUrl       String?   @db.Text
+  domain           String?   @db.Text
+  email            String?   @db.Text
+  phone            String?   @db.Text
+  enrichmentStatus String    @default("PENDING") @db.Text
+  convertedLeadId  String?   @db.Text
+  convertedAt      DateTime? @db.Timestamptz(3)
+  scrapedAt        DateTime  @default(now()) @db.Timestamptz(3)
+  createdAt        DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime  @default(now()) @updatedAt @db.Timestamptz(3)
+
+  lead             Lead?     @relation(fields: [convertedLeadId], references: [id], onDelete: SetNull)
+
+  @@index([country])
+  @@index([publishedAt])
+  @@index([hasWebsite])
+  @@index([activityCode])
+  @@index([postalCode])
+  @@index([city])
+  @@index([country, publishedAt])
+  @@index([scrapedAt])
+}

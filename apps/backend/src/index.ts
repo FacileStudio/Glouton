@@ -70,6 +70,20 @@ async function startup() {
     logger.error({ error: err }, '[OPPORTUNITIES] Failed to schedule scraper');
   }
 
+  try {
+    await jobs.upsertScheduler(
+      'company-creation',
+      'company-creation-every-4h',
+      4 * 60 * 60 * 1000,
+      'company-creation',
+      {},
+      { removeOnComplete: 5, removeOnFail: 3 }
+    );
+    logger.info('[COMPANIES] Creation scraper scheduled every 4h');
+  } catch (err) {
+    logger.error({ error: err }, '[COMPANIES] Failed to schedule creation scraper');
+  }
+
   setInterval(async () => {
     try {
       const stalled = await cleanupStalled(prisma);

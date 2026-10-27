@@ -22,6 +22,7 @@
   const navPages = $derived([
     { label: 'Chasses', icon: 'solar:radar-2-linear', href: '/app/hunts', active: isActive('/app/hunts') },
     { label: 'Leads', icon: 'solar:magnet-linear', href: '/app/leads', active: isActive('/app/leads') },
+    { label: 'Créations', icon: 'solar:buildings-2-linear', href: '/app/creations', active: isActive('/app/creations') },
     { label: 'Missions', icon: 'solar:case-round-linear', href: '/app/missions', active: isActive('/app/missions') },
     { label: 'Prospection', icon: 'solar:letter-linear', href: '/app/outreach', active: isActive('/app/outreach') },
     { label: 'Espaces', icon: 'solar:users-group-rounded-linear', href: '/app/teams', active: isActive('/app/teams') },
@@ -46,6 +47,7 @@
     if (path === '/app/hunts') return 'Chasses · Glouton';
     if (path.match(/^\/app\/leads\/.+/)) return 'Lead · Glouton';
     if (path === '/app/leads') return 'Leads · Glouton';
+    if (path === '/app/creations') return 'Créations · Glouton';
     if (path.startsWith('/app/missions')) return 'Missions · Glouton';
     if (path === '/app/outreach') return 'Prospection · Glouton';
     if (path === '/app/teams/new') return 'Nouvel espace · Glouton';

@@ -2,6 +2,7 @@ import { createLocalBusinessHuntWorker } from './local-business-hunt';
 import { createLeadAuditWorker } from './lead-audit';
 import { createCsvImportWorker } from './csv-import';
 import { createOpportunityScraperWorker } from './opportunity-scraper';
+import { createCompanyCreationWorker } from './company-creation';
 
 export interface EventEmitter {
   emit: (userId: string, type: string, data?: any) => void;
@@ -15,6 +16,7 @@ export function createWorkers(events: EventEmitter) {
     'lead-audit': createLeadAuditWorker(events),
     'csv-import': createCsvImportWorker(events),
     'opportunity-scraper': createOpportunityScraperWorker(events),
+    'company-creation': createCompanyCreationWorker(events),
   };
 }
 
@@ -22,4 +24,6 @@ export const workers = {
   'local-business-hunt': createLocalBusinessHuntWorker,
   'lead-audit': createLeadAuditWorker,
   'csv-import': createCsvImportWorker,
+  'opportunity-scraper': createOpportunityScraperWorker,
+  'company-creation': createCompanyCreationWorker,
 };

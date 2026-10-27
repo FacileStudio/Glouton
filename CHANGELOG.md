@@ -11,6 +11,19 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-27
+
+### Added
+
+- **Company creations scraper and lead pipeline for France, UK, and Germany.**
+  Ingests daily company registrations from the BODACC OpenDataSoft API and INSEE Recherche-Entreprises (France), the Companies House REST API (UK), and Handelsregister announcements (Germany). Runs as a recurring BullMQ background job every 4 hours with live progress reporting over WebSocket.
+- **Automated web and DNS discovery on new company formations.**
+  Checks for active domain and DNS records (`.fr`, `.co.uk`, `.de`, `.com`) to tag companies as either qualified website leads or hot web development prospects with no existing website.
+- **Company creations interface and 1-click lead conversion.**
+  New `/app/creations` route in the frontend built with `@facile/muse` components, multi-criteria filtering by country, NAF/SIC activity codes, postal codes, and website presence, with 1-click conversion to active leads in personal or team workspaces.
+- **tRPC `companyCreation` router.**
+  Procedures for listing, querying statistics, manual scraper dispatch, and converting company registrations to leads.
+
 ## [0.1.0] - 2026-10-27
 
 ### Fixed

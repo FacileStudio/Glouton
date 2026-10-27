@@ -24,6 +24,7 @@ export type {
   HuntSession,
   AuditSession,
   Opportunity,
+  CompanyCreation,
   Room,
   Message,
   RoomParticipant,

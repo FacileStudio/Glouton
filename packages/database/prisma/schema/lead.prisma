@@ -45,6 +45,7 @@ model Lead {
   emailOutreaches    EmailOutreach[]
   auditSessions      AuditSession[]
   favoritedBy        UserFavoriteLead[]
+  companyCreations   CompanyCreation[]
 
   @@unique([userId, email])
   @@unique([userId, domain, firstName, lastName])
