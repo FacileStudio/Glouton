@@ -17,10 +17,6 @@ NODE_BIN_DIR = { value = "{{tools.node.path}}/bin", tools = true }
 description = "Install workspace dependencies with Bun"
 run = 'PATH="$NODE_BIN_DIR:$PATH" "$BUN_BIN" install --frozen-lockfile'
 
-[tasks.setup]
-description = "Quick setup for local development"
-run = "./local-dev.sh"
-
 [tasks.dev]
 description = "Run the monorepo dev servers (frontend + backend)"
 depends = ["install"]
@@ -77,7 +73,7 @@ run = "bash scripts/migrate.sh"
 [tasks."docker:up"]
 description = "Start the local infrastructure (PostgreSQL, Redis)"
 env = { DOMAIN = "http://localhost:3000", ENCRYPTION_SECRET = "local-dev-encryption-secret-change-me" }
-run = "docker compose up -d postgres redis"
+run = "docker compose up -d glouton-postgres glouton-redis"
 
 [tasks."docker:down"]
 description = "Stop all Docker services"

@@ -5,11 +5,11 @@ before you push.
 
 ## Prerequisites
 
-- **Bun 1.2.0 or newer.** `packageManager` pins `bun@1.2.0`; the images build on `oven/bun:1.3.7`.
+- **Bun 1.2.0 or newer.** `mise.toml` and `packageManager` pin `bun@1.3.13`; the images build on `oven/bun:1.3.7`.
   The lockfile is `bun.lock` — no npm, yarn or pnpm
 - **Docker**, for PostgreSQL 16 and Redis 7. Both are mandatory: the backend registers BullMQ
   workers at startup and validates the Redis configuration before serving
-- **`just`**, the task runner for this repo. Glouton uses a `justfile`, not `mise.toml`
+- **`mise`**, the task runner for this repo (`mise.toml`). `mise install` also sets up lefthook
 - **`psql`** on `PATH` if you want to run `scripts/migrate.sh`
 
 ## Setup
@@ -19,11 +19,8 @@ docker compose up -d glouton-postgres glouton-redis
 bun install
 ```
 
-Note the service names. `just docker-up` and its siblings (`docker-down`, `docker-clean`,
-`docker-logs`, `docker-restart`, `docker-status`) still pass `postgres redis`, which no longer
-match the `glouton-` prefixed service names in `docker-compose.yml` — those recipes fail. Use
-`docker compose` directly until the `justfile` is fixed. `just setup` is worse: it calls
-`./local-dev.sh`, which is not in the repo.
+`mise run docker:up` does the same. Its siblings are `docker:down`, `docker:clean`,
+`docker:logs`, `docker:restart` and `docker:status`.
 
 The backend needs `DOMAIN`, `ENCRYPTION_SECRET` (32+ characters) and `DATABASE_URL` before it
 will start. For local work:
@@ -39,12 +36,12 @@ See [configuration.md](configuration.md) for the rest.
 ## Running
 
 ```sh
-just dev            # frontend and backend together, through Turborepo
-just dev-backend    # backend only, port 3001
-just dev-frontend   # frontend only, port 3000
+mise run dev            # frontend and backend together, through Turborepo
+mise run dev:backend    # backend only, port 3001
+mise run dev:frontend   # frontend only, port 3000
 ```
 
-`just dev` is `bun run dev`, which is `turbo run dev`. The `dev` and `build` tasks depend on
+`mise run dev` is `bun run dev`, which is `turbo run dev`. The `dev` and `build` tasks depend on
 `check-env`, so a bad environment fails before either app comes up.
 
 In development the Vite dev server proxies `/trpc`, `/auth/config`, `/auth/oidc` and `/docs/*`
@@ -90,14 +87,14 @@ locally.
 
 ## Quality gate
 
-There is no `scripts/check.sh`, no git hooks, and no CI — GitHub Actions was removed suite-wide.
-Run the checks yourself:
+There is no `scripts/check.sh` and no CI. lefthook runs the suite's shared commit checks from
+`FacileStudio/hooks`. Run the quality checks yourself:
 
 ```sh
-just typecheck    # turbo run typecheck — tsc for the backend, svelte-check for the frontend
-just lint         # turbo run lint — eslint with --max-warnings 0
-just format       # prettier over ts, tsx, md and json
-just build        # turbo run build
+mise run typecheck    # turbo run typecheck — tsc for the backend, svelte-check for the frontend
+mise run lint         # turbo run lint — eslint with --max-warnings 0
+mise run format       # prettier over ts, tsx, md and json
+mise run build        # turbo run build
 ```
 
 There is no test suite. `scripts/test-performance.ts` is a manual benchmark, not a test.

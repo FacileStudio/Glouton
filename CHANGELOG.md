@@ -34,8 +34,9 @@ in the root `package.json`.
   (`@facile/muse#v0.7.2`): its tokens, sidebar, mobile nav, page transition and
   toasts. Dark mode follows the system setting.
 - The root package is named `glouton` and carries the release version.
-- `mise.toml` exposes the usual suite tasks: `install`, `dev`, `build`,
-  `typecheck`, `lint`, `check`. `check` runs the type check and the build.
+- Development tasks move from the `justfile` to `mise.toml`, and lefthook runs the
+  suite's shared commit hooks. The `docker:*` tasks now use the `glouton-` service
+  names; the broken `setup` recipe is gone.
 
 ### Removed
 

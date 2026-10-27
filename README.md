@@ -46,7 +46,7 @@ refuses to start without them.
 docker compose up -d glouton-postgres glouton-redis
 bun install
 bash scripts/migrate.sh "$DATABASE_URL"
-just dev
+mise run dev
 ```
 
 The frontend listens on port 3000 and proxies `/trpc`, `/auth/config`, `/auth/oidc` and `/docs/*`
@@ -92,7 +92,7 @@ docs/        Architecture, configuration, development, deployment, API
 |---|---|
 | [Architecture](docs/architecture.md) | Runtime topology, job pipeline, data model, auth |
 | [Configuration](docs/configuration.md) | Every environment variable and default |
-| [Development](docs/development.md) | Local setup, `just` recipes, migrations, quality gate |
+| [Development](docs/development.md) | Local setup, `mise` tasks, migrations, quality gate |
 | [Deployment](docs/deployment.md) | Docker Compose, Dokploy, Traefik, schema management |
 | [API](docs/api.md) | The tRPC router tree and the plain HTTP routes |
 

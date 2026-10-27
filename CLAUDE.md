@@ -285,4 +285,4 @@ lsof -i :6379    # Redis
 - `packages/jobs/src/queue-manager.ts` - BullMQ setup
 - `packages/database/migrations/` - Database schema
 - `turbo.json` - Turborepo task configuration
-- `justfile` - Common development commands
+- `mise.toml` - Common development tasks
