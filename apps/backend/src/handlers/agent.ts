@@ -13,6 +13,7 @@ import {
   inboxService,
   requiredScope,
   suggestionCreateSchema,
+  suggestionInput,
   suggestionStatusSchema,
   type DelegatedVerifier,
 } from '@repo/trpc';
@@ -203,7 +204,7 @@ export function createAgentRoutes(deps: AgentDeps) {
     const data = await inboxService.createSuggestion(
       deps.prisma,
       await access(c),
-      { ...input, payload: input.payload as inboxService.SuggestionInput['payload'] },
+      suggestionInput(input),
       deps.notify
     );
     return c.json({ data }, 201);

@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { SignJWT, createLocalJWKSet, exportJWK, generateKeyPair, type JWTPayload } from 'jose';
 import type { SessionUser } from '@repo/auth';
 
-process.env.DATABASE_URL ??= 'postgresql://unused@localhost/unused';
+process.env.DATABASE_URL = process.env.TEST_DATABASE_URL ?? 'postgresql://unused@localhost/unused';
 process.env.DOMAIN ??= 'http://localhost:3000';
 process.env.ENCRYPTION_SECRET ??= 'test-encryption-secret-at-least-32-chars';
 

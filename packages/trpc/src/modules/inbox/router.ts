@@ -35,6 +35,20 @@ export const suggestionCreateSchema = z.object({
   payload: z.record(z.unknown()).optional(),
 });
 
+/** Spells the fields out so the input type holds under the frontend's looser compiler settings. */
+export function suggestionInput(input: z.infer<typeof suggestionCreateSchema>): inbox.SuggestionInput {
+  return {
+    kind: input.kind,
+    title: input.title,
+    body: input.body,
+    rationale: input.rationale,
+    companyId: input.companyId,
+    personId: input.personId,
+    teamId: input.teamId,
+    payload: input.payload as inbox.SuggestionInput['payload'],
+  };
+}
+
 function access(ctx: AuthedContext) {
   return accessForUser(ctx.prisma, ctx.user.id, ctx.actor);
 }
@@ -56,7 +70,14 @@ export const inboxRouter = router({
 
   createDraft: protectedProcedure
     .input(draftCreateSchema)
-    .mutation(async ({ ctx, input }) => inbox.createDraft(ctx.prisma, await access(ctx), input, notifier(ctx))),
+    .mutation(async ({ ctx, input }) =>
+      inbox.createDraft(
+        ctx.prisma,
+        await access(ctx),
+        { personId: input.personId, subject: input.subject, html: input.html, text: input.text, rationale: input.rationale },
+        notifier(ctx)
+      )
+    ),
 
   updateDraft: protectedProcedure
     .input(z.object({ id: z.string(), data: draftUpdateSchema }))
@@ -72,7 +93,7 @@ export const inboxRouter = router({
       inbox.createSuggestion(
         ctx.prisma,
         await access(ctx),
-        { ...input, payload: input.payload as inbox.SuggestionInput['payload'] },
+        suggestionInput(input),
         notifier(ctx)
       )
     ),

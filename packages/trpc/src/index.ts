@@ -39,4 +39,5 @@ export {
   draftUpdateSchema,
   suggestionCreateSchema,
   suggestionStatusSchema,
+  suggestionInput,
 } from './modules/inbox/router';
