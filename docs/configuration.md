@@ -51,8 +51,50 @@ The same variables configure delegated access for agents. With `OIDC_ISSUER` and
 whose scope holds `glouton.read` or `glouton.write`, on tRPC and on `/api/agent/*`. The signing
 keys come from the issuer's discovery document. Without `OIDC_ISSUER`, only session JWTs work.
 
-When the provider returns a refresh token at sign-in, Glouton stores it on the `Account` row,
-encrypted with `ENCRYPTION_SECRET`, for a later token exchange to other suite apps.
+SSO sign-in asks for `openid email profile offline_access`. Registre returns a refresh token
+for `offline_access` without `prompt=consent` when the client has the `refresh_token` grant.
+Glouton stores it on the `Account` row, encrypted with `ENCRYPTION_SECRET`. Registre rotates
+it on every refresh, and Glouton saves each new one.
+
+### Courrier
+
+Optional. With `COURRIER_URL` and OIDC set, a user or a space can send outreach through a
+Courrier account instead of SMTP. Without `COURRIER_URL`, the Courrier transport, reply sync
+and contact import are off and every mail goes through SMTP.
+
+| Variable | Required | Default | What it does |
+|---|---|---|---|
+| `COURRIER_URL` | no | — | Courrier base URL, `https://courrier.facile.studio` in prod. Its presence turns the integration on |
+| `COURRIER_AUDIENCE` | no | `tniN7PWx8mSOCwVAAvYpBexYnMFWAM5flt19rNl0` | Courrier's Registre client id, the token-exchange audience |
+
+How Glouton gets a Courrier token for a user:
+
+1. It refreshes the user's stored Registre refresh token at the issuer's token endpoint, with
+   client secret basic auth (`OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`).
+2. It exchanges that access token (RFC 8693, `subject_token_type`
+   `urn:ietf:params:oauth:token-type:access_token`) for audience `COURRIER_AUDIENCE` with scope
+   `courrier.read courrier.write`. Registre must allow Glouton's client that exchange.
+3. It caches both tokens in memory per user until 30 seconds before they expire.
+
+A user with no stored refresh token, or whose refresh Registre refuses, sees "Reconnect your
+Facile account": signing out and back in with SSO stores a fresh one. Users who signed in
+before this release have none until they sign in again.
+
+The choice lives on `User` and `Team` (`mailTransport` = `COURRIER` or `SMTP`,
+`courrierAccountId`), set in Settings > Compte and in a space's SMTP tab. A space's choice wins
+over its member's. A Courrier send failure is reported and never retried over SMTP.
+
+Two BullMQ jobs run when Courrier is configured:
+
+- `courrier-reply-sync`, every 15 minutes: for SENT, OPENED and CLICKED outreach of the last
+  30 days sent through Courrier, it searches the Courrier account for mail from the recipient
+  after `sentAt`, then sets `REPLIED`, logs `email.replied` and moves a Prospect to Contacted.
+- `courrier-contacts-import`, daily: proposes each Courrier contact not yet on a person in the
+  user's scope as an `IMPORT` suggestion in the inbox, at most 200 per user per run. An address
+  with an open or dismissed import suggestion is not proposed again.
+
+Both log and skip a failing user. Both hold an in-memory token cache, so run one backend
+replica, or expect an occasional "Reconnect" when two replicas rotate the same refresh token.
 
 ## Frontend
 
@@ -91,6 +133,7 @@ deploy rather than starting a broken stack.
 | `DOMAIN` | none — **fails** if unset | Passed to both the backend and the frontend |
 | `ENCRYPTION_SECRET` | none — **fails** if unset | Passed to the backend |
 | `POSTGRES_PASSWORD` | `glouton` | Database password. The user and database name are hard-coded to `glouton` |
+| `COURRIER_URL`, `COURRIER_AUDIENCE` | empty | Passed to the backend; empty leaves Courrier off |
 | `CACHE_BUST` | `2026-05-15-1` | Build arg that invalidates the backend image's source-copy layer |
 
 `DATABASE_URL` is assembled by Compose from `POSTGRES_PASSWORD` and always points at

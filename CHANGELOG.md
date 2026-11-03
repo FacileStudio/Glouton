@@ -22,6 +22,15 @@ in the root `package.json`.
 - **Agent REST API** under `/api/agent/*` for contacts, outreach, drafts and suggestions. It
   accepts a Registre delegated token (`glouton.read` for GET, `glouton.write` otherwise) or a
   session JWT, and has no route that sends mail.
+- **Send through Courrier.** In Settings > Compte, or a space's SMTP tab, pick a Courrier
+  account to send outreach from instead of SMTP. Glouton gets a Courrier token by refreshing the
+  user's Registre grant and exchanging it (RFC 8693). SMTP stays the fallback when Courrier is not
+  picked or not configured. Sent outreach records `courrierAccountId`.
+- **Reply detection.** Every 15 minutes, `courrier-reply-sync` looks in Courrier for mail from
+  each recipient of the last 30 days of Courrier outreach and marks it replied, with an
+  `email.replied` activity.
+- **Contacts from Courrier.** Daily, `courrier-contacts-import` proposes the addresses you wrote
+  to from Courrier, and that Glouton does not know, as import suggestions in the inbox.
 - `bun run backfill:contacts [--dry-run]` turns existing leads into companies and people and
   links their outreach. Running it twice changes nothing.
 
@@ -31,6 +40,10 @@ in the root `package.json`.
   merges and deletes refuse them with `FORBIDDEN`: only a person signed in to Glouton can do those.
 - Every outgoing mail goes through one `sendOutreach` seam, ready for a Courrier transport.
 - SSO sign-in keeps the Registre refresh token, encrypted, when the provider returns one.
+- SSO sign-in asks for `offline_access`, so Registre returns a refresh token. Glouton saves the
+  rotated token after each refresh.
+- Sending the legacy lead template mail now logs `email.sent` and moves the linked person and
+  company from Prospect to Contacted, like a draft send.
 
 ### Upgrade notes
 
@@ -38,6 +51,9 @@ in the root `package.json`.
   new `EmailStatus.DRAFT`). `prisma db push` at boot applies it, and migration
   `019_contacts_hub.sql` matches it. Run `bun run backfill:contacts` once after deploy. The
   `Lead` table is unchanged and the Leads pages still read it.
+- Migration `020_courrier_transport.sql` adds nullable `mailTransport` and `courrierAccountId` to
+  `User` and `Team`. Set `COURRIER_URL=https://courrier.facile.studio` to turn Courrier on. Users
+  sign in once more with SSO to store a refresh token before they can pick Courrier.
 
 ## [0.4.0] - 2026-11-03
 

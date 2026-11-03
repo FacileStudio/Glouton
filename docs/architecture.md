@@ -48,6 +48,9 @@ upgrade is not proxied by `server.js`.
   sub-routers.
 - `packages/jobs` — BullMQ `QueueManager` plus the workers. They run inside the backend process,
   not as separate containers.
+- `packages/courrier` — the Courrier client: Registre refresh and token exchange, per-user token
+  cache, accounts, send, search and contacts. Built once in `apps/backend/src/config.ts` and shared
+  by tRPC and the workers; `null` when `COURRIER_URL` is unset.
 - `packages/maps` — Overpass and Nominatim providers, query builders, deduplication.
 - `packages/audit` — the website auditor and its four analyzers: technology, SEO, security,
   company info.
@@ -71,7 +74,7 @@ OpenStreetMap.
 
 ## Background jobs
 
-Four workers, all registered in `apps/backend/src/services/register-workers.ts` and processing
+The workers are all registered in `apps/backend/src/services/register-workers.ts` and processing
 in the backend process against Redis.
 
 | Worker | Triggered by | Does |
@@ -80,6 +83,8 @@ in the backend process against Redis.
 | `lead-audit` | `lead.audit.start` | Fetches each lead's site, runs the analyzers, updates `websiteAudit` and `score` |
 | `csv-import` | `lead.importExport.importFromCsv` | Parses and upserts leads, max 5 MB of CSV |
 | `opportunity-scraper` | a 3-hour scheduler, plus `opportunity.triggerScrape` | Scrapes 21 public freelance boards into `Opportunity` |
+| `courrier-reply-sync` | a 15-minute scheduler, when Courrier is configured | Marks Courrier outreach `REPLIED` when the recipient wrote back |
+| `courrier-contacts-import` | a daily scheduler, when Courrier is configured | Proposes unknown Courrier contacts as `IMPORT` suggestions |
 
 Lifecycle: the mutation creates a `HuntSession` or `AuditSession` with status `PENDING`, enqueues
 the job, and the worker moves it through `PROCESSING` to `COMPLETED`, `FAILED` or `CANCELLED`

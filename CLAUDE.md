@@ -89,6 +89,7 @@ bun run clean                  # Clean and reinstall dependencies
 - `packages/auth/` - JWT authentication (server-only)
 - `packages/auth-shared/` - Role-based access control (isomorphic)
 - `packages/smtp/` - Email sending utilities
+- `packages/courrier/` - Courrier client (Registre refresh + token exchange, send, search, contacts)
 - `packages/logger/` - Structured logging
 - `packages/types/` - Shared TypeScript types
 - UI comes from `@facile/muse` (pinned in `apps/frontend/package.json`), the shared Facile design system
