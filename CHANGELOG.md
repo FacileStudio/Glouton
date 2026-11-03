@@ -11,6 +11,18 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+## [0.5.5] - 2026-11-03
+
+### Changed
+
+- Spaces use the share-circle icon
+
+### Fixed
+
+- `bun run lint` no longer crashes: the root `ajv` override forced ajv 8 on eslint, and the eslint configs had been truncated. Lint now passes with zero warnings
+- The frontend type-checks with 0 errors under strict mode: router types, route params, lead and hunt JSON fields, and nullable outreach ids
+- The creations page reads the fields the API returns, and relaunching a hunt sends validated categories
+
 ## [0.5.4] - 2026-11-03
 
 ### Fixed
