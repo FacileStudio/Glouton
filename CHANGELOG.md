@@ -11,6 +11,12 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+## [0.5.3] - 2026-11-03
+
+### Fixed
+
+- Live updates: the WebSocket open handler no longer wipes Hono's socket data, so pings get a pong and messages and closes stop crashing the backend every 25 s
+
 ## [0.5.2] - 2026-11-03
 
 ### Fixed
