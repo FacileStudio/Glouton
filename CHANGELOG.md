@@ -11,6 +11,16 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+## [0.5.4] - 2026-11-03
+
+### Fixed
+
+- The hunts page spaces its header, counters and empty state like the other pages
+
+### Changed
+
+- The desktop sidebar drops "Espaces"; the space switcher already links to space management. Mobile keeps it
+
 ## [0.5.3] - 2026-11-03
 
 ### Fixed
