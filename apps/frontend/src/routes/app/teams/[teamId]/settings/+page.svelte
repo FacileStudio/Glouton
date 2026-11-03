@@ -82,6 +82,7 @@
 
   let canManage = $derived(team && (team.userRole === 'OWNER' || team.userRole === 'ADMIN'));
   let isOwner = $derived(team && team.userRole === 'OWNER');
+  let linked = $derived(Boolean(team?.registreSpaceId));
 
   onMount(async () => {
     await loadTeam();
@@ -288,11 +289,15 @@
         {/snippet}
 
         <SettingsRow stacked>
-          <Field label="Nom de l'espace" for="name">
+          <Field
+            label="Nom de l'espace"
+            helper={linked ? 'Le nom, les membres et les rôles se gèrent dans Registre.' : undefined}
+            for="name"
+          >
             <Input
               id="name"
               bind:value={generalForm.name}
-              disabled={!canManage}
+              disabled={!canManage || linked}
               placeholder="Espace Marketing"
             />
           </Field>
@@ -312,7 +317,16 @@
         </SettingsRow>
       </SettingsSection>
 
-      {#if isOwner}
+      {#if linked && team.manageUrl}
+        <SettingsSection title="Registre" description="Cet espace est partagé avec toutes les apps Facile.">
+          <SettingsRow
+            label="Membres, rôles et nom"
+            description="Ajoutez, retirez ou renommez dans Registre ; Glouton se met à jour en quelques secondes."
+          >
+            <Button variant="outline" icon={icons.usersGroup} href={team.manageUrl}>Gérer dans Registre</Button>
+          </SettingsRow>
+        </SettingsSection>
+      {:else if isOwner}
         <SettingsSection title="Zone de danger" description="Ces actions sont irréversibles.">
           <SettingsRow
             label="Supprimer l'espace"

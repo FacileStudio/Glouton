@@ -42,8 +42,9 @@
   let leaveConfirmModalOpen = $state(false);
   let leavingTeam = $state(false);
 
-  let canManage = $derived(team && (team.userRole === 'OWNER' || team.userRole === 'ADMIN'));
-  let isOwner = $derived(team && team.userRole === 'OWNER');
+  let linked = $derived(Boolean(team?.registreSpaceId));
+  let canManage = $derived(team && !linked && (team.userRole === 'OWNER' || team.userRole === 'ADMIN'));
+  let isOwner = $derived(team && !linked && team.userRole === 'OWNER');
 
   onMount(async () => {
     await Promise.all([loadTeam(), loadMembers()]);
@@ -200,7 +201,9 @@
     back={{ href: `/app/teams/${teamId}`, label: team.name }}
   >
     {#snippet actions()}
-      {#if !isOwner}
+      {#if linked && team.manageUrl}
+        <Button variant="outline" icon={icons.usersGroup} href={team.manageUrl}>Gérer dans Registre</Button>
+      {:else if team.userRole !== 'OWNER'}
         <Button variant="ghost-danger" icon={icons.logout} onclick={() => (leaveConfirmModalOpen = true)}>
           Quitter l'espace
         </Button>

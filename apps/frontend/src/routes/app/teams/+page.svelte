@@ -6,6 +6,7 @@
 
   let teams = $state<any[]>([]);
   let loading = $state(true);
+  let spacesUrl = $state<string | null>(null);
   let searchQuery = $state('');
 
   let filteredTeams = $derived(
@@ -22,8 +23,12 @@
   async function loadTeams() {
     loading = true;
     try {
-      const result = await trpc.team.list.query();
+      const [result, directory] = await Promise.all([
+        trpc.team.list.query(),
+        trpc.team.directory.query(),
+      ]);
       teams = result || [];
+      spacesUrl = directory.spacesUrl;
     } catch (error) {
       console.error('Error loading teams:', error);
       toast.danger('Échec du chargement des espaces');
@@ -61,7 +66,11 @@
 
 <PageHeader title="Espaces" description="Gérez vos espaces et collaborez avec vos collègues">
   {#snippet actions()}
-    <Button icon={icons.plus} onclick={handleCreateTeam}>Créer un espace</Button>
+    {#if spacesUrl}
+      <Button variant="outline" icon={icons.usersGroup} href={spacesUrl}>Gérer dans Registre</Button>
+    {:else if !loading}
+      <Button icon={icons.plus} onclick={handleCreateTeam}>Créer un espace</Button>
+    {/if}
   {/snippet}
 </PageHeader>
 
@@ -93,7 +102,9 @@
         icon={icons.usersGroup}
         title={searchQuery ? 'Aucun espace trouvé' : 'Aucun espace'}
       >
-        {#if !searchQuery}
+        {#if !searchQuery && spacesUrl}
+          <Button variant="outline" icon={icons.usersGroup} href={spacesUrl}>Gérer dans Registre</Button>
+        {:else if !searchQuery}
           <Button icon={icons.plus} onclick={handleCreateTeam}>Créer un espace</Button>
         {/if}
       </EmptyState>
