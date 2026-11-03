@@ -7,6 +7,7 @@
   import { teamContextStore } from '$lib/stores/team-context.svelte';
   import { ws } from '$lib/websocket';
   import trpc from '$lib/trpc';
+  import { inboxCount } from '$lib/stores/inbox-count.svelte';
 
   type Team = { id: string; name: string; role: 'OWNER' | 'ADMIN' | 'MEMBER' };
 
@@ -21,6 +22,13 @@
 
   const navPages = $derived([
     { label: 'Chasses', icon: 'solar:radar-2-linear', href: '/app/hunts', active: isActive('/app/hunts') },
+    { label: 'Contacts', icon: 'solar:users-group-two-rounded-linear', href: '/app/contacts', active: isActive('/app/contacts') },
+    {
+      label: inboxCount.value > 0 ? `Boîte agent (${inboxCount.value})` : 'Boîte agent',
+      icon: 'solar:inbox-linear',
+      href: '/app/inbox',
+      active: isActive('/app/inbox'),
+    },
     { label: 'Leads', icon: 'solar:magnet-linear', href: '/app/leads', active: isActive('/app/leads') },
     { label: 'Créations', icon: 'solar:buildings-2-linear', href: '/app/creations', active: isActive('/app/creations') },
     { label: 'Missions', icon: 'solar:case-round-linear', href: '/app/missions', active: isActive('/app/missions') },
@@ -47,6 +55,10 @@
     if (path === '/app/hunts') return 'Chasses · Glouton';
     if (path.match(/^\/app\/leads\/.+/)) return 'Lead · Glouton';
     if (path === '/app/leads') return 'Leads · Glouton';
+    if (path.startsWith('/app/contacts/companies/')) return 'Entreprise · Glouton';
+    if (path.startsWith('/app/contacts/people/')) return 'Personne · Glouton';
+    if (path === '/app/contacts') return 'Contacts · Glouton';
+    if (path === '/app/inbox') return 'Boîte agent · Glouton';
     if (path === '/app/creations') return 'Créations · Glouton';
     if (path.startsWith('/app/missions')) return 'Missions · Glouton';
     if (path === '/app/outreach') return 'Prospection · Glouton';
@@ -73,10 +85,15 @@
   }
 
   let connectionState = ws.connectionState;
+  const offInbox = [
+    ws.on('draft:new', () => inboxCount.refresh()),
+    ws.on('suggestion:new', () => inboxCount.refresh()),
+  ];
 
   onMount(async () => {
     const token = $authStore.session?.token;
     if (token) ws.connect(token);
+    inboxCount.refresh();
     try {
       teams = await trpc.team.list.query();
       if (activeSpaceId && !teams.some((t) => t.id === activeSpaceId)) {
@@ -89,6 +106,7 @@
   });
 
   onDestroy(() => {
+    offInbox.forEach((off) => off());
     ws.disconnect();
   });
 
