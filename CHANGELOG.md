@@ -11,6 +11,34 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-03
+
+### Added
+
+- **Spaces come from Registre.** Glouton imports its existing teams into
+  Registre once, then mirrors Registre's shared spaces: same names, same
+  members, same roles. It pulls at boot, every 5 minutes, and 2 seconds after
+  Registre posts to `POST /api/registre/sync`. A mate added in Registre gets a
+  Glouton account before their first sign-in, and lands on it when they sign
+  in with SSO.
+- SSO sign-in records the Registre identity (issuer and `sub`), and finds the
+  user by it before falling back to email.
+
+### Changed
+
+- Creating a space, renaming it, adding or removing members, changing roles,
+  leaving and deleting now happen in Registre. Glouton shows a "Gérer dans
+  Registre" link instead, and the API answers 409 for those actions on a linked
+  space. Description, SMTP, API keys and webhooks stay in Glouton.
+- A member who has a Registre identity and is no longer in the Registre space
+  loses their Glouton membership. Members without one, such as password-only
+  accounts, are never removed by the sync.
+
+### Known gaps
+
+- Membership changes made in Registre do not fire the `team.member_added` and
+  `team.member_removed` webhooks.
+
 ## [0.3.0] - 2026-11-03
 
 ### Added

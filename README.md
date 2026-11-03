@@ -15,7 +15,7 @@ a WebSocket. Leads, hunts and missions belong either to a user or to a team.
 - CSV import and export of leads
 - Email outreach with per-user or per-team SMTP, templates, previews and delivery tracking
 - Freelance mission scraping from 21 public sources, re-run every three hours
-- Teams with `OWNER` / `ADMIN` / `MEMBER` roles, shared leads, and outgoing webhooks
+- Teams with `OWNER` / `ADMIN` / `MEMBER` roles, mirrored from Registre's shared spaces, with shared leads and outgoing webhooks
 - Email/password auth plus optional OIDC SSO against Authentik, with an `SSO_ONLY` mode
 
 ## Stack
