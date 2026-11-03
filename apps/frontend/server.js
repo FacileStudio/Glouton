@@ -23,7 +23,8 @@ const isBackendPath = (url = '') =>
   url === '/auth/oidc' || url.startsWith('/auth/oidc/') || url.startsWith('/auth/oidc?') ||
   url === '/docs' || url.startsWith('/docs?') || url.startsWith('/docs/') ||
   url === '/api/registre/sync' || url.startsWith('/api/registre/sync?') ||
-  url.startsWith('/api/agent/');
+  url.startsWith('/api/agent/') ||
+  url === '/api/integrations/ardoise/webhook' || url.startsWith('/api/integrations/ardoise/webhook?');
 
 function backendPort() {
   if (backendUrl.port) return Number(backendUrl.port);

@@ -35,6 +35,10 @@ export default defineConfig({
         target: backendUrl,
         changeOrigin: true,
       },
+      '/api/integrations/ardoise/webhook': {
+        target: backendUrl,
+        changeOrigin: true,
+      },
     },
     fs: {
       allow: ['..', '../../packages']
