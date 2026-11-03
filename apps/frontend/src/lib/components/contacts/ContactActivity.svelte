@@ -4,7 +4,14 @@
   import { getTrpcErrorMessage } from '$lib/utils/trpc-error';
   import { SUGGESTION_KINDS, formatDate } from './labels';
 
-  type Activity = { id?: string; kind?: string; summary?: string; actor?: string | null; occurredAt?: string | Date };
+  type Activity = {
+    id?: string;
+    kind?: string;
+    summary?: string;
+    actor?: string | null;
+    occurredAt?: string | Date;
+    payload?: unknown;
+  };
   type Suggestion = { id?: string; kind?: string; title?: string; body?: string | null; rationale?: string | null };
 
   let {
@@ -30,11 +37,25 @@
     'email.replied': 'solar:inbox-in-linear',
     'contact.merged': 'solar:users-group-two-rounded-linear',
     'contact.imported': 'solar:import-linear',
+    'ardoise.client.linked': 'solar:link-linear',
+    'ardoise.client.unlinked': 'solar:link-broken-linear',
+    'ardoise.sync_failed': 'solar:danger-triangle-linear',
+    'ardoise.quote_generated': 'solar:document-text-linear',
+    'ardoise.quote_accepted': 'solar:check-circle-linear',
+    'ardoise.invoice_generated': 'solar:bill-list-linear',
+    'ardoise.payment_created': 'solar:wallet-money-linear',
   };
+
+  function linkOf(payload: unknown): string | null {
+    if (!payload || typeof payload !== 'object' || !('url' in payload)) return null;
+    const url = (payload as { url?: unknown }).url;
+    return typeof url === 'string' && url.startsWith('https://') ? url : null;
+  }
 
   function actorText(actor: string | null): string {
     if (!actor || actor.startsWith('user:')) return 'Vous';
-    return actor === 'bulle' ? 'Bulle' : actor;
+    if (actor === 'bulle') return 'Bulle';
+    return actor === 'ardoise' ? 'Ardoise' : actor;
   }
 
   async function addNote(event: SubmitEvent) {
@@ -113,6 +134,9 @@
           ></iconify-icon>
           <div class="min-w-0">
             <p class="whitespace-pre-line text-fc-sm text-fc-fg">{a.summary}</p>
+            {#if linkOf(a.payload)}
+              <a href={linkOf(a.payload)} target="_blank" rel="noopener noreferrer" class="text-fc-xs text-fc-fg underline">Voir dans Ardoise</a>
+            {/if}
             <p class="text-fc-xs text-fc-fg-muted">{actorText(a.actor ?? null)} · {formatDate(a.occurredAt)}</p>
           </div>
         </li>

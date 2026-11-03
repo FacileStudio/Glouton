@@ -32,7 +32,7 @@ export const remoteClientSchema = z.object({
 /** Parses an Ardoise client from a webhook body or a stored suggestion payload. */
 export function parseRemoteClient(value: unknown): RemoteClient | null {
   const parsed = remoteClientSchema.safeParse(value);
-  return parsed.success ? parsed.data : null;
+  return parsed.success ? (parsed.data as RemoteClient) : null;
 }
 
 /** Where a contact created from Ardoise lands: a team, or the personal scope of its owner. */
