@@ -7,6 +7,7 @@ import { teamRouter } from './modules/team/router';
 import { opportunityRouter } from './modules/opportunity/router';
 import { companyCreationRouter } from './modules/company-creation/router';
 import { contactRouter } from './modules/contact/router';
+import { inboxRouter } from './modules/inbox/router';
 import { createOpenApiDocument } from './openapi';
 
 export const appRouter = router({
@@ -18,6 +19,7 @@ export const appRouter = router({
   opportunity: opportunityRouter,
   companyCreation: companyCreationRouter,
   contact: contactRouter,
+  inbox: inboxRouter,
 });
 
 export const openApiDocument = createOpenApiDocument(appRouter);
@@ -28,3 +30,13 @@ export { createContext, type Context, type CreateContextOptions } from './contex
 export { publicProcedure, protectedProcedure, humanProcedure, adminProcedure } from './trpc';
 export * from './delegation';
 export { globalCacheFactory } from './cache';
+export * as contactService from './modules/contact/service';
+export * as contactSchemas from './modules/contact/schemas';
+export * as inboxService from './modules/inbox/service';
+export { accessForUser, type Access } from './modules/contact/access';
+export {
+  draftCreateSchema,
+  draftUpdateSchema,
+  suggestionCreateSchema,
+  suggestionStatusSchema,
+} from './modules/inbox/router';

@@ -1,7 +1,7 @@
 import type { Prisma, PrismaClient } from '@prisma/client';
-import { SMTPService, renderTemplate, type EmailTemplate } from '@repo/smtp';
+import { renderTemplate } from '@repo/smtp';
+import { sendOutreach } from './transport';
 import { buildEmailFilter, buildLeadFilter, type Scope } from '../../utils/scope';
-import { getSmtpConfig } from '../../utils/api-keys';
 import { logger } from '@repo/logger';
 import type { AuthManager } from '@repo/auth';
 import { verifyEmail } from '@repo/jobs';
@@ -49,13 +49,9 @@ export class EmailService {
       logger.info({ leadId: params.leadId, email: lead.email, result: verification.reason }, '[EMAIL] Email verified successfully');
     }
 
-    const smtpConfig = await getSmtpConfig(params.prisma, params.scope, params.auth);
-
-    if (!smtpConfig) {
-      const contextType = params.scope.type === 'team' ? 'team or your account' : 'your account';
-      throw new Error(
-        `SMTP configuration not found for ${contextType}. Please configure SMTP settings.`
-      );
+    const rendered = renderTemplate(params.templateId, params.variables);
+    if (!rendered) {
+      throw new Error('Template not found');
     }
 
     logger.info({
@@ -64,75 +60,35 @@ export class EmailService {
       teamId: params.scope.type === 'team' ? params.scope.teamId : null,
     }, '[EMAIL] Sending email');
 
-    const smtp = new SMTPService({
-      host: smtpConfig.host,
-      port: smtpConfig.port,
-      secure: smtpConfig.secure,
-      auth: {
-        user: smtpConfig.user,
-        pass: smtpConfig.pass,
-      },
-      from: {
-        name: smtpConfig.fromName,
-        email: smtpConfig.fromEmail,
-      },
-    });
-
-    const rendered = renderTemplate(params.templateId, params.variables);
-    if (!rendered) {
-      throw new Error('Template not found');
-    }
-
-    const outreachData: any = {
-      leadId: params.leadId,
-      userId: params.scope.userId,
-      templateId: params.templateId,
-      subject: rendered.subject,
-      htmlBody: rendered.html,
-      textBody: rendered.text,
-      variables: params.variables,
-      status: 'PENDING',
-    };
-
-    if (params.scope.type === 'team') {
-      outreachData.teamId = params.scope.teamId;
-    } else {
-      outreachData.teamId = null;
-    }
+    const [company, person] = await Promise.all([
+      params.prisma.company.findUnique({ where: { legacyLeadId: params.leadId }, select: { id: true } }),
+      params.prisma.person.findFirst({ where: { legacyLeadId: params.leadId }, select: { id: true } }),
+    ]);
 
     const outreach = await params.prisma.emailOutreach.create({
-      data: outreachData,
+      data: {
+        leadId: params.leadId,
+        userId: params.scope.userId,
+        teamId: params.scope.type === 'team' ? params.scope.teamId : null,
+        companyId: company?.id ?? null,
+        personId: person?.id ?? null,
+        templateId: params.templateId,
+        subject: rendered.subject,
+        htmlBody: rendered.html,
+        textBody: rendered.text,
+        variables: params.variables,
+        status: 'PENDING',
+      },
       select: { id: true },
     });
 
     try {
-      await smtp.sendEmail({
-        to: lead.email,
-        subject: rendered.subject,
-        html: rendered.html,
-        text: rendered.text,
+      await sendOutreach({
+        prisma: params.prisma,
+        auth: params.auth,
+        scope: params.scope,
+        mail: { to: lead.email, subject: rendered.subject, html: rendered.html, text: rendered.text },
       });
-
-      await params.prisma.emailOutreach.update({
-        where: { id: outreach.id },
-        data: {
-          status: 'SENT',
-          sentAt: new Date(),
-        },
-      });
-
-      await params.prisma.lead.update({
-        where: { id: params.leadId },
-        data: {
-          contacted: true,
-          lastContactedAt: new Date(),
-          emailsSentCount: { increment: 1 },
-        },
-      });
-
-      await smtp.close();
-
-      return { success: true, outreachId: outreach.id };
     } catch (error) {
       await params.prisma.emailOutreach.update({
         where: { id: outreach.id },
@@ -141,11 +97,24 @@ export class EmailService {
           error: error instanceof Error ? error.message : 'Unknown error',
         },
       });
-
-      await smtp.close();
-
       throw error;
     }
+
+    await params.prisma.emailOutreach.update({
+      where: { id: outreach.id },
+      data: { status: 'SENT', sentAt: new Date() },
+    });
+
+    await params.prisma.lead.update({
+      where: { id: params.leadId },
+      data: {
+        contacted: true,
+        lastContactedAt: new Date(),
+        emailsSentCount: { increment: 1 },
+      },
+    });
+
+    return { success: true, outreachId: outreach.id };
   }
 
   async getLeadOutreach(leadId: string, scope: Scope, prisma: PrismaClient) {

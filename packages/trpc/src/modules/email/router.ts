@@ -4,6 +4,8 @@ import { EmailService } from './service';
 import { getAllTemplates, renderTemplate } from '@repo/smtp';
 import { resolveScope } from '../../utils/scope';
 import { getSmtpConfig } from '../../utils/api-keys';
+import { accessForUser } from '../contact/access';
+import { sendDraft } from '../inbox/service';
 
 export const emailRouter = router({
   getTemplates: protectedProcedure.query(async () => {
@@ -64,6 +66,12 @@ export const emailRouter = router({
         prisma: ctx.prisma,
       });
     }),
+
+  sendDraft: humanProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) =>
+      sendDraft(ctx.prisma, ctx.auth, await accessForUser(ctx.prisma, ctx.user.id, ctx.actor), input.id)
+    ),
 
   getLeadOutreach: protectedProcedure
     .input(z.object({
