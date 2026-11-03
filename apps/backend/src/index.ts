@@ -273,11 +273,11 @@ process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 process.on('uncaughtException', (err) => {
-  logger.error({ error: err }, '[PROCESS] Uncaught exception');
+  logger.error({ err }, '[PROCESS] Uncaught exception');
 });
 
 process.on('unhandledRejection', (reason) => {
-  logger.error({ error: reason }, '[PROCESS] Unhandled rejection');
+  logger.error({ err: reason }, '[PROCESS] Unhandled rejection');
 });
 
 export default { port, fetch: app.fetch, websocket };
