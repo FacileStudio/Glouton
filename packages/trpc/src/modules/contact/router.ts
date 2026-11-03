@@ -3,6 +3,7 @@ import { router, protectedProcedure, humanProcedure } from '../../trpc';
 import type { Context } from '../../context';
 import { resolveScope } from '../../utils/scope';
 import { accessForScope, accessForUser } from './access';
+import { ardoiseFor } from '../ardoise/router';
 import * as contacts from './service';
 import {
   companyCreateSchema,
@@ -28,6 +29,10 @@ async function scopeAccess(ctx: AuthedContext, teamId: string | undefined) {
 
 function userAccess(ctx: AuthedContext) {
   return accessForUser(ctx.prisma, ctx.user.id, ctx.actor);
+}
+
+function hooks(ctx: AuthedContext) {
+  return ardoiseFor(ctx).hooks;
 }
 
 function originOf(ctx: AuthedContext) {
@@ -70,7 +75,7 @@ export const contactRouter = router({
   updateCompany: protectedProcedure
     .input(z.object({ id: z.string(), data: companyUpdateSchema }))
     .mutation(async ({ ctx, input }) =>
-      contacts.updateCompany(ctx.prisma, await userAccess(ctx), input.id, input.data)
+      contacts.updateCompany(ctx.prisma, await userAccess(ctx), input.id, input.data, hooks(ctx))
     ),
 
   createPerson: protectedProcedure
@@ -82,7 +87,7 @@ export const contactRouter = router({
   updatePerson: protectedProcedure
     .input(z.object({ id: z.string(), data: personUpdateSchema }))
     .mutation(async ({ ctx, input }) =>
-      contacts.updatePerson(ctx.prisma, await userAccess(ctx), input.id, input.data)
+      contacts.updatePerson(ctx.prisma, await userAccess(ctx), input.id, input.data, hooks(ctx))
     ),
 
   changeStage: protectedProcedure
@@ -108,7 +113,7 @@ export const contactRouter = router({
   mergeCompanies: humanProcedure
     .input(z.object({ targetId: z.string(), sourceId: z.string() }))
     .mutation(async ({ ctx, input }) =>
-      contacts.mergeCompanies(ctx.prisma, await userAccess(ctx), input.targetId, input.sourceId)
+      contacts.mergeCompanies(ctx.prisma, await userAccess(ctx), input.targetId, input.sourceId, hooks(ctx))
     ),
 
   mergePeople: humanProcedure
@@ -119,7 +124,7 @@ export const contactRouter = router({
 
   deleteCompany: humanProcedure
     .input(z.object({ id: z.string() }))
-    .mutation(async ({ ctx, input }) => contacts.deleteCompany(ctx.prisma, await userAccess(ctx), input.id)),
+    .mutation(async ({ ctx, input }) => contacts.deleteCompany(ctx.prisma, await userAccess(ctx), input.id, hooks(ctx))),
 
   deletePerson: humanProcedure
     .input(z.object({ id: z.string() }))

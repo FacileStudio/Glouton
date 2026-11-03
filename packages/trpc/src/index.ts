@@ -8,6 +8,7 @@ import { opportunityRouter } from './modules/opportunity/router';
 import { companyCreationRouter } from './modules/company-creation/router';
 import { contactRouter } from './modules/contact/router';
 import { inboxRouter } from './modules/inbox/router';
+import { ardoiseRouter } from './modules/ardoise/router';
 import { createOpenApiDocument } from './openapi';
 
 export const appRouter = router({
@@ -20,6 +21,7 @@ export const appRouter = router({
   companyCreation: companyCreationRouter,
   contact: contactRouter,
   inbox: inboxRouter,
+  ardoise: ardoiseRouter,
 });
 
 export const openApiDocument = createOpenApiDocument(appRouter);
@@ -33,6 +35,7 @@ export { globalCacheFactory } from './cache';
 export * as contactService from './modules/contact/service';
 export * as contactSchemas from './modules/contact/schemas';
 export * as inboxService from './modules/inbox/service';
+export * as ardoise from './modules/ardoise';
 export { accessForUser, type Access } from './modules/contact/access';
 export {
   draftCreateSchema,
