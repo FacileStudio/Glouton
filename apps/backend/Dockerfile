@@ -8,6 +8,7 @@ COPY apps/backend/package.json ./apps/backend/
 COPY packages/audit/package.json ./packages/audit/
 COPY packages/auth/package.json ./packages/auth/
 COPY packages/auth-shared/package.json ./packages/auth-shared/
+COPY packages/courrier/package.json ./packages/courrier/
 COPY packages/crypto/package.json ./packages/crypto/
 COPY packages/database/package.json ./packages/database/
 COPY packages/env/package.json ./packages/env/

@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@repo/audit": "workspace:*",
+    "@repo/courrier": "workspace:*",
     "@repo/logger": "workspace:*",
     "@repo/maps": "workspace:*",
     "@repo/webhooks": "workspace:*",

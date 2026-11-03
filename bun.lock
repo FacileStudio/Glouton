@@ -21,6 +21,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@hono/trpc-server": "^0.4.2",
+        "@repo/courrier": "workspace:*",
         "@repo/database": "workspace:*",
         "@repo/jobs": "workspace:*",
         "@repo/logger": "workspace:*",
@@ -125,6 +126,14 @@
         "typescript": "^5.9.3",
       },
     },
+    "packages/courrier": {
+      "name": "@repo/courrier",
+      "version": "0.0.0",
+      "devDependencies": {
+        "@repo/tsconfig": "workspace:*",
+        "typescript": "^5.9.3",
+      },
+    },
     "packages/crypto": {
       "name": "@repo/crypto",
       "version": "0.0.0",
@@ -187,6 +196,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@repo/audit": "workspace:*",
+        "@repo/courrier": "workspace:*",
         "@repo/logger": "workspace:*",
         "@repo/maps": "workspace:*",
         "@repo/webhooks": "workspace:*",
@@ -243,6 +253,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@repo/auth-shared": "workspace:*",
+        "@repo/courrier": "workspace:*",
         "@repo/database": "workspace:*",
         "@repo/logger": "workspace:*",
         "@repo/webhooks": "workspace:*",
@@ -630,6 +641,8 @@
     "@repo/auth-shared": ["@repo/auth-shared@workspace:packages/auth-shared"],
 
     "@repo/backend": ["@repo/backend@workspace:apps/backend"],
+
+    "@repo/courrier": ["@repo/courrier@workspace:packages/courrier"],
 
     "@repo/crypto": ["@repo/crypto@workspace:packages/crypto"],
 
