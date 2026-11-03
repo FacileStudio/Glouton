@@ -119,11 +119,11 @@ export const wsHandler = upgradeWebSocket(async (c) => {
       const connectionId = Math.random().toString(36).substring(2, 15);
       const rawWs = ws.raw as ServerWebSocket<WebSocketData> | undefined;
       if (rawWs) {
-        rawWs.data = {
+        Object.assign(rawWs.data, {
           userId,
           createdAt: Date.now(),
           connectionId,
-        };
+        });
 
         if (userId) {
           if (!clients.has(userId)) {
