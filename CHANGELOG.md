@@ -11,6 +11,12 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-11-03
+
+### Fixed
+
+- Uncaught exceptions and unhandled rejections log their message and stack instead of `{}`
+
 ## [0.5.1] - 2026-11-03
 
 ### Fixed
