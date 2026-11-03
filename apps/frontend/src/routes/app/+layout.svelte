@@ -133,7 +133,7 @@
       icon="solar:magnet-wave-bold-duotone"
       title="Glouton"
       bind:collapsed
-      pages={navPages}
+      pages={navPages.filter((p) => p.href !== '/app/teams')}
       user={navUser}
       userHref="/app/settings"
       userActive={settingsActive}

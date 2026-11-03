@@ -160,41 +160,83 @@
     <Spinner size="lg" label="Chargement" />
   </div>
 {:else}
-  <PageHeader title="Chasses" description="Gestion des chasses aux leads">
-    {#snippet actions()}
-      <Button href="/app/hunts/new" icon={icons.plus}>Nouvelle chasse</Button>
-    {/snippet}
-  </PageHeader>
+  <div class="flex flex-col gap-6">
+    <PageHeader title="Chasses" description="Gestion des chasses aux leads">
+      {#snippet actions()}
+        <Button href="/app/hunts/new" icon={icons.plus}>Nouvelle chasse</Button>
+      {/snippet}
+    </PageHeader>
 
-  <section class="grid grid-cols-2 gap-4 lg:grid-cols-4">
-    {#each [{ label: 'En attente', val: stats?.pendingHunts?.toString() || '0' }, { label: 'En cours', val: stats?.processingHunts?.toString() || '0' }, { label: 'Terminées', val: stats?.completedHunts?.toString() || '0' }, { label: 'Échouées', val: stats?.failedHunts?.toString() || '0' }] as stat}
-      <StatCard label={stat.label} value={stat.val} />
-    {/each}
-  </section>
+    <section class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      {#each [{ label: 'En attente', val: stats?.pendingHunts?.toString() || '0' }, { label: 'En cours', val: stats?.processingHunts?.toString() || '0' }, { label: 'Terminées', val: stats?.completedHunts?.toString() || '0' }, { label: 'Échouées', val: stats?.failedHunts?.toString() || '0' }] as stat}
+        <StatCard label={stat.label} value={stat.val} />
+      {/each}
+    </section>
 
-  {#if huntSessions.length === 0}
-    <EmptyState
-      icon="solar:bolt-linear"
-      title="Aucune chasse pour l'instant"
-      description="Lancez votre première chasse pour découvrir et collecter des leads selon des filtres comme la localisation, les postes et les départements"
-    >
-      <Button href="/app/hunts/new" icon={icons.plus}>Lancer votre première chasse</Button>
-    </EmptyState>
-  {:else if huntSessions.filter((s) => s.status === 'FAILED').length === 0 && huntSessions.filter((s) => s.status === 'PENDING' || s.status === 'PROCESSING').length === 0 && huntSessions.filter((s) => s.status === 'COMPLETED').length === 0}
-    <EmptyState
-      icon="solar:ghost-linear"
-      title="Tout est vide"
-      description="Aucune chasse active, échouée ou terminée à afficher"
-    >
-      <Button href="/app/hunts/new" icon={icons.plus}>Nouvelle chasse</Button>
-    </EmptyState>
-  {:else}
-    {#if huntSessions.filter((s) => s.status === 'FAILED').length > 0}
-      <Section title="Chasses échouées">
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {#each huntSessions.filter((s) => s.status === 'FAILED') as session (session.id)}
+    {#if huntSessions.length === 0}
+      <EmptyState
+        icon="solar:bolt-linear"
+        title="Aucune chasse pour l'instant"
+        description="Lancez votre première chasse pour découvrir et collecter des leads selon des filtres comme la localisation, les postes et les départements"
+      >
+        <Button href="/app/hunts/new" icon={icons.plus}>Lancer votre première chasse</Button>
+      </EmptyState>
+    {:else if huntSessions.filter((s) => s.status === 'FAILED').length === 0 && huntSessions.filter((s) => s.status === 'PENDING' || s.status === 'PROCESSING').length === 0 && huntSessions.filter((s) => s.status === 'COMPLETED').length === 0}
+      <EmptyState
+        icon="solar:ghost-linear"
+        title="Tout est vide"
+        description="Aucune chasse active, échouée ou terminée à afficher"
+      >
+        <Button href="/app/hunts/new" icon={icons.plus}>Nouvelle chasse</Button>
+      </EmptyState>
+    {:else}
+      {#if huntSessions.filter((s) => s.status === 'FAILED').length > 0}
+        <Section title="Chasses échouées">
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {#each huntSessions.filter((s) => s.status === 'FAILED') as session (session.id)}
+              <div in:fade>
+                <HuntCard
+                  {session}
+                  onDelete={deleteHunt}
+                  onRelaunch={relaunchHunt}
+                  deleting={deletingHuntId === session.id}
+                  relaunching={relaunchingHuntId === session.id}
+                />
+              </div>
+            {/each}
+          </div>
+        </Section>
+      {/if}
+
+      {#if huntSessions.filter((s) => s.status === 'PENDING' || s.status === 'PROCESSING').length > 0}
+        <Section title="Chasses actives">
+          {#each huntSessions.filter((s) => s.status === 'PROCESSING') as session (session.id)}
+            <div in:fade>
+              <HuntBanner
+                {session}
+                onCancel={cancelHunt}
+                cancelling={cancellingHuntId === session.id}
+                clickable={true}
+              />
+            </div>
+          {/each}
+          {#each huntSessions.filter((s) => s.status === 'PENDING') as session (session.id)}
             <div in:fade>
               <HuntCard
+                {session}
+                onCancel={cancelHunt}
+                cancelling={cancellingHuntId === session.id}
+              />
+            </div>
+          {/each}
+        </Section>
+      {/if}
+
+      {#if huntSessions.filter((s) => s.status === 'COMPLETED').length > 0}
+        <Section title="Chasses terminées">
+          {#each huntSessions.filter((s) => s.status === 'COMPLETED') as session (session.id)}
+            <div in:fade>
+              <HuntListItem
                 {session}
                 onDelete={deleteHunt}
                 onRelaunch={relaunchHunt}
@@ -203,48 +245,8 @@
               />
             </div>
           {/each}
-        </div>
-      </Section>
+        </Section>
+      {/if}
     {/if}
-
-    {#if huntSessions.filter((s) => s.status === 'PENDING' || s.status === 'PROCESSING').length > 0}
-      <Section title="Chasses actives">
-        {#each huntSessions.filter((s) => s.status === 'PROCESSING') as session (session.id)}
-          <div in:fade>
-            <HuntBanner
-              {session}
-              onCancel={cancelHunt}
-              cancelling={cancellingHuntId === session.id}
-              clickable={true}
-            />
-          </div>
-        {/each}
-        {#each huntSessions.filter((s) => s.status === 'PENDING') as session (session.id)}
-          <div in:fade>
-            <HuntCard
-              {session}
-              onCancel={cancelHunt}
-              cancelling={cancellingHuntId === session.id}
-            />
-          </div>
-        {/each}
-      </Section>
-    {/if}
-
-    {#if huntSessions.filter((s) => s.status === 'COMPLETED').length > 0}
-      <Section title="Chasses terminées">
-        {#each huntSessions.filter((s) => s.status === 'COMPLETED') as session (session.id)}
-          <div in:fade>
-            <HuntListItem
-              {session}
-              onDelete={deleteHunt}
-              onRelaunch={relaunchHunt}
-              deleting={deletingHuntId === session.id}
-              relaunching={relaunchingHuntId === session.id}
-            />
-          </div>
-        {/each}
-      </Section>
-    {/if}
-  {/if}
+  </div>
 {/if}
