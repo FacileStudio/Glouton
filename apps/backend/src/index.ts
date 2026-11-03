@@ -7,6 +7,7 @@ import { logger } from '@repo/logger';
 import corsHandler from './handlers/cors';
 import trpcHandler from './handlers/trpc';
 import { createAuthRoutes } from './handlers/auth';
+import { createAgentRoutes } from './handlers/agent';
 import { openApiHandler } from './handlers/openapi';
 import { apiReference } from '@scalar/hono-api-reference';
 import {
@@ -197,6 +198,13 @@ app.post('/internal/broadcast', async (c) => {
 });
 
 app.route('/auth', createAuthRoutes(config.authManager));
+
+app.route('/api/agent', createAgentRoutes({
+  prisma,
+  verifySession: (token) => config.authManager.verifyToken(token),
+  verifyDelegated,
+  notify: (scope, type, data) => events.emitToScope(scope, type, data),
+}));
 
 app.use('/trpc/auth.login', loginLimiter);
 app.use('/trpc/auth.register', registerLimiter);

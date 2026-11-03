@@ -31,6 +31,10 @@ export default defineConfig({
         target: backendUrl,
         changeOrigin: true,
       },
+      '/api/agent/': {
+        target: backendUrl,
+        changeOrigin: true,
+      },
     },
     fs: {
       allow: ['..', '../../packages']
