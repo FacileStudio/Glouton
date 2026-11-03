@@ -176,11 +176,32 @@ scope plus every team the caller belongs to. Deleted rows (`deletedAt`) never co
 | `checkDuplicates` | query | protected | `{ email?, domain?, siret? }` |
 | `outreach` | query | protected | `{ companyId? or personId? }` |
 | `mergeCompanies`, `mergePeople` | mutation | human | `{ targetId, sourceId }`; moves people, activities, suggestions and outreach, then soft-deletes the source |
-| `deleteCompany`, `deletePerson` | mutation | human | `{ id }`; soft delete, a company takes its people with it |
+| `deleteCompany`, `deletePerson` | mutation | human | `{ id }`; soft delete, a company takes its people with it. A linked Ardoise client is unlinked there, never deleted |
 
 Hunts, CSV imports and company-creation conversions still write `Lead`, and now also mirror each
 new lead into a `Company` (plus a `Person` when the lead has a name or email), linked by
 `legacyLeadId`.
+
+## `ardoise`
+
+| Procedure | Type | Level | Input |
+|---|---|---|---|
+| `status` | query | protected | `{ enabled, webUrl }`: whether the sync is configured, and the Ardoise web URL |
+| `turnIntoClient` | mutation | human | `{ companyId, billingPersonId, fill?: { firstName?, lastName?, email?, siret?, vatNumber?, addressLine?, postalCode?, city?, country? } }` |
+| `unlink` | mutation | human | `{ companyId }`: unlinks on both sides, deletes nothing |
+
+`turnIntoClient` fills the empty fields from `fill`, then needs a billing person with a first and a
+last name (Ardoise requires both; `BAD_REQUEST` otherwise). It creates the client in Ardoise in
+the space whose `registreSpaceId` matches the company's team, marks the person as the billing
+contact, moves the company to `CLIENT` and logs `ardoise.client.linked`. When Ardoise has no such
+space it answers 422 `unknown_space`; Glouton returns `BAD_REQUEST` with that reason and logs an
+`ardoise.sync_failed` activity. It never retries without the space.
+
+Once linked, an edit of the company's name, SIRET, VAT number or address, or of the billing
+person's names or email, queues a push. The push waits 10 seconds after the last edit, then PUTs
+the current state with `updatedAt` = the later of the company's and the person's `updatedAt`.
+When Ardoise holds a newer version it answers `skipped`, and Glouton fetches that version and
+applies it. Edits made through `/api/agent/*` sync the same way.
 
 ## `inbox`
 
@@ -196,9 +217,11 @@ new lead into a `Company` (plus a `Person` when the lead has a name or email), l
 | `decideSuggestion` | mutation | human | `{ id, decision: ACCEPT or DISMISS }` |
 
 Accepting applies the suggestion: `RESCORE` sets the company's `temperature` and `score` from the
-payload, `MATCH` links an Ardoise client (`payload.ardoiseClientId`) or a person to a company,
+payload, `MATCH` links an Ardoise client (`payload.ardoiseClientId`, filled from `payload.client`
+and pushed back to Ardoise) or a person to a company,
 `IMPORT` creates a person from the payload, `NEXT_ACTION` logs a note, and `DRAFT` or `FOLLOW_UP`
 with `payload.subject` and `payload.text` creates a draft. Accepting never sends anything.
+Dismissing an Ardoise `MATCH` creates a new client company from `payload.client` instead.
 
 ## `team`
 
@@ -262,9 +285,11 @@ All protected. Freelance missions scraped from public boards.
 | `GET` | `/health/ready` | none | **no** | Readiness, checks Prisma |
 | `GET` | `/` | none | **no** | `{ message: "Welcome to the Glouton's API !" }` |
 | any | `/api/agent/*` | bearer | yes | Agent REST API, see below |
+| `POST` | `/api/integrations/ardoise/webhook` | HMAC signature | yes | Ardoise events, see below |
 
 The "proxied publicly" column matters: `apps/frontend/server.js` forwards only `/trpc`,
-`/auth/config`, `/auth/oidc`, `/docs/*`, `/api/registre/sync` and `/api/agent/*`. Everything else is reachable only from
+`/auth/config`, `/auth/oidc`, `/docs/*`, `/api/registre/sync`, `/api/agent/*` and
+`/api/integrations/ardoise/webhook`. Everything else is reachable only from
 inside the Docker network. `x-internal-secret` is compared against `ENCRYPTION_SECRET`, the same
 value that signs JWTs.
 
@@ -273,6 +298,29 @@ through `broadcastToUser` or to everyone through `broadcastToAll`.
 
 The stream also carries `draft:new` and `suggestion:new` (to the user, or every member of the
 team the row belongs to), which refresh the inbox badge.
+
+## Ardoise webhook
+
+`POST /api/integrations/ardoise/webhook` receives Ardoise's events. Body:
+`{ id, event, occurredAt, data }`. Headers: `X-Ardoise-Event`, `X-Ardoise-Delivery` and
+`X-Ardoise-Signature-256: sha256=<hex HMAC-SHA256 of the raw body with ARDOISE_WEBHOOK_SECRET>`.
+
+| Answer | When |
+|---|---|
+| 404 `not_configured` | the sync is off |
+| 401 `invalid_signature` | the signature is missing or wrong |
+| 400 `invalid_payload` | the body is not an event |
+| 200 `{ data: { outcome: "duplicate" } }` | this `X-Ardoise-Delivery` was already handled; Ardoise retries reuse the id |
+| 202 `{ data: { outcome } }` | handled, including no-ops (`ignored`, `skipped`, `no_owner`) |
+| 500 | the event failed; the delivery id is released so Ardoise's retry runs again |
+
+Delivery ids are kept 30 days in `ArdoiseDelivery`.
+
+| Event | What Glouton does |
+|---|---|
+| `client.created`, `client.updated` | A linked company (by `gloutonCompanyId` or `ardoiseClientId`) takes the client's name, SIRET, VAT number and address, and its billing person the contact, unless `updatedAt` is not later than `Company.ardoiseUpdatedAt`. An unlinked client is matched in the team whose `registreSpaceId` matches, else in the personal scope of `ARDOISE_DEFAULT_OWNER_EMAIL`: same SIRET or same contact email links it at once; same email domain (webmail excluded) or a very similar name opens a `MATCH` suggestion; otherwise Glouton creates a `CLIENT` company with origin `ARDOISE` and its billing person. A link or a create is then pushed back so Ardoise stores `gloutonCompanyId`. A client unlinked in Glouton is not imported again |
+| `client.deleted` | Unlinks the company and logs `ardoise.client.unlinked`. Nothing is deleted and the stage stays |
+| `mission.quote_generated`, `mission.quote_accepted`, `mission.invoice_generated`, `mission.payment_created` | Logs `ardoise.<event>` on the company linked to `data.clientId`, with the amount, document number and Ardoise link. `quote_accepted` also moves the company to `CLIENT`. Events for an unlinked client are ignored |
 
 ## Delegated tokens
 

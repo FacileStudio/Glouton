@@ -22,6 +22,12 @@ in the root `package.json`.
 - **Agent REST API** under `/api/agent/*` for contacts, outreach, drafts and suggestions. It
   accepts a Registre delegated token (`glouton.read` for GET, `glouton.write` otherwise) or a
   session JWT, and has no route that sends mail.
+- **Ardoise sync.** "Passer en client" on a company creates the client in Ardoise, after you pick
+  the billing contact and fill what is missing. Linked companies show a "Lié dans Ardoise" link
+  and an Unlink action. Ardoise clients flow back through a signed webhook: Glouton links them by
+  SIRET or contact email, asks in the inbox on a domain or name match, and creates the rest.
+  Quotes, invoices and payments land on the company timeline, and an accepted quote makes it a
+  client. Edits on either side sync with last write wins; a delete on one side only unlinks.
 - `bun run backfill:contacts [--dry-run]` turns existing leads into companies and people and
   links their outreach. Running it twice changes nothing.
 
@@ -38,6 +44,9 @@ in the root `package.json`.
   new `EmailStatus.DRAFT`). `prisma db push` at boot applies it, and migration
   `019_contacts_hub.sql` matches it. Run `bun run backfill:contacts` once after deploy. The
   `Lead` table is unchanged and the Leads pages still read it.
+- The Ardoise sync adds the `ArdoiseDelivery` table (migration `020_ardoise_deliveries.sql`) and
+  stays off until `ARDOISE_URL`, `ARDOISE_API_TOKEN`, `ARDOISE_WEBHOOK_SECRET` and
+  `ARDOISE_DEFAULT_OWNER_EMAIL` are all set, with the matching `GLOUTON_*` values in Ardoise.
 
 ## [0.4.0] - 2026-11-03
 
