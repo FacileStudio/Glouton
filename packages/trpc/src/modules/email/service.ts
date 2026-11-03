@@ -1,4 +1,4 @@
-import type { PrismaClient } from '@prisma/client';
+import type { Prisma, PrismaClient } from '@prisma/client';
 import { SMTPService, renderTemplate, type EmailTemplate } from '@repo/smtp';
 import { buildEmailFilter, buildLeadFilter, type Scope } from '../../utils/scope';
 import { getSmtpConfig } from '../../utils/api-keys';
@@ -180,7 +180,10 @@ export class EmailService {
 
   async getOutreachStats(scope: Scope, prisma: PrismaClient) {
     const FOLLOW_UP_DAYS = 5;
-    const emailFilter = buildEmailFilter(scope);
+    const emailFilter: Prisma.EmailOutreachWhereInput = {
+      ...buildEmailFilter(scope),
+      status: { not: 'DRAFT' },
+    };
 
     const [total, sent, opened, replied, contactedLeads] = await Promise.all([
       prisma.emailOutreach.count({
@@ -213,7 +216,7 @@ export class EmailService {
 
     const latestByLead = new Map<string, typeof allOutreach[0]>();
     for (const outreach of allOutreach) {
-      if (!latestByLead.has(outreach.leadId)) {
+      if (outreach.leadId && !latestByLead.has(outreach.leadId)) {
         latestByLead.set(outreach.leadId, outreach);
       }
     }
@@ -240,7 +243,10 @@ export class EmailService {
 
   async getAllOutreach(scope: Scope, prisma: PrismaClient) {
     const FOLLOW_UP_DAYS = 5;
-    const emailFilter = buildEmailFilter(scope);
+    const emailFilter: Prisma.EmailOutreachWhereInput = {
+      ...buildEmailFilter(scope),
+      status: { not: 'DRAFT' },
+    };
 
     const allOutreach = await prisma.emailOutreach.findMany({
       where: emailFilter,
@@ -257,7 +263,7 @@ export class EmailService {
 
     const latestByLead = new Map<string, typeof allOutreach[0]>();
     for (const outreach of allOutreach) {
-      if (!latestByLead.has(outreach.leadId)) {
+      if (outreach.leadId && !latestByLead.has(outreach.leadId)) {
         latestByLead.set(outreach.leadId, outreach);
       }
     }

@@ -90,10 +90,15 @@ model UserFavoriteLead {
 
 model EmailOutreach {
   id          String      @id @default(dbgenerated("gen_random_uuid()")) @db.Text
-  leadId      String      @db.Text
+  leadId      String?     @db.Text
   userId      String      @db.Text
   teamId      String?     @db.Text
-  templateId  String      @db.Text
+  personId    String?     @db.Text
+  companyId   String?     @db.Text
+  origin      String      @default("HUMAN") @db.Text
+  rationale   String?     @db.Text
+  courrierAccountId Int?
+  templateId  String?     @db.Text
   subject     String      @db.Text
   htmlBody    String      @db.Text
   textBody    String      @db.Text
@@ -107,11 +112,15 @@ model EmailOutreach {
   createdAt   DateTime    @default(now()) @db.Timestamptz(3)
   updatedAt   DateTime    @default(now()) @updatedAt @db.Timestamptz(3)
 
-  lead        Lead        @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  lead        Lead?       @relation(fields: [leadId], references: [id], onDelete: Cascade)
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   team        Team?       @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  person      Person?     @relation(fields: [personId], references: [id], onDelete: SetNull)
+  company     Company?    @relation(fields: [companyId], references: [id], onDelete: SetNull)
 
   @@index([leadId])
+  @@index([personId])
+  @@index([companyId])
   @@index([userId])
   @@index([teamId])
   @@index([status])

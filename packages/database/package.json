@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./prisma": "./src/prisma.ts",
+    "./contacts": "./src/contacts.ts",
     "./utils/prisma-helpers": "./src/utils/prisma-helpers.ts"
   },
   "scripts": {

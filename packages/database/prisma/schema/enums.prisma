@@ -75,6 +75,7 @@ enum EventLevel {
 }
 
 enum EmailStatus {
+  DRAFT
   PENDING
   SENT
   OPENED

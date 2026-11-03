@@ -21,6 +21,7 @@ export interface OidcClaims {
   givenName?: string;
   familyName?: string;
   picture?: string;
+  refreshToken?: string;
 }
 
 interface DiscoveryDocument {
@@ -103,7 +104,7 @@ export async function exchangeCode(code: string): Promise<OidcClaims> {
     throw new Error('OIDC token exchange failed');
   }
 
-  const tokens = (await response.json()) as { id_token?: string };
+  const tokens = (await response.json()) as { id_token?: string; refresh_token?: string };
   if (!tokens.id_token) {
     throw new Error('OIDC provider did not return an id_token');
   }
@@ -129,6 +130,7 @@ export async function exchangeCode(code: string): Promise<OidcClaims> {
     givenName: str(payload.given_name),
     familyName: str(payload.family_name),
     picture: str(payload.picture),
+    refreshToken: str(tokens.refresh_token),
   };
 }
 
@@ -172,14 +174,18 @@ async function findOidcUser(claims: OidcClaims): Promise<{ id: string } | null> 
   return prisma.user.findUnique({ where: { email: claims.email }, select: { id: true } });
 }
 
-/** Records the Registre identity of a signed-in user, once. */
-async function recordIdentity(userId: string, claims: OidcClaims): Promise<void> {
+/**
+ * Records the Registre identity of a signed-in user, and keeps the latest
+ * refresh token encrypted so Glouton can later exchange it for app tokens.
+ */
+async function recordIdentity(auth: AuthManager, userId: string, claims: OidcClaims): Promise<void> {
   const issuer = registreIssuer();
   if (!issuer || !claims.subject) return;
+  const refreshToken = claims.refreshToken ? auth.encryptData(claims.refreshToken) : undefined;
   await prisma.account.upsert({
     where: { providerId_accountId: { providerId: issuer, accountId: claims.subject } },
-    create: { userId, providerId: issuer, accountId: claims.subject },
-    update: {},
+    create: { userId, providerId: issuer, accountId: claims.subject, refreshToken },
+    update: refreshToken ? { refreshToken } : {},
   });
 }
 
@@ -241,7 +247,7 @@ export async function loginWithOidc(
     logger.info({ email: claims.email }, '[OIDC] Provisioned new user');
   }
 
-  await recordIdentity(user.id, claims);
+  await recordIdentity(auth, user.id, claims);
 
   const sessionUser: SessionUser = {
     id: user.id,

@@ -1,0 +1,166 @@
+enum ContactStage {
+  PROSPECT
+  CONTACTED
+  CLIENT
+  PARTNER
+  PERSONAL
+}
+
+enum ContactOrigin {
+  HUNT
+  CSV
+  MANUAL
+  ARDOISE
+  COURRIER
+  AGENT
+}
+
+enum SuggestionKind {
+  DRAFT
+  FOLLOW_UP
+  RESCORE
+  NEXT_ACTION
+  MATCH
+  IMPORT
+}
+
+enum SuggestionStatus {
+  OPEN
+  ACCEPTED
+  DISMISSED
+}
+
+model Company {
+  id               String        @id @default(dbgenerated("gen_random_uuid()")) @db.Text
+  userId           String        @db.Text
+  teamId           String?       @db.Text
+  name             String        @db.Text
+  legalName        String?       @db.Text
+  domain           String?       @db.Text
+  website          String?       @db.Text
+  siret            String?       @db.Text
+  vatNumber        String?       @db.Text
+  addressLine      String?       @db.Text
+  postalCode       String?       @db.Text
+  city             String?       @db.Text
+  country          String?       @db.Text
+  category         String?       @db.Text
+  phones           String[]
+  emails           String[]
+  socialProfiles   Json?
+  websiteAudit     Json?
+  technologies     String[]
+  temperature      LeadStatus    @default(COLD)
+  score            Int           @default(0)
+  stage            ContactStage  @default(PROSPECT)
+  origin           ContactOrigin
+  notes            String?       @db.Text
+  legacyLeadId     String?       @unique @db.Text
+  ardoiseClientId  String?       @unique @db.Text
+  ardoiseSyncedAt  DateTime?     @db.Timestamptz(3)
+  ardoiseUpdatedAt DateTime?     @db.Timestamptz(3)
+  deletedAt        DateTime?     @db.Timestamptz(3)
+  createdAt        DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime      @default(now()) @updatedAt @db.Timestamptz(3)
+
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team             Team?         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  people           Person[]
+  activities       Activity[]
+  suggestions      Suggestion[]
+  outreaches       EmailOutreach[]
+
+  @@index([userId])
+  @@index([teamId])
+  @@index([domain])
+  @@index([siret])
+  @@index([stage])
+  @@index([userId, createdAt])
+}
+
+model Person {
+  id               String        @id @default(dbgenerated("gen_random_uuid()")) @db.Text
+  userId           String        @db.Text
+  teamId           String?       @db.Text
+  companyId        String?       @db.Text
+  firstName        String?       @db.Text
+  lastName         String?       @db.Text
+  email            String?       @db.Text
+  emails           String[]
+  phones           String[]
+  role             String?       @db.Text
+  notes            String?       @db.Text
+  stage            ContactStage  @default(PROSPECT)
+  origin           ContactOrigin
+  isBillingContact Boolean       @default(false)
+  emailVerified    Boolean?
+  legacyLeadId     String?       @db.Text
+  deletedAt        DateTime?     @db.Timestamptz(3)
+  createdAt        DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime      @default(now()) @updatedAt @db.Timestamptz(3)
+
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team             Team?         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  company          Company?      @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  activities       Activity[]
+  suggestions      Suggestion[]
+  outreaches       EmailOutreach[]
+
+  @@index([email])
+  @@index([userId])
+  @@index([teamId])
+  @@index([companyId])
+  @@index([legacyLeadId])
+}
+
+model Activity {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Text
+  userId     String    @db.Text
+  teamId     String?   @db.Text
+  companyId  String?   @db.Text
+  personId   String?   @db.Text
+  kind       String    @db.Text
+  summary    String    @db.Text
+  payload    Json?
+  actor      String?   @db.Text
+  occurredAt DateTime  @default(now()) @db.Timestamptz(3)
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team       Team?     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  company    Company?  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  person     Person?   @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, occurredAt])
+  @@index([personId, occurredAt])
+  @@index([userId])
+  @@index([teamId])
+}
+
+model Suggestion {
+  id        String           @id @default(dbgenerated("gen_random_uuid()")) @db.Text
+  userId    String           @db.Text
+  teamId    String?          @db.Text
+  companyId String?          @db.Text
+  personId  String?          @db.Text
+  kind      SuggestionKind
+  status    SuggestionStatus @default(OPEN)
+  title     String           @db.Text
+  body      String?          @db.Text
+  rationale String?          @db.Text
+  payload   Json?
+  createdBy String           @db.Text
+  decidedAt DateTime?        @db.Timestamptz(3)
+  createdAt DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime         @default(now()) @updatedAt @db.Timestamptz(3)
+
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team      Team?            @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  company   Company?         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  person    Person?          @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([teamId, status])
+  @@index([companyId])
+  @@index([personId])
+}

@@ -13,6 +13,7 @@
     "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
     "clean": "turbo run clean && rm -rf node_modules",
     "cleanup:stuck-hunts": "bun run scripts/cleanup-stuck-hunts.ts",
+    "backfill:contacts": "bun run scripts/backfill-contacts.ts",
     "typecheck": "turbo run typecheck"
   },
   "devDependencies": {

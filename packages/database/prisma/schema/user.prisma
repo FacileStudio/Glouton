@@ -46,6 +46,10 @@ model User {
   opportunityPreferences        UserOpportunityPreferences?
   teamMembers                   TeamMember[]
   favoritedLeads                UserFavoriteLead[]
+  companies                     Company[]
+  people                        Person[]
+  activities                    Activity[]
+  suggestions                   Suggestion[]
 
   @@index([status])
   @@index([isBanned])

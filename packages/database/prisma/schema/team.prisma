@@ -19,6 +19,10 @@ model Team {
   auditSessions      AuditSession[]
   emailOutreaches    EmailOutreach[]
   webhooks           TeamWebhook[]
+  companies          Company[]
+  people             Person[]
+  activities         Activity[]
+  suggestions        Suggestion[]
 }
 
 // Outgoing webhooks configured per workspace (e.g. towards Nook): the team
