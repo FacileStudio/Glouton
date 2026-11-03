@@ -202,7 +202,7 @@
   >
     {#snippet actions()}
       {#if linked && team.manageUrl}
-        <Button variant="outline" icon={icons.usersGroup} href={team.manageUrl}>Gérer dans Registre</Button>
+        <Button variant="outline" icon={icons.space} href={team.manageUrl}>Gérer dans Registre</Button>
       {:else if team.userRole !== 'OWNER'}
         <Button variant="ghost-danger" icon={icons.logout} onclick={() => (leaveConfirmModalOpen = true)}>
           Quitter l'espace

@@ -99,7 +99,7 @@
     {#snippet actions()}
       <Badge tone={getRoleTone(team.userRole)}>{getRoleLabel(team.userRole)}</Badge>
       {#if team.registreSpaceId && team.manageUrl}
-        <Button variant="outline" icon={icons.usersGroup} href={team.manageUrl}>Gérer dans Registre</Button>
+        <Button variant="outline" icon={icons.space} href={team.manageUrl}>Gérer dans Registre</Button>
       {/if}
       <Button variant="outline" icon={icons.settings} onclick={() => handleNavigate('/settings')}>
         Paramètres

@@ -324,7 +324,7 @@
             label="Membres, rôles et nom"
             description="Ajoutez, retirez ou renommez dans Registre ; Glouton se met à jour en quelques secondes."
           >
-            <Button variant="outline" icon={icons.usersGroup} href={team.manageUrl}>Gérer dans Registre</Button>
+            <Button variant="outline" icon={icons.space} href={team.manageUrl}>Gérer dans Registre</Button>
           </SettingsRow>
         </SettingsSection>
       {:else if isOwner}

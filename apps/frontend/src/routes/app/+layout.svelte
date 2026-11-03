@@ -2,7 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { browser } from '$app/environment';
   import { page } from '$app/state';
-  import { SideBar, MobileNav, PageTransition, toast } from '@facile/muse';
+  import { SideBar, MobileNav, PageTransition, toast, icons } from '@facile/muse';
   import authStore from '$lib/auth-store';
   import { teamContextStore } from '$lib/stores/team-context.svelte';
   import { ws } from '$lib/websocket';
@@ -33,7 +33,7 @@
     { label: 'Créations', icon: 'solar:buildings-2-linear', href: '/app/creations', active: isActive('/app/creations') },
     { label: 'Missions', icon: 'solar:case-round-linear', href: '/app/missions', active: isActive('/app/missions') },
     { label: 'Prospection', icon: 'solar:letter-linear', href: '/app/outreach', active: isActive('/app/outreach') },
-    { label: 'Espaces', icon: 'solar:users-group-rounded-linear', href: '/app/teams', active: isActive('/app/teams') },
+    { label: 'Espaces', icon: icons.space, href: '/app/teams', active: isActive('/app/teams') },
   ]);
 
   const navUser = $derived(

@@ -67,7 +67,7 @@
 <PageHeader title="Espaces" description="Gérez vos espaces et collaborez avec vos collègues">
   {#snippet actions()}
     {#if spacesUrl}
-      <Button variant="outline" icon={icons.usersGroup} href={spacesUrl}>Gérer dans Registre</Button>
+      <Button variant="outline" icon={icons.space} href={spacesUrl}>Gérer dans Registre</Button>
     {:else if !loading}
       <Button icon={icons.plus} onclick={handleCreateTeam}>Créer un espace</Button>
     {/if}
@@ -99,11 +99,11 @@
   {:else if filteredTeams.length === 0}
     <Card>
       <EmptyState
-        icon={icons.usersGroup}
+        icon={icons.space}
         title={searchQuery ? 'Aucun espace trouvé' : 'Aucun espace'}
       >
         {#if !searchQuery && spacesUrl}
-          <Button variant="outline" icon={icons.usersGroup} href={spacesUrl}>Gérer dans Registre</Button>
+          <Button variant="outline" icon={icons.space} href={spacesUrl}>Gérer dans Registre</Button>
         {:else if !searchQuery}
           <Button icon={icons.plus} onclick={handleCreateTeam}>Créer un espace</Button>
         {/if}
