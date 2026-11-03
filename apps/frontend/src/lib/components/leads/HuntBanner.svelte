@@ -1,6 +1,8 @@
 <script lang="ts">
+  import type { HuntFilters } from '$lib/websocket-events';
   import { onMount, onDestroy } from 'svelte';
   import { goto } from '$app/navigation';
+  import { resolve } from '$app/paths';
   import { Badge, Button, Spinner } from '@facile/muse';
 
   interface HuntSession {
@@ -15,7 +17,7 @@
     startedAt: string | null;
     completedAt: string | null;
     createdAt: string;
-    filters?: any;
+    filters?: HuntFilters | null;
     lastDiscoveredDomain?: string | null;
   }
 
@@ -33,7 +35,7 @@
 
   function handleClick() {
     if (clickable && session) {
-      goto(`/app/hunts/${session.id}`);
+      goto(resolve('/app/hunts/[id]', { id: session.id }));
     }
   }
 
@@ -114,7 +116,7 @@
   const huntLabel = $derived.by(() => {
     if (!session) return '';
     if (isLocalBusiness) {
-      const cat = session.filters?.categories?.[0] || session.filters?.category || 'Commerce';
+      const cat = session.filters?.categories?.[0] || 'Commerce';
       const loc = session.filters?.location || '';
       return loc ? `${cat} à ${loc}` : cat;
     }

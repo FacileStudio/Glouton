@@ -5,6 +5,7 @@ import { TRPCError } from '@trpc/server';
 import type { Scope } from '../../../utils/scope';
 import { buildHuntFilter } from '../../../utils/scope';
 import { logger } from '@repo/logger';
+import { readHuntFilters, readSourceStats, type HuntFilters, type SourceStat } from '../../../utils/json';
 
 export interface StartLocalBusinessHuntParams {
   scope: Scope;
@@ -25,11 +26,11 @@ export interface RunDetails {
   progress: number;
   sources: string[];
   domain: string | null;
-  filters: any;
+  filters: HuntFilters | null;
   totalLeads: number;
   successfulLeads: number;
   failedLeads: number;
-  sourceStats: any;
+  sourceStats: Record<string, SourceStat>;
   error: string | null;
   startedAt: Date | null;
   completedAt: Date | null;
@@ -204,7 +205,7 @@ export default {
       startedAt: session.startedAt,
       completedAt: session.completedAt,
       createdAt: session.createdAt,
-      filters: session.filters,
+      filters: readHuntFilters(session.filters),
     }));
   },
 
@@ -365,11 +366,11 @@ export default {
       progress: session.progress,
       sources: session.sources,
       domain: session.domain,
-      filters: session.filters,
+      filters: readHuntFilters(session.filters),
       totalLeads: session.totalLeads,
       successfulLeads: session.successfulLeads,
       failedLeads: session.failedLeads,
-      sourceStats: session.sourceStats,
+      sourceStats: readSourceStats(session.sourceStats),
       error: session.error,
       startedAt: session.startedAt,
       completedAt: session.completedAt,

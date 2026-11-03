@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { RouterOutputs } from '@repo/trpc-client';
   import { onMount } from 'svelte';
   import { trpc } from '$lib/trpc';
   import { Button, Card, EmptyState, PageHeader, Spinner, toast } from '@facile/muse';
@@ -9,7 +10,7 @@
 
   let teamId = $derived(teamContextStore.getTeamId());
 
-  let leads = $state<any[]>([]);
+  let leads = $state<RouterOutputs['lead']['favorite']['list']['leads']>([]);
   let loading = $state(true);
   let currentPage = $state(1);
   let pageSize = $state(50);

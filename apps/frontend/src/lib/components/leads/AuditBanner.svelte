@@ -1,6 +1,5 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { goto } from '$app/navigation';
   import { Badge, Button, Spinner } from '@facile/muse';
 
   interface AuditSession {
@@ -21,19 +20,11 @@
     session,
     onCancel,
     cancelling = false,
-    clickable = false,
   }: {
     session: AuditSession | null;
     onCancel: (id: string) => Promise<void>;
     cancelling: boolean;
-    clickable?: boolean;
   } = $props();
-
-  function handleClick() {
-    if (clickable && session) {
-      goto(`/app/audits/${session.id}`);
-    }
-  }
 
   let currentTime = $state(new Date());
   let timerInterval: ReturnType<typeof setInterval> | null = null;
@@ -104,14 +95,7 @@
 </script>
 
 {#if session}
-  <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-  <div
-    class="flex flex-col gap-5 rounded-fc-md bg-fc-component p-5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fc-ring {clickable ? 'cursor-pointer hover:bg-fc-surface' : ''}"
-    role={clickable ? 'button' : 'region'}
-    tabindex={clickable ? 0 : -1}
-    onclick={handleClick}
-    onkeydown={(e) => clickable && e.key === 'Enter' && handleClick()}
-  >
+  <div class="flex flex-col gap-5 rounded-fc-md bg-fc-component p-5" role="region">
     <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div class="flex items-center gap-3 min-w-0">
         <div class="inline-flex size-9 shrink-0 items-center justify-center rounded-fc-md bg-fc-surface text-fc-fg">

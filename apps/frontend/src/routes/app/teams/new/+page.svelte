@@ -1,5 +1,7 @@
 <script lang="ts">
+  import { getErrorMessage } from '$lib/utils/trpc-error';
   import { goto } from '$app/navigation';
+  import { resolve } from '$app/paths';
   import { trpc } from '$lib/trpc';
   import { Alert, Button, Card, Field, Input, PageHeader, Textarea, icons, toast } from '@facile/muse';
 
@@ -36,9 +38,9 @@
       });
 
       toast.success('Espace créé avec succès !');
-      goto(`/app/teams/${newTeam.id}`);
-    } catch (error: any) {
-      const errorMessage = error?.message || 'Échec de la création de l\'espace';
+      goto(resolve('/app/teams/[teamId]', { teamId: newTeam.id }));
+    } catch (error) {
+      const errorMessage = getErrorMessage(error, 'Échec de la création de l\'espace');
       console.error('Error creating team:', error);
       toast.danger(errorMessage);
     } finally {
@@ -47,7 +49,7 @@
   }
 
   function handleCancel() {
-    goto('/app/teams');
+    goto(resolve('/app/teams'));
   }
 </script>
 

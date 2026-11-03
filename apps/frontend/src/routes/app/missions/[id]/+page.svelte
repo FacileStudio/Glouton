@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { getErrorCode } from '$lib/utils/trpc-error';
   import { onMount } from 'svelte';
   import { page } from '$app/state';
   import { trpc } from '$lib/trpc';
@@ -122,8 +123,8 @@
     loading = true;
     try {
       opportunity = (await trpc.opportunity.get.query({ id: page.params.id ?? '' })) as Opportunity;
-    } catch (err: any) {
-      if (err?.data?.code === 'NOT_FOUND') {
+    } catch (err) {
+      if (getErrorCode(err) === 'NOT_FOUND') {
         notFound = true;
       } else {
         toast.danger('Erreur lors du chargement de la mission');
@@ -241,7 +242,7 @@
 
       {#if opportunity.tags.length > 0}
         <div class="flex flex-wrap gap-1.5">
-          {#each opportunity.tags as tag}
+          {#each opportunity.tags as tag, i (i)}
             <Badge>{tag}</Badge>
           {/each}
         </div>

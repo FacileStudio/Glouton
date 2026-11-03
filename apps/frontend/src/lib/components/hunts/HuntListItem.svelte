@@ -1,20 +1,18 @@
 <script lang="ts">
+  import type { HuntFilters } from '$lib/websocket-events';
   import { goto } from '$app/navigation';
+  import { resolve } from '$app/paths';
   import { Badge, Button, Icon, Spinner, icons } from '@facile/muse';
 
   interface HuntSession {
     id: string;
     huntType: 'DOMAIN' | 'LOCAL_BUSINESS' | undefined;
-    status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
-    progress: number;
     totalLeads: number;
     successfulLeads: number;
-    failedLeads: number;
-    error: string | null;
     startedAt: string | null;
     completedAt: string | null;
     createdAt: string;
-    filters?: any;
+    filters?: HuntFilters | null;
   }
 
   let {
@@ -56,7 +54,7 @@
 
   const huntTitle = $derived.by(() => {
     if (isLocal) {
-      const cat = session.filters?.categories?.[0] || session.filters?.category || 'Commerce local';
+      const cat = session.filters?.categories?.[0] || 'Commerce local';
       const loc = session.filters?.location || '';
       return loc ? `${cat} à ${loc}` : cat;
     }
@@ -78,7 +76,7 @@
 <div class="flex flex-col overflow-hidden rounded-fc-md bg-fc-component">
   <button
     type="button"
-    onclick={() => goto(`/app/hunts/${session.id}`)}
+    onclick={() => goto(resolve('/app/hunts/[id]', { id: session.id }))}
     class="group w-full p-5 text-left transition-colors hover:bg-fc-surface focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-fc-ring"
   >
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">

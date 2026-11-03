@@ -278,6 +278,7 @@
       "dependencies": {
         "@repo/trpc": "workspace:*",
         "@trpc/client": "^11.9.0",
+        "@trpc/server": "^11.17.0",
         "superjson": "^2.2.6",
       },
       "devDependencies": {

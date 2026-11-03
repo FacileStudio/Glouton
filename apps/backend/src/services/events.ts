@@ -1,24 +1,26 @@
+import type { PrismaClient } from '@prisma/client';
+
 export interface EventMessage {
   type: string;
-  data?: any;
+  data?: unknown;
   timestamp: Date;
 }
 
 export interface WebSocketBroadcaster {
-  broadcastToUser: (userId: string, message: any) => void;
-  broadcastToAll: (message: any) => void;
+  broadcastToUser: (userId: string, message: EventMessage) => void;
+  broadcastToAll: (message: EventMessage) => void;
 }
 
 class EventEmitter {
   private broadcaster: WebSocketBroadcaster | null = null;
-  private prisma: any = null;
+  private prisma: PrismaClient | null = null;
 
-  init(broadcaster: WebSocketBroadcaster, prisma?: any) {
+  init(broadcaster: WebSocketBroadcaster, prisma?: PrismaClient) {
     this.broadcaster = broadcaster;
-    this.prisma = prisma;
+    this.prisma = prisma ?? null;
   }
 
-  emit(userId: string, type: string, data?: any) {
+  emit(userId: string, type: string, data?: unknown) {
     if (!this.broadcaster) return;
 
     this.broadcaster.broadcastToUser(userId, {
@@ -28,7 +30,7 @@ class EventEmitter {
     });
   }
 
-  async emitToTeam(teamId: string, type: string, data?: any) {
+  async emitToTeam(teamId: string, type: string, data?: unknown) {
     if (!this.broadcaster || !this.prisma) {
       console.warn('[EVENTS] Team broadcast not available - broadcaster or prisma not initialized');
       return;
@@ -41,7 +43,7 @@ class EventEmitter {
         WHERE "teamId" = ${teamId}::text
       `;
 
-      const message = {
+      const message: EventMessage = {
         type,
         data,
         timestamp: new Date(),
@@ -55,7 +57,7 @@ class EventEmitter {
     }
   }
 
-  async emitToScope(scope: { type: 'personal' | 'team'; userId: string; teamId?: string | null }, type: string, data?: any) {
+  async emitToScope(scope: { type: 'personal' | 'team'; userId: string; teamId?: string | null }, type: string, data?: unknown) {
     if (scope.type === 'team' && scope.teamId) {
       await this.emitToTeam(scope.teamId, type, data);
     } else {
@@ -63,7 +65,7 @@ class EventEmitter {
     }
   }
 
-  broadcast(type: string, data?: any) {
+  broadcast(type: string, data?: unknown) {
     if (!this.broadcaster) return;
 
     this.broadcaster.broadcastToAll({

@@ -1,7 +1,10 @@
 <script lang="ts">
+  import { getErrorMessage } from '$lib/utils/trpc-error';
+  import { SvelteURLSearchParams } from 'svelte/reactivity';
   import { fade, slide } from 'svelte/transition';
   import { onMount } from 'svelte';
   import { replaceState } from '$app/navigation';
+  import { resolve } from '$app/paths';
   import { trpc } from '$lib/trpc';
   import {
     toast,
@@ -86,11 +89,11 @@
   let mounted = $state(false);
 
   function syncToUrl() {
-    const params = new URLSearchParams();
+    const params = new SvelteURLSearchParams();
     if (search) params.set('search', search);
     if (activeTab !== 'all') params.set('tab', activeTab);
     const qs = params.toString();
-    replaceState(qs ? `?${qs}` : location.pathname, {});
+    replaceState(qs ? resolve(`/app/outreach?${qs}`) : resolve('/app/outreach'), {});
   }
 
   $effect(() => {
@@ -220,8 +223,8 @@
       toast.success('E-mail envoyé avec succès !');
       panelHistory = (await trpc.email.getLeadOutreach.query({ leadId: lead.leadId, teamId })) as EmailHistory[];
       await loadData();
-    } catch (e: any) {
-      toast.danger(e?.message || "Échec de l'envoi");
+    } catch (e) {
+      toast.danger(getErrorMessage(e, "Échec de l'envoi"));
     } finally {
       sending = false;
     }
@@ -320,7 +323,6 @@
       })
     : tabLeads);
 
-  let expandedLead = $derived(outreachLeads.find((l) => l.leadId === expandedLeadId) ?? null);
 
   let tabItems = $derived([
     { id: 'all', label: 'Tous', badge: outreachLeads.length },
@@ -354,14 +356,14 @@
 
   <section class="grid grid-cols-1 gap-4 sm:grid-cols-3">
     {#if initialLoading}
-      {#each Array(3) as _}
+      {#each Array(3) as _, i (i)}
         <Card class="flex flex-col gap-2">
           <Skeleton class="h-3 w-[120px]" />
           <Skeleton class="h-7 w-[80px]" />
         </Card>
       {/each}
     {:else}
-      {#each stat as item}
+      {#each stat as item (item.label)}
         <StatCard label={item.label} value={item.val} />
       {/each}
     {/if}
@@ -407,7 +409,7 @@
 
   {#if initialLoading}
     <Card class="flex flex-col gap-2 p-4">
-      {#each Array(5) as _}
+      {#each Array(5) as _, i (i)}
         <div class="flex items-center gap-3 p-3">
           <Skeleton class="size-9 rounded-fc-md" />
           <div class="flex flex-1 flex-col gap-2">
@@ -528,7 +530,7 @@
                         <p class="py-6 text-center text-fc-sm text-fc-fg-muted">Aucun e-mail envoyé</p>
                       {:else}
                         <div class="flex max-h-64 flex-col gap-1 overflow-y-auto pr-1">
-                          {#each panelHistory as email}
+                          {#each panelHistory as email (email.id)}
                             <button
                               type="button"
                               onclick={(e) => { e.stopPropagation(); expandedEmailId = expandedEmailId === email.id ? null : email.id; }}
@@ -586,7 +588,7 @@
                               bind:value={selectedTemplate}
                               onchange={() => handleTemplateChange(lead)}
                             >
-                              {#each templates as template}
+                              {#each templates as template (template.id)}
                                 <option value={template.id}>{template.name}</option>
                               {/each}
                             </Select>
@@ -598,7 +600,7 @@
                               <div class="flex flex-col gap-2">
                                 <p class="text-fc-sm font-medium text-fc-fg">Variables</p>
 
-                                {#each tpl.variables as variable}
+                                {#each tpl.variables as variable, i (i)}
                                   <Field label={variable.replace(/([A-Z])/g, ' $1').trim()} class="capitalize">
                                     <Input
                                       type="text"

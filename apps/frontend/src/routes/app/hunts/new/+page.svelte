@@ -1,7 +1,12 @@
 <script lang="ts">
+  import { getErrorMessage } from '$lib/utils/trpc-error';
   import { goto } from '$app/navigation';
+  import { resolve } from '$app/paths';
   import { trpc } from '$lib/trpc';
-  import { toast, PageHeader, Button, Card, Field, Input, Select, Spinner, Icon, icons } from '@facile/muse';
+  import type { RouterInputs } from '@repo/trpc-client';
+
+  type BusinessCategory = RouterInputs['lead']['hunt']['startLocalBusiness']['categories'][number];
+  import { toast, PageHeader, Button, Card, Field, Input, Select, Spinner, Icon } from '@facile/muse';
   import LocationPickerMap from '$lib/components/LocationPickerMap.svelte';
   import { teamContextStore } from '$lib/stores/team-context.svelte';
 
@@ -12,10 +17,10 @@
 
   let loading = $state(false);
   let loadingLocation = $state(false);
-  let userLocation = $state<{ city?: string; country?: string; countryCode?: string; state?: string; raw?: any } | null>(null);
+  let userLocation = $state<{ city?: string; country?: string; countryCode?: string; state?: string} | null>(null);
 
   let localBusinessFilters = $state({
-    categories: [] as string[],
+    categories: [] as BusinessCategory[],
     hasWebsite: 'all' as 'all' | 'with' | 'without',
     radius: 5,
     maxResults: 100,
@@ -26,7 +31,7 @@
     },
   });
 
-  const businessCategories = [
+  const businessCategories: { value: BusinessCategory; label: string; icon: string }[] = [
     { value: 'restaurant', label: 'Restaurants & Cafés', icon: 'solar:chef-hat-linear' },
     { value: 'retail', label: 'Commerces de détail', icon: 'solar:shop-linear' },
     { value: 'service', label: 'Services', icon: 'solar:case-round-linear' },
@@ -79,7 +84,6 @@
       country: data.address?.country,
       countryCode: data.address?.country_code?.toUpperCase(),
       state: data.address?.state,
-      raw: data,
     };
   }
 
@@ -97,7 +101,6 @@
       country: data.country_name,
       countryCode: data.country_code,
       state: data.region,
-      raw: data,
     };
   }
 
@@ -137,11 +140,11 @@
       const countryName = location.country || 'Unknown country';
 
       toast.success(`Localisation détectée : ${cityName}, ${countryName}`);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error detecting location:', error);
 
       const errorMessage =
-        error?.message === 'User denied Geolocation'
+        getErrorMessage(error, '') === 'User denied Geolocation'
           ? 'Accès à la localisation refusé. Cliquez sur "Détecter la localisation" pour réessayer ou saisissez-la manuellement.'
           : 'Impossible de détecter la localisation. Veuillez la saisir manuellement ou réessayer.';
 
@@ -173,7 +176,7 @@
       const result = await trpc.lead.hunt.startLocalBusiness.mutate({
         teamId,
         location: locationString,
-        categories: localBusinessFilters.categories as any,
+        categories: localBusinessFilters.categories,
         hasWebsite: localBusinessFilters.hasWebsite === 'with' ? true : localBusinessFilters.hasWebsite === 'without' ? false : undefined,
         radius: localBusinessFilters.radius * 1000,
         maxResults: localBusinessFilters.maxResults,
@@ -184,9 +187,9 @@
       toast.success(
         `Chasse locale démarrée pour ${categoryCount} catégorie${categoryCount > 1 ? 's' : ''} !`,
       );
-      await goto(huntSessionId ? `/app/hunts/${huntSessionId}` : '/app/hunts');
-    } catch (error: any) {
-      const errorMessage = error?.message || 'Échec du démarrage de la chasse locale';
+      await goto(huntSessionId ? resolve('/app/hunts/[id]', { id: huntSessionId }) : resolve('/app/hunts'));
+    } catch (error) {
+      const errorMessage = getErrorMessage(error, 'Échec du démarrage de la chasse locale');
       toast.danger(errorMessage);
       console.error('Error starting local business hunt:', error);
       loading = false;
@@ -213,7 +216,7 @@
   <fieldset class="flex flex-col gap-3">
     <legend class="mb-3 text-fc-sm font-medium text-fc-fg">Catégories d'activité (sélection multiple)</legend>
     <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3">
-      {#each businessCategories as category}
+      {#each businessCategories as category (category.value)}
         <label
           class="flex min-h-11 cursor-pointer items-center gap-2 rounded-fc-md border p-3 transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-fc-ring {localBusinessFilters.categories.includes(category.value)
             ? 'border-fc-fg bg-fc-surface'

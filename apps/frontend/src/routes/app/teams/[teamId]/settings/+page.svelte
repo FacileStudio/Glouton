@@ -1,12 +1,14 @@
 <script lang="ts">
+  import type { RouterOutputs } from '@repo/trpc-client';
+  import { getErrorMessage } from '$lib/utils/trpc-error';
   import { onMount } from 'svelte';
   import type { PageProps } from './$types';
   import { goto } from '$app/navigation';
+  import { resolve } from '$app/paths';
   import { trpc } from '$lib/trpc';
   import MailTransportSettings from '$lib/components/MailTransportSettings.svelte';
   import {
     Alert,
-    Badge,
     Button,
     Field,
     Icon,
@@ -25,7 +27,7 @@
 
   let { params }: PageProps = $props();
   let teamId = $derived(params.teamId);
-  let team = $state<any>(null);
+  let team = $state<RouterOutputs['team']['get'] | null>(null);
   let loading = $state(true);
   let activeTab = $state('general');
   let saving = $state(false);
@@ -85,10 +87,10 @@
       if (team.userRole === 'OWNER' || team.userRole === 'ADMIN') {
         await loadSmtpConfig();
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error loading team:', error);
-      toast.danger(error?.message || 'Échec du chargement de l\'espace');
-      goto('/app/teams');
+      toast.danger(getErrorMessage(error, 'Échec du chargement de l\'espace'));
+      goto(resolve('/app/teams'));
     } finally{
       loading = false;
     }
@@ -123,8 +125,8 @@
       originalGeneralForm.description = generalForm.description;
       toast.success('Informations mises à jour avec succès');
       await loadTeam();
-    } catch (error: any) {
-      toast.danger(error?.message || 'Échec de la mise à jour');
+    } catch (error) {
+      toast.danger(getErrorMessage(error, 'Échec de la mise à jour'));
     } finally {
       saving = false;
     }
@@ -145,8 +147,8 @@
         smtpFromEmail: smtpForm.smtpFromEmail,
       });
       toast.success(result.message);
-    } catch (error: any) {
-      toast.danger(error?.message || 'Configuration SMTP invalide');
+    } catch (error) {
+      toast.danger(getErrorMessage(error, 'Configuration SMTP invalide'));
     } finally {
       testingSmtp = false;
     }
@@ -168,8 +170,8 @@
       });
       await loadSmtpConfig();
       toast.success('Configuration SMTP mise à jour avec succès');
-    } catch (error: any) {
-      toast.danger(error?.message || 'Échec de la mise à jour de la config SMTP');
+    } catch (error) {
+      toast.danger(getErrorMessage(error, 'Échec de la mise à jour de la config SMTP'));
     } finally {
       saving = false;
     }
@@ -181,9 +183,9 @@
     try {
       await trpc.team.delete.mutate({ teamId });
       toast.success('Espace supprimé avec succès');
-      goto('/app/teams');
-    } catch (error: any) {
-      toast.danger(error?.message || 'Échec de la suppression de l\'espace');
+      goto(resolve('/app/teams'));
+    } catch (error) {
+      toast.danger(getErrorMessage(error, 'Échec de la suppression de l\'espace'));
       deleteModalOpen = false;
     } finally {
       deleting = false;
@@ -404,7 +406,7 @@
     Cette action est définitive. Toutes les données de l'espace seront supprimées.
   </p>
 
-  <Field label={'Tapez "DELETE" pour confirmer'} for="deleteConfirm">
+  <Field label='Tapez "DELETE" pour confirmer' for="deleteConfirm">
     <Input id="deleteConfirm" type="text" bind:value={deleteConfirmationText} placeholder="DELETE" />
   </Field>
 

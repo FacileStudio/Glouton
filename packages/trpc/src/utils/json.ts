@@ -1,4 +1,6 @@
 import type { Prisma } from '@prisma/client';
+import type { z } from 'zod';
+import { businessCategoryEnum } from '../modules/lead/schemas';
 
 type JsonRecord = Record<string, Prisma.JsonValue>;
 
@@ -64,4 +66,85 @@ export function readCompanyInfo(value: Prisma.JsonValue): CompanyInfo | null {
     if (typeof fieldValue === 'string') info[field] = fieldValue;
   }
   return info;
+}
+
+export interface HuntFilters {
+  location?: string;
+  domain?: string;
+  radius?: number;
+  maxResults?: number;
+  hasWebsite?: boolean;
+  categories?: z.infer<typeof businessCategoryEnum>[];
+}
+
+export interface SourceStat {
+  leads?: number;
+  errors?: number;
+  rateLimited?: boolean;
+}
+
+const HUNT_FILTER_STRINGS = ['location', 'domain'] as const;
+const HUNT_FILTER_NUMBERS = ['radius', 'maxResults'] as const;
+
+function readCategories(value: JsonRecord): HuntFilters['categories'] {
+  const raw = Array.isArray(value.categories) ? value.categories : [value.category];
+  const categories = raw.flatMap((item) => {
+    const parsed = businessCategoryEnum.safeParse(item);
+    return parsed.success ? [parsed.data] : [];
+  });
+  return categories.length > 0 ? categories : undefined;
+}
+
+/**
+ * Reads a hunt session's filters column, keeping only the known fields with the expected types.
+ * A legacy single `category` is folded into `categories`.
+ */
+export function readHuntFilters(value: Prisma.JsonValue): HuntFilters | null {
+  if (!isJsonRecord(value)) return null;
+  const filters: HuntFilters = {};
+  for (const key of HUNT_FILTER_STRINGS) {
+    const field = value[key];
+    if (typeof field === 'string') filters[key] = field;
+  }
+  for (const key of HUNT_FILTER_NUMBERS) {
+    const field = value[key];
+    if (typeof field === 'number') filters[key] = field;
+  }
+  const categories = readCategories(value);
+  if (categories) filters.categories = categories;
+  if (typeof value.hasWebsite === 'boolean') filters.hasWebsite = value.hasWebsite;
+  return filters;
+}
+
+/**
+ * Reads a hunt session's per-source statistics column.
+ */
+export function readSourceStats(value: Prisma.JsonValue): Record<string, SourceStat> {
+  if (!isJsonRecord(value)) return {};
+  const stats: Record<string, SourceStat> = {};
+  for (const [source, raw] of Object.entries(value)) {
+    if (!isJsonRecord(raw)) continue;
+    stats[source] = {
+      leads: typeof raw.leads === 'number' ? raw.leads : undefined,
+      errors: typeof raw.errors === 'number' ? raw.errors : undefined,
+      rateLimited: typeof raw.rateLimited === 'boolean' ? raw.rateLimited : undefined,
+    };
+  }
+  return stats;
+}
+
+type LeadJsonColumns = Pick<Prisma.LeadGetPayload<object>, 'socialProfiles' | 'coordinates' | 'companyInfo'>;
+
+/**
+ * Replaces a lead's untyped JSON columns with their validated shapes.
+ */
+export function withTypedJson<T extends LeadJsonColumns>(
+  lead: T
+): Omit<T, keyof LeadJsonColumns> & { socialProfiles: SocialProfile[]; coordinates: Coordinates | null; companyInfo: CompanyInfo | null } {
+  return {
+    ...lead,
+    socialProfiles: readSocialProfiles(lead.socialProfiles),
+    coordinates: readCoordinates(lead.coordinates),
+    companyInfo: readCompanyInfo(lead.companyInfo),
+  };
 }

@@ -133,7 +133,7 @@
       totalPages = result.totalPages;
       total = result.total;
       stats = statsData;
-    } catch (err) {
+    } catch {
       toast.danger('Erreur lors du chargement des missions');
     } finally {
       loading = false;
@@ -144,7 +144,7 @@
     scraping = true;
     try {
       const result = await trpc.opportunity.triggerScrape.mutate();
-      if (result.queued || (result as any).alreadyRunning) {
+      if (result.queued || ('alreadyRunning' in result && result.alreadyRunning)) {
         scrapeProgress = { percent: 0, source: '…', sourcesDone: 0, sourcesTotal: 8, totalInserted: 0, totalFound: 0 };
         armScrapeTimeout();
         if (result.queued) {
@@ -154,7 +154,7 @@
         toast.info('Missions déjà actualisées il y a moins de 10 minutes');
         scraping = false;
       }
-    } catch (err) {
+    } catch {
       toast.danger("Erreur lors du lancement de l'actualisation");
       scraping = false;
     }
@@ -334,7 +334,7 @@
 
     <Select bind:value={filters.source} aria-label="Filtrer par source" class="w-auto">
       <option value="">Toutes les sources</option>
-      {#each Object.entries(SOURCE_LABELS) as [value, label]}
+      {#each Object.entries(SOURCE_LABELS) as [value, label] (value)}
         <option {value}>{label}</option>
       {/each}
     </Select>
@@ -348,7 +348,7 @@
         aria-label="Trier les missions"
         class="w-auto"
       >
-        {#each Object.entries(SORT_OPTIONS) as [value, opt]}
+        {#each Object.entries(SORT_OPTIONS) as [value, opt] (value)}
           <option {value}>{opt.label}</option>
         {/each}
       </Select>
@@ -425,7 +425,7 @@
               <span></span>
             {/if}
             <div class="flex min-w-0 flex-wrap justify-end gap-1">
-              {#each opp.tags.slice(0, 3) as tag}
+              {#each opp.tags.slice(0, 3) as tag, i (i)}
                 <span class="max-w-full truncate rounded-fc-xs bg-fc-surface px-1.5 py-0.5 text-fc-xs text-fc-fg">{tag}</span>
               {/each}
             </div>

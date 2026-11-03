@@ -2,6 +2,7 @@ import { createBunWebSocket } from 'hono/bun';
 import type { ServerWebSocket } from 'bun';
 import { logger } from '@repo/logger';
 import { AuthManager } from '@repo/auth';
+import type { EventMessage } from '../services/events';
 
 interface WebSocketData {
   userId?: string;
@@ -15,7 +16,7 @@ export const { upgradeWebSocket, websocket } = createBunWebSocket<WebSocketData>
 
 
 
-export function broadcastToUser(userId: string, message: any) {
+export function broadcastToUser(userId: string, message: EventMessage) {
   const userClients = clients.get(userId);
 
   if (!userClients) {
@@ -60,7 +61,7 @@ export function broadcastToUser(userId: string, message: any) {
   }
 }
 
-export function broadcastToAll(message: any) {
+export function broadcastToAll(message: EventMessage) {
   let messageStr: string;
   try {
     messageStr = JSON.stringify(message);
@@ -68,8 +69,6 @@ export function broadcastToAll(message: any) {
     logger.error({ error }, '[WebSocket] Failed to stringify broadcast message');
     return;
   }
-  let totalSent = 0;
-  let totalStale = 0;
 
   clients.forEach((userClients, userId) => {
     const staleConnections: ServerWebSocket<WebSocketData>[] = [];
@@ -78,18 +77,16 @@ export function broadcastToAll(message: any) {
       try {
         if (ws.readyState === 1) {
           ws.send(messageStr);
-          totalSent++;
         } else {
           staleConnections.push(ws);
         }
-      } catch (error) {
+      } catch {
         staleConnections.push(ws);
       }
     });
 
     staleConnections.forEach((ws) => {
       userClients.delete(ws);
-      totalStale++;
     });
 
     if (userClients.size === 0) {
@@ -109,7 +106,7 @@ export const wsHandler = upgradeWebSocket(async (c) => {
       if (user) {
         userId = user.id;
       }
-    } catch (error) {
+    } catch {
       logger.debug('[WebSocket] Invalid token');
     }
   }
@@ -155,7 +152,7 @@ export const wsHandler = upgradeWebSocket(async (c) => {
         if (data.type === 'ping') {
           ws.send(JSON.stringify({ type: 'pong', timestamp: new Date() }));
         }
-      } catch (error) {
+      } catch {
         logger.debug('[WebSocket] Invalid message');
       }
     },

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { UserRole } from '@repo/types';
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
@@ -36,7 +37,7 @@
         email: payload.email as string,
         firstName: (payload.firstName as string) ?? '',
         lastName: (payload.lastName as string) ?? '',
-        role: payload.role as any,
+        role: payload.role === UserRole.ADMIN ? UserRole.ADMIN : UserRole.USER,
         isPremium: Boolean(payload.isPremium),
         avatarUrl: (payload.avatarUrl as string | null) ?? null,
         coverImageUrl: null,

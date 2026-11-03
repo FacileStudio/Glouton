@@ -1,11 +1,12 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import 'leaflet/dist/leaflet.css';
+  import type { Map as LeafletMap } from 'leaflet';
 
   let { lat, lng, name = '' }: { lat: number; lng: number; name?: string } = $props();
 
   let mapContainer: HTMLElement;
-  let map: any;
+  let map: LeafletMap | undefined;
 
   onMount(async () => {
     const L = (await import('leaflet')).default;

@@ -1,5 +1,9 @@
 import { createTRPCProxyClient, httpLink } from '@trpc/client';
+import type { inferRouterInputs, inferRouterOutputs } from '@trpc/server';
 import type { AppRouter } from '@repo/trpc';
+
+export type RouterInputs = inferRouterInputs<AppRouter>;
+export type RouterOutputs = inferRouterOutputs<AppRouter>;
 
 interface TrpcConfig {
   baseUrl: string;

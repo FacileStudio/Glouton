@@ -1,58 +1,20 @@
 <script lang="ts">
+  import { getErrorMessage } from '$lib/utils/trpc-error';
   import { fade, fly } from 'svelte/transition';
   import { onMount, onDestroy } from 'svelte';
   import type { PageProps } from './$types';
   import { goto } from '$app/navigation';
+  import { resolve } from '$app/paths';
   import { trpc } from '$lib/trpc';
-  import { toast, Spinner, PageHeader, Button, Badge, Card, Section, StatCard, EmptyState, Alert, Icon, StatusDot, icons } from '@facile/muse';
+  import type { RouterOutputs } from '@repo/trpc-client';
+  import { toast, Spinner, PageHeader, Button, Badge, Section, StatCard, EmptyState, Alert, Icon, StatusDot, icons } from '@facile/muse';
   import { ws } from '$lib/websocket';
   import HuntBanner from '$lib/components/leads/HuntBanner.svelte';
 
   let { params }: PageProps = $props();
   let huntSessionId = $derived(params.id);
 
-  interface RunDetails {
-    id: string;
-    userId: string;
-    status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
-    progress: number;
-    sources: string[];
-    domain: string | null;
-    huntType: 'DOMAIN' | 'LOCAL_BUSINESS';
-    filters?: any;
-    totalLeads: number;
-    successfulLeads: number;
-    failedLeads: number;
-    sourceStats?: any;
-    error: string | null;
-    startedAt: string | null;
-    completedAt: string | null;
-    createdAt: string;
-    updatedAt: string;
-    stats: {
-      totalLeads: number;
-      hotLeads: number;
-      warmLeads: number;
-      coldLeads: number;
-      contactedLeads: number;
-      duration: number | null;
-      successRate: number;
-      averageScore: number;
-    };
-    leads: Array<{
-      id: string;
-      domain: string;
-      email: string | null;
-      firstName: string | null;
-      lastName: string | null;
-      businessName: string | null;
-      position: string | null;
-      status: string;
-      score: number;
-      source: string;
-      createdAt: string;
-    }>;
-  }
+  type RunDetails = RouterOutputs['lead']['hunt']['getRunDetails'];
 
   interface LiveEvent {
     id: string;
@@ -60,7 +22,6 @@
     level: 'success' | 'info' | 'warning' | 'error';
     message: string;
     timestamp: Date;
-    metadata?: any;
   }
 
   interface DiscoveredItem {
@@ -82,14 +43,13 @@
 
   const unsubscribers: (() => void)[] = [];
 
-  function pushEvent(type: string, level: LiveEvent['level'], message: string, metadata?: any) {
+  function pushEvent(type: string, level: LiveEvent['level'], message: string) {
     const event: LiveEvent = {
       id: `live-${eventIdCounter++}`,
       type,
       level,
       message,
       timestamp: new Date(),
-      metadata,
     };
     liveEvents = [event, ...liveEvents].slice(0, 200);
   }
@@ -104,7 +64,7 @@
     await loadData();
 
     unsubscribers.push(
-      ws.on('hunt-started', (data: any) => {
+      ws.on('hunt-started', (data) => {
         if (data.huntSessionId !== huntSessionId) return;
         updateDetails({ status: 'PROCESSING', startedAt: new Date().toISOString() });
         pushEvent('hunt-started', 'info', data.message || 'Chasse démarrée');
@@ -112,7 +72,7 @@
     );
 
     unsubscribers.push(
-      ws.on('hunt-progress', (data: any) => {
+      ws.on('hunt-progress', (data) => {
         if (data.huntSessionId !== huntSessionId) return;
         updateDetails({
           progress: data.progress ?? details?.progress ?? 0,
@@ -124,66 +84,73 @@
     );
 
     unsubscribers.push(
-      ws.on('domain-discovered', (data: any) => {
-        if (data.huntSessionId !== huntSessionId) return;
+      ws.on('domain-discovered', (data) => {
+        if (data.huntSessionId !== huntSessionId || !data.domain) return;
         discoveredItems = [
-          { domain: data.domain, organization: data.organization, industry: data.industry, index: data.totalDiscovered },
+          {
+            domain: data.domain,
+            organization: data.organization ?? null,
+            industry: data.industry ?? null,
+            index: data.totalDiscovered ?? discoveredItems.length + 1,
+          },
           ...discoveredItems,
         ].slice(0, 500);
         updateDetails({
-          successfulLeads: data.totalDiscovered,
+          successfulLeads: data.totalDiscovered ?? details?.successfulLeads ?? 0,
           progress: data.progress ?? details?.progress ?? 0,
         });
-        pushEvent('domain-discovered', 'success', `Découvert : ${data.organization || data.domain}`, { domain: data.domain, industry: data.industry });
+        pushEvent('domain-discovered', 'success', `Découvert : ${data.organization || data.domain}`);
       })
     );
 
     unsubscribers.push(
-      ws.on('leads-created', (data: any) => {
+      ws.on('leads-created', (data) => {
         if (data.huntSessionId !== huntSessionId) return;
-        updateDetails({ successfulLeads: (details?.successfulLeads ?? 0) + data.count });
-        pushEvent('leads-created', 'success', `${data.count} nouveau${data.count > 1 ? 'x' : ''} lead${data.count > 1 ? 's' : ''} ajouté${data.count > 1 ? 's' : ''}${data.source ? ` depuis ${data.source}` : ''}`, { count: data.count });
+        const count = data.count ?? 0;
+        updateDetails({ successfulLeads: (details?.successfulLeads ?? 0) + count });
+        pushEvent('leads-created', 'success', `${count} nouveau${count > 1 ? 'x' : ''} lead${count > 1 ? 's' : ''} ajouté${count > 1 ? 's' : ''}${data.source ? ` depuis ${data.source}` : ''}`);
       })
     );
 
     unsubscribers.push(
-      ws.on('businesses-discovered', (data: any) => {
+      ws.on('businesses-discovered', (data) => {
         if (data.huntSessionId !== huntSessionId) return;
-        pushEvent('businesses-discovered', 'info', `${data.count} entreprise${data.count > 1 ? 's' : ''} trouvée${data.count > 1 ? 's' : ''} sur la carte`, { count: data.count });
+        const count = data.count ?? 0;
+        pushEvent('businesses-discovered', 'info', `${count} entreprise${count > 1 ? 's' : ''} trouvée${count > 1 ? 's' : ''} sur la carte`);
       })
     );
 
     unsubscribers.push(
-      ws.on('extraction-progress', (data: any) => {
+      ws.on('extraction-progress', (data) => {
         if (data.huntSessionId !== huntSessionId) return;
-        updateDetails({ progress: data.progress ?? details?.progress ?? 0, successfulLeads: data.leadsFound });
+        updateDetails({ progress: data.progress ?? details?.progress ?? 0, successfulLeads: data.leadsFound ?? details?.successfulLeads ?? 0 });
         pushEvent('extraction-progress', 'info', data.message || `Source ${data.currentSource}: ${data.sourcesCompleted}/${data.totalSources}`);
       })
     );
 
     unsubscribers.push(
-      ws.on('source-started', (data: any) => {
+      ws.on('source-started', (data) => {
         if (data.huntSessionId !== huntSessionId) return;
         pushEvent('source-started', 'info', data.message || `Starting source ${data.source}`);
       })
     );
 
     unsubscribers.push(
-      ws.on('leads-discovered', (data: any) => {
+      ws.on('leads-discovered', (data) => {
         if (data.huntSessionId !== huntSessionId) return;
         pushEvent('leads-discovered', 'info', data.message || `Found ${data.count} leads from ${data.source}`);
       })
     );
 
     unsubscribers.push(
-      ws.on('rate-limit-reached', (data: any) => {
+      ws.on('rate-limit-reached', (data) => {
         if (data.huntSessionId !== huntSessionId) return;
         pushEvent('rate-limit-reached', 'warning', `Limite de taux atteinte pour ${data.source}`);
       })
     );
 
     unsubscribers.push(
-      ws.on('hunt-completed', async (data: any) => {
+      ws.on('hunt-completed', async (data) => {
         if (data.huntSessionId !== huntSessionId) return;
         updateDetails({ status: 'COMPLETED', progress: 100, completedAt: new Date().toISOString() });
         pushEvent('hunt-completed', 'success', data.message || `Chasse terminée ! ${data.successfulLeads} leads trouvés`);
@@ -193,7 +160,7 @@
     );
 
     unsubscribers.push(
-      ws.on('extraction-completed', async (data: any) => {
+      ws.on('extraction-completed', async (data) => {
         if (data.huntSessionId !== huntSessionId) return;
         updateDetails({ status: 'COMPLETED', progress: 100, completedAt: new Date().toISOString() });
         pushEvent('extraction-completed', 'success', data.message || `Extraction terminée ! ${data.successfulLeads} leads trouvés`);
@@ -203,7 +170,7 @@
     );
 
     unsubscribers.push(
-      ws.on('hunt-cancelled', (data: any) => {
+      ws.on('hunt-cancelled', (data) => {
         if (data.huntSessionId !== huntSessionId) return;
         updateDetails({ status: 'CANCELLED', completedAt: new Date().toISOString() });
         pushEvent('hunt-cancelled', 'warning', 'Chasse annulée par l\'utilisateur');
@@ -211,18 +178,18 @@
     );
 
     unsubscribers.push(
-      ws.on('hunt-failed', (data: any) => {
+      ws.on('hunt-failed', (data) => {
         if (data.huntSessionId !== huntSessionId) return;
-        updateDetails({ status: 'FAILED', completedAt: new Date().toISOString(), error: data.error });
+        updateDetails({ status: 'FAILED', completedAt: new Date().toISOString(), error: data.error ?? null });
         pushEvent('hunt-failed', 'error', data.message || `Chasse échouée : ${data.error}`);
         toast.danger(data.message || 'Chasse échouée');
       })
     );
 
     unsubscribers.push(
-      ws.on('extraction-failed', (data: any) => {
+      ws.on('extraction-failed', (data) => {
         if (data.huntSessionId !== huntSessionId) return;
-        updateDetails({ status: 'FAILED', completedAt: new Date().toISOString(), error: data.error });
+        updateDetails({ status: 'FAILED', completedAt: new Date().toISOString(), error: data.error ?? null });
         pushEvent('extraction-failed', 'error', data.message || `Extraction échouée : ${data.error}`);
       })
     );
@@ -236,9 +203,9 @@
     try {
       const detailsData = await trpc.lead.hunt.getRunDetails.query({ huntSessionId });
       details = detailsData;
-    } catch (error: any) {
+    } catch (error) {
       toast.danger('Échec du chargement des détails');
-      if (error?.message?.includes('not found')) goto('/app/hunts');
+      if (getErrorMessage(error, '').includes('not found')) goto(resolve('/app/hunts'));
     } finally {
       loading = false;
     }
@@ -249,8 +216,8 @@
     try {
       await trpc.lead.hunt.cancel.mutate({ huntSessionId: id });
       toast.info('Chasse annulée');
-    } catch (err: any) {
-      toast.danger(err?.message || "Échec de l'annulation");
+    } catch (err) {
+      toast.danger(getErrorMessage(err, "Échec de l'annulation"));
     } finally {
       cancelling = false;
     }
@@ -266,23 +233,24 @@
     try {
       const filters = details.filters;
 
-      if (details.huntType === 'LOCAL_BUSINESS' || (filters.location && filters.categories)) {
-        await trpc.lead.hunt.startLocalBusiness.mutate({
-          location: filters.location,
-          categories: filters.categories || [filters.category],
-          radius: filters.radius || 5000,
-          maxResults: filters.maxResults || 20,
-          hasWebsite: filters.hasWebsite,
-        });
-      } else {
+      const { location, categories } = filters;
+      if (!location || !categories) {
         toast.danger('Type de chasse non reconnu');
         return;
       }
 
+      await trpc.lead.hunt.startLocalBusiness.mutate({
+        location,
+        categories,
+        radius: filters.radius || 5000,
+        maxResults: filters.maxResults || 20,
+        hasWebsite: filters.hasWebsite,
+      });
+
       toast.success('Nouvelle chasse lancée avec les mêmes paramètres !');
-      goto('/app/hunts');
-    } catch (error: any) {
-      toast.danger(error?.message || 'Échec de la relance');
+      goto(resolve('/app/hunts'));
+    } catch (error) {
+      toast.danger(getErrorMessage(error, 'Échec de la relance'));
     } finally {
       relaunching = false;
     }
@@ -364,7 +332,7 @@
 
 {#snippet chips(values: string[], capitalize = false)}
   <div class="flex flex-wrap gap-1.5">
-    {#each values as value}
+    {#each values as value, i (i)}
       <Badge class={capitalize ? 'capitalize' : ''}>{value}</Badge>
     {/each}
   </div>
@@ -460,79 +428,20 @@
             {@render chips(details.sources.map(sourceLabel))}
           </div>
         {/if}
-
-        {#if details.filters && Object.keys(details.filters).some(k => details?.filters[k] !== undefined && details?.filters[k] !== null)}
-          <div class="flex flex-col gap-2">
-            <p class="text-fc-fg-muted">Filtres</p>
-            <div class="flex flex-col gap-3 rounded-fc-md bg-fc-surface p-4">
-              {#if details.filters.type}
-                <div class="flex items-center justify-between gap-2">
-                  <span class="text-fc-fg-muted">Type d'email</span>
-                  <Badge>{details.filters.type === 'personal' ? 'Personnel' : 'Générique'}</Badge>
-                </div>
-              {/if}
-              {#if details.filters.seniority?.length}
-                <div class="flex flex-col gap-1.5">
-                  <p class="text-fc-fg-muted">Séniorité</p>
-                  {@render chips(details.filters.seniority.map((s: string) => (s === 'junior' ? 'Junior' : s === 'senior' ? 'Senior' : 'Exécutif')))}
-                </div>
-              {/if}
-              {#if details.filters.department?.length}
-                <div class="flex flex-col gap-1.5">
-                  <p class="text-fc-fg-muted">Département</p>
-                  {@render chips(details.filters.department, true)}
-                </div>
-              {/if}
-              {#if details.filters.jobTitles?.length}
-                <div class="flex flex-col gap-1.5">
-                  <p class="text-fc-fg-muted">Postes</p>
-                  {@render chips(details.filters.jobTitles)}
-                </div>
-              {/if}
-              {#if details.filters.verificationStatus?.length}
-                <div class="flex flex-col gap-1.5">
-                  <p class="text-fc-fg-muted">Statut de vérification</p>
-                  {@render chips(details.filters.verificationStatus.map((v: string) => (v === 'valid' ? 'Valide' : v === 'accept_all' ? 'Accepte tout' : 'Inconnu')))}
-                </div>
-              {/if}
-              {#if details.filters.requiredFields?.length}
-                <div class="flex flex-col gap-1.5">
-                  <p class="text-fc-fg-muted">Champs requis</p>
-                  {@render chips(details.filters.requiredFields.map((f: string) => (f === 'full_name' ? 'Nom complet' : f === 'position' ? 'Poste' : 'Téléphone')))}
-                </div>
-              {/if}
-              {#if details.filters.location && typeof details.filters.location === 'object'}
-                {@const loc = details.filters.location}
-                {#if loc.country || loc.city || loc.state || loc.continent || loc.businessRegion}
-                  <div class="flex flex-col gap-1.5">
-                    <p class="text-fc-fg-muted">Localisation</p>
-                    <div class="flex flex-col gap-1">
-                      {#if loc.continent}{@render row('Continent', loc.continent)}{/if}
-                      {#if loc.businessRegion}{@render row('Région', loc.businessRegion)}{/if}
-                      {#if loc.country}{@render row('Pays', loc.country)}{/if}
-                      {#if loc.state}{@render row('État / Région', loc.state)}{/if}
-                      {#if loc.city}{@render row('Ville', loc.city)}{/if}
-                    </div>
-                  </div>
-                {/if}
-              {/if}
-            </div>
-          </div>
-        {/if}
       {/if}
 
       {#if details.sourceStats && typeof details.sourceStats === 'object' && Object.keys(details.sourceStats).length > 0}
         <div class="flex flex-col gap-2">
           <p class="text-fc-fg-muted">Performance des sources</p>
-          {#each Object.entries(details.sourceStats) as [source, stats]}
+          {#each Object.entries(details.sourceStats) as [source, stats] (source)}
             <div class="flex flex-col gap-2 rounded-fc-md bg-fc-surface p-4">
               <p class="font-medium text-fc-fg">{source}</p>
               <div class="flex flex-col gap-1">
-                {@render row('Leads', (stats as any).leads || 0)}
-                {#if (stats as any).errors > 0}
-                  {@render row('Erreurs', (stats as any).errors)}
+                {@render row('Leads', stats.leads || 0)}
+                {#if stats.errors}
+                  {@render row('Erreurs', stats.errors)}
                 {/if}
-                {#if (stats as any).rateLimited}
+                {#if stats.rateLimited}
                   {@render row('Limite dépassée', 'Oui')}
                 {/if}
               </div>
@@ -637,7 +546,7 @@
       <Badge>{details?.leads.length ?? 0}</Badge>
     {/snippet}
     <div class="flex max-h-[500px] flex-col overflow-y-auto">
-      {#each details.leads as lead}
+      {#each details.leads as lead (lead.id)}
         <div class="-mx-2 flex items-center gap-3 rounded-fc-md border-b border-fc-border px-2 py-2.5 transition-colors last:border-0 hover:bg-fc-surface">
           <div class="flex size-9 shrink-0 items-center justify-center rounded-fc-md bg-fc-surface text-fc-fg-muted">
             <Icon icon="solar:user-linear" />

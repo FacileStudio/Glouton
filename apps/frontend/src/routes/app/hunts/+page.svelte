@@ -1,10 +1,12 @@
 <script lang="ts">
+  import { getErrorCode, getErrorMessage } from '$lib/utils/trpc-error';
   import { onMount, onDestroy } from 'svelte';
   import { fade } from 'svelte/transition';
   import { goto } from '$app/navigation';
+  import { resolve } from '$app/paths';
   import { trpc } from '$lib/trpc';
   import { toast, Spinner, PageHeader, Button, StatCard, EmptyState, Section, icons } from '@facile/muse';
-  import { setupHuntListeners, type HuntSession } from '$lib/websocket-events.svelte';
+  import { setupHuntListeners, type HuntSession } from '$lib/websocket-events';
   import HuntBanner from '$lib/components/leads/HuntBanner.svelte';
   import HuntCard from '$lib/components/hunts/HuntCard.svelte';
   import HuntListItem from '$lib/components/hunts/HuntListItem.svelte';
@@ -32,8 +34,6 @@
   let cancellingHuntId = $state<string | null>(null);
   let deletingHuntId = $state<string | null>(null);
   let relaunchingHuntId = $state<string | null>(null);
-  let lastFailedHunts = new Set<string>();
-  let lastCompletedHunts = new Set<string>();
   let wsUnsubscribers: (() => void)[] = [];
 
 
@@ -72,13 +72,8 @@
     try {
       const sessionsData = await trpc.lead.hunt.list.query({ teamId });
       huntSessions = Array.isArray(sessionsData) ? sessionsData : [];
-
-      huntSessions.forEach((s) => {
-        if (s.status === 'FAILED' && !lastFailedHunts.has(s.id)) lastFailedHunts.add(s.id);
-        if (s.status === 'COMPLETED' && !lastCompletedHunts.has(s.id)) lastCompletedHunts.add(s.id);
-      });
-    } catch (error: any) {
-      if (error?.data?.code === 'UNAUTHORIZED') return goto('/login');
+    } catch (error) {
+      if (getErrorCode(error) === 'UNAUTHORIZED') return goto(resolve('/login'));
       toast.danger('Échec du chargement des chasses');
     } finally {
       loading = false;
@@ -89,7 +84,7 @@
     try {
       const statsData = await trpc.lead.query.getStats.query({ teamId });
       stats = statsData || null;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error loading stats:', error);
     }
   }
@@ -110,7 +105,6 @@
     try {
       await trpc.lead.hunt.delete.mutate({ huntSessionId });
       toast.success('Chasse supprimée');
-      lastFailedHunts.delete(huntSessionId);
       await loadData();
     } finally {
       deletingHuntId = null;
@@ -128,24 +122,25 @@
 
       const filters = session.filters;
 
-      if (session.huntType === 'LOCAL_BUSINESS' || (filters.location && filters.categories)) {
-        await trpc.lead.hunt.startLocalBusiness.mutate({
-          location: filters.location,
-          categories: filters.categories || [filters.category],
-          radius: filters.radius || 5000,
-          maxResults: filters.maxResults || 20,
-          hasWebsite: filters.hasWebsite,
-        });
-      } else {
+      const { location, categories } = filters;
+      if (!location || !categories) {
         toast.danger('Type de chasse non reconnu');
         return;
       }
 
+      await trpc.lead.hunt.startLocalBusiness.mutate({
+        location,
+        categories,
+        radius: filters.radius || 5000,
+        maxResults: filters.maxResults || 20,
+        hasWebsite: filters.hasWebsite,
+      });
+
       toast.success('Nouvelle chasse lancée avec les mêmes paramètres !');
       await loadData();
       await loadStats();
-    } catch (error: any) {
-      toast.danger(error?.message || 'Échec de la relance');
+    } catch (error) {
+      toast.danger(getErrorMessage(error, 'Échec de la relance'));
     } finally {
       relaunchingHuntId = null;
     }
@@ -168,7 +163,7 @@
     </PageHeader>
 
     <section class="grid grid-cols-2 gap-4 lg:grid-cols-4">
-      {#each [{ label: 'En attente', val: stats?.pendingHunts?.toString() || '0' }, { label: 'En cours', val: stats?.processingHunts?.toString() || '0' }, { label: 'Terminées', val: stats?.completedHunts?.toString() || '0' }, { label: 'Échouées', val: stats?.failedHunts?.toString() || '0' }] as stat}
+      {#each [{ label: 'En attente', val: stats?.pendingHunts?.toString() || '0' }, { label: 'En cours', val: stats?.processingHunts?.toString() || '0' }, { label: 'Terminées', val: stats?.completedHunts?.toString() || '0' }, { label: 'Échouées', val: stats?.failedHunts?.toString() || '0' }] as stat (stat.label)}
         <StatCard label={stat.label} value={stat.val} />
       {/each}
     </section>

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import 'leaflet/dist/leaflet.css';
+  import type { LayerGroup, Map as LeafletMap } from 'leaflet';
   import { Card } from '@facile/muse';
 
   interface Lead {
@@ -13,16 +14,15 @@
     country?: string | null;
     status?: string;
     score?: number;
-    coordinates: { lat: number; lng: number };
+    coordinates: { lat: number; lng: number } | null;
   }
 
   let { leads }: { leads: Lead[] } = $props();
 
   let expanded = $state(false);
   let mapContainer = $state<HTMLElement | undefined>();
-  let map: any;
-  let markersLayer: any;
-  let mounted = false;
+  let map: LeafletMap | undefined;
+  let markersLayer: LayerGroup | undefined;
 
   const leadsWithCoords = $derived(leads.filter((l) => l.coordinates));
 
@@ -83,13 +83,14 @@
     renderMarkers(L);
   }
 
-  function renderMarkers(L: any) {
+  function renderMarkers(L: typeof import('leaflet')) {
     if (!markersLayer) return;
     markersLayer.clearLayers();
 
     const bounds: [number, number][] = [];
 
     for (const lead of leadsWithCoords) {
+      if (!lead.coordinates) continue;
       const icon = L.divIcon({
         className: getStatusColor(lead.status),
         html: pinSvg,
@@ -109,7 +110,7 @@
       bounds.push([lead.coordinates.lat, lead.coordinates.lng]);
     }
 
-    if (bounds.length > 0) {
+    if (map && bounds.length > 0) {
       map.fitBounds(bounds, { padding: [40, 40], maxZoom: 13 });
     }
   }
@@ -126,7 +127,6 @@
   }
 
   onMount(() => {
-    mounted = true;
   });
 
   onDestroy(() => {

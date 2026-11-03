@@ -22,7 +22,6 @@ export const trpcHandler =
           req: c.req.raw,
           authManager,
           env,
-          db: prisma as any,
           prisma,
           jobs,
           logger,

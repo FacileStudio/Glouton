@@ -1,6 +1,10 @@
 <script lang="ts">
+  import type { RouterOutputs } from '@repo/trpc-client';
+  import { getErrorMessage } from '$lib/utils/trpc-error';
+  import { SvelteURLSearchParams } from 'svelte/reactivity';
   import { onMount, onDestroy } from 'svelte';
   import { replaceState } from '$app/navigation';
+  import { resolve } from '$app/paths';
   import { trpc } from '$lib/trpc';
   import { Button, Card, EmptyState, PageHeader, Spinner, toast } from '@facile/muse';
   import StatsCards from '$lib/components/leads/StatsCards.svelte';
@@ -9,14 +13,14 @@
   import LeadsTable from '$lib/components/leads/LeadsTable.svelte';
   import LeadsMap from '$lib/components/leads/LeadsMap.svelte';
   import PaginationControls from '$lib/components/leads/PaginationControls.svelte';
-  import { setupAuditListeners, setupHuntListeners, type AuditSession, type HuntSession } from '$lib/websocket-events.svelte';
+  import { setupAuditListeners, setupHuntListeners, type AuditSession, type HuntSession } from '$lib/websocket-events';
   import { teamContextStore } from '$lib/stores/team-context.svelte';
 
   let teamId = $derived(teamContextStore.getTeamId());
 
   
-  let leads = $state<any[]>([]);
-  let stats = $state<any>(null);
+  let leads = $state<RouterOutputs['lead']['query']['list']['leads']>([]);
+  let stats = $state<RouterOutputs['lead']['query']['getStats'] | null>(null);
   let auditSessions = $state<AuditSession[]>([]);
   let huntSessions = $state<HuntSession[]>([]);
   let initialLoading = $state(true);
@@ -44,7 +48,7 @@
   let mounted = false;
 
   function syncToUrl() {
-    const params = new URLSearchParams();
+    const params = new SvelteURLSearchParams();
     if (filters.search) params.set('search', filters.search);
     if (filters.status) params.set('status', filters.status);
     if (filters.contacted) params.set('contacted', filters.contacted);
@@ -60,7 +64,7 @@
     if (sortBy !== 'createdAt') params.set('sortBy', sortBy);
     if (sortOrder !== 'desc') params.set('sortOrder', sortOrder);
     const qs = params.toString();
-    replaceState(qs ? `?${qs}` : location.pathname, {});
+    replaceState(qs ? resolve(`/app/leads?${qs}`) : resolve('/app/leads'), {});
   }
 
   $effect(() => {
@@ -359,8 +363,8 @@
 
       toast.success('Import CSV démarré ! Redirection...');
       window.location.href = `/app/hunts/${result.huntSessionId}`;
-    } catch (error: any) {
-      const errorMessage = error?.message || "Échec de l'importation du CSV";
+    } catch (error) {
+      const errorMessage = getErrorMessage(error, "Échec de l'importation du CSV");
       toast.danger(errorMessage);
       console.error('Import error:', error);
       importing = false;

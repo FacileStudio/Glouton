@@ -33,6 +33,7 @@ module.exports = [
     rules: {
       'no-unused-vars': 'off',
       'no-undef': 'off',
+      'no-empty': ['error', { allowEmptyCatch: true }],
       '@typescript-eslint/no-unused-vars': [
         'warn',
         {

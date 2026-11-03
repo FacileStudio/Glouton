@@ -1,5 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
+  import { resolve } from '$app/paths';
   import { getFaviconUrl, handleFaviconError } from '$lib/utils/favicon';
   import { Badge, Card, Table } from '@facile/muse';
 
@@ -62,7 +63,7 @@
   ];
 
   function navigateToLead(leadId: string) {
-    goto(`/app/leads/${leadId}`);
+    goto(resolve('/app/leads/[id]', { id: leadId }));
   }
 
   function getLeadTitle(lead: Lead): string {
@@ -159,7 +160,7 @@
               />
             </div>
             <a
-              href="/app/leads/{lead.id}"
+              href={resolve('/app/leads/[id]', { id: lead.id })}
               onclick={(e) => e.stopPropagation()}
               class="max-w-[180px] truncate font-medium text-fc-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fc-ring"
               title={getLeadTitle(lead)}

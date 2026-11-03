@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { getErrorMessage } from '$lib/utils/trpc-error';
   import authStore from '$lib/auth-store';
   import MailTransportSettings from '$lib/components/MailTransportSettings.svelte';
   import { trpc } from '$lib/trpc';
@@ -106,8 +107,8 @@
       setTimeout(() => {
         showSavedMessage = false;
       }, 3000);
-    } catch (error: any) {
-      const errorMessage = error?.message || 'Échec de la mise à jour du profil';
+    } catch (error) {
+      const errorMessage = getErrorMessage(error, 'Échec de la mise à jour du profil');
       console.error('Failed to update profile:', error);
       toast.danger(errorMessage);
       message = { type: 'error', text: errorMessage };
@@ -145,8 +146,8 @@
       formData.confirmPassword = '';
       toast.success('Mot de passe modifié avec succès !');
       message = { type: 'success', text: 'Mot de passe modifié avec succès !' };
-    } catch (error: any) {
-      const errorMessage = error?.message || 'Failed to change password';
+    } catch (error) {
+      const errorMessage = getErrorMessage(error, 'Failed to change password');
       console.error('Failed to change password:', error);
       toast.danger(errorMessage);
       message = { type: 'error', text: errorMessage };
@@ -182,8 +183,8 @@
         smtpFromEmail: formData.smtpFromEmail,
       });
       toast.success('Configuration SMTP valide !');
-    } catch (error: any) {
-      const errorMessage = error?.message || 'Configuration SMTP invalide';
+    } catch (error) {
+      const errorMessage = getErrorMessage(error, 'Configuration SMTP invalide');
       toast.danger(errorMessage);
     } finally {
       testingSmtp = false;
@@ -222,8 +223,8 @@
       formData.smtpFromEmail = smtpConfig.smtpFromEmail || '';
 
       toast.success('Configuration SMTP enregistrée avec succès !');
-    } catch (error: any) {
-      const errorMessage = error?.message || 'Échec de la mise à jour de la config SMTP';
+    } catch (error) {
+      const errorMessage = getErrorMessage(error, 'Échec de la mise à jour de la config SMTP');
       console.error('Failed to update SMTP config:', error);
       toast.danger(errorMessage);
     } finally {
@@ -250,8 +251,8 @@
     try {
       await trpc.user.deleteOwnAccount.mutate();
       authStore.logout();
-    } catch (err: any) {
-      const errorMessage = err?.message || 'Failed to delete account';
+    } catch (err) {
+      const errorMessage = getErrorMessage(err, 'Failed to delete account');
       logger.error({ err }, 'Failed to delete account');
       toast.danger(errorMessage);
       message = { type: 'error', text: errorMessage };
@@ -518,7 +519,7 @@
     Cette action est définitive. Vos données seront supprimées de façon permanente.
   </p>
 
-  <Field label={'Tapez "DELETE" pour confirmer'} for="deleteConfirm">
+  <Field label='Tapez "DELETE" pour confirmer' for="deleteConfirm">
     <Input id="deleteConfirm" type="text" bind:value={deleteConfirmationText} placeholder="DELETE" />
   </Field>
 

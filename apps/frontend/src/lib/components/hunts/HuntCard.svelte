@@ -1,5 +1,7 @@
 <script lang="ts">
+  import type { HuntFilters } from '$lib/websocket-events';
   import { goto } from '$app/navigation';
+  import { resolve } from '$app/paths';
   import { Badge, Button, Icon, IconButton, Spinner, icons } from '@facile/muse';
 
   interface HuntSession {
@@ -7,15 +9,13 @@
     huntType: 'DOMAIN' | 'LOCAL_BUSINESS' | undefined;
     sources?: string[];
     status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
-    progress: number;
     totalLeads: number;
     successfulLeads: number;
-    failedLeads: number;
     error: string | null;
     startedAt: string | null;
     completedAt: string | null;
     createdAt: string;
-    filters?: any;
+    filters?: HuntFilters | null;
   }
 
   let {
@@ -58,7 +58,7 @@
       return 'Import CSV';
     }
     if (isLocal) {
-      const cat = session.filters?.categories?.[0] || session.filters?.category || 'Commerce local';
+      const cat = session.filters?.categories?.[0] || 'Commerce local';
       const loc = session.filters?.location || '';
       return loc ? `${cat} à ${loc}` : cat;
     }
@@ -91,8 +91,8 @@
 <div
   role="button"
   tabindex="0"
-  onclick={() => goto(`/app/hunts/${session.id}`)}
-  onkeydown={(e) => e.key === 'Enter' && goto(`/app/hunts/${session.id}`)}
+  onclick={() => goto(resolve('/app/hunts/[id]', { id: session.id }))}
+  onkeydown={(e) => e.key === 'Enter' && goto(resolve('/app/hunts/[id]', { id: session.id }))}
   class="group flex cursor-pointer flex-col gap-4 rounded-fc-md bg-fc-component p-5 transition-colors hover:bg-fc-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fc-ring"
 >
   <div class="flex items-start gap-3">

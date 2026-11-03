@@ -1,7 +1,42 @@
 import { ws } from '$lib/websocket';
 import { toast } from '@facile/muse';
+import type { RouterOutputs } from '@repo/trpc-client';
 
-type EventCallback = (data: any) => void;
+export type HuntFilters = NonNullable<RouterOutputs['lead']['hunt']['getRunDetails']['filters']>;
+
+type HuntStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+
+export interface WsEventPayload {
+  huntSessionId?: string;
+  auditSessionId?: string;
+  huntType?: 'DOMAIN' | 'LOCAL_BUSINESS';
+  status?: HuntStatus;
+  filters?: HuntFilters;
+  message?: string;
+  error?: string;
+  source?: string;
+  currentSource?: string;
+  domain?: string;
+  organization?: string;
+  industry?: string;
+  location?: string;
+  startedAt?: string;
+  count?: number;
+  progress?: number;
+  totalLeads?: number;
+  successfulLeads?: number;
+  failedLeads?: number;
+  updatedLeads?: number;
+  processedLeads?: number;
+  totalDiscovered?: number;
+  totalSources?: number;
+  sourcesCompleted?: number;
+  newTotalLeads?: number;
+  newSuccessfulLeads?: number;
+  leadsFound?: number;
+}
+
+type EventCallback = (data: WsEventPayload) => void;
 type EventUnsubscriber = () => void;
 
 interface EventSubscription {
@@ -58,7 +93,7 @@ class WebSocketEventManager {
     });
   }
 
-  private emit(event: string, data: any) {
+  private emit(event: string, data: WsEventPayload) {
     const subscriptions = this.subscriptions.get(event);
     if (subscriptions) {
       subscriptions.forEach(sub => {
@@ -113,20 +148,24 @@ export interface AuditSession {
   createdAt: Date;
 }
 
-export interface HuntSession {
-  id: string;
-  huntType: 'DOMAIN' | 'LOCAL_BUSINESS' | undefined;
-  progress: number;
-  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
-  totalLeads: number;
-  successfulLeads: number;
-  failedLeads: number;
-  error: string | null;
-  startedAt: string | null;
-  completedAt: string | null;
-  createdAt: string;
-  filters?: any;
+export type HuntSession = RouterOutputs['lead']['hunt']['list'][number] & {
   lastDiscoveredDomain?: string | null;
+};
+
+type SessionKey = 'huntSessionId' | 'auditSessionId';
+
+function hasSessionId<K extends SessionKey>(data: WsEventPayload, key: K): data is WsEventPayload & Record<K, string> {
+  return typeof data[key] === 'string';
+}
+
+function onSessionEvent<K extends SessionKey>(
+  key: K,
+  event: string,
+  callback: (data: WsEventPayload & Record<K, string>) => void
+): EventUnsubscriber {
+  return wsEvents.on(event, (data) => {
+    if (hasSessionId(data, key)) callback(data);
+  });
 }
 
 export function setupAuditListeners(
@@ -139,7 +178,7 @@ export function setupAuditListeners(
   const unsubscribers: EventUnsubscriber[] = [];
 
   unsubscribers.push(
-    wsEvents.on('audit-started', (data) => {
+    onSessionEvent('auditSessionId', 'audit-started', (data) => {
       const newSession: AuditSession = {
         id: data.auditSessionId,
         status: data.status || 'PENDING',
@@ -166,7 +205,7 @@ export function setupAuditListeners(
   );
 
   unsubscribers.push(
-    wsEvents.on('audit-progress', (data) => {
+    onSessionEvent('auditSessionId', 'audit-progress', (data) => {
       updateSession(data.auditSessionId, {
         status: data.status || 'PROCESSING',
         progress: data.progress || 0,
@@ -179,7 +218,7 @@ export function setupAuditListeners(
   );
 
   unsubscribers.push(
-    wsEvents.on('audit-completed', async (data) => {
+    onSessionEvent('auditSessionId', 'audit-completed', async (data) => {
       const found = updateSession(data.auditSessionId, {
         status: 'COMPLETED',
         progress: 100,
@@ -197,7 +236,7 @@ export function setupAuditListeners(
   );
 
   unsubscribers.push(
-    wsEvents.on('audit-failed', (data) => {
+    onSessionEvent('auditSessionId', 'audit-failed', (data) => {
       updateSession(data.auditSessionId, {
         status: 'FAILED',
         error: data.error || 'Unknown error',
@@ -208,7 +247,7 @@ export function setupAuditListeners(
   );
 
   unsubscribers.push(
-    wsEvents.on('audit-cancelled', (data) => {
+    onSessionEvent('auditSessionId', 'audit-cancelled', (data) => {
       updateSession(data.auditSessionId, {
         status: 'CANCELLED',
         completedAt: new Date(),
@@ -237,10 +276,10 @@ export function setupHuntListeners(
   const unsubscribers: EventUnsubscriber[] = [];
 
   unsubscribers.push(
-    wsEvents.on('hunt-started', (data) => {
+    onSessionEvent('huntSessionId', 'hunt-started', (data) => {
       const newSession: HuntSession = {
         id: data.huntSessionId,
-        huntType: data.huntType,
+        huntType: data.huntType ?? 'DOMAIN',
         status: 'PENDING',
         progress: 0,
         totalLeads: 0,
@@ -250,7 +289,7 @@ export function setupHuntListeners(
         startedAt: null,
         completedAt: null,
         createdAt: new Date().toISOString(),
-        filters: data.filters,
+        filters: data.filters ?? null,
       };
 
       if (!updateSession(data.huntSessionId, {
@@ -266,7 +305,7 @@ export function setupHuntListeners(
   );
 
   unsubscribers.push(
-    wsEvents.on('hunt-processing', (data) => {
+    onSessionEvent('huntSessionId', 'hunt-processing', (data) => {
       updateSession(data.huntSessionId, {
         status: 'PROCESSING',
         startedAt: data.startedAt ?? new Date().toISOString(),
@@ -275,7 +314,7 @@ export function setupHuntListeners(
   );
 
   unsubscribers.push(
-    wsEvents.on('hunt-progress', (data) => {
+    onSessionEvent('huntSessionId', 'hunt-progress', (data) => {
       updateSession(data.huntSessionId, {
         status: 'PROCESSING',
         progress: data.progress || 0,
@@ -287,7 +326,7 @@ export function setupHuntListeners(
   );
 
   unsubscribers.push(
-    wsEvents.on('hunt-update', (data) => {
+    onSessionEvent('huntSessionId', 'hunt-update', (data) => {
       updateSession(data.huntSessionId, {
         progress: data.progress,
         totalLeads: data.totalLeads,
@@ -298,7 +337,7 @@ export function setupHuntListeners(
   );
 
   unsubscribers.push(
-    wsEvents.on('local-business-hunt-progress', (data) => {
+    onSessionEvent('huntSessionId', 'local-business-hunt-progress', (data) => {
       updateSession(data.huntSessionId, {
         status: 'PROCESSING',
         progress: data.progress || 0,
@@ -309,7 +348,7 @@ export function setupHuntListeners(
   );
 
   unsubscribers.push(
-    wsEvents.on('hunt-completed', async (data) => {
+    onSessionEvent('huntSessionId', 'hunt-completed', async (data) => {
       const found = updateSession(data.huntSessionId, {
         status: 'COMPLETED',
         progress: 100,
@@ -334,7 +373,7 @@ export function setupHuntListeners(
   );
 
   unsubscribers.push(
-    wsEvents.on('hunt-failed', (data) => {
+    onSessionEvent('huntSessionId', 'hunt-failed', (data) => {
       updateSession(data.huntSessionId, {
         status: 'FAILED',
         error: data.error || 'Unknown error',
@@ -345,7 +384,7 @@ export function setupHuntListeners(
   );
 
   unsubscribers.push(
-    wsEvents.on('hunt-cancelled', (data) => {
+    onSessionEvent('huntSessionId', 'hunt-cancelled', (data) => {
       updateSession(data.huntSessionId, {
         status: 'CANCELLED',
         completedAt: new Date().toISOString(),
@@ -355,7 +394,7 @@ export function setupHuntListeners(
   );
 
   unsubscribers.push(
-    wsEvents.on('leads-added', (data) => {
+    onSessionEvent('huntSessionId', 'leads-added', (data) => {
       if (data.huntSessionId) {
         updateSession(data.huntSessionId, {
           successfulLeads: data.newSuccessfulLeads,
@@ -366,7 +405,7 @@ export function setupHuntListeners(
   );
 
   unsubscribers.push(
-    wsEvents.on('domain-discovered', (data) => {
+    onSessionEvent('huntSessionId', 'domain-discovered', (data) => {
       if (data.huntSessionId) {
         updateSession(data.huntSessionId, {
           successfulLeads: data.totalDiscovered,
@@ -378,7 +417,7 @@ export function setupHuntListeners(
   );
 
   unsubscribers.push(
-    wsEvents.on('businesses-discovered', (data) => {
+    onSessionEvent('huntSessionId', 'businesses-discovered', (data) => {
       if (data.huntSessionId) {
         updateSession(data.huntSessionId, {
           totalLeads: data.count,
@@ -390,7 +429,7 @@ export function setupHuntListeners(
   );
 
   unsubscribers.push(
-    wsEvents.on('leads-created', (data) => {
+    onSessionEvent('huntSessionId', 'leads-created', (data) => {
       if (data.huntSessionId) {
         toast.success(data.message || `${data.count} new leads created`);
       }
@@ -398,7 +437,7 @@ export function setupHuntListeners(
   );
 
   unsubscribers.push(
-    wsEvents.on('leads-updated', (data) => {
+    onSessionEvent('huntSessionId', 'leads-updated', (data) => {
       if (data.huntSessionId) {
         toast.info(data.message || `${data.count} leads updated`);
       }
@@ -406,7 +445,7 @@ export function setupHuntListeners(
   );
 
   unsubscribers.push(
-    wsEvents.on('hunt-error', (data) => {
+    onSessionEvent('huntSessionId', 'hunt-error', (data) => {
       if (data.huntSessionId) {
         updateSession(data.huntSessionId, {
           error: data.error,

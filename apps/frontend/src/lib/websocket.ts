@@ -1,7 +1,8 @@
 import { browser } from '$app/environment';
 import { writable } from 'svelte/store';
+import type { WsEventPayload } from './websocket-events';
 
-type MessageHandler = (data: any) => void;
+type MessageHandler = (data: unknown) => void;
 
 export type ConnectionState = 'connecting' | 'connected' | 'disconnected' | 'reconnecting' | 'failed';
 
@@ -85,7 +86,8 @@ class WebSocketClient {
 		}
 	}
 
-	on(type: string, handler: MessageHandler) {
+	on<T = WsEventPayload>(type: string, onMessage: (data: T) => void) {
+		const handler: MessageHandler = (data) => onMessage(data as T);
 		if (!this.handlers.has(type)) {
 			this.handlers.set(type, new Set());
 		}
@@ -117,10 +119,6 @@ class WebSocketClient {
 
 		this.handlers.clear();
 		this.connectionState.set('disconnected');
-	}
-
-	send(_message: any) {
-		// SSE is server-to-client only
 	}
 }
 

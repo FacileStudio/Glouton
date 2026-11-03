@@ -32,9 +32,9 @@
         firstName,
         lastName,
       });
-      authStore.setAuth({ token: result.token }, result.user as any);
+      authStore.setAuth({ token: result.token }, result.user);
       await goto(resolve('/app/leads'));
-    } catch (err: any) {
+    } catch (err) {
       console.error('Registration error:', err);
       error = getTrpcErrorMessage(err);
       loading = false;

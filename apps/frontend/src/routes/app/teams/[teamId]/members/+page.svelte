@@ -1,7 +1,12 @@
 <script lang="ts">
+  import type { RouterOutputs } from '@repo/trpc-client';
+
+  type TeamMember = RouterOutputs['team']['getMembers'][number];
+  import { getErrorMessage } from '$lib/utils/trpc-error';
   import { onMount } from 'svelte';
   import type { PageProps } from './$types';
   import { goto } from '$app/navigation';
+  import { resolve } from '$app/paths';
   import { trpc } from '$lib/trpc';
   import {
     Avatar,
@@ -24,8 +29,8 @@
 
   let { params }: PageProps = $props();
   let teamId = $derived(params.teamId);
-  let team = $state<any>(null);
-  let members = $state<any[]>([]);
+  let team = $state<RouterOutputs['team']['get'] | null>(null);
+  let members = $state<TeamMember[]>([]);
   let loading = $state(true);
   let loadingMembers = $state(true);
 
@@ -36,12 +41,11 @@
 
   let removingMemberId = $state<string | null>(null);
   let removeConfirmModalOpen = $state(false);
-  let memberToRemove = $state<any>(null);
+  let memberToRemove = $state<TeamMember | null>(null);
 
   let updatingRoleMemberId = $state<string | null>(null);
 
   let leaveConfirmModalOpen = $state(false);
-  let leavingTeam = $state(false);
 
   let linked = $derived(Boolean(team?.registreSpaceId));
   let canManage = $derived(team && !linked && (team.userRole === 'OWNER' || team.userRole === 'ADMIN'));
@@ -55,10 +59,10 @@
     loading = true;
     try {
       team = await trpc.team.get.query({ teamId });
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error loading team:', error);
-      toast.danger(error?.message || 'Échec du chargement de l\'espace');
-      goto('/app/teams');
+      toast.danger(getErrorMessage(error, 'Échec du chargement de l\'espace'));
+      goto(resolve('/app/teams'));
     } finally {
       loading = false;
     }
@@ -110,14 +114,14 @@
       addMemberEmail = '';
       addMemberRole = 'MEMBER';
       await loadMembers();
-    } catch (error: any) {
-      toast.danger(error?.message || 'Échec de l\'ajout du membre');
+    } catch (error) {
+      toast.danger(getErrorMessage(error, 'Échec de l\'ajout du membre'));
     } finally {
       addingMember = false;
     }
   }
 
-  function openRemoveConfirm(member: any) {
+  function openRemoveConfirm(member: TeamMember) {
     memberToRemove = member;
     removeConfirmModalOpen = true;
   }
@@ -135,14 +139,14 @@
       removeConfirmModalOpen = false;
       memberToRemove = null;
       await loadMembers();
-    } catch (error: any) {
-      toast.danger(error?.message || 'Échec du retrait du membre');
+    } catch (error) {
+      toast.danger(getErrorMessage(error, 'Échec du retrait du membre'));
     } finally {
       removingMemberId = null;
     }
   }
 
-  async function handleUpdateRole(member: any, newRole: 'ADMIN' | 'MEMBER') {
+  async function handleUpdateRole(member: TeamMember, newRole: 'ADMIN' | 'MEMBER') {
     if (!isOwner || member.role === newRole) return;
 
     updatingRoleMemberId = member.userId;
@@ -154,8 +158,8 @@
       });
       toast.success('Rôle mis à jour avec succès');
       await loadMembers();
-    } catch (error: any) {
-      toast.danger(error?.message || 'Échec de la mise à jour du rôle');
+    } catch (error) {
+      toast.danger(getErrorMessage(error, 'Échec de la mise à jour du rôle'));
     } finally {
       updatingRoleMemberId = null;
     }
@@ -166,17 +170,13 @@
       toast.danger('Le propriétaire ne peut pas quitter l\'espace. Supprimez l\'espace ou transférez la propriété.');
       return;
     }
-
-    leavingTeam = true;
     try {
       await trpc.team.leave.mutate({ teamId });
       toast.success('Vous avez quitté l\'espace');
-      goto('/app/teams');
-    } catch (error: any) {
-      toast.danger(error?.message || 'Échec du départ de l\'espace');
+      goto(resolve('/app/teams'));
+    } catch (error) {
+      toast.danger(getErrorMessage(error, 'Échec du départ de l\'espace'));
       leaveConfirmModalOpen = false;
-    } finally {
-      leavingTeam = false;
     }
   }
 
@@ -202,15 +202,17 @@
     back={{ href: `/app/teams/${teamId}`, label: team.name }}
   >
     {#snippet actions()}
-      {#if linked && team.manageUrl}
-        <Button variant="outline" icon={icons.space} href={team.manageUrl}>Gérer dans Registre</Button>
-      {:else if team.userRole !== 'OWNER'}
-        <Button variant="ghost-danger" icon={icons.logout} onclick={() => (leaveConfirmModalOpen = true)}>
-          Quitter l'espace
-        </Button>
-      {/if}
-      {#if canManage}
-        <Button icon={icons.plus} onclick={() => (addMemberModalOpen = true)}>Ajouter un membre</Button>
+      {#if team}
+        {#if linked && team.manageUrl}
+          <Button variant="outline" icon={icons.space} href={team.manageUrl}>Gérer dans Registre</Button>
+        {:else if team.userRole !== 'OWNER'}
+          <Button variant="ghost-danger" icon={icons.logout} onclick={() => (leaveConfirmModalOpen = true)}>
+            Quitter l'espace
+          </Button>
+        {/if}
+        {#if canManage}
+          <Button icon={icons.plus} onclick={() => (addMemberModalOpen = true)}>Ajouter un membre</Button>
+        {/if}
       {/if}
     {/snippet}
   </PageHeader>

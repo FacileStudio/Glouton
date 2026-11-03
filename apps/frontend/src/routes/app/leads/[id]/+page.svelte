@@ -1,5 +1,7 @@
 <script lang="ts">
+  import { getErrorMessage } from '$lib/utils/trpc-error';
   import { onMount } from 'svelte';
+  import { SvelteSet } from 'svelte/reactivity';
   import type { PageProps } from './$types';
   import { fade, fly } from 'svelte/transition';
   import DOMPurify from 'isomorphic-dompurify';
@@ -91,7 +93,7 @@
   let variables: Record<string, string> = $state({});
   let emailPreview = $state({ subject: '', html: '', text: '' });
   let previewLoading = $state(false);
-  let expandedEmails: Set<string> = $state(new Set());
+  const expandedEmails = new SvelteSet<string>();
   let isInitialLoad = $state(true);
   let isFavorite = $state(false);
   let togglingFavorite = $state(false);
@@ -234,8 +236,8 @@
 
       toast.success('E-mail envoyé avec succès !');
       await loadData();
-    } catch (error: any) {
-      toast.danger(error?.message || "Échec de l'envoi de l'e-mail");
+    } catch (error) {
+      toast.danger(getErrorMessage(error, "Échec de l'envoi de l'e-mail"));
       console.error(error);
     } finally {
       sending = false;
@@ -265,7 +267,6 @@
     'flex items-center gap-3 rounded-fc-md border border-fc-border px-3 py-2.5 transition-colors hover:bg-fc-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fc-ring';
 
   function toggleEmailExpansion(emailId: string) {
-    expandedEmails = new Set(expandedEmails);
     if (expandedEmails.has(emailId)) {
       expandedEmails.delete(emailId);
     } else {
@@ -312,10 +313,6 @@
     return { ...base, icon: 'mdi:link-variant', label: platform };
   }
 
-  function getSocialIcon(platform: string): string {
-    return getSocialMeta(platform).icon;
-  }
-
   function getGoogleMapsCoordsUrl(lat: number, lng: number): string {
     return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
   }
@@ -349,11 +346,9 @@
   let additionalEmails = $derived(lead?.additionalEmails ?? []);
   let phoneNumbers = $derived(lead?.phoneNumbers ?? []);
   let socialProfiles = $derived(lead?.socialProfiles ?? []);
-  let sanitizedPreviewHtml = $derived(
-    emailPreview.html
-      ? DOMPurify.sanitize(emailPreview.html)
-      : '<p class="text-fc-sm text-fc-fg-muted italic">Remplissez les variables pour voir l\'aperçu...</p>'
-  );
+  const previewStyles =
+    "body{margin:0;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;line-height:1.6;font-size:14px}p{margin:0 0 .875em}h1,h2,h3{margin:1.25em 0 .5em}.container{max-width:100%;margin:0 auto}.header{padding:20px;border-radius:8px 8px 0 0}.content{padding:20px;border-radius:0 0 8px 8px}.footer{text-align:center;margin-top:20px;font-size:11px}";
+  let previewDocument = $derived(`<style>${previewStyles}</style>${DOMPurify.sanitize(emailPreview.html)}`);
 
   $effect(() => {
     const _ = [selectedTemplate, variables];
@@ -509,14 +504,14 @@
             </a>
           {/if}
 
-          {#each additionalEmails as email, i}
+          {#each additionalEmails as email, i (i)}
             <a href="mailto:{email}" class={rowLinkClass}>
               {@render contactRow('solar:letter-linear', `E-mail ${i + 2}`, email)}
               <iconify-icon icon="solar:arrow-right-up-linear" width="14" height="14" class="block shrink-0 text-fc-fg-muted"></iconify-icon>
             </a>
           {/each}
 
-          {#each phoneNumbers as phone}
+          {#each phoneNumbers as phone, i (i)}
             <a href="tel:{phone}" class={rowLinkClass}>
               {@render contactRow('solar:phone-linear', 'Téléphone', phone)}
               <iconify-icon icon="solar:arrow-right-up-linear" width="14" height="14" class="block shrink-0 text-fc-fg-muted"></iconify-icon>
@@ -580,9 +575,9 @@
               <Badge class="ml-auto">{socialProfiles.length}</Badge>
             </h3>
             <div class="flex flex-col gap-2">
-              {#each socialProfiles as profile}
+              {#each socialProfiles as profile, i (i)}
                 {@const meta = getSocialMeta(profile.platform)}
-                <a href={profile.url} target="_blank" rel="noopener noreferrer" class="group {rowLinkClass}">
+                <a href={profile.url} target="_blank" rel="external noopener noreferrer" class="group {rowLinkClass}">
                   <div class="inline-flex size-8 shrink-0 items-center justify-center rounded-fc-md {meta.bg} {meta.color}">
                     <iconify-icon icon={meta.icon} width="16" height="16" class="block"></iconify-icon>
                   </div>
@@ -636,7 +631,7 @@
                   <a
                     href={lead.companyInfo.website}
                     target="_blank"
-                    rel="noopener noreferrer"
+                    rel="external noopener noreferrer"
                     class="mt-0.5 block rounded-fc-xs text-fc-sm break-all text-fc-fg hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fc-ring"
                   >
                     {lead.companyInfo.website}
@@ -660,7 +655,7 @@
               Stack technique
             </h3>
             <div class="flex flex-wrap gap-1.5">
-              {#each technologies as tech}
+              {#each technologies as tech, i (i)}
                 <Badge>{tech}</Badge>
               {/each}
             </div>
@@ -725,7 +720,7 @@
                     <div class="flex flex-col gap-3">
                       <p class="text-fc-xs text-fc-fg-muted">Variables</p>
 
-                      {#each template.variables as variable}
+                      {#each template.variables as variable, i (i)}
                         <Field label={variable.replace(/([A-Z])/g, ' $1').trim()} class="[&_label]:capitalize">
                           <Input
                             type="text"
@@ -773,10 +768,12 @@
                       <p class="mb-0.5 text-fc-xs text-fc-fg-muted">Objet</p>
                       <p class="text-fc-sm font-medium text-fc-fg">{emailPreview.subject || '—'}</p>
                     </div>
-                    <div class="max-h-[500px] overflow-y-auto p-4">
-                      <div class="email-preview">
-                        {@html sanitizedPreviewHtml}
-                      </div>
+                    <div class="p-4">
+                      {#if emailPreview.html}
+                        <iframe title="Aperçu de l'email" sandbox="" srcdoc={previewDocument} class="h-[468px] w-full rounded-fc-md border-0 bg-white"></iframe>
+                      {:else}
+                        <p class="text-fc-sm text-fc-fg-muted italic">Remplissez les variables pour voir l'aperçu...</p>
+                      {/if}
                     </div>
                   </div>
                 {:else}
@@ -877,19 +874,3 @@
   </div>
 {/if}
 
-<style>
-  :global(.email-preview) {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    line-height: 1.6;
-    color: var(--color-fc-fg);
-    font-size: 14px;
-  }
-  :global(.email-preview p) { margin-bottom: 0.875em; }
-  :global(.email-preview h1),
-  :global(.email-preview h2),
-  :global(.email-preview h3) { margin-top: 1.25em; margin-bottom: 0.5em; }
-  :global(.email-preview .container) { max-width: 100%; margin: 0 auto; }
-  :global(.email-preview .header) { padding: 20px; border-radius: 8px 8px 0 0; }
-  :global(.email-preview .content) { padding: 20px; border-radius: 0 0 8px 8px; }
-  :global(.email-preview .footer) { text-align: center; margin-top: 20px; font-size: 11px; }
-</style>

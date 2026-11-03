@@ -5,30 +5,7 @@ import {
   calculatePagination,
 } from '@repo/database/utils/prisma-helpers';
 import { buildLeadFilter, buildHuntFilter, buildAuditFilter, type Scope } from '../../../utils/scope';
-import {
-  readCompanyInfo,
-  readCoordinates,
-  readSocialProfiles,
-  type CompanyInfo,
-  type Coordinates,
-  type SocialProfile,
-} from '../../../utils/json';
-
-type LeadJsonColumns = Pick<Prisma.LeadGetPayload<object>, 'socialProfiles' | 'coordinates' | 'companyInfo'>;
-
-/**
- * Replaces a lead's untyped JSON columns with their validated shapes.
- */
-function withTypedJson<T extends LeadJsonColumns>(
-  lead: T
-): Omit<T, keyof LeadJsonColumns> & { socialProfiles: SocialProfile[]; coordinates: Coordinates | null; companyInfo: CompanyInfo | null } {
-  return {
-    ...lead,
-    socialProfiles: readSocialProfiles(lead.socialProfiles),
-    coordinates: readCoordinates(lead.coordinates),
-    companyInfo: readCompanyInfo(lead.companyInfo),
-  };
-}
+import { withTypedJson } from '../../../utils/json';
 
 export interface GetLeadsParams {
   scope: Scope;

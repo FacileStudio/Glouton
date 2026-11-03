@@ -1,5 +1,4 @@
 import { type FetchCreateContextFnOptions } from '@trpc/server/adapters/fetch';
-import { type SQL } from 'bun';
 import { type PrismaClient } from '@prisma/client';
 import { type AuthManager } from '@repo/auth';
 import { type ServerEnv } from '@repo/env';
@@ -9,7 +8,6 @@ import type { DelegatedVerifier } from './delegation';
 import type { CourrierClient } from '@repo/courrier';
 
 export interface CreateContextOptions extends FetchCreateContextFnOptions {
-  db: SQL;
   prisma: PrismaClient;
   authManager: AuthManager;
   env: ServerEnv;
@@ -50,7 +48,6 @@ export const createContext = async (options: CreateContextOptions) => {
     user,
     actor,
     scopes,
-    db: options.db,
     prisma: options.prisma,
     auth: options.authManager,
     env: options.env,

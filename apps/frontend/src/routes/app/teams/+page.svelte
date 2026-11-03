@@ -1,10 +1,12 @@
 <script lang="ts">
+  import type { RouterOutputs } from '@repo/trpc-client';
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
+  import { resolve } from '$app/paths';
   import { trpc } from '$lib/trpc';
   import { Badge, Button, Card, EmptyState, Icon, Input, PageHeader, Spinner, icons, toast } from '@facile/muse';
 
-  let teams = $state<any[]>([]);
+  let teams = $state<RouterOutputs['team']['list']>([]);
   let loading = $state(true);
   let spacesUrl = $state<string | null>(null);
   let searchQuery = $state('');
@@ -56,11 +58,11 @@
   }
 
   function handleTeamClick(teamId: string) {
-    goto(`/app/teams/${teamId}`);
+    goto(resolve('/app/teams/[teamId]', { teamId }));
   }
 
   function handleCreateTeam() {
-    goto('/app/teams/new');
+    goto(resolve('/app/teams/new'));
   }
 </script>
 

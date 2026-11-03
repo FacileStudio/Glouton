@@ -5,6 +5,7 @@ import {
   paginationParams,
   calculatePagination,
 } from '@repo/database/utils/prisma-helpers';
+import { withTypedJson } from '../../../utils/json';
 
 export interface Context {
   user: { id: string };
@@ -153,7 +154,6 @@ export default {
             physicalAddresses: true,
             socialProfiles: true,
             companyInfo: true,
-            websiteAudit: true,
             scrapedAt: true,
             auditedAt: true,
             huntSessionId: true,
@@ -177,7 +177,7 @@ export default {
       );
 
       return {
-        leads,
+        leads: leads.map(withTypedJson),
         pagination: {
           page: paginationMeta.page,
           limit: paginationMeta.limit,

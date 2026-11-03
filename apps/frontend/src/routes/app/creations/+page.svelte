@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { getErrorMessage } from '$lib/utils/trpc-error';
   import { onMount, onDestroy } from 'svelte';
   import { trpc } from '$lib/trpc';
   import { teamContextStore } from '$lib/stores/team-context.svelte';
@@ -127,7 +128,7 @@
   async function loadData() {
     loading = true;
     try {
-      const result = await (trpc as any).companyCreation.list.query({
+      const result = await trpc.companyCreation.list.query({
         page,
         limit: 25,
         country: countryFilter === 'ALL' ? undefined : countryFilter,
@@ -135,10 +136,9 @@
         hasWebsite: withoutWebsiteOnly ? false : undefined,
       });
 
-      const items = (result?.items ?? result?.creations ?? (Array.isArray(result) ? result : [])) as CompanyCreation[];
-      creations = items;
-      total = result?.total ?? items.length;
-      totalPages = result?.totalPages ?? Math.max(1, Math.ceil(total / 25));
+      creations = result.items;
+      total = result.total;
+      totalPages = Math.max(1, result.totalPages);
     } catch {
       toast.danger('Erreur lors du chargement des créations');
     } finally {
@@ -148,7 +148,7 @@
 
   async function loadStats() {
     try {
-      stats = await (trpc as any).companyCreation.stats.query();
+      stats = await trpc.companyCreation.stats.query();
     } catch {
       stats = null;
     }
@@ -157,11 +157,11 @@
   async function triggerScrape() {
     scraping = true;
     try {
-      await (trpc as any).companyCreation.triggerScrape.mutate();
+      await trpc.companyCreation.triggerScrape.mutate();
       toast.success('Actualisation du flux lancée');
       await Promise.all([loadData(), loadStats()]);
-    } catch (err: any) {
-      toast.danger(err?.message || "Erreur lors de l'actualisation du flux");
+    } catch (err) {
+      toast.danger(getErrorMessage(err, "Erreur lors de l'actualisation du flux"));
     } finally {
       scraping = false;
     }
@@ -171,17 +171,15 @@
     convertingId = creation.id;
     try {
       const teamId = teamContextStore.getTeamId();
-      const result = await (trpc as any).companyCreation.convertToLead.mutate({
+      const result = await trpc.companyCreation.convertToLead.mutate({
         creationId: creation.id,
-        id: creation.id,
         teamId,
       });
       toast.success('Entreprise convertie en lead');
-      const leadId = result?.leadId || result?.id || result?.lead?.id;
-      creation.convertedLeadId = leadId ?? 'converted';
+      creation.convertedLeadId = result.leadId;
       creation.convertedAt = new Date().toISOString();
-    } catch (err: any) {
-      toast.danger(err?.message || 'Erreur lors de la conversion');
+    } catch (err) {
+      toast.danger(getErrorMessage(err, 'Erreur lors de la conversion'));
     } finally {
       convertingId = null;
     }
@@ -397,7 +395,7 @@
                   <a
                     href={creation.websiteUrl || `https://${creation.domain}`}
                     target="_blank"
-                    rel="noopener noreferrer"
+                    rel="external noopener noreferrer"
                     class="inline-flex items-center gap-1 text-fc-accent hover:underline"
                   >
                     <Icon icon="solar:link-linear" size={12} />

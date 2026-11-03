@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import 'leaflet/dist/leaflet.css';
+  import type { Circle, LeafletMouseEvent, Map as LeafletMap, Marker } from 'leaflet';
 
   let {
     onLocationSelected,
@@ -15,9 +16,9 @@
   } = $props();
 
   let mapContainer: HTMLDivElement;
-  let map: any;
-  let marker: any;
-  let circle: any;
+  let map: LeafletMap | undefined;
+  let marker: Marker | undefined;
+  let circle: Circle | undefined;
   let radiusInMeters = 5000;
 
   onMount(async () => {
@@ -34,24 +35,24 @@
     });
     L.Marker.prototype.options.icon = DefaultIcon;
 
-    map = L.map(mapContainer).setView([initialLat, initialLng], initialZoom);
+    const leafletMap = L.map(mapContainer).setView([initialLat, initialLng], initialZoom);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors',
       maxZoom: 19,
-    }).addTo(map);
+    }).addTo(leafletMap);
 
-    marker = L.marker([initialLat, initialLng], { draggable: true }).addTo(map);
+    const pin = L.marker([initialLat, initialLng], { draggable: true }).addTo(leafletMap);
 
-    circle = L.circle([initialLat, initialLng], {
+    const area = L.circle([initialLat, initialLng], {
       className: 'fc-radius-circle',
       fillOpacity: 0.2,
       radius: radiusInMeters,
-    }).addTo(map);
+    }).addTo(leafletMap);
 
-    marker.on('dragend', async (event: any) => {
-      const position = event.target.getLatLng();
-      circle.setLatLng(position);
+    pin.on('dragend', async () => {
+      const position = pin.getLatLng();
+      area.setLatLng(position);
 
       const address = await reverseGeocode(position.lat, position.lng);
 
@@ -62,10 +63,10 @@
       });
     });
 
-    map.on('click', async (event: any) => {
+    leafletMap.on('click', async (event: LeafletMouseEvent) => {
       const { lat, lng } = event.latlng;
-      marker.setLatLng([lat, lng]);
-      circle.setLatLng([lat, lng]);
+      pin.setLatLng([lat, lng]);
+      area.setLatLng([lat, lng]);
 
       const address = await reverseGeocode(lat, lng);
 
@@ -75,6 +76,10 @@
         address,
       });
     });
+
+    map = leafletMap;
+    marker = pin;
+    circle = area;
 
     const initialAddress = await reverseGeocode(initialLat, initialLng);
     onLocationSelected({

@@ -1,7 +1,10 @@
 <script lang="ts">
+  import type { RouterOutputs } from '@repo/trpc-client';
+  import { getErrorMessage } from '$lib/utils/trpc-error';
   import { onMount } from 'svelte';
   import type { PageProps } from './$types';
   import { goto } from '$app/navigation';
+  import { resolve } from '$app/paths';
   import { trpc } from '$lib/trpc';
   import {
     Badge,
@@ -19,8 +22,8 @@
 
   let { params }: PageProps = $props();
   let teamId = $derived(params.teamId);
-  let team = $state<any>(null);
-  let stats = $state<any>(null);
+  let team = $state<RouterOutputs['team']['get'] | null>(null);
+  let stats = $state<RouterOutputs['team']['getStats'] | null>(null);
   let loading = $state(true);
   let loadingStats = $state(true);
 
@@ -32,10 +35,10 @@
     loading = true;
     try {
       team = await trpc.team.get.query({ teamId });
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error loading team:', error);
-      toast.danger(error?.message || 'Échec du chargement de l\'espace');
-      goto('/app/teams');
+      toast.danger(getErrorMessage(error, 'Échec du chargement de l\'espace'));
+      goto(resolve('/app/teams'));
     } finally {
       loading = false;
     }
@@ -70,8 +73,8 @@
     }
   }
 
-  function handleNavigate(path: string) {
-    goto(`/app/teams/${teamId}${path}`);
+  function openSettings() {
+    goto(resolve('/app/teams/[teamId]/settings', { teamId }));
   }
 
   function formatDate(value: string | Date) {
@@ -98,13 +101,15 @@
     back={{ href: '/app/teams', label: 'Espaces' }}
   >
     {#snippet actions()}
-      <Badge tone={getRoleTone(team.userRole)}>{getRoleLabel(team.userRole)}</Badge>
-      {#if team.registreSpaceId && team.manageUrl}
-        <Button variant="outline" icon={icons.space} href={team.manageUrl}>Gérer dans Registre</Button>
+      {#if team}
+        <Badge tone={getRoleTone(team.userRole)}>{getRoleLabel(team.userRole)}</Badge>
+        {#if team.registreSpaceId && team.manageUrl}
+          <Button variant="outline" icon={icons.space} href={team.manageUrl}>Gérer dans Registre</Button>
+        {/if}
+        <Button variant="outline" icon={icons.settings} onclick={() => openSettings()}>
+          Paramètres
+        </Button>
       {/if}
-      <Button variant="outline" icon={icons.settings} onclick={() => handleNavigate('/settings')}>
-        Paramètres
-      </Button>
     {/snippet}
   </PageHeader>
 
@@ -133,7 +138,7 @@
     <StatCard
       label="Chasses"
       value={statValue(stats?.totalHunts)}
-      delta={stats?.activeHunts > 0
+      delta={stats && stats.activeHunts > 0
         ? `${stats.activeHunts} active${stats.activeHunts !== 1 ? 's' : ''}`
         : undefined}
     />

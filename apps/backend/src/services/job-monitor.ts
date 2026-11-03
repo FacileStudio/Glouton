@@ -1,7 +1,7 @@
 import type { PrismaClient } from '@prisma/client';
 import type { QueueManager } from '@repo/jobs';
 
-export async function checkOrphanedSessions(prisma: PrismaClient, jobs: QueueManager) {
+export async function checkOrphanedSessions(prisma: PrismaClient) {
   const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
 
   const orphanedAudits = await prisma.auditSession.updateMany({
