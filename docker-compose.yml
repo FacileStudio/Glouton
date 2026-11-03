@@ -64,6 +64,11 @@ services:
       SSO_ONLY: ${SSO_ONLY:-}
       COURRIER_URL: ${COURRIER_URL:-}
       COURRIER_AUDIENCE: ${COURRIER_AUDIENCE:-}
+      ARDOISE_URL: ${ARDOISE_URL:-}
+      ARDOISE_API_TOKEN: ${ARDOISE_API_TOKEN:-}
+      ARDOISE_WEBHOOK_SECRET: ${ARDOISE_WEBHOOK_SECRET:-}
+      ARDOISE_DEFAULT_OWNER_EMAIL: ${ARDOISE_DEFAULT_OWNER_EMAIL:-}
+      ARDOISE_WEB_URL: ${ARDOISE_WEB_URL:-}
     depends_on:
       glouton-postgres:
         condition: service_healthy

@@ -96,6 +96,23 @@ Two BullMQ jobs run when Courrier is configured:
 Both log and skip a failing user. Both hold an in-memory token cache, so run one backend
 replica, or expect an occasional "Reconnect" when two replicas rotate the same refresh token.
 
+### Ardoise sync
+
+Links Glouton companies to Ardoise clients, both ways. The four first variables go together: set
+all four or none, else startup fails. With none set, the sync is off: the webhook answers 404,
+edits queue nothing, and the backend logs "Ardoise sync is off" once.
+
+| Variable | Required | Default | What it does |
+|---|---|---|---|
+| `ARDOISE_URL` | with the others | — | Ardoise backend URL, for example `https://api-ardoise.facile.studio`. Glouton calls `{ARDOISE_URL}/api/integrations/glouton/*` |
+| `ARDOISE_API_TOKEN` | with the others | — | Bearer token Glouton sends to Ardoise. Same value as Ardoise's `GLOUTON_API_TOKEN` |
+| `ARDOISE_WEBHOOK_SECRET` | with the others | — | Minimum 16 characters. Verifies `X-Ardoise-Signature-256` on incoming webhooks. Same value as Ardoise's `GLOUTON_WEBHOOK_SECRET` |
+| `ARDOISE_DEFAULT_OWNER_EMAIL` | with the others | — | Glouton user who owns clients that arrive without a matching team. When no user has this email, those clients are not imported and the backend logs an error |
+| `ARDOISE_WEB_URL` | no | `https://ardoise.facile.studio` | Ardoise web app, for the "Lié dans Ardoise" link (`/admin/clients/{id}`) |
+
+On the Ardoise side, set `GLOUTON_URL` to Glouton's public URL: Ardoise posts to
+`{GLOUTON_URL}/api/integrations/ardoise/webhook`, which `server.js` forwards to the backend.
+
 ## Frontend
 
 `apps/frontend/src/lib/env.ts` validates only `NODE_ENV` — the frontend has no public API URL to
@@ -134,6 +151,7 @@ deploy rather than starting a broken stack.
 | `ENCRYPTION_SECRET` | none — **fails** if unset | Passed to the backend |
 | `POSTGRES_PASSWORD` | `glouton` | Database password. The user and database name are hard-coded to `glouton` |
 | `COURRIER_URL`, `COURRIER_AUDIENCE` | empty | Passed to the backend; empty leaves Courrier off |
+| `ARDOISE_*` | empty | Forwarded to the backend by name; see [Ardoise sync](#ardoise-sync) |
 | `CACHE_BUST` | `2026-05-15-1` | Build arg that invalidates the backend image's source-copy layer |
 
 `DATABASE_URL` is assembled by Compose from `POSTGRES_PASSWORD` and always points at

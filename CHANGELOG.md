@@ -31,6 +31,12 @@ in the root `package.json`.
   `email.replied` activity.
 - **Contacts from Courrier.** Daily, `courrier-contacts-import` proposes the addresses you wrote
   to from Courrier, and that Glouton does not know, as import suggestions in the inbox.
+- **Ardoise sync.** "Passer en client" on a company creates the client in Ardoise, after you pick
+  the billing contact and fill what is missing. Linked companies show a "Lié dans Ardoise" link
+  and an Unlink action. Ardoise clients flow back through a signed webhook: Glouton links them by
+  SIRET or contact email, asks in the inbox on a domain or name match, and creates the rest.
+  Quotes, invoices and payments land on the company timeline, and an accepted quote makes it a
+  client. Edits on either side sync with last write wins; a delete on one side only unlinks.
 - `bun run backfill:contacts [--dry-run]` turns existing leads into companies and people and
   links their outreach. Running it twice changes nothing.
 
@@ -54,6 +60,9 @@ in the root `package.json`.
 - Migration `020_courrier_transport.sql` adds nullable `mailTransport` and `courrierAccountId` to
   `User` and `Team`. Set `COURRIER_URL=https://courrier.facile.studio` to turn Courrier on. Users
   sign in once more with SSO to store a refresh token before they can pick Courrier.
+- The Ardoise sync adds the `ArdoiseDelivery` table (migration `021_ardoise_deliveries.sql`) and
+  stays off until `ARDOISE_URL`, `ARDOISE_API_TOKEN`, `ARDOISE_WEBHOOK_SECRET` and
+  `ARDOISE_DEFAULT_OWNER_EMAIL` are all set, with the matching `GLOUTON_*` values in Ardoise.
 
 ## [0.4.0] - 2026-11-03
 

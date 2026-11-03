@@ -1,9 +1,11 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { page } from '$app/state';
-  import { Badge, Button, Card, Field, Input, PageHeader, Select, Spinner, toast } from '@facile/muse';
+  import { Badge, Button, Card, ConfirmModal, Field, Input, PageHeader, Select, Spinner, toast } from '@facile/muse';
   import { trpc } from '$lib/trpc';
   import { getTrpcErrorMessage } from '$lib/utils/trpc-error';
   import ContactActivity from '$lib/components/contacts/ContactActivity.svelte';
+  import TurnIntoClientDialog from '$lib/components/contacts/TurnIntoClientDialog.svelte';
   import {
     STAGES,
     askBulle,
@@ -25,6 +27,32 @@
   let addingPerson = $state(false);
   let personForm = $state({ firstName: '', lastName: '', email: '', role: '' });
   let showPersonForm = $state(false);
+  let ardoise = $state<{ enabled: boolean; webUrl: string } | null>(null);
+  let turnOpen = $state(false);
+  let unlinkOpen = $state(false);
+
+  function ardoiseLink(clientId: string): string | null {
+    return ardoise ? `${ardoise.webUrl}/admin/clients/${encodeURIComponent(clientId)}` : null;
+  }
+
+  async function loadArdoise() {
+    try {
+      ardoise = await trpc.ardoise.status.query();
+    } catch {
+      ardoise = null;
+    }
+  }
+
+  async function unlink() {
+    if (!company) return;
+    try {
+      await trpc.ardoise.unlink.mutate({ companyId: company.id });
+      toast.success('Client délié d’Ardoise');
+      await load();
+    } catch (error) {
+      toast.danger(getTrpcErrorMessage(error));
+    }
+  }
 
   async function load() {
     try {
@@ -80,6 +108,8 @@
     loading = true;
     load();
   });
+
+  onMount(loadArdoise);
 </script>
 
 {#if loading && !company}
@@ -104,8 +134,27 @@
           <Badge tone={st.tone}>{st.label}</Badge>
           {#if temp}<Badge tone={temp.tone}>{temp.label} · {c.score}</Badge>{/if}
           <Badge>{originLabel(c.origin)}</Badge>
-          {#if c.ardoiseClientId}<Badge tone="success">Lié à Ardoise</Badge>{/if}
+          {#if c.ardoiseClientId}
+            {@const href = ardoiseLink(c.ardoiseClientId)}
+            {#if href}
+              <a {href} target="_blank" rel="noopener noreferrer" class="rounded-fc-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fc-ring">
+                <Badge tone="success">Lié dans Ardoise</Badge>
+              </a>
+            {:else}
+              <Badge tone="success">Lié dans Ardoise</Badge>
+            {/if}
+          {/if}
         </div>
+        {#if c.ardoiseClientId}
+          <div class="flex flex-wrap gap-2">
+            {#if ardoiseLink(c.ardoiseClientId)}
+              <Button size="sm" variant="outline" href={ardoiseLink(c.ardoiseClientId) ?? undefined} target="_blank" rel="noopener noreferrer" icon="solar:square-top-down-linear">Ouvrir dans Ardoise</Button>
+            {/if}
+            <Button size="sm" variant="ghost" icon="solar:link-broken-linear" onclick={() => (unlinkOpen = true)}>Délier</Button>
+          </div>
+        {:else if ardoise?.enabled}
+          <Button size="sm" icon="solar:bill-list-linear" onclick={() => (turnOpen = true)}>Passer en client</Button>
+        {/if}
         <Field label="Étape">
           <Select value={c.stage} disabled={changingStage} onchange={(e) => changeStage(e.currentTarget.value as Stage)}>
             {#each STAGES as s (s.value)}<option value={s.value}>{s.label}</option>{/each}
@@ -182,4 +231,15 @@
       {/if}
     </div>
   </div>
+
+  <TurnIntoClientDialog bind:open={turnOpen} company={c} onDone={load} />
+  <ConfirmModal
+    bind:open={unlinkOpen}
+    tone="danger"
+    title="Délier d’Ardoise ?"
+    description="La fiche reste dans Glouton et le client reste dans Ardoise ; seules les mises à jour croisées s’arrêtent."
+    confirmLabel="Délier"
+    cancelLabel="Annuler"
+    onConfirm={unlink}
+  />
 {/if}

@@ -23,6 +23,7 @@ export interface AgentDeps {
   verifySession: (token: string) => Promise<SessionUser | null>;
   verifyDelegated: DelegatedVerifier | null;
   notify?: inboxService.Notify;
+  hooks?: contactService.SyncHooks;
 }
 
 interface Caller {
@@ -171,7 +172,7 @@ export function createAgentRoutes(deps: AgentDeps) {
 
   routes.patch('/companies/:id', async (c) => {
     const input = await body(c, companyPatchSchema);
-    const data = await contactService.updateCompany(deps.prisma, await access(c), c.req.param('id'), input);
+    const data = await contactService.updateCompany(deps.prisma, await access(c), c.req.param('id'), input, deps.hooks);
     return c.json({ data });
   });
 
@@ -183,7 +184,7 @@ export function createAgentRoutes(deps: AgentDeps) {
 
   routes.patch('/people/:id', async (c) => {
     const input = await body(c, contactSchemas.personUpdateSchema);
-    const data = await contactService.updatePerson(deps.prisma, await access(c), c.req.param('id'), input);
+    const data = await contactService.updatePerson(deps.prisma, await access(c), c.req.param('id'), input, deps.hooks);
     return c.json({ data });
   });
 

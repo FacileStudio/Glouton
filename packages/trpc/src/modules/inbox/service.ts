@@ -3,7 +3,8 @@ import { TRPCError } from '@trpc/server';
 import type { AuthManager } from '@repo/auth';
 import { verifyEmail } from '@repo/jobs';
 import { actorLabel, ownedWhere, targetTeam, type Access } from '../contact/access';
-import { findCompany, findPerson, logActivity, normalizeEmail } from '../contact/service';
+import { findCompany, findPerson, logActivity, normalizeEmail, type SyncHooks } from '../contact/service';
+import { createCompanyFromClient, linkCompanyToClient, parseRemoteClient } from '../ardoise/mapping';
 import { sendOutreach } from '../email/transport';
 import { CourrierReconnectError, type CourrierClient } from '@repo/courrier';
 
@@ -309,8 +310,25 @@ async function applyRescore(tx: Prisma.TransactionClient, access: Access, s: Sug
   });
 }
 
-async function applyMatch(tx: Prisma.TransactionClient, access: Access, s: Suggestion, payload: Payload) {
+async function applyMatch(
+  tx: Prisma.TransactionClient,
+  access: Access,
+  s: Suggestion,
+  payload: Payload
+): Promise<string | null> {
   const ardoiseClientId = str(payload.ardoiseClientId);
+  const client = parseRemoteClient(payload.client);
+  if (client && s.companyId) {
+    const company = await findCompany(tx, access, s.companyId);
+    const linked = await linkCompanyToClient(tx, company, client, {
+      reason: 'match confirmed',
+      actor: actorLabel(access),
+      userId: access.userId,
+      suggestionId: s.id,
+    });
+    if (!linked) throw new TRPCError({ code: 'CONFLICT', message: 'This Ardoise client is already linked to another company' });
+    return company.id;
+  }
   if (ardoiseClientId && s.companyId) {
     await tx.company.update({ where: { id: s.companyId }, data: { ardoiseClientId, ardoiseSyncedAt: new Date() } });
     await logActivity(tx, access, {
@@ -320,7 +338,7 @@ async function applyMatch(tx: Prisma.TransactionClient, access: Access, s: Sugge
       summary: `Linked to Ardoise client ${ardoiseClientId}`,
       payload: { suggestionId: s.id, ardoiseClientId },
     });
-    return;
+    return s.companyId;
   }
   const personId = s.personId ?? str(payload.personId);
   const companyId = str(payload.companyId) ?? s.companyId;
@@ -336,6 +354,17 @@ async function applyMatch(tx: Prisma.TransactionClient, access: Access, s: Sugge
     summary: `Linked person to company: ${s.title}`,
     payload: { suggestionId: s.id },
   });
+  return null;
+}
+
+/** Dismissing an Ardoise match means "a different company": create it from the Ardoise client. */
+async function dismissMatch(tx: Prisma.TransactionClient, s: Suggestion, payload: Payload): Promise<string | null> {
+  const client = payload.source === 'ardoise' ? parseRemoteClient(payload.client) : null;
+  if (!client) return null;
+  const holder = await tx.company.findFirst({ where: { ardoiseClientId: client.id }, select: { id: true } });
+  if (holder) return null;
+  const created = await createCompanyFromClient(tx, { teamId: s.teamId, ownerId: s.userId }, client);
+  return created.id;
 }
 
 async function applyImport(tx: Prisma.TransactionClient, access: Access, s: Suggestion, payload: Payload) {
@@ -388,18 +417,23 @@ async function applyFollowUp(tx: Prisma.TransactionClient, access: Access, s: Su
   });
 }
 
-/** Records a person's decision on a suggestion and applies it when accepted. */
+/**
+ * Records a person's decision on a suggestion and applies it when accepted.
+ * An Ardoise match links on accept and creates a new client company on dismiss.
+ */
 export async function decideSuggestion(
   prisma: PrismaClient,
   access: Access,
   id: string,
-  decision: 'ACCEPT' | 'DISMISS'
+  decision: 'ACCEPT' | 'DISMISS',
+  hooks: SyncHooks = {}
 ) {
   const suggestion = await prisma.suggestion.findFirst({ where: { id, ...ownedWhere(access) } });
   if (!suggestion) throw new TRPCError({ code: 'NOT_FOUND', message: 'Suggestion not found' });
   if (suggestion.status !== 'OPEN') throw new TRPCError({ code: 'CONFLICT', message: 'Already decided' });
 
-  return prisma.$transaction(async (tx) => {
+  let synced: string | null = null;
+  const decided = await prisma.$transaction(async (tx) => {
     const claimed = await tx.suggestion.updateMany({
       where: { id, status: 'OPEN' },
       data: { status: decision === 'ACCEPT' ? 'ACCEPTED' : 'DISMISSED', decidedAt: new Date() },
@@ -412,7 +446,7 @@ export async function decideSuggestion(
           await applyRescore(tx, access, suggestion, payload);
           break;
         case 'MATCH':
-          await applyMatch(tx, access, suggestion, payload);
+          synced = await applyMatch(tx, access, suggestion, payload);
           break;
         case 'IMPORT':
           await applyImport(tx, access, suggestion, payload);
@@ -432,7 +466,11 @@ export async function decideSuggestion(
           await applyFollowUp(tx, access, suggestion, payload);
           break;
       }
+    } else if (suggestion.kind === 'MATCH') {
+      synced = await dismissMatch(tx, suggestion, payloadOf(suggestion.payload));
     }
     return tx.suggestion.findUniqueOrThrow({ where: { id } });
   });
+  if (synced) await hooks.companyChanged?.(synced);
+  return decided;
 }

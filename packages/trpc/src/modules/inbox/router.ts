@@ -3,6 +3,7 @@ import { router, protectedProcedure, humanProcedure } from '../../trpc';
 import type { Context } from '../../context';
 import { accessForUser } from '../contact/access';
 import * as inbox from './service';
+import { ardoiseFor } from '../ardoise/router';
 
 type AuthedContext = Context & { user: NonNullable<Context['user']> };
 
@@ -101,6 +102,6 @@ export const inboxRouter = router({
   decideSuggestion: humanProcedure
     .input(z.object({ id: z.string(), decision: z.enum(['ACCEPT', 'DISMISS']) }))
     .mutation(async ({ ctx, input }) =>
-      inbox.decideSuggestion(ctx.prisma, await access(ctx), input.id, input.decision)
+      inbox.decideSuggestion(ctx.prisma, await access(ctx), input.id, input.decision, ardoiseFor(ctx).hooks)
     ),
 });

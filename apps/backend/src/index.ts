@@ -8,6 +8,8 @@ import corsHandler from './handlers/cors';
 import trpcHandler from './handlers/trpc';
 import { createAuthRoutes } from './handlers/auth';
 import { createAgentRoutes } from './handlers/agent';
+import { ARDOISE_ROUTES_PREFIX, createArdoiseRoutes } from './handlers/ardoise';
+import { ardoise } from '@repo/trpc';
 import { openApiHandler } from './handlers/openapi';
 import { apiReference } from '@scalar/hono-api-reference';
 import {
@@ -115,6 +117,7 @@ async function startup() {
 
   setInterval(async () => {
     try {
+      await ardoise.pruneDeliveries(prisma);
       const stalled = await cleanupStalled(prisma);
       if (stalled.audits > 0 || stalled.hunts > 0) {
         logger.info(`[CLEANUP] Stalled sessions: ${stalled.audits} audits, ${stalled.hunts} hunts`);
@@ -142,6 +145,7 @@ const directory = issuer
   : null;
 
 const verifyDelegated = delegatedVerifierFromEnv(env, registreKeys);
+const ardoiseSync = ardoise.ardoiseDeps(prisma, env, jobs, logger);
 
 const app = new Hono();
 
@@ -223,8 +227,14 @@ app.post('/internal/broadcast', async (c) => {
 
 app.route('/auth', createAuthRoutes(config.authManager));
 
+app.route(ARDOISE_ROUTES_PREFIX, createArdoiseRoutes({
+  ...ardoiseSync,
+  notify: (scope, type, data) => events.emitToScope(scope, type, data),
+}));
+
 app.route('/api/agent', createAgentRoutes({
   prisma,
+  hooks: ardoiseSync.hooks,
   verifySession: (token) => config.authManager.verifyToken(token),
   verifyDelegated,
   notify: (scope, type, data) => events.emitToScope(scope, type, data),

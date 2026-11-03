@@ -13,6 +13,19 @@ import type {
 
 type Db = PrismaClient | Prisma.TransactionClient;
 
+/** Callbacks the Ardoise sync plugs into contact writes; every caller may leave them out. */
+export interface SyncHooks {
+  companyChanged?: (companyId: string) => Promise<void> | void;
+  clientDropped?: (ardoiseClientId: string) => Promise<void> | void;
+}
+
+const SYNCED_COMPANY_FIELDS = ['name', 'siret', 'vatNumber', 'addressLine', 'postalCode', 'city', 'country'] as const;
+const SYNCED_PERSON_FIELDS = ['firstName', 'lastName', 'email', 'isBillingContact', 'companyId'] as const;
+
+function changed<T extends object>(before: T, after: T, keys: ReadonlyArray<keyof T>): boolean {
+  return keys.some((key) => before[key] !== after[key]);
+}
+
 export interface ActivityInput {
   teamId: string | null;
   companyId?: string | null;
@@ -410,9 +423,15 @@ export async function createCompany(
   });
 }
 
-export async function updateCompany(prisma: PrismaClient, access: Access, id: string, input: CompanyUpdateInput) {
+export async function updateCompany(
+  prisma: PrismaClient,
+  access: Access,
+  id: string,
+  input: CompanyUpdateInput,
+  hooks: SyncHooks = {}
+) {
   const before = await findCompany(prisma, access, id);
-  return prisma.$transaction(async (tx) => {
+  const company = await prisma.$transaction(async (tx) => {
     const company = await tx.company.update({ where: { id }, data: companyFields(input) });
     if (input.stage && input.stage !== before.stage) {
       await logActivity(tx, access, {
@@ -425,6 +444,10 @@ export async function updateCompany(prisma: PrismaClient, access: Access, id: st
     }
     return company;
   });
+  if (company.ardoiseClientId && changed(before, company, SYNCED_COMPANY_FIELDS)) {
+    await hooks.companyChanged?.(company.id);
+  }
+  return company;
 }
 
 export async function createPerson(
@@ -450,7 +473,23 @@ export async function createPerson(
   });
 }
 
-export async function updatePerson(prisma: PrismaClient, access: Access, id: string, input: PersonUpdateInput) {
+async function linkedCompanies(db: Db, ids: Array<string | null>): Promise<string[]> {
+  const wanted = ids.filter((id): id is string => Boolean(id));
+  if (wanted.length === 0) return [];
+  const rows = await db.company.findMany({
+    where: { id: { in: wanted }, ardoiseClientId: { not: null }, deletedAt: null },
+    select: { id: true },
+  });
+  return rows.map((row) => row.id);
+}
+
+export async function updatePerson(
+  prisma: PrismaClient,
+  access: Access,
+  id: string,
+  input: PersonUpdateInput,
+  hooks: SyncHooks = {}
+) {
   const before = await findPerson(prisma, access, id);
   if (input.companyId) await findCompany(prisma, access, input.companyId);
   const data: Prisma.PersonUncheckedUpdateInput = {};
@@ -462,7 +501,7 @@ export async function updatePerson(prisma: PrismaClient, access: Access, id: str
     data.email = normalizeEmail(input.email);
     if (data.email !== before.email) data.emailVerified = null;
   }
-  return prisma.$transaction(async (tx) => {
+  const person = await prisma.$transaction(async (tx) => {
     const person = await tx.person.update({ where: { id }, data });
     if (input.stage && input.stage !== before.stage) {
       await logActivity(tx, access, {
@@ -476,6 +515,13 @@ export async function updatePerson(prisma: PrismaClient, access: Access, id: str
     }
     return person;
   });
+  const billing = before.isBillingContact || person.isBillingContact;
+  if (hooks.companyChanged && billing && changed(before, person, SYNCED_PERSON_FIELDS)) {
+    for (const companyId of await linkedCompanies(prisma, [before.companyId, person.companyId])) {
+      await hooks.companyChanged(companyId);
+    }
+  }
+  return person;
 }
 
 export async function changeStage(
@@ -544,13 +590,19 @@ function union(a: string[], b: string[]): string[] {
 }
 
 /** Folds `sourceId` into `targetId`: moves people, timeline, suggestions and outreach, then hides the source. */
-export async function mergeCompanies(prisma: PrismaClient, access: Access, targetId: string, sourceId: string) {
+export async function mergeCompanies(
+  prisma: PrismaClient,
+  access: Access,
+  targetId: string,
+  sourceId: string,
+  hooks: SyncHooks = {}
+) {
   if (targetId === sourceId) throw new TRPCError({ code: 'BAD_REQUEST', message: 'Cannot merge a company into itself' });
   const [target, source] = await Promise.all([
     findCompany(prisma, access, targetId),
     findCompany(prisma, access, sourceId),
   ]);
-  return prisma.$transaction(async (tx) => {
+  const merged = await prisma.$transaction(async (tx) => {
     const moved = { companyId: targetId };
     await tx.person.updateMany({ where: { companyId: sourceId }, data: moved });
     await tx.activity.updateMany({ where: { companyId: sourceId }, data: moved });
@@ -559,7 +611,7 @@ export async function mergeCompanies(prisma: PrismaClient, access: Access, targe
     const ardoise = !target.ardoiseClientId && source.ardoiseClientId ? source.ardoiseClientId : null;
     await tx.company.update({
       where: { id: sourceId },
-      data: { deletedAt: new Date(), ...(ardoise ? { ardoiseClientId: null } : {}) },
+      data: { deletedAt: new Date(), ardoiseClientId: null },
     });
     const merged = await tx.company.update({
       where: { id: targetId },
@@ -591,6 +643,13 @@ export async function mergeCompanies(prisma: PrismaClient, access: Access, targe
     });
     return merged;
   });
+  if (merged.ardoiseClientId && (source.ardoiseClientId || changed(target, merged, SYNCED_COMPANY_FIELDS))) {
+    await hooks.companyChanged?.(targetId);
+  }
+  if (source.ardoiseClientId && source.ardoiseClientId !== merged.ardoiseClientId) {
+    await hooks.clientDropped?.(source.ardoiseClientId);
+  }
+  return merged;
 }
 
 export async function mergePeople(prisma: PrismaClient, access: Access, targetId: string, sourceId: string) {
@@ -633,14 +692,30 @@ export async function mergePeople(prisma: PrismaClient, access: Access, targetId
   });
 }
 
-/** Hides a company and its people; rows stay in the database and links in other apps are untouched. */
-export async function deleteCompany(prisma: PrismaClient, access: Access, id: string) {
-  await findCompany(prisma, access, id);
+/**
+ * Hides a company and its people; rows stay in the database. A linked
+ * Ardoise client is only unlinked, never deleted.
+ */
+export async function deleteCompany(prisma: PrismaClient, access: Access, id: string, hooks: SyncHooks = {}) {
+  const company = await findCompany(prisma, access, id);
   const now = new Date();
-  await prisma.$transaction([
-    prisma.person.updateMany({ where: { companyId: id, deletedAt: null }, data: { deletedAt: now } }),
-    prisma.company.update({ where: { id }, data: { deletedAt: now } }),
-  ]);
+  await prisma.$transaction(async (tx) => {
+    await tx.person.updateMany({ where: { companyId: id, deletedAt: null }, data: { deletedAt: now } });
+    await tx.company.update({
+      where: { id },
+      data: { deletedAt: now, ardoiseClientId: null, ardoiseUpdatedAt: null, ardoiseSyncedAt: null },
+    });
+    if (company.ardoiseClientId) {
+      await logActivity(tx, access, {
+        teamId: company.teamId,
+        companyId: id,
+        kind: 'ardoise.client.unlinked',
+        summary: 'Unlinked from Ardoise because the company was deleted',
+        payload: { ardoiseClientId: company.ardoiseClientId },
+      });
+    }
+  });
+  if (company.ardoiseClientId) await hooks.clientDropped?.(company.ardoiseClientId);
   return { id, deleted: true };
 }
 

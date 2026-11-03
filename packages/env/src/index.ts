@@ -40,6 +40,11 @@ export const serverEnvSchema = baseSchema
 
     COURRIER_URL: optionalUrl,
     COURRIER_AUDIENCE: optionalString,
+    ARDOISE_URL: optionalUrl,
+    ARDOISE_API_TOKEN: optionalString,
+    ARDOISE_WEBHOOK_SECRET: z.preprocess(emptyAsUndefined, z.string().min(16).optional()),
+    ARDOISE_DEFAULT_OWNER_EMAIL: z.preprocess(emptyAsUndefined, z.string().email().optional()),
+    ARDOISE_WEB_URL: z.preprocess(emptyAsUndefined, z.string().url().default('https://ardoise.facile.studio')),
   })
   .superRefine((env, ctx) => {
     if (env.OIDC_ISSUER && (!env.OIDC_CLIENT_ID || !env.OIDC_CLIENT_SECRET)) {
@@ -52,6 +57,19 @@ export const serverEnvSchema = baseSchema
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: 'SSO_ONLY requires OIDC_ISSUER to be configured',
+      });
+    }
+    const ardoise = [
+      env.ARDOISE_URL,
+      env.ARDOISE_API_TOKEN,
+      env.ARDOISE_WEBHOOK_SECRET,
+      env.ARDOISE_DEFAULT_OWNER_EMAIL,
+    ];
+    if (ardoise.some(Boolean) && !ardoise.every(Boolean)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          'ARDOISE_URL, ARDOISE_API_TOKEN, ARDOISE_WEBHOOK_SECRET and ARDOISE_DEFAULT_OWNER_EMAIL go together: set all four or none',
       });
     }
   });
