@@ -45,6 +45,15 @@ All optional, but cross-validated by a `superRefine` on the schema:
 | `OIDC_SUCCESS_URL` | no | `${DOMAIN}/auth/callback` | Where the backend redirects with `#token=…` |
 | `SSO_ONLY` | no | `false` | Truthy for the strings `true` or `1`. Reported by `GET /auth/config` so the login page can hide the password form |
 
+The same variables configure delegated access for agents. With `OIDC_ISSUER` and
+`OIDC_CLIENT_ID` set, the backend also accepts Registre token-exchange tokens whose `aud` is
+`OIDC_CLIENT_ID` (Glouton's Registre client id, `1IdqK3bA2LWI-zuWVLqFpnIlCTVu117F` in prod) and
+whose scope holds `glouton.read` or `glouton.write`, on tRPC and on `/api/agent/*`. The signing
+keys come from the issuer's discovery document. Without `OIDC_ISSUER`, only session JWTs work.
+
+When the provider returns a refresh token at sign-in, Glouton stores it on the `Account` row,
+encrypted with `ENCRYPTION_SECRET`, for a later token exchange to other suite apps.
+
 ## Frontend
 
 `apps/frontend/src/lib/env.ts` validates only `NODE_ENV` — the frontend has no public API URL to

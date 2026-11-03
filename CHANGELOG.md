@@ -11,6 +11,34 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+### Added
+
+- **Contacts.** Companies and people, with stages (Prospect, Contacted, Client, Partner, Network),
+  an origin, notes and an activity timeline. `/app/contacts` lists and filters them and adds one
+  by hand; each company and person has a detail page with a stage selector and an "Ask Bulle"
+  button. Hunts, CSV imports and company-creation conversions now write contacts too.
+- **Agent inbox** at `/app/inbox`: drafts and suggestions from Bulle. A person edits and sends a
+  draft, or accepts or dismisses a suggestion; the nav shows how many wait.
+- **Agent REST API** under `/api/agent/*` for contacts, outreach, drafts and suggestions. It
+  accepts a Registre delegated token (`glouton.read` for GET, `glouton.write` otherwise) or a
+  session JWT, and has no route that sends mail.
+- `bun run backfill:contacts [--dry-run]` turns existing leads into companies and people and
+  links their outreach. Running it twice changes nothing.
+
+### Changed
+
+- tRPC also accepts Registre delegated tokens. Sending mail, SMTP and team settings, webhooks,
+  merges and deletes refuse them with `FORBIDDEN`: only a person signed in to Glouton can do those.
+- Every outgoing mail goes through one `sendOutreach` seam, ready for a Courrier transport.
+- SSO sign-in keeps the Registre refresh token, encrypted, when the provider returns one.
+
+### Upgrade notes
+
+- The schema change is additive (new tables, nullable `EmailOutreach.leadId` and `templateId`,
+  new `EmailStatus.DRAFT`). `prisma db push` at boot applies it, and migration
+  `019_contacts_hub.sql` matches it. Run `bun run backfill:contacts` once after deploy. The
+  `Lead` table is unchanged and the Leads pages still read it.
+
 ## [0.4.0] - 2026-11-03
 
 ### Added
