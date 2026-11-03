@@ -11,6 +11,8 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-03
+
 ### Added
 
 - **Contacts.** Companies and people, with stages (Prospect, Contacted, Client, Partner, Network),
