@@ -6,6 +6,7 @@ WORKDIR /app
 COPY package.json bun.lock ./
 COPY apps/frontend/package.json ./apps/frontend/
 COPY packages/auth-shared/package.json ./packages/auth-shared/
+COPY packages/courrier/package.json ./packages/courrier/
 COPY packages/database/package.json ./packages/database/
 COPY packages/env/package.json ./packages/env/
 COPY packages/eslint-config/package.json ./packages/eslint-config/
@@ -26,6 +27,7 @@ WORKDIR /app
 COPY package.json bun.lock ./
 COPY apps/frontend/package.json ./apps/frontend/
 COPY packages/auth-shared/package.json ./packages/auth-shared/
+COPY packages/courrier/package.json ./packages/courrier/
 COPY packages/database/package.json ./packages/database/
 COPY packages/env/package.json ./packages/env/
 COPY packages/eslint-config/package.json ./packages/eslint-config/
