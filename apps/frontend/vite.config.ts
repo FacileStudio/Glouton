@@ -27,6 +27,10 @@ export default defineConfig({
         target: backendUrl,
         changeOrigin: true,
       },
+      '/api/registre/sync': {
+        target: backendUrl,
+        changeOrigin: true,
+      },
     },
     fs: {
       allow: ['..', '../../packages']

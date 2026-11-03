@@ -49,6 +49,7 @@ export const teamService = {
         id: true,
         name: true,
         description: true,
+        registreSpaceId: true,
         createdAt: true,
         updatedAt: true,
       },

@@ -2,6 +2,7 @@ import { TRPCError } from '@trpc/server';
 import { router, protectedProcedure } from '../../trpc';
 import teamService from './service';
 import { checkTeamPermission, TeamRole } from './permissions';
+import { manageUrl, refuseCreateWhenManaged, refuseWhenLinked, registreSpacesUrl } from './registre';
 import { z } from 'zod';
 import {
   createTeamSchema,
@@ -26,22 +27,29 @@ export const teamRouter = router({
 
   get: protectedProcedure.input(teamIdSchema).query(async ({ ctx, input }) => {
     ctx.log.info({ userId: ctx.user.id, teamId: input.teamId }, '[TEAM] Getting team');
-    return await teamService.getTeam(input.teamId, ctx.user.id);
+    const team = await teamService.getTeam(input.teamId, ctx.user.id);
+    return { ...team, manageUrl: manageUrl(ctx.env, team.registreSpaceId) };
   }),
+
+  directory: protectedProcedure.query(({ ctx }) => ({ spacesUrl: registreSpacesUrl(ctx.env) })),
 
   create: protectedProcedure.input(createTeamSchema).mutation(async ({ ctx, input }) => {
     ctx.log.info({ userId: ctx.user.id, name: input.name }, '[TEAM] Creating team');
+    refuseCreateWhenManaged(ctx.env);
     return await teamService.createTeam(input, ctx.user.id);
   }),
 
   update: protectedProcedure.input(updateTeamSchema).mutation(async ({ ctx, input }) => {
     ctx.log.info({ userId: ctx.user.id, teamId: input.teamId }, '[TEAM] Updating team');
     const { teamId, ...data } = input;
+    if (data.name !== undefined) await refuseWhenLinked(ctx.env, teamId, data.name);
     return await teamService.updateTeam(teamId, ctx.user.id, data);
   }),
 
   delete: protectedProcedure.input(teamIdSchema).mutation(async ({ ctx, input }) => {
     ctx.log.info({ userId: ctx.user.id, teamId: input.teamId }, '[TEAM] Deleting team');
+    await checkTeamPermission(ctx.user.id, input.teamId, TeamRole.OWNER);
+    await refuseWhenLinked(ctx.env, input.teamId);
     return await teamService.deleteTeam(input.teamId, ctx.user.id);
   }),
 
@@ -58,6 +66,8 @@ export const teamRouter = router({
       { userId: ctx.user.id, teamId: input.teamId, email: input.email, role: input.role },
       '[TEAM] Adding team member'
     );
+    await checkTeamPermission(ctx.user.id, input.teamId, TeamRole.ADMIN);
+    await refuseWhenLinked(ctx.env, input.teamId);
     return await teamService.addTeamMember(
       input.teamId,
       ctx.user.id,
@@ -73,6 +83,8 @@ export const teamRouter = router({
         { requesterId: ctx.user.id, teamId: input.teamId, targetUserId: input.userId },
         '[TEAM] Removing team member'
       );
+      await checkTeamPermission(ctx.user.id, input.teamId, TeamRole.ADMIN);
+      await refuseWhenLinked(ctx.env, input.teamId);
       return await teamService.removeTeamMember(
         input.teamId,
         ctx.user.id,
@@ -92,6 +104,8 @@ export const teamRouter = router({
         },
         '[TEAM] Updating member role'
       );
+      await checkTeamPermission(ctx.user.id, input.teamId, TeamRole.OWNER);
+      await refuseWhenLinked(ctx.env, input.teamId);
       return await teamService.updateMemberRole(
         input.teamId,
         ctx.user.id,
@@ -102,6 +116,8 @@ export const teamRouter = router({
 
   leave: protectedProcedure.input(leaveTeamSchema).mutation(async ({ ctx, input }) => {
     ctx.log.info({ userId: ctx.user.id, teamId: input.teamId }, '[TEAM] Leaving team');
+    await checkTeamPermission(ctx.user.id, input.teamId, TeamRole.MEMBER);
+    await refuseWhenLinked(ctx.env, input.teamId);
     return await teamService.leaveTeam(input.teamId, ctx.user.id);
   }),
 

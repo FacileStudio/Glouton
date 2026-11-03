@@ -17,6 +17,9 @@ import { wsHandler, websocket, broadcastToUser, broadcastToAll, clients } from '
 import { events } from './services/events';
 import { checkOrphanedSessions, cleanupStalled } from './services/job-monitor';
 import { registerWorkers } from './services/register-workers';
+import { DirectoryClient, SyncPath } from './services/registre-directory';
+import { applySnapshot, buildImport, startDirectorySync } from './services/registre-spaces';
+import { registreIssuer } from './services/oidc';
 import env from './env';
 import config from './config';
 
@@ -98,6 +101,20 @@ async function startup() {
 
 startup();
 
+const issuer = registreIssuer();
+const directory = issuer
+  ? startDirectorySync({
+      remote: new DirectoryClient(issuer, env.OIDC_CLIENT_ID!, env.OIDC_CLIENT_SECRET!),
+      collect: () => buildImport(prisma, issuer),
+      apply: (snapshot) =>
+        applySnapshot(
+          { db: prisma, issuer, hashPassword: (p) => config.authManager.hashPassword(p), logger },
+          snapshot
+        ),
+      logger,
+    }).syncer
+  : null;
+
 const app = new Hono();
 
 app.use('*', corsHandler([
@@ -128,6 +145,13 @@ app.get('/health/live', createLivenessHandler());
 app.get('/health/ready', createReadinessHandler({ prisma }));
 
 app.get('/ws', wsHandler);
+
+if (directory) {
+  app.post(SyncPath, (c) => {
+    directory.nudge();
+    return c.body(null, 202);
+  });
+}
 
 function requireInternalAuth(c: any): boolean {
   const token = c.req.header('x-internal-secret');

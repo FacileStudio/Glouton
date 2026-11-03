@@ -21,7 +21,8 @@ const isBackendPath = (url = '') =>
   url === '/trpc' || url.startsWith('/trpc/') || url.startsWith('/trpc?') ||
   url === '/auth/config' || url.startsWith('/auth/config?') ||
   url === '/auth/oidc' || url.startsWith('/auth/oidc/') || url.startsWith('/auth/oidc?') ||
-  url === '/docs' || url.startsWith('/docs?') || url.startsWith('/docs/');
+  url === '/docs' || url.startsWith('/docs?') || url.startsWith('/docs/') ||
+  url === '/api/registre/sync' || url.startsWith('/api/registre/sync?');
 
 function backendPort() {
   if (backendUrl.port) return Number(backendUrl.port);

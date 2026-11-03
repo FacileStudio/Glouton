@@ -15,6 +15,7 @@ import env from '../env';
 
 export interface OidcClaims {
   email: string;
+  subject?: string;
   name?: string;
   preferredUsername?: string;
   givenName?: string;
@@ -122,6 +123,7 @@ export async function exchangeCode(code: string): Promise<OidcClaims> {
 
   return {
     email,
+    subject: str(payload.sub),
     name: str(payload.name),
     preferredUsername: str(payload.preferred_username),
     givenName: str(payload.given_name),
@@ -131,11 +133,12 @@ export async function exchangeCode(code: string): Promise<OidcClaims> {
 }
 
 /** Keeps the picture claim only when it is an https URL, so a browser can load it as is. */
-function httpsPicture(picture: string | undefined): string | null {
+export function httpsPicture(picture: string | undefined): string | null {
   return picture?.startsWith('https://') ? picture : null;
 }
 
-function splitName(claims: OidcClaims): { firstName: string; lastName: string } {
+/** Splits the name claims into Glouton's first and last name columns. */
+export function splitName(claims: OidcClaims): { firstName: string; lastName: string } {
   if (claims.givenName || claims.familyName) {
     return { firstName: claims.givenName ?? '', lastName: claims.familyName ?? '' };
   }
@@ -144,16 +147,49 @@ function splitName(claims: OidcClaims): { firstName: string; lastName: string } 
   return { firstName, lastName: rest.join(' ') };
 }
 
+/**
+ * The issuer a Registre identity is recorded under, as `Account.providerId`,
+ * without a trailing slash so login and the directory sync agree.
+ */
+export function registreIssuer(): string | null {
+  return env.OIDC_ISSUER ? env.OIDC_ISSUER.replace(/\/$/, '') : null;
+}
+
+/**
+ * Finds the user for an SSO sign-in: by Registre identity (issuer, sub) first,
+ * so a user pre-provisioned by the directory sync lands on their row, then by
+ * email.
+ */
+async function findOidcUser(claims: OidcClaims): Promise<{ id: string } | null> {
+  const issuer = registreIssuer();
+  if (issuer && claims.subject) {
+    const account = await prisma.account.findUnique({
+      where: { providerId_accountId: { providerId: issuer, accountId: claims.subject } },
+      select: { userId: true },
+    });
+    if (account) return { id: account.userId };
+  }
+  return prisma.user.findUnique({ where: { email: claims.email }, select: { id: true } });
+}
+
+/** Records the Registre identity of a signed-in user, once. */
+async function recordIdentity(userId: string, claims: OidcClaims): Promise<void> {
+  const issuer = registreIssuer();
+  if (!issuer || !claims.subject) return;
+  await prisma.account.upsert({
+    where: { providerId_accountId: { providerId: issuer, accountId: claims.subject } },
+    create: { userId, providerId: issuer, accountId: claims.subject },
+    update: {},
+  });
+}
+
 export async function loginWithOidc(
   auth: AuthManager,
   claims: OidcClaims
 ): Promise<{ token: string; user: SessionUser }> {
   const { firstName, lastName } = splitName(claims);
 
-  const existing = await prisma.user.findUnique({
-    where: { email: claims.email },
-    select: { id: true },
-  });
+  const existing = await findOidcUser(claims);
 
   let user;
   if (existing) {
@@ -204,6 +240,8 @@ export async function loginWithOidc(
     });
     logger.info({ email: claims.email }, '[OIDC] Provisioned new user');
   }
+
+  await recordIdentity(user.id, claims);
 
   const sessionUser: SessionUser = {
     id: user.id,
