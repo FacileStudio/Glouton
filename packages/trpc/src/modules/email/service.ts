@@ -5,6 +5,9 @@ import { buildEmailFilter, buildLeadFilter, type Scope } from '../../utils/scope
 import { logger } from '@repo/logger';
 import type { AuthManager } from '@repo/auth';
 import { verifyEmail } from '@repo/jobs';
+import type { CourrierClient } from '@repo/courrier';
+import { accessForScope } from '../contact/access';
+import { logActivity } from '../contact/service';
 
 export class EmailService {
   async sendEmail(params: {
@@ -14,6 +17,7 @@ export class EmailService {
     variables: Record<string, string>;
     auth: AuthManager;
     prisma: PrismaClient;
+    courrier?: CourrierClient | null;
   }) {
     const lead = await params.prisma.lead.findUnique({
       where: { id: params.leadId },
@@ -62,7 +66,7 @@ export class EmailService {
 
     const [company, person] = await Promise.all([
       params.prisma.company.findUnique({ where: { legacyLeadId: params.leadId }, select: { id: true } }),
-      params.prisma.person.findFirst({ where: { legacyLeadId: params.leadId }, select: { id: true } }),
+      params.prisma.person.findFirst({ where: { legacyLeadId: params.leadId }, select: { id: true, companyId: true } }),
     ]);
 
     const outreach = await params.prisma.emailOutreach.create({
@@ -82,11 +86,13 @@ export class EmailService {
       select: { id: true },
     });
 
+    let sent: Awaited<ReturnType<typeof sendOutreach>>;
     try {
-      await sendOutreach({
+      sent = await sendOutreach({
         prisma: params.prisma,
         auth: params.auth,
         scope: params.scope,
+        courrier: params.courrier,
         mail: { to: lead.email, subject: rendered.subject, html: rendered.html, text: rendered.text },
       });
     } catch (error) {
@@ -100,9 +106,34 @@ export class EmailService {
       throw error;
     }
 
-    await params.prisma.emailOutreach.update({
-      where: { id: outreach.id },
-      data: { status: 'SENT', sentAt: new Date() },
+    const sentAt = new Date();
+    const teamId = params.scope.type === 'team' ? params.scope.teamId : null;
+    const companyId = company?.id ?? person?.companyId ?? null;
+    await params.prisma.$transaction(async (tx) => {
+      await tx.emailOutreach.update({
+        where: { id: outreach.id },
+        data: {
+          status: 'SENT',
+          sentAt,
+          courrierAccountId: sent.transport === 'courrier' ? sent.courrierAccountId : null,
+        },
+      });
+      if (person) {
+        await tx.person.updateMany({ where: { id: person.id, stage: 'PROSPECT' }, data: { stage: 'CONTACTED' } });
+      }
+      if (companyId) {
+        await tx.company.updateMany({ where: { id: companyId, stage: 'PROSPECT' }, data: { stage: 'CONTACTED' } });
+      }
+      if (person || companyId) {
+        await logActivity(tx, accessForScope(params.scope, null), {
+          teamId,
+          companyId,
+          personId: person?.id ?? null,
+          kind: 'email.sent',
+          summary: `Email sent: ${rendered.subject}`,
+          payload: { outreachId: outreach.id, to: lead.email, transport: sent.transport },
+        });
+      }
     });
 
     await params.prisma.lead.update({

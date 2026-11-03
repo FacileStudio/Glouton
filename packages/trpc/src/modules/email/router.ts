@@ -6,6 +6,10 @@ import { resolveScope } from '../../utils/scope';
 import { getSmtpConfig } from '../../utils/api-keys';
 import { accessForUser } from '../contact/access';
 import { sendDraft } from '../inbox/service';
+import { courrierFailure, resolveTransport } from './transport';
+import { getMailTransport, listCourrierAccounts, setMailTransport, setMailTransportSchema } from './mail-settings';
+
+const optionalTeam = z.object({ teamId: z.string().uuid().optional() }).optional();
 
 export const emailRouter = router({
   getTemplates: protectedProcedure.query(async () => {
@@ -18,9 +22,23 @@ export const emailRouter = router({
     .input(z.object({ teamId: z.string().uuid().optional() }).optional())
     .query(async ({ ctx, input }) => {
       const scope = await resolveScope(ctx.prisma, ctx.user.id, input?.teamId);
+      const transport = await resolveTransport(ctx.prisma, scope, Boolean(ctx.courrier));
+      if (transport.kind === 'courrier') return { configured: true, transport: 'courrier' as const };
       const config = await getSmtpConfig(ctx.prisma, scope, ctx.auth);
-      return { configured: config !== null };
+      return { configured: config !== null, transport: 'smtp' as const };
     }),
+
+  getMailTransport: humanProcedure
+    .input(optionalTeam)
+    .query(async ({ ctx, input }) => getMailTransport(ctx.prisma, ctx.courrier, ctx.user.id, input?.teamId)),
+
+  listCourrierAccounts: humanProcedure
+    .input(optionalTeam)
+    .query(async ({ ctx, input }) => listCourrierAccounts(ctx.prisma, ctx.courrier, ctx.user.id, input?.teamId)),
+
+  setMailTransport: humanProcedure
+    .input(setMailTransportSchema)
+    .mutation(async ({ ctx, input }) => setMailTransport(ctx.prisma, ctx.courrier, ctx.user.id, input)),
 
   previewEmail: protectedProcedure
     .input(
@@ -64,13 +82,14 @@ export const emailRouter = router({
         variables: input.variables,
         auth: ctx.auth,
         prisma: ctx.prisma,
-      });
+        courrier: ctx.courrier,
+      }).catch(courrierFailure);
     }),
 
   sendDraft: humanProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) =>
-      sendDraft(ctx.prisma, ctx.auth, await accessForUser(ctx.prisma, ctx.user.id, ctx.actor), input.id)
+      sendDraft(ctx.prisma, ctx.auth, await accessForUser(ctx.prisma, ctx.user.id, ctx.actor), input.id, ctx.courrier)
     ),
 
   getLeadOutreach: protectedProcedure

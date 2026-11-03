@@ -5,6 +5,7 @@ import { verifyEmail } from '@repo/jobs';
 import { actorLabel, ownedWhere, targetTeam, type Access } from '../contact/access';
 import { findCompany, findPerson, logActivity, normalizeEmail } from '../contact/service';
 import { sendOutreach } from '../email/transport';
+import { CourrierReconnectError, type CourrierClient } from '@repo/courrier';
 
 export type Notify = (
   scope: { type: 'personal' | 'team'; userId: string; teamId?: string },
@@ -144,7 +145,13 @@ export async function listDrafts(prisma: PrismaClient, access: Access) {
  * Sends a draft after a person clicked Send: re-verifies the recipient,
  * hands the mail to the single transport seam, then records the result.
  */
-export async function sendDraft(prisma: PrismaClient, auth: AuthManager, access: Access, id: string) {
+export async function sendDraft(
+  prisma: PrismaClient,
+  auth: AuthManager,
+  access: Access,
+  id: string,
+  courrier?: CourrierClient | null
+) {
   if (access.actor) throw new TRPCError({ code: 'FORBIDDEN', message: 'Only a person can send an email' });
   const draft = await findDraft(prisma, access, id);
   if (!draft.personId) throw new TRPCError({ code: 'BAD_REQUEST', message: 'This draft has no recipient' });
@@ -167,14 +174,20 @@ export async function sendDraft(prisma: PrismaClient, auth: AuthManager, access:
   });
   if (claimed.count === 0) throw new TRPCError({ code: 'CONFLICT', message: 'This email is no longer a draft' });
 
+  let sent: Awaited<ReturnType<typeof sendOutreach>>;
   try {
-    await sendOutreach({
+    sent = await sendOutreach({
       prisma,
       auth,
+      courrier,
       scope: scopeOf(access, draft.teamId),
       mail: { to, subject: draft.subject, html: draft.htmlBody, text: draft.textBody },
     });
   } catch (error) {
+    if (error instanceof CourrierReconnectError) {
+      await prisma.emailOutreach.update({ where: { id }, data: { status: 'DRAFT' } });
+      throw new TRPCError({ code: 'PRECONDITION_FAILED', message: error.message });
+    }
     await prisma.emailOutreach.update({
       where: { id },
       data: { status: 'FAILED', error: error instanceof Error ? error.message : 'Unknown error' },
@@ -187,7 +200,10 @@ export async function sendDraft(prisma: PrismaClient, auth: AuthManager, access:
 
   const sentAt = new Date();
   await prisma.$transaction(async (tx) => {
-    await tx.emailOutreach.update({ where: { id }, data: { status: 'SENT', sentAt } });
+    await tx.emailOutreach.update({
+      where: { id },
+      data: { status: 'SENT', sentAt, courrierAccountId: sent.transport === 'courrier' ? sent.courrierAccountId : null },
+    });
     await tx.person.updateMany({ where: { id: person.id, stage: 'PROSPECT' }, data: { stage: 'CONTACTED' } });
     if (person.companyId) {
       await tx.company.updateMany({ where: { id: person.companyId, stage: 'PROSPECT' }, data: { stage: 'CONTACTED' } });
@@ -198,7 +214,7 @@ export async function sendDraft(prisma: PrismaClient, auth: AuthManager, access:
       personId: person.id,
       kind: 'email.sent',
       summary: `Email sent: ${draft.subject}`,
-      payload: { outreachId: id, to },
+      payload: { outreachId: id, to, transport: sent.transport },
     });
   });
   return { id, status: 'SENT' as const, sentAt };

@@ -6,6 +6,7 @@ import { type ServerEnv } from '@repo/env';
 import { QueueManager } from '@repo/jobs';
 import type { Logger } from '@repo/logger';
 import type { DelegatedVerifier } from './delegation';
+import type { CourrierClient } from '@repo/courrier';
 
 export interface CreateContextOptions extends FetchCreateContextFnOptions {
   db: SQL;
@@ -15,6 +16,7 @@ export interface CreateContextOptions extends FetchCreateContextFnOptions {
   logger: Logger;
   jobs: QueueManager;
   verifyDelegated?: DelegatedVerifier | null;
+  courrier?: CourrierClient | null;
   events?: {
     emit: (userId: string, type: string, data?: any) => void;
     broadcast: (type: string, data?: any) => void;
@@ -57,6 +59,7 @@ export const createContext = async (options: CreateContextOptions) => {
     log,
     jobs: options.jobs,
     events: options.events,
+    courrier: options.courrier ?? null,
   };
 };
 

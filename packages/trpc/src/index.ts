@@ -41,3 +41,4 @@ export {
   suggestionStatusSchema,
   suggestionInput,
 } from './modules/inbox/router';
+export * as mailTransport from './modules/email/transport';
