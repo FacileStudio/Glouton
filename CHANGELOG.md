@@ -11,6 +11,12 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-11-03
+
+### Fixed
+
+- The frontend image copies the new `@repo/courrier` workspace, so the v0.5.0 build no longer fails at `bun install`
+
 ## [0.5.0] - 2026-11-03
 
 ### Added
