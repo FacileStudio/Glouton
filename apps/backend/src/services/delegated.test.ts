@@ -114,7 +114,6 @@ async function callerFor(token: string) {
     req: new Request('http://glouton.test/trpc', { headers: { authorization: `Bearer ${token}` } }),
     resHeaders: new Headers(),
     info: {} as never,
-    db: {} as never,
     prisma: fakePrisma as never,
     authManager: { verifyToken: async (t: string) => (t === 'session-token' ? sessionUser : null) } as never,
     env: {} as never,

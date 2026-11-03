@@ -1,10 +1,12 @@
 import { z } from 'zod';
+import type { Prisma } from '@prisma/client';
 import { router, protectedProcedure, humanProcedure } from '../../trpc';
 import type { Context } from '../../context';
 import { resolveScope } from '../../utils/scope';
 import { accessForScope, accessForUser } from './access';
 import { ardoiseFor } from '../ardoise/router';
 import * as contacts from './service';
+import { withStringPayload } from '../../utils/json';
 import {
   companyCreateSchema,
   companyUpdateSchema,
@@ -16,6 +18,19 @@ import {
 } from './schemas';
 
 type AuthedContext = Context & { user: NonNullable<Context['user']> };
+
+type PayloadRow = { payload: Prisma.JsonValue };
+
+/**
+ * Narrows the activity and suggestion payloads of a contact detail for the web client.
+ */
+function withStringPayloads<T extends { activities: PayloadRow[]; suggestions: PayloadRow[] }>(detail: T) {
+  return {
+    ...detail,
+    activities: detail.activities.map(withStringPayload),
+    suggestions: detail.suggestions.map(withStringPayload),
+  };
+}
 
 const scoped = z.object({ teamId: z.string().uuid().optional() });
 const target = z
@@ -60,11 +75,20 @@ export const contactRouter = router({
 
   getCompany: protectedProcedure
     .input(z.object({ id: z.string() }))
-    .query(async ({ ctx, input }) => contacts.getCompany(ctx.prisma, await userAccess(ctx), input.id)),
+    .query(async ({ ctx, input }) => {
+      const { websiteAudit: _audit, socialProfiles: _profiles, ...company } = await contacts.getCompany(
+        ctx.prisma,
+        await userAccess(ctx),
+        input.id
+      );
+      return withStringPayloads(company);
+    }),
 
   getPerson: protectedProcedure
     .input(z.object({ id: z.string() }))
-    .query(async ({ ctx, input }) => contacts.getPerson(ctx.prisma, await userAccess(ctx), input.id)),
+    .query(async ({ ctx, input }) =>
+      withStringPayloads(await contacts.getPerson(ctx.prisma, await userAccess(ctx), input.id))
+    ),
 
   createCompany: protectedProcedure
     .input(companyCreateSchema)

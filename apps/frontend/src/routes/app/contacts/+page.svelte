@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { resolve } from '$app/paths';
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import {
@@ -145,7 +146,7 @@
       toast.success('Contact ajouté');
       addOpen = false;
       form = emptyForm();
-      await goto(`/app/contacts/companies/${company.id}`);
+      await goto(resolve('/app/contacts/companies/[id]', { id: company.id }));
     } catch (error) {
       toast.danger(getTrpcErrorMessage(error));
     } finally {
@@ -211,7 +212,7 @@
         {@const temp = temperatureOf(c.temperature)}
         <li>
           <a
-            href="/app/contacts/companies/{c.id}"
+            href={resolve('/app/contacts/companies/[id]', { id: c.id })}
             class="flex min-h-11 flex-col gap-2 rounded-fc-lg bg-fc-component p-4 transition-colors hover:bg-fc-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fc-ring sm:flex-row sm:items-center sm:justify-between"
           >
             <div class="min-w-0">
@@ -236,7 +237,7 @@
         {@const st = stageOf(p.stage)}
         <li>
           <a
-            href="/app/contacts/people/{p.id}"
+            href={resolve('/app/contacts/people/[id]', { id: p.id })}
             class="flex min-h-11 flex-col gap-2 rounded-fc-lg bg-fc-component p-4 transition-colors hover:bg-fc-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fc-ring sm:flex-row sm:items-center sm:justify-between"
           >
             <div class="min-w-0">

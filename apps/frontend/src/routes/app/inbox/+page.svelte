@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { resolve } from '$app/paths';
   import { onDestroy, onMount } from 'svelte';
   import { Badge, Button, Card, EmptyState, Field, Input, PageHeader, Spinner, Tabs, Textarea, toast } from '@facile/muse';
   import { trpc } from '$lib/trpc';
@@ -122,13 +123,13 @@
               <p class="text-fc-sm text-fc-fg">
                 À
                 {#if d.person}
-                  <a class="font-semibold underline" href="/app/contacts/people/{d.person.id}">{personName(d.person)}</a>
+                  <a class="font-semibold underline" href={resolve('/app/contacts/people/[id]', { id: d.person.id })}>{personName(d.person)}</a>
                   {#if d.person.email}<span class="text-fc-fg-muted">&lt;{d.person.email}&gt;</span>{/if}
                 {:else}
                   <span class="text-fc-fg-muted">destinataire inconnu</span>
                 {/if}
                 {#if d.company}
-                  · <a class="underline" href="/app/contacts/companies/{d.company.id}">{d.company.name}</a>
+                  · <a class="underline" href={resolve('/app/contacts/companies/[id]', { id: d.company.id })}>{d.company.name}</a>
                 {/if}
               </p>
               <p class="text-fc-xs text-fc-fg-muted">{d.origin === 'AGENT' ? 'Proposé par Bulle' : 'Brouillon'} · {formatDate(d.createdAt)}</p>
@@ -162,8 +163,8 @@
         </div>
         <p class="text-fc-xs text-fc-fg-muted">
           {authorLabel(s.createdBy)} · {formatDate(s.createdAt)}
-          {#if s.company} · <a class="underline" href="/app/contacts/companies/{s.company.id}">{s.company.name}</a>{/if}
-          {#if s.person} · <a class="underline" href="/app/contacts/people/{s.person.id}">{personName(s.person)}</a>{/if}
+          {#if s.company} · <a class="underline" href={resolve('/app/contacts/companies/[id]', { id: s.company.id })}>{s.company.name}</a>{/if}
+          {#if s.person} · <a class="underline" href={resolve('/app/contacts/people/[id]', { id: s.person.id })}>{personName(s.person)}</a>{/if}
         </p>
         {#if s.body}<p class="whitespace-pre-line text-fc-sm text-fc-fg">{s.body}</p>{/if}
         {#if s.rationale}<p class="text-fc-xs text-fc-fg-muted">{s.rationale}</p>{/if}

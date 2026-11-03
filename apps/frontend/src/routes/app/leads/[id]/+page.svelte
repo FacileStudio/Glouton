@@ -68,9 +68,9 @@
 
   interface EmailOutreach {
     id: string;
-    leadId: string;
+    leadId: string | null;
     userId: string;
-    templateId: string;
+    templateId: string | null;
     subject: string;
     htmlBody: string;
     textBody: string;

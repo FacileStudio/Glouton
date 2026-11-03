@@ -1,4 +1,4 @@
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import { loggerMiddleware } from './middleware/logger';
 import { loginLimiter, registerLimiter } from './middleware/rate-limit';
 import { prisma } from '@repo/database';
@@ -52,7 +52,7 @@ async function startup() {
     logger.error({ error }, '[REDIS] Validation failed');
   }
 
-  const orphaned = await checkOrphanedSessions(prisma, jobs);
+  const orphaned = await checkOrphanedSessions(prisma);
   if (orphaned.audits > 0 || orphaned.hunts > 0) {
     logger.info(`[CLEANUP] Orphaned sessions: ${orphaned.audits} audits, ${orphaned.hunts} hunts`);
   }
@@ -185,7 +185,7 @@ if (directory) {
   });
 }
 
-function requireInternalAuth(c: any): boolean {
+function requireInternalAuth(c: Context): boolean {
   const token = c.req.header('x-internal-secret');
   return token === env.ENCRYPTION_SECRET;
 }

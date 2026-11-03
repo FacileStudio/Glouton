@@ -148,3 +148,12 @@ export function withTypedJson<T extends LeadJsonColumns>(
     companyInfo: readCompanyInfo(lead.companyInfo),
   };
 }
+
+/**
+ * Narrows a row's JSON payload to its string fields, which keeps inferred tRPC outputs shallow.
+ */
+export function withStringPayload<R extends { payload: Prisma.JsonValue }>(
+  row: R
+): Omit<R, 'payload'> & { payload: Record<string, string> | null } {
+  return { ...row, payload: readStringRecord(row.payload) };
+}

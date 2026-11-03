@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { resolve } from '$app/paths';
   import { onMount } from 'svelte';
   import { page } from '$app/state';
   import { Badge, Button, Card, ConfirmModal, Field, Input, PageHeader, Select, Spinner, toast } from '@facile/muse';
@@ -137,7 +138,7 @@
           {#if c.ardoiseClientId}
             {@const href = ardoiseLink(c.ardoiseClientId)}
             {#if href}
-              <a {href} target="_blank" rel="noopener noreferrer" class="rounded-fc-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fc-ring">
+              <a {href} target="_blank" rel="external noopener noreferrer" class="rounded-fc-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fc-ring">
                 <Badge tone="success">Lié dans Ardoise</Badge>
               </a>
             {:else}
@@ -163,7 +164,7 @@
         <dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-fc-sm">
           {#if c.website || c.domain}
             <dt class="text-fc-fg-muted">Site</dt>
-            <dd class="truncate"><a class="text-fc-fg underline" href={c.website ?? `https://${c.domain}`} target="_blank" rel="noopener noreferrer">{c.website ?? c.domain}</a></dd>
+            <dd class="truncate"><a class="text-fc-fg underline" href={c.website ?? `https://${c.domain}`} target="_blank" rel="external noopener noreferrer">{c.website ?? c.domain}</a></dd>
           {/if}
           {#if c.emails.length}<dt class="text-fc-fg-muted">E-mails</dt><dd class="break-all">{c.emails.join(', ')}</dd>{/if}
           {#if c.phones.length}<dt class="text-fc-fg-muted">Téléphones</dt><dd>{c.phones.join(', ')}</dd>{/if}
@@ -200,7 +201,7 @@
           <ul class="flex flex-col gap-1">
             {#each c.people as p (p.id)}
               <li>
-                <a href="/app/contacts/people/{p.id}" class="flex min-h-11 flex-col justify-center rounded-fc-md px-2 hover:bg-fc-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fc-ring">
+                <a href={resolve('/app/contacts/people/[id]', { id: p.id })} class="flex min-h-11 flex-col justify-center rounded-fc-md px-2 hover:bg-fc-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fc-ring">
                   <span class="text-fc-sm text-fc-fg">{personName(p)}{p.isBillingContact ? ' · facturation' : ''}</span>
                   <span class="text-fc-xs text-fc-fg-muted">{[p.role, p.email].filter(Boolean).join(' · ')}</span>
                 </a>

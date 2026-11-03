@@ -3,6 +3,7 @@ import { router, protectedProcedure, humanProcedure } from '../../trpc';
 import type { Context } from '../../context';
 import { accessForUser } from '../contact/access';
 import * as inbox from './service';
+import { withStringPayload } from '../../utils/json';
 import { ardoiseFor } from '../ardoise/router';
 
 type AuthedContext = Context & { user: NonNullable<Context['user']> };
@@ -67,7 +68,9 @@ export const inboxRouter = router({
 
   suggestions: protectedProcedure
     .input(z.object({ status: suggestionStatusSchema.default('OPEN') }).optional())
-    .query(async ({ ctx, input }) => inbox.listSuggestions(ctx.prisma, await access(ctx), input?.status)),
+    .query(async ({ ctx, input }) =>
+      (await inbox.listSuggestions(ctx.prisma, await access(ctx), input?.status)).map(withStringPayload)
+    ),
 
   createDraft: protectedProcedure
     .input(draftCreateSchema)

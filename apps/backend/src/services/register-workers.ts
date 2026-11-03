@@ -14,10 +14,14 @@ export function registerWorkers(
 ) {
   const workers = createWorkers(events, { courrier });
 
-  Object.entries(workers).forEach(([name, worker]) => {
-    queueManager.registerWorker(name, worker as any);
-    logger.info(`[WORKERS] Registered ${name} worker`);
-  });
+  queueManager.registerWorker('local-business-hunt', workers['local-business-hunt']);
+  queueManager.registerWorker('lead-audit', workers['lead-audit']);
+  queueManager.registerWorker('csv-import', workers['csv-import']);
+  queueManager.registerWorker('opportunity-scraper', workers['opportunity-scraper']);
+  queueManager.registerWorker('company-creation', workers['company-creation']);
+  queueManager.registerWorker('courrier-reply-sync', workers['courrier-reply-sync']);
+  queueManager.registerWorker('courrier-contacts-import', workers['courrier-contacts-import']);
+  logger.info(`[WORKERS] Registered ${Object.keys(workers).join(', ')} workers`);
 
   const sync = ardoise.ardoiseDeps(prisma, env, queueManager, logger);
   if (!sync.config) return;

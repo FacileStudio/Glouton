@@ -135,7 +135,7 @@
           <div class="min-w-0">
             <p class="whitespace-pre-line text-fc-sm text-fc-fg">{a.summary}</p>
             {#if linkOf(a.payload)}
-              <a href={linkOf(a.payload)} target="_blank" rel="noopener noreferrer" class="text-fc-xs text-fc-fg underline">Voir dans Ardoise</a>
+              <a href={linkOf(a.payload)} target="_blank" rel="external noopener noreferrer" class="text-fc-xs text-fc-fg underline">Voir dans Ardoise</a>
             {/if}
             <p class="text-fc-xs text-fc-fg-muted">{actorText(a.actor ?? null)} · {formatDate(a.occurredAt)}</p>
           </div>
