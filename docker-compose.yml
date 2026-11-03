@@ -62,6 +62,11 @@ services:
       OIDC_REDIRECT_URL: ${OIDC_REDIRECT_URL:-}
       OIDC_SUCCESS_URL: ${OIDC_SUCCESS_URL:-}
       SSO_ONLY: ${SSO_ONLY:-}
+      ARDOISE_URL: ${ARDOISE_URL:-}
+      ARDOISE_API_TOKEN: ${ARDOISE_API_TOKEN:-}
+      ARDOISE_WEBHOOK_SECRET: ${ARDOISE_WEBHOOK_SECRET:-}
+      ARDOISE_DEFAULT_OWNER_EMAIL: ${ARDOISE_DEFAULT_OWNER_EMAIL:-}
+      ARDOISE_WEB_URL: ${ARDOISE_WEB_URL:-}
     depends_on:
       glouton-postgres:
         condition: service_healthy

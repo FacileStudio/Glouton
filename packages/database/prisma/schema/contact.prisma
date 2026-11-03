@@ -164,3 +164,11 @@ model Suggestion {
   @@index([companyId])
   @@index([personId])
 }
+
+model ArdoiseDelivery {
+  id         String   @id @db.Text
+  event      String   @db.Text
+  receivedAt DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([receivedAt])
+}
