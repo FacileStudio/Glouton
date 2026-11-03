@@ -1,6 +1,6 @@
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
-import { router, protectedProcedure } from '../../../trpc';
+import { router, protectedProcedure, humanProcedure } from '../../../trpc';
 import huntService from './service';
 import {
   startLocalBusinessHuntSchema,
@@ -95,7 +95,7 @@ export const huntRouter = router({
     }
   }),
 
-  delete: protectedProcedure.input(deleteHuntSchema).mutation(async ({ ctx, input }) => {
+  delete: humanProcedure.input(deleteHuntSchema).mutation(async ({ ctx, input }) => {
     const session = await prisma.huntSession.findUnique({
       where: { id: input.huntSessionId },
       select: { userId: true },

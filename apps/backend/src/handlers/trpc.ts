@@ -8,7 +8,8 @@ export const trpcHandler =
     env,
     jobs,
     prisma,
-    events
+    events,
+    verifyDelegated,
   }: Omit<CreateContextOptions, 'req' | 'resHeaders' | 'info' | 'logger' | 'db'>) =>
   (c: Context, next: Next) =>
     trpcServer({
@@ -25,6 +26,7 @@ export const trpcHandler =
           jobs,
           logger,
           events,
+          verifyDelegated,
         });
       },
     })(c, next);

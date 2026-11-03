@@ -19,7 +19,8 @@ import { checkOrphanedSessions, cleanupStalled } from './services/job-monitor';
 import { registerWorkers } from './services/register-workers';
 import { DirectoryClient, SyncPath } from './services/registre-directory';
 import { applySnapshot, buildImport, startDirectorySync } from './services/registre-spaces';
-import { registreIssuer } from './services/oidc';
+import { registreIssuer, registreKeys } from './services/oidc';
+import { delegatedVerifierFromEnv } from './services/delegated';
 import env from './env';
 import config from './config';
 
@@ -115,6 +116,8 @@ const directory = issuer
     }).syncer
   : null;
 
+const verifyDelegated = delegatedVerifierFromEnv(env, registreKeys);
+
 const app = new Hono();
 
 app.use('*', corsHandler([
@@ -204,6 +207,7 @@ app.all('/trpc/*', trpcHandler({
   jobs: config.jobs,
   prisma: config.prisma,
   events,
+  verifyDelegated,
 }));
 
 app.get('/', (c) => c.json({ message: "Welcome to the Glouton's API !" }));

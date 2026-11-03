@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server';
-import { router, protectedProcedure } from '../../../trpc';
+import { router, protectedProcedure, humanProcedure } from '../../../trpc';
 import LeadQueryService from './service';
 import { listLeadsSchema, getByIdSchema, deleteLeadSchema } from '../schemas';
 import { resolveScope } from '../../../utils/scope';
@@ -19,7 +19,7 @@ export const queryRouter = router({
     return await LeadQueryService.getLeadById(input.leadId, ctx);
   }),
 
-  delete: protectedProcedure.input(deleteLeadSchema).mutation(async ({ ctx, input }) => {
+  delete: humanProcedure.input(deleteLeadSchema).mutation(async ({ ctx, input }) => {
     return await LeadQueryService.deleteLead(input.leadId, ctx.user.id, ctx.prisma);
   }),
 

@@ -23,5 +23,6 @@ export const openApiDocument = createOpenApiDocument(appRouter);
 export type AppRouter = typeof appRouter;
 
 export { createContext, type Context, type CreateContextOptions } from './context';
-export { publicProcedure, protectedProcedure, adminProcedure } from './trpc';
+export { publicProcedure, protectedProcedure, humanProcedure, adminProcedure } from './trpc';
+export * from './delegation';
 export { globalCacheFactory } from './cache';

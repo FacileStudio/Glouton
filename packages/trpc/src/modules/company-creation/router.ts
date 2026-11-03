@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server';
-import { router, protectedProcedure } from '../../trpc';
+import { router, protectedProcedure, humanProcedure } from '../../trpc';
 import CompanyCreationService from './service';
 import {
   listCompanyCreationsSchema,
@@ -60,7 +60,7 @@ export const companyCreationRouter = router({
       }
     }),
 
-  convertToLead: protectedProcedure
+  convertToLead: humanProcedure
     .input(convertToLeadSchema)
     .mutation(async ({ ctx, input }) => {
       try {

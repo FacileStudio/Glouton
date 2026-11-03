@@ -241,6 +241,7 @@
       "name": "@repo/trpc",
       "version": "0.0.0",
       "dependencies": {
+        "@repo/auth-shared": "workspace:*",
         "@repo/database": "workspace:*",
         "@repo/logger": "workspace:*",
         "@repo/webhooks": "workspace:*",

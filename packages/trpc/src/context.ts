@@ -5,6 +5,7 @@ import { type AuthManager } from '@repo/auth';
 import { type ServerEnv } from '@repo/env';
 import { QueueManager } from '@repo/jobs';
 import type { Logger } from '@repo/logger';
+import type { DelegatedVerifier } from './delegation';
 
 export interface CreateContextOptions extends FetchCreateContextFnOptions {
   db: SQL;
@@ -13,6 +14,7 @@ export interface CreateContextOptions extends FetchCreateContextFnOptions {
   env: ServerEnv;
   logger: Logger;
   jobs: QueueManager;
+  verifyDelegated?: DelegatedVerifier | null;
   events?: {
     emit: (userId: string, type: string, data?: any) => void;
     broadcast: (type: string, data?: any) => void;
@@ -24,10 +26,15 @@ export const createContext = async (options: CreateContextOptions) => {
   const authHeader = options.req.headers.get('authorization');
   const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
 
-  const user = token ? await options.authManager.verifyToken(token) : null;
+  const sessionUser = token ? await options.authManager.verifyToken(token) : null;
+  const delegated =
+    token && !sessionUser && options.verifyDelegated ? await options.verifyDelegated(token) : null;
+  const user = sessionUser ?? delegated?.user ?? null;
+  const actor = delegated?.actor ?? null;
+  const scopes = delegated?.scopes ?? null;
 
   const log = user
-    ? options.logger.child({ userId: user.id, email: user.email })
+    ? options.logger.child({ userId: user.id, email: user.email, ...(actor ? { actor } : {}) })
     : options.logger;
 
   const ipAddress =
@@ -39,6 +46,8 @@ export const createContext = async (options: CreateContextOptions) => {
 
   return {
     user,
+    actor,
+    scopes,
     db: options.db,
     prisma: options.prisma,
     auth: options.authManager,

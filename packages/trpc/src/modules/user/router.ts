@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { router, protectedProcedure, adminProcedure } from '../../trpc';
+import { router, protectedProcedure, adminProcedure, humanProcedure } from '../../trpc';
 import userService from './service';
 
 export const userRouter = router({
@@ -96,7 +96,7 @@ export const userRouter = router({
       return userService.bulkDeleteUsers(input.ids);
     }),
 
-  updateProfile: protectedProcedure
+  updateProfile: humanProcedure
     .input(
       z.object({
         firstName: z.string().optional(),
@@ -107,7 +107,7 @@ export const userRouter = router({
       return userService.updateProfile(ctx.user.id, input);
     }),
 
-  changePassword: protectedProcedure
+  changePassword: humanProcedure
     .input(
       z.object({
         currentPassword: z.string(),
@@ -123,15 +123,15 @@ export const userRouter = router({
       );
     }),
 
-  deleteOwnAccount: protectedProcedure.mutation(async ({ ctx }) => {
+  deleteOwnAccount: humanProcedure.mutation(async ({ ctx }) => {
     return userService.deleteOwnAccount(ctx.user.id);
   }),
 
-  getSmtpConfig: protectedProcedure.query(async ({ ctx }) => {
+  getSmtpConfig: humanProcedure.query(async ({ ctx }) => {
     return userService.getSmtpConfig(ctx.user.id, ctx.auth);
   }),
 
-  updateSmtpConfig: protectedProcedure
+  updateSmtpConfig: humanProcedure
     .input(
       z.object({
         smtpHost: z.string().optional(),
@@ -147,7 +147,7 @@ export const userRouter = router({
       return userService.updateSmtpConfig(ctx.user.id, input, ctx.auth);
     }),
 
-  testSmtpConfig: protectedProcedure
+  testSmtpConfig: humanProcedure
     .input(
       z.object({
         smtpHost: z.string(),

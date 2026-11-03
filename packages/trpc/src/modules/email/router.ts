@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { router, protectedProcedure } from '../../trpc';
+import { router, protectedProcedure, humanProcedure } from '../../trpc';
 import { EmailService } from './service';
 import { getAllTemplates, renderTemplate } from '@repo/smtp';
 import { resolveScope } from '../../utils/scope';
@@ -39,7 +39,7 @@ export const emailRouter = router({
       return rendered;
     }),
 
-  sendEmail: protectedProcedure
+  sendEmail: humanProcedure
     .input(
       z.object({
         teamId: z.string().uuid().optional(),

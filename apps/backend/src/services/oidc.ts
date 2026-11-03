@@ -64,6 +64,12 @@ function jwks(jwksUri: string) {
   return jwksCache;
 }
 
+/** The issuer's signing keys, found through OIDC discovery and cached. */
+export async function registreKeys(): Promise<ReturnType<typeof createRemoteJWKSet>> {
+  const doc = await discover();
+  return jwks(doc.jwks_uri);
+}
+
 export function generateState(): string {
   return Buffer.from(crypto.getRandomValues(new Uint8Array(16))).toString('base64url');
 }

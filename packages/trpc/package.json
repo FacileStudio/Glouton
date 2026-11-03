@@ -5,12 +5,14 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./client": "./src/client.ts"
+    "./client": "./src/client.ts",
+    "./delegation": "./src/delegation.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@repo/auth-shared": "workspace:*",
     "@repo/database": "workspace:*",
     "@repo/logger": "workspace:*",
     "@repo/webhooks": "workspace:*",

@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server';
-import { router, protectedProcedure } from '../../trpc';
+import { router, protectedProcedure, humanProcedure } from '../../trpc';
 import teamService from './service';
 import { checkTeamPermission, TeamRole } from './permissions';
 import { manageUrl, refuseCreateWhenManaged, refuseWhenLinked, registreSpacesUrl } from './registre';
@@ -33,20 +33,20 @@ export const teamRouter = router({
 
   directory: protectedProcedure.query(({ ctx }) => ({ spacesUrl: registreSpacesUrl(ctx.env) })),
 
-  create: protectedProcedure.input(createTeamSchema).mutation(async ({ ctx, input }) => {
+  create: humanProcedure.input(createTeamSchema).mutation(async ({ ctx, input }) => {
     ctx.log.info({ userId: ctx.user.id, name: input.name }, '[TEAM] Creating team');
     refuseCreateWhenManaged(ctx.env);
     return await teamService.createTeam(input, ctx.user.id);
   }),
 
-  update: protectedProcedure.input(updateTeamSchema).mutation(async ({ ctx, input }) => {
+  update: humanProcedure.input(updateTeamSchema).mutation(async ({ ctx, input }) => {
     ctx.log.info({ userId: ctx.user.id, teamId: input.teamId }, '[TEAM] Updating team');
     const { teamId, ...data } = input;
     if (data.name !== undefined) await refuseWhenLinked(ctx.env, teamId, data.name);
     return await teamService.updateTeam(teamId, ctx.user.id, data);
   }),
 
-  delete: protectedProcedure.input(teamIdSchema).mutation(async ({ ctx, input }) => {
+  delete: humanProcedure.input(teamIdSchema).mutation(async ({ ctx, input }) => {
     ctx.log.info({ userId: ctx.user.id, teamId: input.teamId }, '[TEAM] Deleting team');
     await checkTeamPermission(ctx.user.id, input.teamId, TeamRole.OWNER);
     await refuseWhenLinked(ctx.env, input.teamId);
@@ -61,7 +61,7 @@ export const teamRouter = router({
     return await teamService.getTeamMembers(input.teamId, ctx.user.id);
   }),
 
-  addMember: protectedProcedure.input(addMemberSchema).mutation(async ({ ctx, input }) => {
+  addMember: humanProcedure.input(addMemberSchema).mutation(async ({ ctx, input }) => {
     ctx.log.info(
       { userId: ctx.user.id, teamId: input.teamId, email: input.email, role: input.role },
       '[TEAM] Adding team member'
@@ -76,7 +76,7 @@ export const teamRouter = router({
     );
   }),
 
-  removeMember: protectedProcedure
+  removeMember: humanProcedure
     .input(removeMemberSchema)
     .mutation(async ({ ctx, input }) => {
       ctx.log.info(
@@ -92,7 +92,7 @@ export const teamRouter = router({
       );
     }),
 
-  updateMemberRole: protectedProcedure
+  updateMemberRole: humanProcedure
     .input(updateMemberRoleSchema)
     .mutation(async ({ ctx, input }) => {
       ctx.log.info(
@@ -114,7 +114,7 @@ export const teamRouter = router({
       );
     }),
 
-  leave: protectedProcedure.input(leaveTeamSchema).mutation(async ({ ctx, input }) => {
+  leave: humanProcedure.input(leaveTeamSchema).mutation(async ({ ctx, input }) => {
     ctx.log.info({ userId: ctx.user.id, teamId: input.teamId }, '[TEAM] Leaving team');
     await checkTeamPermission(ctx.user.id, input.teamId, TeamRole.MEMBER);
     await refuseWhenLinked(ctx.env, input.teamId);
@@ -129,7 +129,7 @@ export const teamRouter = router({
     return await teamService.getTeamStats(input.teamId, ctx.user.id);
   }),
 
-  getSmtpConfig: protectedProcedure.input(teamIdSchema).query(async ({ ctx, input }) => {
+  getSmtpConfig: humanProcedure.input(teamIdSchema).query(async ({ ctx, input }) => {
     ctx.log.info(
       { userId: ctx.user.id, teamId: input.teamId },
       '[TEAM] Getting team SMTP config'
@@ -142,7 +142,7 @@ export const teamRouter = router({
     );
   }),
 
-  updateSmtpConfig: protectedProcedure
+  updateSmtpConfig: humanProcedure
     .input(updateSmtpConfigSchema)
     .mutation(async ({ ctx, input }) => {
       ctx.log.info(
@@ -159,7 +159,7 @@ export const teamRouter = router({
       );
     }),
 
-  testSmtpConfig: protectedProcedure
+  testSmtpConfig: humanProcedure
     .input(
       z.object({
         teamId: z.string(),
@@ -226,7 +226,7 @@ export const teamRouter = router({
     return await teamService.listTeamWebhooks(input.teamId, ctx.user.id);
   }),
 
-  createWebhook: protectedProcedure
+  createWebhook: humanProcedure
     .input(createWebhookSchema)
     .mutation(async ({ ctx, input }) => {
       ctx.log.info(
@@ -237,7 +237,7 @@ export const teamRouter = router({
       return await teamService.createTeamWebhook(teamId, ctx.user.id, data);
     }),
 
-  updateWebhook: protectedProcedure
+  updateWebhook: humanProcedure
     .input(updateWebhookSchema)
     .mutation(async ({ ctx, input }) => {
       ctx.log.info(
@@ -248,7 +248,7 @@ export const teamRouter = router({
       return await teamService.updateTeamWebhook(teamId, ctx.user.id, webhookId, data);
     }),
 
-  deleteWebhook: protectedProcedure
+  deleteWebhook: humanProcedure
     .input(deleteWebhookSchema)
     .mutation(async ({ ctx, input }) => {
       ctx.log.info(
@@ -258,7 +258,7 @@ export const teamRouter = router({
       return await teamService.deleteTeamWebhook(input.teamId, ctx.user.id, input.webhookId);
     }),
 
-  testWebhook: protectedProcedure
+  testWebhook: humanProcedure
     .input(testWebhookSchema)
     .mutation(async ({ ctx, input }) => {
       ctx.log.info(
