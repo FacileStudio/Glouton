@@ -1,5 +1,6 @@
 import type { Job as BullJob } from 'bullmq';
 import { prisma } from '@repo/database';
+import { mirrorLeadsSafely } from '@repo/database/contacts';
 import type { Prisma, LeadSource, LeadStatus, BusinessType } from '@prisma/client';
 import type { JobEventEmitter } from '../../lib/job-event-emitter';
 import { SessionManager, CancellationChecker } from '../shared';
@@ -91,6 +92,10 @@ export class CsvImportProcessor {
       job,
       emitter
     );
+
+    if (imported > 0) {
+      await mirrorLeadsSafely(prisma, { huntSessionId }, { origin: 'CSV' });
+    }
 
     await this.finalizeImport(huntSessionId, imported, duplicates, errors.length, emitter);
     await job.updateProgress(100);

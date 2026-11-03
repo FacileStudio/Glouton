@@ -1,6 +1,7 @@
 import type { Job as BullJob } from 'bullmq';
 import { MapsOrchestrator, toMapsError, type LocalBusiness } from '@repo/maps';
 import { prisma } from '@repo/database';
+import { mirrorLeadsSafely } from '@repo/database/contacts';
 import { Prisma } from '@prisma/client';
 import type { JobEventEmitter } from '../../lib/job-event-emitter';
 import { SessionManager, CancellationChecker } from '../shared';
@@ -369,6 +370,7 @@ export class LocalBusinessHuntProcessor {
 
     if (totalInserted > 0) {
       console.log(`[LocalBusinessHunt] Inserted ${totalInserted} new leads`);
+      await mirrorLeadsSafely(prisma, { huntSessionId }, { origin: 'HUNT' });
     }
 
     return totalInserted;

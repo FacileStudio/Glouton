@@ -1,4 +1,5 @@
 import { prisma } from '@repo/database/prisma';
+import { mirrorLeadsSafely } from '@repo/database/contacts';
 import type { LeadStatus, Prisma } from '@prisma/client';
 import type { Scope } from '../../../utils/scope';
 import { buildLeadFilter } from '../../../utils/scope';
@@ -160,10 +161,19 @@ export default {
       return { created: 0, skipped: 0 };
     }
 
+    const importedFrom = new Date();
     const result = await prisma.lead.createMany({
       data: leadsToCreate,
       skipDuplicates: true,
     });
+
+    if (result.count > 0) {
+      await mirrorLeadsSafely(
+        prisma,
+        { userId, createdAt: { gte: importedFrom } },
+        { origin: 'CSV' }
+      );
+    }
 
     return {
       created: result.count,

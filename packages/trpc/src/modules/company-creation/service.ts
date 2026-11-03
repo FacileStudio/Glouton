@@ -1,5 +1,6 @@
 import { type PrismaClient, type Prisma } from '@prisma/client';
 import { TRPCError } from '@trpc/server';
+import { mirrorLeadsSafely } from '@repo/database/contacts';
 import { QueueManager } from '@repo/jobs';
 import type {
   ListCompanyCreationsInput,
@@ -194,6 +195,14 @@ export default {
 
       return createdLead;
     });
+
+    await mirrorLeadsSafely(prisma, { id: lead.id }, { origin: 'HUNT' });
+    if (creation.country === 'FR') {
+      await prisma.company.updateMany({
+        where: { legacyLeadId: lead.id, siret: null },
+        data: { siret: creation.registrationId, legalName: creation.name },
+      });
+    }
 
     return { success: true, leadId: lead.id };
   },

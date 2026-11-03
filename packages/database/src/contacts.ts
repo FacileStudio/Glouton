@@ -9,6 +9,7 @@ export interface MirrorResult {
 export interface MirrorOptions {
   dryRun?: boolean;
   batchSize?: number;
+  origin?: ContactOrigin;
 }
 
 type MirrorClient = Pick<PrismaClient, 'lead' | 'company' | 'person' | '$transaction'>;
@@ -37,12 +38,12 @@ function hasPerson(lead: Lead): boolean {
 }
 
 /** Builds the Company and optional Person rows that stand for one legacy lead. */
-export function contactRowsForLead(lead: Lead): {
+export function contactRowsForLead(lead: Lead, originOverride?: ContactOrigin): {
   company: Prisma.CompanyCreateManyInput;
   person: Prisma.PersonCreateManyInput | null;
 } {
   const companyId = crypto.randomUUID();
-  const origin = originForSource(lead.source);
+  const origin = originOverride ?? originForSource(lead.source);
   const stage: ContactStage = lead.contacted ? 'CONTACTED' : 'PROSPECT';
   const company: Prisma.CompanyCreateManyInput = {
     id: companyId,
@@ -117,7 +118,7 @@ export async function mirrorLeadsToContacts(
       select: { legacyLeadId: true },
     });
     const done = new Set(mirrored.map((c) => c.legacyLeadId));
-    const rows = leads.filter((l) => !done.has(l.id)).map(contactRowsForLead);
+    const rows = leads.filter((l) => !done.has(l.id)).map((l) => contactRowsForLead(l, options.origin));
     const companies = rows.map((r) => r.company);
     const people = rows.flatMap((r) => (r.person ? [r.person] : []));
 
@@ -161,4 +162,18 @@ export async function linkOutreachToContacts(
     WHERE p."legacyLeadId" = eo."leadId" AND p."companyId" = eo."companyId" AND eo."personId" IS NULL
   `;
   return { companies, people };
+}
+
+/** Mirrors leads into contacts and logs, never throws: a hunt or import must not fail on it. */
+export async function mirrorLeadsSafely(
+  client: MirrorClient,
+  where: Prisma.LeadWhereInput,
+  options: MirrorOptions = {}
+): Promise<MirrorResult | null> {
+  try {
+    return await mirrorLeadsToContacts(client, where, options);
+  } catch (error) {
+    console.error('[CONTACTS] Lead mirror failed', error);
+    return null;
+  }
 }
