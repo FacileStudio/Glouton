@@ -11,6 +11,20 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-03
+
+### Added
+
+- **Profile pictures from Registre.** Team members now show their Registre
+  picture, with the initial when they have none. The sidebar user card does
+  the same through muse v0.7.3, and a missing picture no longer shows a broken
+  image.
+
+### Changed
+
+- The OIDC sign-in stores the `picture` claim only when it is an https URL, and
+  clears a stale non-https value.
+
 ## [0.2.0] - 2026-10-27
 
 ### Added
