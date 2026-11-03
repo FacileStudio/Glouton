@@ -12,9 +12,9 @@
     successfulLeads: number;
     failedLeads: number;
     error: string | null;
-    startedAt: Date | null;
-    completedAt: Date | null;
-    createdAt: Date;
+    startedAt: string | null;
+    completedAt: string | null;
+    createdAt: string;
     filters?: any;
   }
 
@@ -36,7 +36,7 @@
     relaunching?: boolean;
   } = $props();
 
-  function formatTimeAgo(date: Date): string {
+  function formatTimeAgo(date: string): string {
     const mins = Math.floor((new Date().getTime() - new Date(date).getTime()) / 60000);
     if (mins < 2) return "À l'instant";
     if (mins < 60) return `Il y a ${mins}min`;

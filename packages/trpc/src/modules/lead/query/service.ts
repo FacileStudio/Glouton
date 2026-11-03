@@ -5,6 +5,30 @@ import {
   calculatePagination,
 } from '@repo/database/utils/prisma-helpers';
 import { buildLeadFilter, buildHuntFilter, buildAuditFilter, type Scope } from '../../../utils/scope';
+import {
+  readCompanyInfo,
+  readCoordinates,
+  readSocialProfiles,
+  type CompanyInfo,
+  type Coordinates,
+  type SocialProfile,
+} from '../../../utils/json';
+
+type LeadJsonColumns = Pick<Prisma.LeadGetPayload<object>, 'socialProfiles' | 'coordinates' | 'companyInfo'>;
+
+/**
+ * Replaces a lead's untyped JSON columns with their validated shapes.
+ */
+function withTypedJson<T extends LeadJsonColumns>(
+  lead: T
+): Omit<T, keyof LeadJsonColumns> & { socialProfiles: SocialProfile[]; coordinates: Coordinates | null; companyInfo: CompanyInfo | null } {
+  return {
+    ...lead,
+    socialProfiles: readSocialProfiles(lead.socialProfiles),
+    coordinates: readCoordinates(lead.coordinates),
+    companyInfo: readCompanyInfo(lead.companyInfo),
+  };
+}
 
 export interface GetLeadsParams {
   scope: Scope;
@@ -236,7 +260,6 @@ export default {
           physicalAddresses: true,
           socialProfiles: true,
           companyInfo: true,
-          websiteAudit: true,
           scrapedAt: true,
           auditedAt: true,
           huntSessionId: true,
@@ -260,7 +283,7 @@ export default {
     );
 
     return {
-      leads,
+      leads: leads.map(withTypedJson),
       pagination: {
         page: paginationMeta.page,
         limit: paginationMeta.limit,
@@ -500,6 +523,7 @@ export default {
 
       const lead = await ctx.prisma.lead.findUnique({
         where: { id: leadId },
+        omit: { websiteAudit: true, metadata: true },
       });
 
       ctx.log.info({ action: 'get-lead-by-id-found', leadId, found: !!lead });
@@ -534,7 +558,7 @@ export default {
       }
 
       ctx.log.info({ action: 'get-lead-by-id-success', leadId });
-      return lead;
+      return withTypedJson(lead);
     } catch (error) {
       if (error instanceof TRPCError) throw error;
 

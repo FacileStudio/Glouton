@@ -12,9 +12,9 @@
     successfulLeads: number;
     failedLeads: number;
     error: string | null;
-    startedAt: Date | null;
-    completedAt: Date | null;
-    createdAt: Date;
+    startedAt: string | null;
+    completedAt: string | null;
+    createdAt: string;
     filters?: any;
     lastDiscoveredDomain?: string | null;
   }
@@ -52,7 +52,7 @@
     }
   });
 
-  function formatElapsedTime(startedAt: Date | null, current: Date = new Date()): string {
+  function formatElapsedTime(startedAt: string | null, current: Date = new Date()): string {
     if (!startedAt) return '0s';
 
     const elapsedMs = current.getTime() - new Date(startedAt).getTime();

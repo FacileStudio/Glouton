@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { page } from '$app/state';
+  import type { PageProps } from './$types';
   import { fade, fly } from 'svelte/transition';
   import DOMPurify from 'isomorphic-dompurify';
   import { trpc } from '$lib/trpc';
@@ -26,15 +26,6 @@
     website?: string;
   }
 
-  interface Address {
-    street?: string;
-    city?: string;
-    state?: string;
-    country?: string;
-    postalCode?: string;
-    fullAddress?: string;
-  }
-
   interface Lead {
     id: string;
     domain: string | null;
@@ -51,10 +42,9 @@
     technologies: string[] | null;
     additionalEmails: string[] | null;
     phoneNumbers: string[] | null;
-    physicalAddresses: Address[] | null;
+    physicalAddresses: string[];
     socialProfiles: SocialProfile[] | null;
     companyInfo: CompanyInfo | null;
-    websiteAudit: any | null;
     scrapedAt: string | null;
     auditedAt: string | null;
     contacted: boolean;
@@ -82,7 +72,7 @@
     subject: string;
     htmlBody: string;
     textBody: string;
-    variables: Record<string, any>;
+    variables: Record<string, string> | null;
     status: string;
     sentAt: string | null;
     openedAt?: string | null;
@@ -92,9 +82,9 @@
     createdAt: string;
   }
 
-  let lead: Lead | null = $state(null);
-  let templates: EmailTemplate[] = $state([]);
-  let outreachHistory: EmailOutreach[] = $state([]);
+  let lead = $state<Lead | null>(null);
+  let templates = $state<EmailTemplate[]>([]);
+  let outreachHistory = $state<EmailOutreach[]>([]);
   let loading = $state(true);
   let sending = $state(false);
   let selectedTemplate = $state('');
@@ -108,7 +98,8 @@
   let smtpConfigured = $state<boolean>(true);
   let checkingSmtp = $state(true);
 
-  const leadId = page.params.id;
+  let { params }: PageProps = $props();
+  let leadId = $derived(params.id);
 
   onMount(async () => {
     await Promise.all([loadData(), checkSmtpConfiguration()]);
@@ -325,12 +316,6 @@
     return getSocialMeta(platform).icon;
   }
 
-  function getGoogleMapsUrl(address: Address): string {
-    const parts = [address.street, address.city, address.state, address.postalCode, address.country].filter(Boolean);
-    const query = encodeURIComponent(address.fullAddress || parts.join(', '));
-    return `https://www.google.com/maps/search/?api=1&query=${query}`;
-  }
-
   function getGoogleMapsCoordsUrl(lat: number, lng: number): string {
     return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
   }
@@ -363,7 +348,6 @@
   let technologies = $derived(lead?.technologies ?? []);
   let additionalEmails = $derived(lead?.additionalEmails ?? []);
   let phoneNumbers = $derived(lead?.phoneNumbers ?? []);
-  let addresses = $derived(lead?.physicalAddresses ?? []);
   let socialProfiles = $derived(lead?.socialProfiles ?? []);
   let sanitizedPreviewHtml = $derived(
     emailPreview.html

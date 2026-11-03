@@ -1,14 +1,15 @@
 <script lang="ts">
   import { fade, fly } from 'svelte/transition';
   import { onMount, onDestroy } from 'svelte';
-  import { page } from '$app/state';
+  import type { PageProps } from './$types';
   import { goto } from '$app/navigation';
   import { trpc } from '$lib/trpc';
   import { toast, Spinner, PageHeader, Button, Badge, Card, Section, StatCard, EmptyState, Alert, Icon, StatusDot, icons } from '@facile/muse';
   import { ws } from '$lib/websocket';
   import HuntBanner from '$lib/components/leads/HuntBanner.svelte';
 
-  const huntSessionId = page.params.id;
+  let { params }: PageProps = $props();
+  let huntSessionId = $derived(params.id);
 
   interface RunDetails {
     id: string;
@@ -17,17 +18,17 @@
     progress: number;
     sources: string[];
     domain: string | null;
-    huntType?: 'DOMAIN' | 'LOCAL_BUSINESS';
-    filters: any;
+    huntType: 'DOMAIN' | 'LOCAL_BUSINESS';
+    filters?: any;
     totalLeads: number;
     successfulLeads: number;
     failedLeads: number;
-    sourceStats: any;
+    sourceStats?: any;
     error: string | null;
-    startedAt: Date | null;
-    completedAt: Date | null;
-    createdAt: Date;
-    updatedAt: Date;
+    startedAt: string | null;
+    completedAt: string | null;
+    createdAt: string;
+    updatedAt: string;
     stats: {
       totalLeads: number;
       hotLeads: number;
@@ -49,7 +50,7 @@
       status: string;
       score: number;
       source: string;
-      createdAt: Date;
+      createdAt: string;
     }>;
   }
 
@@ -105,7 +106,7 @@
     unsubscribers.push(
       ws.on('hunt-started', (data: any) => {
         if (data.huntSessionId !== huntSessionId) return;
-        updateDetails({ status: 'PROCESSING', startedAt: new Date() });
+        updateDetails({ status: 'PROCESSING', startedAt: new Date().toISOString() });
         pushEvent('hunt-started', 'info', data.message || 'Chasse démarrée');
       })
     );
@@ -184,7 +185,7 @@
     unsubscribers.push(
       ws.on('hunt-completed', async (data: any) => {
         if (data.huntSessionId !== huntSessionId) return;
-        updateDetails({ status: 'COMPLETED', progress: 100, completedAt: new Date() });
+        updateDetails({ status: 'COMPLETED', progress: 100, completedAt: new Date().toISOString() });
         pushEvent('hunt-completed', 'success', data.message || `Chasse terminée ! ${data.successfulLeads} leads trouvés`);
         toast.success(data.message || `Chasse terminée ! ${data.successfulLeads} leads trouvés`);
         await loadData();
@@ -194,7 +195,7 @@
     unsubscribers.push(
       ws.on('extraction-completed', async (data: any) => {
         if (data.huntSessionId !== huntSessionId) return;
-        updateDetails({ status: 'COMPLETED', progress: 100, completedAt: new Date() });
+        updateDetails({ status: 'COMPLETED', progress: 100, completedAt: new Date().toISOString() });
         pushEvent('extraction-completed', 'success', data.message || `Extraction terminée ! ${data.successfulLeads} leads trouvés`);
         toast.success(data.message || 'Extraction terminée !');
         await loadData();
@@ -204,7 +205,7 @@
     unsubscribers.push(
       ws.on('hunt-cancelled', (data: any) => {
         if (data.huntSessionId !== huntSessionId) return;
-        updateDetails({ status: 'CANCELLED', completedAt: new Date() });
+        updateDetails({ status: 'CANCELLED', completedAt: new Date().toISOString() });
         pushEvent('hunt-cancelled', 'warning', 'Chasse annulée par l\'utilisateur');
       })
     );
@@ -212,7 +213,7 @@
     unsubscribers.push(
       ws.on('hunt-failed', (data: any) => {
         if (data.huntSessionId !== huntSessionId) return;
-        updateDetails({ status: 'FAILED', completedAt: new Date(), error: data.error });
+        updateDetails({ status: 'FAILED', completedAt: new Date().toISOString(), error: data.error });
         pushEvent('hunt-failed', 'error', data.message || `Chasse échouée : ${data.error}`);
         toast.danger(data.message || 'Chasse échouée');
       })
@@ -221,7 +222,7 @@
     unsubscribers.push(
       ws.on('extraction-failed', (data: any) => {
         if (data.huntSessionId !== huntSessionId) return;
-        updateDetails({ status: 'FAILED', completedAt: new Date(), error: data.error });
+        updateDetails({ status: 'FAILED', completedAt: new Date().toISOString(), error: data.error });
         pushEvent('extraction-failed', 'error', data.message || `Extraction échouée : ${data.error}`);
       })
     );
@@ -339,9 +340,8 @@
 
   const asBannerSession = $derived(details ? {
     id: details.id,
-    huntType: details.huntType as 'DOMAIN' | 'LOCAL_BUSINESS' | undefined,
+    huntType: details.huntType,
     sources: details.sources,
-    speed: 1,
     status: details.status,
     progress: details.progress,
     totalLeads: details.totalLeads,

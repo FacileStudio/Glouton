@@ -1,5 +1,5 @@
 import { prisma } from '@repo/database/prisma';
-import type { PrismaClient, LeadSource } from '@prisma/client';
+import type { PrismaClient, LeadSource, HuntStatus, HuntType } from '@prisma/client';
 import type { QueueManager } from '@repo/jobs';
 import { TRPCError } from '@trpc/server';
 import type { Scope } from '../../../utils/scope';
@@ -20,7 +20,8 @@ export interface StartLocalBusinessHuntParams {
 export interface RunDetails {
   id: string;
   userId: string;
-  status: string;
+  status: HuntStatus;
+  huntType: HuntType;
   progress: number;
   sources: string[];
   domain: string | null;
@@ -360,6 +361,7 @@ export default {
       id: session.id,
       userId: session.userId,
       status: session.status,
+      huntType: session.huntType,
       progress: session.progress,
       sources: session.sources,
       domain: session.domain,

@@ -116,16 +116,15 @@ export interface AuditSession {
 export interface HuntSession {
   id: string;
   huntType: 'DOMAIN' | 'LOCAL_BUSINESS' | undefined;
-  speed: number;
   progress: number;
   status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
   totalLeads: number;
   successfulLeads: number;
   failedLeads: number;
   error: string | null;
-  startedAt: Date | null;
-  completedAt: Date | null;
-  createdAt: Date;
+  startedAt: string | null;
+  completedAt: string | null;
+  createdAt: string;
   filters?: any;
   lastDiscoveredDomain?: string | null;
 }
@@ -242,7 +241,6 @@ export function setupHuntListeners(
       const newSession: HuntSession = {
         id: data.huntSessionId,
         huntType: data.huntType,
-        speed: data.speed || 1,
         status: 'PENDING',
         progress: 0,
         totalLeads: 0,
@@ -251,7 +249,7 @@ export function setupHuntListeners(
         error: null,
         startedAt: null,
         completedAt: null,
-        createdAt: new Date(),
+        createdAt: new Date().toISOString(),
         filters: data.filters,
       };
 
@@ -271,7 +269,7 @@ export function setupHuntListeners(
     wsEvents.on('hunt-processing', (data) => {
       updateSession(data.huntSessionId, {
         status: 'PROCESSING',
-        startedAt: data.startedAt ? new Date(data.startedAt) : new Date(),
+        startedAt: data.startedAt ?? new Date().toISOString(),
       });
     })
   );
@@ -318,7 +316,7 @@ export function setupHuntListeners(
         totalLeads: data.totalLeads || 0,
         successfulLeads: data.successfulLeads || 0,
         failedLeads: data.failedLeads || 0,
-        completedAt: new Date(),
+        completedAt: new Date().toISOString(),
       });
 
       if (found) {
@@ -340,7 +338,7 @@ export function setupHuntListeners(
       updateSession(data.huntSessionId, {
         status: 'FAILED',
         error: data.error || 'Unknown error',
-        completedAt: new Date(),
+        completedAt: new Date().toISOString(),
       });
       toast.danger(`Hunt failed: ${data.error || 'Unknown error'}`);
     })
@@ -350,7 +348,7 @@ export function setupHuntListeners(
     wsEvents.on('hunt-cancelled', (data) => {
       updateSession(data.huntSessionId, {
         status: 'CANCELLED',
-        completedAt: new Date(),
+        completedAt: new Date().toISOString(),
       });
       toast.info('Hunt cancelled');
     })

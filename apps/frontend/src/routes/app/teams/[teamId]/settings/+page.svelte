@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { page } from '$app/state';
+  import type { PageProps } from './$types';
   import { goto } from '$app/navigation';
   import { trpc } from '$lib/trpc';
   import MailTransportSettings from '$lib/components/MailTransportSettings.svelte';
@@ -23,7 +23,8 @@
     toast,
   } from '@facile/muse';
 
-  let teamId = $derived(page.params.teamId);
+  let { params }: PageProps = $props();
+  let teamId = $derived(params.teamId);
   let team = $state<any>(null);
   let loading = $state(true);
   let activeTab = $state('general');
@@ -38,11 +39,6 @@
     description: '',
   });
 
-  let apiKeysForm = $state({
-    hunterApiKey: '',
-    googleMapsApiKey: '',
-  });
-
   let smtpForm = $state({
     smtpHost: '',
     smtpPort: 587,
@@ -53,26 +49,14 @@
     smtpFromEmail: '',
   });
 
-  let showApiKeys = $state({
-    hunterApiKey: false,
-    googleMapsApiKey: false,
-  });
-
   let showSmtpPass = $state(false);
 
   let originalGeneralForm = $state({ name: '', description: '' });
-  let originalApiKeysForm = $state({ ...apiKeysForm });
   let originalSmtpForm = $state({ ...smtpForm });
 
   let hasGeneralChanges = $derived(
     generalForm.name !== originalGeneralForm.name ||
     generalForm.description !== originalGeneralForm.description
-  );
-
-  let hasApiKeysChanges = $derived(
-    Object.keys(apiKeysForm).some(
-      (key) => apiKeysForm[key as keyof typeof apiKeysForm] !== originalApiKeysForm[key as keyof typeof originalApiKeysForm]
-    )
   );
 
   let hasSmtpChanges = $derived(
@@ -99,7 +83,7 @@
       originalGeneralForm.description = team.description || '';
 
       if (team.userRole === 'OWNER' || team.userRole === 'ADMIN') {
-        await Promise.all([loadApiKeys(), loadSmtpConfig()]);
+        await loadSmtpConfig();
       }
     } catch (error: any) {
       console.error('Error loading team:', error);
@@ -107,17 +91,6 @@
       goto('/app/teams');
     } finally{
       loading = false;
-    }
-  }
-
-  async function loadApiKeys() {
-    try {
-      const apiKeys = await trpc.team.getApiKeys.query({ teamId });
-      apiKeysForm.hunterApiKey = apiKeys.hunterApiKey || '';
-      apiKeysForm.googleMapsApiKey = apiKeys.googleMapsApiKey || '';
-      originalApiKeysForm = { ...apiKeysForm };
-    } catch (error) {
-      console.error('Error loading API keys:', error);
     }
   }
 
@@ -152,24 +125,6 @@
       await loadTeam();
     } catch (error: any) {
       toast.danger(error?.message || 'Échec de la mise à jour');
-    } finally {
-      saving = false;
-    }
-  }
-
-  async function handleUpdateApiKeys() {
-    if (!canManage) return;
-    saving = true;
-    try {
-      await trpc.team.updateApiKeys.mutate({
-        teamId,
-        hunterApiKey: apiKeysForm.hunterApiKey || undefined,
-        googleMapsApiKey: apiKeysForm.googleMapsApiKey || undefined,
-      });
-      await loadApiKeys();
-      toast.success('Clés API mises à jour avec succès');
-    } catch (error: any) {
-      toast.danger(error?.message || 'Échec de la mise à jour des clés API');
     } finally {
       saving = false;
     }
@@ -242,13 +197,7 @@
 
   const tabs = [
     { id: 'general', label: 'Général', icon: icons.settings },
-    { id: 'api-keys', label: 'Clés API', icon: icons.key },
     { id: 'smtp', label: 'SMTP', icon: icons.mail },
-  ];
-
-  const providers: { key: keyof typeof apiKeysForm; label: string; url: string }[] = [
-    { key: 'hunterApiKey', label: 'Hunter.io', url: 'https://hunter.io/api' },
-    { key: 'googleMapsApiKey', label: 'Google Maps', url: 'https://console.cloud.google.com' },
   ];
 
   const revealButtonClass =
@@ -339,65 +288,6 @@
           </SettingsRow>
         </SettingsSection>
       {/if}
-    {:else if activeTab === 'api-keys'}
-      <SettingsSection
-        title="Clés API"
-        description="Configurez les clés API pour les sources de leads de l'espace"
-      >
-        {#snippet actions()}
-          {#if canManage}
-            <Button icon={icons.check} onclick={handleUpdateApiKeys} disabled={saving || !hasApiKeysChanges}>
-              {saving ? 'Enregistrement...' : 'Enregistrer'}
-            </Button>
-          {/if}
-        {/snippet}
-
-        {#each providers as provider (provider.key)}
-          <SettingsRow stacked>
-            <div class="flex flex-col gap-1.5">
-              <div class="flex items-center gap-2">
-                <label for={provider.key} class="text-fc-sm text-fc-fg">{provider.label}</label>
-                {#if apiKeysForm[provider.key]}
-                  <Badge tone="success">
-                    <Icon icon={icons.check} size={12} />
-                    Configuré
-                  </Badge>
-                {/if}
-              </div>
-              <div class="relative">
-                <Input
-                  id={provider.key}
-                  type={showApiKeys[provider.key] ? 'text' : 'password'}
-                  bind:value={apiKeysForm[provider.key]}
-                  disabled={!canManage}
-                  placeholder={`Entrez votre clé API ${provider.label}`}
-                  class="pr-12 font-fc-mono"
-                />
-                {#if apiKeysForm[provider.key]}
-                  <button
-                    type="button"
-                    aria-label="Afficher ou masquer la clé API {provider.label}"
-                    aria-pressed={showApiKeys[provider.key]}
-                    onclick={() => (showApiKeys[provider.key] = !showApiKeys[provider.key])}
-                    class={revealButtonClass}
-                  >
-                    <Icon icon={showApiKeys[provider.key] ? icons.eye : icons.eyeClosed} size={16} />
-                  </button>
-                {/if}
-              </div>
-              <p class="text-fc-xs text-fc-fg-muted">
-                Obtenez votre clé sur <a
-                  href={provider.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="underline hover:text-fc-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fc-ring"
-                  >{provider.url}</a
-                >
-              </p>
-            </div>
-          </SettingsRow>
-        {/each}
-      </SettingsSection>
     {:else if activeTab === 'smtp'}
       <MailTransportSettings {teamId} canEdit={Boolean(canManage)} />
 

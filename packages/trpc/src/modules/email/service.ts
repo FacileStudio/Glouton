@@ -2,6 +2,7 @@ import type { Prisma, PrismaClient } from '@prisma/client';
 import { renderTemplate } from '@repo/smtp';
 import { sendOutreach } from './transport';
 import { buildEmailFilter, buildLeadFilter, type Scope } from '../../utils/scope';
+import { readStringRecord } from '../../utils/json';
 import { logger } from '@repo/logger';
 import type { AuthManager } from '@repo/auth';
 import { verifyEmail } from '@repo/jobs';
@@ -175,7 +176,7 @@ export class EmailService {
       },
     });
     logger.info({ action: 'get-lead-outreach-success', leadId, count: result.length });
-    return result;
+    return result.map((outreach) => ({ ...outreach, variables: readStringRecord(outreach.variables) }));
   }
 
   async getOutreachStats(scope: Scope, prisma: PrismaClient) {

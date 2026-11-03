@@ -1,20 +1,26 @@
-<script lang="ts">
-  import { Button, Card, Input, Select } from '@facile/muse';
+<script lang="ts" module>
+  import type { trpc } from '$lib/trpc';
 
-  interface Filters {
+  type LeadListInput = Exclude<Parameters<typeof trpc.lead.query.list.query>[0], void | undefined>;
+
+  export interface Filters {
     search: string;
-    status: string;
+    status: '' | NonNullable<LeadListInput['status']>;
     contacted: string;
     country: string;
     city: string;
     businessType: 'all' | 'domain' | 'local';
-    category: string;
+    category: '' | NonNullable<LeadListInput['category']>;
     hasWebsite: '' | 'true' | 'false';
     hasSocial: '' | 'true' | 'false';
     hasPhone: '' | 'true' | 'false';
     hasGps: '' | 'true' | 'false';
     hasEmail: '' | 'true' | 'false';
   }
+</script>
+
+<script lang="ts">
+  import { Button, Card, Input, Select } from '@facile/muse';
 
   interface Lead {
     status: 'HOT' | 'WARM' | 'COLD';
@@ -59,7 +65,7 @@
     },
   });
 
-  const statusOptions = [
+  const statusOptions: { value: Filters['status']; label: string; icon: string }[] = [
     { value: '', label: 'Tous', icon: 'solar:users-group-rounded-linear' },
     { value: 'HOT', label: 'Chaud', icon: 'solar:fire-linear' },
     { value: 'WARM', label: 'Tiède', icon: 'solar:sun-2-linear' },

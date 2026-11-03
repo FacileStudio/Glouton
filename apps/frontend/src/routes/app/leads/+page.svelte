@@ -4,7 +4,7 @@
   import { trpc } from '$lib/trpc';
   import { Button, Card, EmptyState, PageHeader, Spinner, toast } from '@facile/muse';
   import StatsCards from '$lib/components/leads/StatsCards.svelte';
-  import FilterPanel from '$lib/components/leads/FilterPanel.svelte';
+  import FilterPanel, { type Filters } from '$lib/components/leads/FilterPanel.svelte';
   import AuditBanner from '$lib/components/leads/AuditBanner.svelte';
   import LeadsTable from '$lib/components/leads/LeadsTable.svelte';
   import LeadsMap from '$lib/components/leads/LeadsMap.svelte';
@@ -23,7 +23,7 @@
   let loadingData = $state(false);
 
   
-  let filters = $state({
+  let filters = $state<Filters>({
     search: '',
     status: '',
     contacted: '',
@@ -124,12 +124,12 @@
     const params = new URLSearchParams(location.search);
     filters = {
       search: params.get('search') || '',
-      status: params.get('status') || '',
+      status: (params.get('status') || '') as Filters['status'],
       contacted: params.get('contacted') || '',
       country: params.get('country') || '',
       city: params.get('city') || '',
       businessType: (params.get('businessType') as 'all' | 'domain' | 'local') || 'all',
-      category: params.get('category') || '',
+      category: (params.get('category') || '') as Filters['category'],
       hasWebsite: (params.get('hasWebsite') as '' | 'true' | 'false') || '',
       hasSocial: (params.get('hasSocial') as '' | 'true' | 'false') || '',
       hasPhone: (params.get('hasPhone') as '' | 'true' | 'false') || '',

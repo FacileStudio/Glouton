@@ -102,7 +102,7 @@
           alt="{lead.domain} favicon"
           class="h-5 w-5"
           loading="lazy"
-          onerror={(e) => handleFaviconError(e.currentTarget as HTMLImageElement)}
+          onerror={(e) => handleFaviconError(e.currentTarget)}
         />
       </div>
       <div class="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -155,7 +155,7 @@
                 alt="{lead.domain} favicon"
                 class="h-5 w-5"
                 loading="lazy"
-                onerror={(e) => handleFaviconError(e.currentTarget as HTMLImageElement)}
+                onerror={(e) => handleFaviconError(e.currentTarget)}
               />
             </div>
             <a

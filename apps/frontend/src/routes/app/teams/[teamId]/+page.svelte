@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { page } from '$app/state';
+  import type { PageProps } from './$types';
   import { goto } from '$app/navigation';
   import { trpc } from '$lib/trpc';
   import {
@@ -17,7 +17,8 @@
     toast,
   } from '@facile/muse';
 
-  let teamId = $derived(page.params.teamId);
+  let { params }: PageProps = $props();
+  let teamId = $derived(params.teamId);
   let team = $state<any>(null);
   let stats = $state<any>(null);
   let loading = $state(true);
