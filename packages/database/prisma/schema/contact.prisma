@@ -163,4 +163,5 @@ model Suggestion {
   @@index([teamId, status])
   @@index([companyId])
   @@index([personId])
+  @@index([kind, status])
 }
