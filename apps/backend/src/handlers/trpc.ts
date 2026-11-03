@@ -10,6 +10,7 @@ export const trpcHandler =
     prisma,
     events,
     verifyDelegated,
+    courrier,
   }: Omit<CreateContextOptions, 'req' | 'resHeaders' | 'info' | 'logger' | 'db'>) =>
   (c: Context, next: Next) =>
     trpcServer({
@@ -27,6 +28,7 @@ export const trpcHandler =
           logger,
           events,
           verifyDelegated,
+          courrier,
         });
       },
     })(c, next);

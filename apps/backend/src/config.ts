@@ -2,6 +2,7 @@ import { AuthManager } from '@repo/auth';
 import { prisma } from '@repo/database';
 import { QueueManager, createJobConfig } from '@repo/jobs';
 import env from './env';
+import { courrierFromEnv } from './services/courrier';
 
 const authManager = new AuthManager({
   encryptionSecret: env.ENCRYPTION_SECRET,
@@ -16,8 +17,11 @@ const jobs = new QueueManager(
   })
 );
 
+const courrier = courrierFromEnv(env, prisma, authManager);
+
 export default {
   authManager,
+  courrier,
   env,
   jobs,
   prisma,

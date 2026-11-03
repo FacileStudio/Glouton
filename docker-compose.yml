@@ -62,6 +62,8 @@ services:
       OIDC_REDIRECT_URL: ${OIDC_REDIRECT_URL:-}
       OIDC_SUCCESS_URL: ${OIDC_SUCCESS_URL:-}
       SSO_ONLY: ${SSO_ONLY:-}
+      COURRIER_URL: ${COURRIER_URL:-}
+      COURRIER_AUDIENCE: ${COURRIER_AUDIENCE:-}
     depends_on:
       glouton-postgres:
         condition: service_healthy

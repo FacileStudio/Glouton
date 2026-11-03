@@ -80,7 +80,7 @@ export async function buildAuthorizationUrl(state: string): Promise<string> {
     response_type: 'code',
     client_id: env.OIDC_CLIENT_ID!,
     redirect_uri: redirectUrl,
-    scope: 'openid email profile',
+    scope: 'openid email profile offline_access',
     state,
   });
   return `${doc.authorization_endpoint}?${params.toString()}`;

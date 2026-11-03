@@ -37,6 +37,9 @@ export const serverEnvSchema = baseSchema
     OIDC_REDIRECT_URL: optionalUrl,
     OIDC_SUCCESS_URL: optionalUrl,
     SSO_ONLY: booleanFlag,
+
+    COURRIER_URL: optionalUrl,
+    COURRIER_AUDIENCE: optionalString,
   })
   .superRefine((env, ctx) => {
     if (env.OIDC_ISSUER && (!env.OIDC_CLIENT_ID || !env.OIDC_CLIENT_SECRET)) {

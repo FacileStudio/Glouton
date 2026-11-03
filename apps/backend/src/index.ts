@@ -27,7 +27,7 @@ import config from './config';
 
 const { jobs } = config;
 
-registerWorkers(jobs, prisma);
+registerWorkers(jobs, prisma, config.courrier);
 
 events.init({ broadcastToUser, broadcastToAll }, prisma);
 
@@ -87,6 +87,30 @@ async function startup() {
     logger.info('[COMPANIES] Creation scraper scheduled every 4h');
   } catch (err) {
     logger.error({ error: err }, '[COMPANIES] Failed to schedule creation scraper');
+  }
+
+  if (config.courrier) {
+    try {
+      await jobs.upsertScheduler(
+        'courrier-reply-sync',
+        'courrier-reply-sync-every-15m',
+        15 * 60 * 1000,
+        'courrier-reply-sync',
+        {},
+        { removeOnComplete: 5, removeOnFail: 3 }
+      );
+      await jobs.upsertScheduler(
+        'courrier-contacts-import',
+        'courrier-contacts-import-daily',
+        24 * 60 * 60 * 1000,
+        'courrier-contacts-import',
+        {},
+        { removeOnComplete: 5, removeOnFail: 3 }
+      );
+      logger.info('[COURRIER] Reply sync scheduled every 15 min, contact import daily');
+    } catch (err) {
+      logger.error({ error: err }, '[COURRIER] Failed to schedule Courrier jobs');
+    }
   }
 
   setInterval(async () => {
@@ -216,6 +240,7 @@ app.all('/trpc/*', trpcHandler({
   prisma: config.prisma,
   events,
   verifyDelegated,
+  courrier: config.courrier,
 }));
 
 app.get('/', (c) => c.json({ message: "Welcome to the Glouton's API !" }));
