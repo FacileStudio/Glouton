@@ -1,5 +1,6 @@
 <script lang="ts">
   import authStore from '$lib/auth-store';
+  import MailTransportSettings from '$lib/components/MailTransportSettings.svelte';
   import { trpc } from '$lib/trpc';
   import {
     Alert,
@@ -384,6 +385,8 @@
         </div>
       </SettingsRow>
     </SettingsSection>
+
+    <MailTransportSettings />
 
     <SettingsSection
       title="Serveur mail"

@@ -3,6 +3,7 @@
   import { page } from '$app/state';
   import { goto } from '$app/navigation';
   import { trpc } from '$lib/trpc';
+  import MailTransportSettings from '$lib/components/MailTransportSettings.svelte';
   import {
     Alert,
     Badge,
@@ -398,6 +399,8 @@
         {/each}
       </SettingsSection>
     {:else if activeTab === 'smtp'}
+      <MailTransportSettings {teamId} canEdit={Boolean(canManage)} />
+
       <SettingsSection
         title="Configuration SMTP"
         description="Configurez le serveur SMTP pour l'envoi d'emails de l'espace"
