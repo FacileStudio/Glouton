@@ -14,7 +14,7 @@
     "lint": "eslint src --max-warnings 0"
   },
   "dependencies": {
-    "@facile/muse": "github:FacileStudio/muse#v0.7.2",
+    "@facile/muse": "github:FacileStudio/muse#v0.7.3",
     "@repo/logger": "workspace:*",
     "@repo/trpc-client": "workspace:*",
     "@repo/types": "workspace:*",

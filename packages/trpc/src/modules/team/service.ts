@@ -163,6 +163,7 @@ export const teamService = {
             email: true,
             firstName: true,
             lastName: true,
+            avatarUrl: true,
           },
         },
       },
@@ -175,6 +176,7 @@ export const teamService = {
       email: member.user.email,
       firstName: member.user.firstName,
       lastName: member.user.lastName,
+      avatarUrl: member.user.avatarUrl,
       role: member.role,
       joinedAt: member.joinedAt,
     }));

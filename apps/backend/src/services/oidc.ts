@@ -130,6 +130,11 @@ export async function exchangeCode(code: string): Promise<OidcClaims> {
   };
 }
 
+/** Keeps the picture claim only when it is an https URL, so a browser can load it as is. */
+function httpsPicture(picture: string | undefined): string | null {
+  return picture?.startsWith('https://') ? picture : null;
+}
+
 function splitName(claims: OidcClaims): { firstName: string; lastName: string } {
   if (claims.givenName || claims.familyName) {
     return { firstName: claims.givenName ?? '', lastName: claims.familyName ?? '' };
@@ -157,7 +162,7 @@ export async function loginWithOidc(
       data: {
         firstName: firstName || undefined,
         lastName: lastName || undefined,
-        avatarUrl: claims.picture ?? undefined,
+        avatarUrl: httpsPicture(claims.picture),
         emailVerified: true,
         lastLoginAt: new Date(),
       },
@@ -182,7 +187,7 @@ export async function loginWithOidc(
         firstName,
         lastName,
         password: await auth.hashPassword(randomPassword),
-        avatarUrl: claims.picture ?? null,
+        avatarUrl: httpsPicture(claims.picture),
         emailVerified: true,
         role: UserRole.USER,
         lastLoginAt: new Date(),

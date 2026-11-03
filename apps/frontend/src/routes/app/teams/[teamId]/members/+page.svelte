@@ -4,6 +4,7 @@
   import { goto } from '$app/navigation';
   import { trpc } from '$lib/trpc';
   import {
+    Avatar,
     Badge,
     Button,
     Card,
@@ -90,16 +91,6 @@
       default:
         return 'Membre';
     }
-  }
-
-  function getInitials(firstName: string | null, lastName: string | null, email: string) {
-    if (firstName && lastName) {
-      return `${firstName[0]}${lastName[0]}`.toUpperCase();
-    }
-    if (firstName) {
-      return firstName.substring(0, 2).toUpperCase();
-    }
-    return email.substring(0, 2).toUpperCase();
   }
 
   async function handleAddMember() {
@@ -242,11 +233,11 @@
         {#each members as member (member.id)}
           <li class="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
             <div class="flex min-w-0 flex-1 items-center gap-3">
-              <span
-                class="flex size-9 shrink-0 items-center justify-center rounded-fc-md bg-fc-surface text-fc-sm font-medium text-fc-fg"
-              >
-                {getInitials(member.firstName, member.lastName, member.email)}
-              </span>
+              <Avatar
+                src={member.avatarUrl ?? undefined}
+                name={[member.firstName, member.lastName].filter(Boolean).join(' ') || member.email}
+                size="sm"
+              />
 
               <div class="flex min-w-0 flex-1 flex-col gap-0.5">
                 <div class="flex items-center gap-2">
