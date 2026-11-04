@@ -9,6 +9,7 @@ import {
   contactService,
   draftCreateSchema,
   draftUpdateSchema,
+  forfait,
   hasScope,
   inboxService,
   requiredScope,
@@ -34,16 +35,19 @@ interface Caller {
 
 type AgentEnv = { Variables: { caller: Caller } };
 
-const STATUS: Record<string, 400 | 401 | 403 | 404 | 409 | 500> = {
+type Status = 400 | 401 | 402 | 403 | 404 | 409 | 500;
+
+const STATUS: Record<string, Status> = {
   BAD_REQUEST: 400,
   UNAUTHORIZED: 401,
+  PAYMENT_REQUIRED: 402,
   FORBIDDEN: 403,
   NOT_FOUND: 404,
   CONFLICT: 409,
 };
 
-function fail(c: Context, status: 400 | 401 | 403 | 404 | 409 | 500, code: string, message: string) {
-  return c.json({ error: { code, message } }, status);
+function fail(c: Context, status: Status, code: string, message: string, extra: Record<string, string> = {}) {
+  return c.json({ error: { code, message, ...extra } }, status);
 }
 
 const listQuerySchema = z.object({
@@ -105,6 +109,12 @@ export function createAgentRoutes(deps: AgentDeps) {
     if (!hasScope(caller.scopes, requiredScope(c.req.method))) {
       return fail(c, 403, 'FORBIDDEN', `This token lacks the ${requiredScope(c.req.method)} scope`);
     }
+    const reader = forfait.dbForfait(deps.prisma);
+    const scopes = await reader.entitledScopes(user.id);
+    if (!scopes.personal && scopes.teamIds.length === 0) {
+      const { upgradeUrl } = await reader.personal(user.id);
+      return fail(c, 402, 'PAYMENT_REQUIRED', forfait.PAYWALL_MESSAGE, { upgrade_url: upgradeUrl });
+    }
     c.set('caller', caller);
     await next();
   });
@@ -115,7 +125,8 @@ export function createAgentRoutes(deps: AgentDeps) {
     }
     if (error instanceof SyntaxError) return fail(c, 400, 'BAD_REQUEST', 'Body is not valid JSON');
     if (error instanceof TRPCError) {
-      return fail(c, STATUS[error.code] ?? 500, error.code, error.message);
+      const upgradeUrl = forfait.upgradeUrlOf(error);
+      return fail(c, STATUS[error.code] ?? 500, error.code, error.message, upgradeUrl ? { upgrade_url: upgradeUrl } : {});
     }
     return fail(c, 500, 'INTERNAL', 'Something went wrong');
   });

@@ -1,0 +1,21 @@
+// Last known plan entitlements of each person, keyed by Registre subject, as
+// pushed in the directory snapshot `people[]`. Kept by sub, not by user, so a
+// person who has never signed in to Glouton is entitled at their first login.
+model PersonEntitlement {
+  sub          String   @id @db.Text
+  entitlements Json     @default("{}")
+  updatedAt    DateTime @default(now()) @updatedAt @db.Timestamptz(3)
+}
+
+// Singleton row written the first time a snapshot with a non-zero
+// entitlements_revision is applied. Its presence ends fail-open for good,
+// across restarts; `revision` and `version` are the highest applied, so an
+// older snapshot never overwrites newer values.
+model ForfaitState {
+  id             Int      @id @default(1)
+  issuer         String   @db.Text
+  version        BigInt
+  revision       BigInt
+  firstAppliedAt DateTime @default(now()) @db.Timestamptz(3)
+  lastAppliedAt  DateTime @default(now()) @db.Timestamptz(3)
+}

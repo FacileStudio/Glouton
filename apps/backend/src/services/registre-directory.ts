@@ -30,18 +30,38 @@ export interface DirectoryMember {
   role: string;
 }
 
+/**
+ * A scope's plan entitlements as Registre pushes them: each value is a JSON
+ * bool or an integer limit where -1 means unlimited. Absent or `{}` means no
+ * value was pushed for that scope yet.
+ */
+export type DirectoryEntitlements = Record<string, unknown>;
+
 /** One shared space; `id` is Registre's and survives renames. */
 export interface DirectorySpace {
   id: string;
   name: string;
   members: DirectoryMember[];
+  entitlements?: DirectoryEntitlements;
+}
+
+/** One person's own entitlements, used for their personal scope, keyed by Registre `sub`. */
+export interface DirectoryPerson {
+  sub: string;
+  entitlements?: DirectoryEntitlements;
 }
 
 /** Every shared space as Registre holds it now; `version` rises on every change. */
 export interface Snapshot {
   version: number;
   spaces: DirectorySpace[];
+  people?: DirectoryPerson[];
+  /** The revision of the last entitlements push Registre applied; absent or 0 until the first one. */
+  entitlements_revision?: number;
 }
+
+/** The largest snapshot body Glouton reads. */
+export const MAX_SNAPSHOT_BYTES = 16 * 1024 * 1024;
 
 /** One person an app already had in a space before Registre owned spaces. */
 export interface ImportMember {
@@ -78,7 +98,7 @@ export class DirectoryClient implements SnapshotSource {
     private readonly issuer: string,
     private readonly clientId: string,
     private readonly clientSecret: string,
-    private readonly timeoutMs = 15_000
+    private readonly timeoutMs = 10_000
   ) {}
 
   /** Fetches every shared space as Registre holds it now. */
@@ -113,13 +133,57 @@ export class DirectoryClient implements SnapshotSource {
       await response.body?.cancel().catch(() => {});
       throw new DirectoryUnavailableError(`${path} answered ${response.status}`);
     }
+    const declared = Number(response.headers.get('content-length') ?? 0);
+    if (declared > MAX_SNAPSHOT_BYTES) {
+      await response.body?.cancel().catch(() => {});
+      throw new DirectoryUnavailableError(`${path} answered more than ${MAX_SNAPSHOT_BYTES} bytes`);
+    }
     try {
-      const snapshot = (await response.json()) as Partial<Snapshot>;
-      return { version: Number(snapshot.version ?? 0), spaces: snapshot.spaces ?? [] };
+      const body = await response.arrayBuffer();
+      if (body.byteLength > MAX_SNAPSHOT_BYTES) throw new Error(`more than ${MAX_SNAPSHOT_BYTES} bytes`);
+      return decodeSnapshot(JSON.parse(new TextDecoder().decode(body)));
     } catch (error) {
       throw new DirectoryUnavailableError(`decode the snapshot: ${String(error)}`);
     }
   }
+}
+
+/** True for a plain JSON object. */
+function isObject(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+/**
+ * Turns a decoded body into a snapshot, dropping malformed entries: spaces
+ * without a string id and people without a string `sub`. Entitlement maps
+ * that are not objects are dropped too; their values are validated on read.
+ */
+export function decodeSnapshot(raw: unknown): Snapshot {
+  const body = isObject(raw) ? raw : {};
+  const spaces = (Array.isArray(body.spaces) ? body.spaces : []).filter(
+    (space): space is DirectorySpace => isObject(space) && typeof space.id === 'string'
+  );
+  const snapshot: Snapshot = {
+    version: Number(body.version ?? 0),
+    spaces: spaces.map((space) => ({
+      ...space,
+      members: Array.isArray(space.members) ? space.members : [],
+      entitlements: isObject(space.entitlements) ? space.entitlements : undefined,
+    })),
+  };
+  const revision = body.entitlements_revision;
+  if (typeof revision === 'number' && Number.isSafeInteger(revision) && revision > 0) {
+    snapshot.entitlements_revision = revision;
+  }
+  if (Array.isArray(body.people)) {
+    snapshot.people = body.people
+      .filter((person): person is DirectoryPerson => isObject(person) && typeof person.sub === 'string' && person.sub !== '')
+      .map((person) => ({
+        sub: person.sub,
+        entitlements: isObject(person.entitlements) ? person.entitlements : undefined,
+      }));
+  }
+  return snapshot;
 }
 
 /** Minimal logger shape, satisfied by the app's pino logger. */

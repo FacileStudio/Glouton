@@ -1,6 +1,7 @@
 import type { Prisma, PrismaClient } from '@prisma/client';
 import { CourrierReconnectError, type CourrierClient, type CourrierContact } from '@repo/courrier';
 import { logger } from '@repo/logger';
+import { allowEveryScope, type ScopeGate } from '../../types';
 
 export type ContactSource = Pick<CourrierClient, 'listContacts'>;
 
@@ -9,6 +10,7 @@ const CREATED_BY = 'courrier-import';
 
 export interface ContactsImportResult {
   users: number;
+  skipped: number;
   suggested: number;
   failedUsers: number;
   suggestedByUser: Map<string, number>;
@@ -102,9 +104,14 @@ export async function suggestImports(
 /**
  * For every user holding a Registre grant, lists their Courrier contacts and
  * proposes the unknown ones as IMPORT suggestions. One user's failure is
- * logged and never stops the others.
+ * logged and never stops the others. Suggestions land in the personal scope,
+ * so a user whose personal plan lacks Glouton is skipped and counted.
  */
-export async function importContacts(prisma: PrismaClient, courrier: ContactSource): Promise<ContactsImportResult> {
+export async function importContacts(
+  prisma: PrismaClient,
+  courrier: ContactSource,
+  allowed: ScopeGate = allowEveryScope
+): Promise<ContactsImportResult> {
   const accounts = await prisma.account.findMany({
     where: { refreshToken: { not: null } },
     distinct: ['userId'],
@@ -112,11 +119,16 @@ export async function importContacts(prisma: PrismaClient, courrier: ContactSour
   });
   const result: ContactsImportResult = {
     users: accounts.length,
+    skipped: 0,
     suggested: 0,
     failedUsers: 0,
     suggestedByUser: new Map(),
   };
   for (const { userId } of accounts) {
+    if (!(await allowed({ userId, teamId: null }))) {
+      result.skipped++;
+      continue;
+    }
     try {
       const count = await suggestImports(prisma, userId, await courrier.listContacts(userId));
       result.suggested += count;

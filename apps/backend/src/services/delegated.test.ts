@@ -107,6 +107,7 @@ const silentLogger = {
 
 const fakePrisma = {
   lead: { findUnique: async () => null },
+  forfaitState: { findUnique: async () => null },
 };
 
 async function callerFor(token: string) {

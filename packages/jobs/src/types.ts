@@ -18,6 +18,15 @@ export interface JobConfig {
   };
 }
 
+/**
+ * Says whether a scope may run Glouton work now (its plan has
+ * `glouton.access`). Jobs of a scope without it are skipped and logged.
+ */
+export type ScopeGate = (scope: { userId: string; teamId: string | null }) => Promise<boolean>;
+
+/** The gate used when none is given: every scope runs. */
+export const allowEveryScope: ScopeGate = async () => true;
+
 export interface JobProcessor<T = any, R = any> {
   (job: BullJob<T>): Promise<R>;
 }

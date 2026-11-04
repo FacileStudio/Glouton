@@ -1,0 +1,175 @@
+import type { Prisma, PrismaClient } from '@prisma/client';
+import { logger } from '@repo/logger';
+import { GLOUTON_ACCESS, enabled, sanitize, upgradeUrl } from './features';
+
+/**
+ * Glouton keeps the entitlements of every scope in its own database: on the
+ * `Team` row for a shared space, in `PersonEntitlement` (by Registre `sub`)
+ * for personal work, and a singleton `ForfaitState` row recording that a
+ * snapshot with a non-zero `entitlements_revision` was applied, with the
+ * highest revision and version seen. Reading the database on
+ * every check, instead of an in-memory store, means a restart while Registre
+ * is down keeps the last known values and never reopens fail-open.
+ */
+
+/** The verdict for one scope. `enforced` is false while Glouton fails open. */
+export interface ScopeVerdict {
+  allowed: boolean;
+  enforced: boolean;
+  upgradeUrl: string;
+}
+
+/** The scopes a person may use now, for cross-scope reads. */
+export interface EntitledScopes {
+  personal: boolean;
+  teamIds: string[];
+}
+
+/** Every entitlement read Glouton makes, so tests can swap the database out. */
+export interface ForfaitReader {
+  /** The verdict for a team scope, or null when the user is not a member of that team. */
+  team(userId: string, teamId: string): Promise<ScopeVerdict | null>;
+  /** The verdict for the user's personal scope. */
+  personal(userId: string): Promise<ScopeVerdict>;
+  /** The personal flag and team ids this user may work in. */
+  entitledScopes(userId: string): Promise<EntitledScopes>;
+}
+
+/** The snapshot fields Glouton reads entitlements from. */
+export interface EntitlementSnapshot {
+  version: number;
+  entitlements_revision?: number;
+  spaces: Array<{ id: string; entitlements?: Record<string, unknown> }>;
+  people?: Array<{ sub: string; entitlements?: Record<string, unknown> }>;
+}
+
+/** What `applyEntitlements` did with a snapshot. */
+export type ApplyOutcome = 'applied' | 'not-pushed' | 'stale';
+
+let warnedOpen = false;
+
+/** Logs the fail-open warning once per process instead of once per call. */
+function warnOpen(): void {
+  if (warnedOpen) return;
+  warnedOpen = true;
+  logger.warn('[FORFAIT] No entitlements snapshot applied yet: Glouton allows every scope until Registre sends one');
+}
+
+/** The snapshot's entitlements revision, or 0 when Registre has applied no push yet or sent garbage. */
+export function revisionOf(snapshot: EntitlementSnapshot): number {
+  const revision = snapshot.entitlements_revision;
+  return typeof revision === 'number' && Number.isSafeInteger(revision) && revision > 0 ? revision : 0;
+}
+
+/**
+ * Stores the snapshot's entitlements inside the Apply transaction.
+ * `entitlements_revision` is the only signal: while it is 0 or absent nothing
+ * changes (fail-open before the first push, last known values after it). A
+ * snapshot whose version or revision is lower than the last applied one is
+ * stale and ignored. Otherwise the snapshot is the whole truth: every linked
+ * team gets its space's values (none means the feature defaults, so no
+ * access) and people missing from it lose theirs.
+ */
+export async function applyEntitlements(
+  tx: Prisma.TransactionClient,
+  snapshot: EntitlementSnapshot,
+  issuer: string
+): Promise<ApplyOutcome> {
+  const revision = revisionOf(snapshot);
+  if (revision === 0) return 'not-pushed';
+  const last = await tx.forfaitState.findUnique({ where: { id: 1 }, select: { version: true, revision: true } });
+  if (last && (BigInt(revision) < last.revision || BigInt(snapshot.version) < last.version)) return 'stale';
+  const bySpace = new Map(snapshot.spaces.map((space) => [space.id, sanitize(space.entitlements) ?? {}]));
+  const linked = await tx.team.findMany({ where: { registreSpaceId: { not: null } }, select: { id: true, registreSpaceId: true } });
+  for (const team of linked) {
+    const values = bySpace.get(team.registreSpaceId!) ?? {};
+    await tx.team.update({ where: { id: team.id }, data: { entitlements: values as Prisma.InputJsonObject } });
+  }
+  const people = new Map<string, Record<string, unknown>>();
+  for (const person of snapshot.people ?? []) {
+    if (typeof person.sub === 'string' && person.sub) people.set(person.sub, sanitize(person.entitlements) ?? {});
+  }
+  await tx.personEntitlement.deleteMany({ where: { sub: { notIn: Array.from(people.keys()) } } });
+  for (const [sub, values] of Array.from(people.entries())) {
+    const entitlements = values as Prisma.InputJsonObject;
+    await tx.personEntitlement.upsert({ where: { sub }, create: { sub, entitlements }, update: { entitlements } });
+  }
+  const now = new Date();
+  const marks = { issuer, version: BigInt(snapshot.version), revision: BigInt(revision), lastAppliedAt: now };
+  await tx.forfaitState.upsert({
+    where: { id: 1 },
+    create: { id: 1, ...marks, firstAppliedAt: now },
+    update: marks,
+  });
+  return 'applied';
+}
+
+/** The database-backed reader every request and job uses. */
+export function dbForfait(prisma: PrismaClient, fallbackIssuer = process.env.OIDC_ISSUER ?? ''): ForfaitReader {
+  const state = () => prisma.forfaitState.findUnique({ where: { id: 1 }, select: { issuer: true } });
+
+  const personalValues = async (issuer: string, userId: string) => {
+    const account = await prisma.account.findFirst({
+      where: { userId, providerId: issuer },
+      select: { accountId: true },
+    });
+    if (!account) return null;
+    const person = await prisma.personEntitlement.findUnique({
+      where: { sub: account.accountId },
+      select: { entitlements: true },
+    });
+    return person?.entitlements ?? null;
+  };
+
+  return {
+    async team(userId, teamId) {
+      const membership = await prisma.teamMember.findFirst({
+        where: { teamId, userId },
+        select: { team: { select: { registreSpaceId: true, entitlements: true } } },
+      });
+      if (!membership) return null;
+      const current = await state();
+      const url = upgradeUrl(current?.issuer ?? fallbackIssuer, membership.team.registreSpaceId);
+      if (!current) {
+        warnOpen();
+        return { allowed: true, enforced: false, upgradeUrl: url };
+      }
+      return { allowed: enabled(membership.team.entitlements, GLOUTON_ACCESS), enforced: true, upgradeUrl: url };
+    },
+
+    async personal(userId) {
+      const current = await state();
+      const url = upgradeUrl(current?.issuer ?? fallbackIssuer, null);
+      if (!current) {
+        warnOpen();
+        return { allowed: true, enforced: false, upgradeUrl: url };
+      }
+      const values = await personalValues(current.issuer, userId);
+      return { allowed: enabled(values, GLOUTON_ACCESS), enforced: true, upgradeUrl: url };
+    },
+
+    async entitledScopes(userId) {
+      const memberships = await prisma.teamMember.findMany({
+        where: { userId },
+        select: { teamId: true, team: { select: { entitlements: true } } },
+      });
+      const current = await state();
+      if (!current) {
+        warnOpen();
+        return { personal: true, teamIds: memberships.map((m) => m.teamId) };
+      }
+      return {
+        personal: enabled(await personalValues(current.issuer, userId), GLOUTON_ACCESS),
+        teamIds: memberships.filter((m) => enabled(m.team.entitlements, GLOUTON_ACCESS)).map((m) => m.teamId),
+      };
+    },
+  };
+}
+
+/** The scope check background jobs run before doing any work: false for a non-member or a scope without access. */
+export function jobGate(reader: ForfaitReader) {
+  return async (scope: { userId: string; teamId: string | null }): Promise<boolean> => {
+    if (scope.teamId) return (await reader.team(scope.userId, scope.teamId))?.allowed ?? false;
+    return (await reader.personal(scope.userId)).allowed;
+  };
+}

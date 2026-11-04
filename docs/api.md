@@ -363,3 +363,39 @@ personal scope plus every team the user belongs to; creates may carry `teamId`.
 | `GET` | `/api/agent/suggestions` | `?status=OPEN` | suggestions with company and person names |
 
 The API stores domains normalised (`https://www.Acme.io/x` becomes `acme.io`) and emails lowercased.
+
+## Subscription gate
+
+`packages/trpc/src/modules/forfait` mirrors porte/forfait: values are a JSON bool or an integer
+limit (`-1` unlimited); a missing or malformed value reads as the feature default. Glouton reads
+one feature, `glouton.access` (default `false`).
+
+Storage, written inside `applySnapshot`'s transaction:
+
+| Where | What |
+|---|---|
+| `Team.entitlements` | The values of the Registre space the team mirrors; `{}` when the space has none |
+| `PersonEntitlement` | The values of `people[]`, keyed by Registre `sub`, so a person entitled before their first sign-in is covered |
+| `ForfaitState` | One row, written by the first snapshot with `entitlements_revision > 0`; holds the highest version and revision applied |
+
+Rules:
+
+- No `ForfaitState` row: every scope is allowed, with one warning per process.
+- A snapshot without `entitlements_revision` changes nothing. A snapshot whose version or revision is lower than the stored one is ignored.
+- Otherwise the snapshot is the whole truth: linked teams take their space's values, people absent from it lose theirs. Teams not linked to a Registre space have no values and so no access.
+
+Enforcement points:
+
+| Where | Check |
+|---|---|
+| tRPC middleware on `publicProcedure` and `protectedProcedure` | `teamId` in the input: member of that team (else `FORBIDDEN`) and team access. No `teamId`: personal access, except `inbox.*`, `contact.*`, `ardoise.*`, `opportunity.*`, `companyCreation.*` and `email.sendDraft`, which need one scope with access |
+| `resolveScope` | The same team or personal check, for every scoped router |
+| `accessForUser` | Drops the personal scope and teams without access from cross-scope reads |
+| `/api/agent/*` | `402` when no scope has access |
+| Workers | `local-business-hunt`, `lead-audit`, `csv-import` skip jobs of scopes without access; Courrier reply sync and contact import skip those scopes |
+
+The opportunity and company-creation scrapers fill shared catalogs owned by no scope and keep running.
+
+A refusal is `TRPCError` code `PAYMENT_REQUIRED` (HTTP 402) with message
+`Glouton is part of the Pro and Studio plans.` and `data.upgrade_url`. The web client sends any
+402 to `/app/paywall`, which reads `forfait.status` for the current scope.

@@ -17,6 +17,18 @@ a WebSocket. Leads, hunts and missions belong either to a user or to a team.
 - Freelance mission scraping from 21 public sources, re-run every three hours
 - Teams with `OWNER` / `ADMIN` / `MEMBER` roles, mirrored from Registre's shared spaces, with shared leads and outgoing webhooks
 - Email/password auth plus optional OIDC SSO against Authentik, with an `SSO_ONLY` mode
+- A subscription gate: each space, and each person's personal scope, needs `glouton.access` from its Registre plan (Pro or Studio)
+
+## Subscription gate
+
+Registre pushes plan entitlements in its directory snapshot. Glouton stores the last known values
+in its database and checks `glouton.access` on every tRPC call, in the scope of the call (the
+team named by `teamId`, after a server-side membership check, or the personal scope). New
+procedures are gated unless added to `EXEMPT` in `packages/trpc/src/modules/forfait/gate.ts`.
+
+Until a snapshot with `entitlements_revision > 0` has been applied once, Glouton allows every scope
+and logs a warning, so deploying it before Registre and Ardoise locks nobody out. After that it
+never fails open again, even across restarts. Details: [docs/api.md](docs/api.md#subscription-gate).
 
 ## Stack
 
@@ -75,7 +87,7 @@ apps/
   backend/   Hono server — handlers/ (trpc, auth, websocket, health), services/ (events, workers)
   frontend/  SvelteKit app plus server.js, a thin reverse proxy in front of the built handler
 packages/
-  trpc/      tRPC router; modules/ for auth, user, lead, email, team, opportunity
+  trpc/      tRPC router; modules/ for auth, user, lead, email, team, opportunity, forfait
   jobs/      BullMQ queue manager and the four workers
   database/  Prisma schema in prisma/schema/, raw SQL migrations in migrations/
   maps/      OpenStreetMap providers, Overpass queries, Nominatim geocoding
