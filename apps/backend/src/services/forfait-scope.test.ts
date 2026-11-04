@@ -79,6 +79,33 @@ describe('every by-id procedure declares its scope', () => {
     expect(undeclared).toEqual([]);
   });
 
+  test('every non-cross-scope procedure has an input schema the gate can read', () => {
+    const unreadable = forfait
+      .registeredProcedures()
+      .filter(({ path, readable }) => !readable && !forfait.isCrossScope(path))
+      .map(({ path }) => path);
+    expect(unreadable).toEqual([]);
+  });
+
+  test('schemas the gate cannot read are reported as such', async () => {
+    const { z } = await import('zod');
+    const object = z.object({ teamId: z.string() });
+    expect(forfait.shapeKeys(object.optional().default({ teamId: 'x' }))).toEqual(['teamId']);
+    expect(forfait.shapeKeys(object.refine(() => true))).toEqual(['teamId']);
+    expect(forfait.shapeKeys(object.and(z.object({ leadId: z.string() })))).toBeNull();
+    expect(forfait.shapeKeys(z.union([object, z.object({ leadId: z.string() })]))).toBeNull();
+    expect(forfait.shapeKeys(z.array(object))).toBeNull();
+    expect(forfait.shapeKeys(z.string())).toBeNull();
+  });
+
+  test('an unreadable input is refused unless the procedure is cross-scope', async () => {
+    const base = { userId: 'u', input: { leadId: 'x' }, idKeys: [], meta: undefined, loadRow: async () => null, readable: false };
+    await expect(forfait.authorize(reader(true), { ...base, path: 'lead.brandNew' })).rejects.toMatchObject({
+      code: 'INTERNAL_SERVER_ERROR',
+    });
+    await expect(forfait.authorize(reader(true), { ...base, path: 'contact.brandNew' })).resolves.toBeUndefined();
+  });
+
   test('an undeclared by-id procedure is refused at runtime', async () => {
     const call = { path: 'brand.new', userId: 'u', input: { fooId: 'x' }, idKeys: ['fooId'], meta: undefined, loadRow: async () => null };
     await expect(forfait.authorize(reader(true), call)).rejects.toMatchObject({ code: 'INTERNAL_SERVER_ERROR' });

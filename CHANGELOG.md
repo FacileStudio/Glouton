@@ -27,7 +27,8 @@ in the root `package.json`.
 - `email.sendEmail` and the lead, hunt and audit by-id procedures now check that the row belongs to a scope the caller may use; before, a lead id from any scope was accepted
 - A contact write with no team named and no personal access is refused instead of landing in the caller's first team
 - The Registre snapshot fetch times out after 10 s, streams the body with a 16 MiB cap, refuses redirects, and requires an https `OIDC_ISSUER` in production. The sync nudge is rate limited to 30 requests a minute per IP
-- Account takeover: password sign-up and sign-in are off whenever OIDC is configured (not only under `SSO_ONLY`), `auth.register` needs a session, and an SSO sign-in links to an existing local account by email only when Glouton verified that email (earlier SSO sign-in, directory sync, or an admin's "verify email"). An unverified match is refused until an admin verifies it
+- Account takeover: password sign-up and sign-in are off whenever OIDC is configured (not only under `SSO_ONLY`), `auth.register` needs a session, and an SSO sign-in links to an existing local account by email only when Glouton verified that email (earlier SSO sign-in, directory sync, or an admin's "verify email"). An unverified match is refused until an admin verifies it. The Registre directory sync follows the same rule: it skips, and logs, a member whose email matches an unverified local account instead of linking it
+- The plan gate fails closed on a procedure whose input schema it cannot read (union, intersection, array, primitive) unless the procedure is cross-scope; `contact.addNote` now takes a plain object input
 - The paywall only links to https upgrade URLs
 
 ## [0.6.0] - 2026-11-04

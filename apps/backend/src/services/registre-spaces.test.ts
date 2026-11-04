@@ -52,14 +52,15 @@ describe.skipIf(!databaseUrl)('applySnapshot', () => {
   beforeAll(async () => {
     db = (await import('@repo/database')).prisma;
     await db.$executeRawUnsafe('TRUNCATE "User", "Team" CASCADE');
-    const user = async (key: string, sub?: string) => {
+    const user = async (key: string, sub?: string, emailVerified = true) => {
       const row = await db.user.create({
-        data: { email: `${key}@example.com`, firstName: key, lastName: '', password: 'x' },
+        data: { email: `${key}@example.com`, firstName: key, lastName: '', password: 'x', emailVerified },
       });
       if (sub) await db.account.create({ data: { userId: row.id, providerId: issuer, accountId: sub } });
       ids[key] = row.id;
     };
     await user('alice', 'sub-alice');
+    await user('mallory', undefined, false);
     await user('bob');
     await user('carol', 'sub-carol');
     await user('dave');
@@ -144,5 +145,25 @@ describe.skipIf(!databaseUrl)('applySnapshot', () => {
     const before = await state();
     await spaces.applySnapshot(deps, snapshot);
     expect(await state()).toEqual(before);
+  }, 60_000);
+
+  test('never links a Registre member to an unverified local account with the same email', async () => {
+    const deps = { db, issuer, hashPassword: async (p: string) => `hashed:${p}`, logger: silent };
+    await spaces.applySnapshot(deps, {
+      version: 2,
+      spaces: [
+        {
+          id: 'space-1',
+          name: 'Acme',
+          members: [
+            { sub: 'sub-alice', email: 'alice@example.com', name: 'Alice', picture: '', role: 'owner' },
+            { sub: 'sub-mallory', email: 'MALLORY@example.com', name: 'Victim', picture: '', role: 'admin' },
+          ],
+        },
+      ],
+    });
+    expect(await db.account.count({ where: { providerId: issuer, accountId: 'sub-mallory' } })).toBe(0);
+    expect(await db.teamMember.count({ where: { userId: ids.mallory, teamId: ids.acme } })).toBe(0);
+    expect(await db.user.count({ where: { email: { equals: 'mallory@example.com', mode: 'insensitive' } } })).toBe(1);
   }, 60_000);
 });

@@ -16,6 +16,7 @@ interface ProcedureLike {
 interface Entry {
   parsers: SafeParser[];
   idKeys: string[];
+  readable: boolean;
 }
 
 const registry = new Map<string, Entry>();
@@ -25,24 +26,31 @@ function isParser(value: unknown): value is SafeParser {
   return typeof (value as Partial<SafeParser> | null)?.safeParseAsync === 'function';
 }
 
-/** The top-level keys of a zod object schema, looking through optional, nullable, default and refine wrappers. */
-export function shapeKeys(schema: unknown): string[] {
+/**
+ * The top-level keys of a zod object schema, looking through optional,
+ * nullable, default and refine wrappers, or null when the schema is anything
+ * else (union, intersection, array, a primitive) and its keys cannot be read.
+ */
+export function shapeKeys(schema: unknown): string[] | null {
   let current = schema as { shape?: Record<string, unknown>; _def?: Record<string, unknown> } | undefined;
   for (let depth = 0; current && depth < 10; depth++) {
     if (current.shape && typeof current.shape === 'object') return Object.keys(current.shape);
     const def = current._def;
     current = (def?.innerType ?? def?.schema) as typeof current;
   }
-  return [];
+  return null;
 }
 
 /** Registers every procedure of the app router; called once where the router is built. */
 export function bindProcedures(procedures: object, isIdKey: (key: string) => boolean): void {
   registry.clear();
   for (const [path, procedure] of Object.entries(procedures as Record<string, ProcedureLike>)) {
-    const parsers = procedure._def.inputs.filter(isParser);
-    const idKeys = parsers.flatMap((parser) => shapeKeys(parser)).filter(isIdKey);
-    registry.set(path, { parsers, idKeys });
+    const inputs = procedure._def.inputs;
+    const parsers = inputs.filter(isParser);
+    const shapes = parsers.map((parser) => shapeKeys(parser));
+    const readable = parsers.length === inputs.length && shapes.every((keys) => keys !== null);
+    const idKeys = shapes.flatMap((keys) => keys ?? []).filter(isIdKey);
+    registry.set(path, { parsers, idKeys, readable });
   }
 }
 
@@ -51,9 +59,18 @@ export function idKeysOf(path: string): string[] {
   return registry.get(path)?.idKeys ?? [];
 }
 
-/** Every registered path with its id-like keys, for the audit test. */
-export function registeredProcedures(): Array<{ path: string; idKeys: string[] }> {
-  return Array.from(registry.entries()).map(([path, entry]) => ({ path, idKeys: entry.idKeys }));
+/**
+ * False when a registered procedure's input schema is not a (wrapped) object
+ * the gate can read, so its ids and team cannot be checked. Unknown paths
+ * read as readable: they have no schema, so the gate sees no input at all.
+ */
+export function isReadable(path: string): boolean {
+  return registry.get(path)?.readable ?? true;
+}
+
+/** Every registered path with its id-like keys and readability, for the audit test. */
+export function registeredProcedures(): Array<{ path: string; idKeys: string[]; readable: boolean }> {
+  return Array.from(registry.entries()).map(([path, entry]) => ({ path, idKeys: entry.idKeys, readable: entry.readable }));
 }
 
 /**
