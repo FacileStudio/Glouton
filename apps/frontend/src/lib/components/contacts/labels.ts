@@ -1,5 +1,3 @@
-import { toast } from '@facile/muse';
-
 export type Stage = 'PROSPECT' | 'CONTACTED' | 'CLIENT' | 'PARTNER' | 'PERSONAL';
 export type Temperature = 'HOT' | 'WARM' | 'COLD';
 export type Origin = 'HUNT' | 'CSV' | 'MANUAL' | 'ARDOISE' | 'COURRIER' | 'AGENT';
@@ -56,17 +54,4 @@ export function personName(p: { firstName?: string | null; lastName?: string | n
 export function formatDate(value: string | Date | null | undefined): string {
   if (!value) return '';
   return new Date(value).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
-}
-
-export const BULLE_URL = 'https://bulle.facile.studio';
-
-/** Bulle has no prefill parameter yet, so the prompt goes to the clipboard and Bulle opens in a new tab. */
-export async function askBulle(prompt: string): Promise<void> {
-  try {
-    await navigator.clipboard.writeText(prompt);
-    toast.success('Question copiée : collez-la dans Bulle');
-  } catch {
-    toast.info('Ouvrez Bulle et décrivez ce contact');
-  }
-  window.open(BULLE_URL, '_blank', 'noopener');
 }

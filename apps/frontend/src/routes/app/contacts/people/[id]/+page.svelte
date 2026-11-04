@@ -4,7 +4,8 @@
   import { trpc } from '$lib/trpc';
   import { getTrpcErrorMessage } from '$lib/utils/trpc-error';
   import ContactActivity from '$lib/components/contacts/ContactActivity.svelte';
-  import { STAGES, askBulle, formatDate, originLabel, personName, stageOf, type Stage } from '$lib/components/contacts/labels';
+  import Composer from '$lib/components/mail/Composer.svelte';
+  import { STAGES, formatDate, originLabel, personName, stageOf, type Stage } from '$lib/components/contacts/labels';
 
   type Person = Awaited<ReturnType<typeof trpc.contact.getPerson.query>>;
 
@@ -13,6 +14,7 @@
   let person = $state<Person | null>(null);
   let loading = $state(true);
   let changingStage = $state(false);
+  let composerOpen = $state(false);
 
   async function load() {
     try {
@@ -37,11 +39,6 @@
     }
   }
 
-  function bullePrompt(p: Person): string {
-    const where = p.company ? ` chez ${p.company.name}` : '';
-    return `Aide-moi avec ${personName(p)}${where} dans Glouton, personne id ${p.id}. Lis sa fiche et ses échanges, puis prépare un brouillon de prise de contact.`;
-  }
-
   $effect(() => {
     void id;
     loading = true;
@@ -63,7 +60,7 @@
       {:else}
         <Button variant="outline" href="/app/contacts" icon="solar:arrow-left-linear">Contacts</Button>
       {/if}
-      <Button variant="outline" icon="solar:chat-round-dots-linear" onclick={() => askBulle(bullePrompt(p))}>Demander à Bulle</Button>
+      <Button icon="solar:pen-new-square-linear" onclick={() => (composerOpen = true)}>Écrire un e-mail</Button>
     {/snippet}
   </PageHeader>
 
@@ -109,4 +106,6 @@
       {/if}
     </div>
   </div>
+
+  <Composer bind:open={composerOpen} person={{ ...p, companyName: p.company?.name }} companyId={p.company?.id} onDone={load} />
 {/if}

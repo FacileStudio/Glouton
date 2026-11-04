@@ -7,6 +7,7 @@
   import { getTrpcErrorMessage } from '$lib/utils/trpc-error';
   import { inboxCount } from '$lib/stores/inbox-count.svelte';
   import { SUGGESTION_KINDS, formatDate, personName } from '$lib/components/contacts/labels';
+  import Composer from '$lib/components/mail/Composer.svelte';
 
   type Draft = Awaited<ReturnType<typeof trpc.inbox.drafts.query>>[number];
   type Suggestion = Awaited<ReturnType<typeof trpc.inbox.suggestions.query>>[number];
@@ -17,6 +18,18 @@
   let edits = $state<Record<string, { subject: string; text: string }>>({});
   let loading = $state(true);
   let busy = $state<string | null>(null);
+  let composing = $state<Draft | null>(null);
+  let composerOpen = $state(false);
+
+  function openComposer(d: Draft) {
+    composing = d;
+    composerOpen = true;
+  }
+
+  function composed() {
+    if (composing) delete edits[composing.id];
+    return load();
+  }
 
   async function load() {
     try {
@@ -143,6 +156,7 @@
           {/if}
           <div class="flex flex-wrap justify-end gap-2">
             <Button variant="ghost-danger" onclick={() => discardDraft(d)} disabled={busy === d.id}>Supprimer</Button>
+            <Button variant="ghost" icon="solar:magic-stick-3-linear" onclick={() => openComposer(d)} disabled={busy === d.id || !d.person}>Modifier avec Bulle</Button>
             <Button variant="outline" onclick={() => saveDraft(d)} disabled={busy === d.id || !dirty(d)}>Enregistrer</Button>
             <Button icon="solar:plain-linear" onclick={() => sendDraft(d)} disabled={busy === d.id || !d.person?.email}>
               {#if busy === d.id}<Spinner size="sm" />{/if}
@@ -176,3 +190,13 @@
     {/each}
   {/if}
 </div>
+
+{#if composing?.person}
+  <Composer
+    bind:open={composerOpen}
+    person={{ ...composing.person, companyName: composing.company?.name }}
+    companyId={composing.company?.id}
+    draft={{ id: composing.id, subject: edits[composing.id]?.subject ?? composing.subject, text: edits[composing.id]?.text ?? composing.textBody }}
+    onDone={composed}
+  />
+{/if}

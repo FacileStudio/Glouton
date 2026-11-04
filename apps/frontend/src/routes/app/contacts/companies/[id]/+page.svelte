@@ -7,9 +7,11 @@
   import { getTrpcErrorMessage } from '$lib/utils/trpc-error';
   import ContactActivity from '$lib/components/contacts/ContactActivity.svelte';
   import TurnIntoClientDialog from '$lib/components/contacts/TurnIntoClientDialog.svelte';
+  import BullePanel from '$lib/components/bulle/BullePanel.svelte';
+  import Composer from '$lib/components/mail/Composer.svelte';
+  import { teamContextStore } from '$lib/stores/team-context.svelte';
   import {
     STAGES,
-    askBulle,
     formatDate,
     originLabel,
     personName,
@@ -31,6 +33,13 @@
   let ardoise = $state<{ enabled: boolean; webUrl: string } | null>(null);
   let turnOpen = $state(false);
   let unlinkOpen = $state(false);
+  let composerOpen = $state(false);
+  let composerInitial = $state<{ subject: string; body: string } | null>(null);
+
+  function compose(initial: { subject: string; body: string } | null = null) {
+    composerInitial = initial;
+    composerOpen = true;
+  }
 
   function ardoiseLink(clientId: string): string | null {
     return ardoise ? `${ardoise.webUrl}/admin/clients/${encodeURIComponent(clientId)}` : null;
@@ -100,10 +109,6 @@
     }
   }
 
-  function bullePrompt(c: Company): string {
-    return `Aide-moi avec l'entreprise ${c.name}${c.domain ? ` (${c.domain})` : ''} dans Glouton, id ${c.id}. Lis sa fiche et son historique, puis propose la prochaine action.`;
-  }
-
   $effect(() => {
     void id;
     loading = true;
@@ -124,7 +129,7 @@
   <PageHeader title={c.name} description={[c.domain, c.city, c.country].filter(Boolean).join(' · ')}>
     {#snippet actions()}
       <Button variant="outline" href="/app/contacts" icon="solar:arrow-left-linear">Contacts</Button>
-      <Button variant="outline" icon="solar:chat-round-dots-linear" onclick={() => askBulle(bullePrompt(c))}>Demander à Bulle</Button>
+      <Button icon="solar:pen-new-square-linear" onclick={() => compose()}>Écrire un e-mail</Button>
     {/snippet}
   </PageHeader>
 
@@ -213,6 +218,9 @@
     </div>
 
     <div class="flex flex-col gap-4 lg:col-span-2">
+      <Card class="p-5">
+        <BullePanel task="next" context={{ teamId: teamContextStore.getTeamId(), companyId: c.id }} onUseDraft={compose} />
+      </Card>
       <ContactActivity target={{ companyId: c.id }} activities={c.activities} suggestions={c.suggestions} onChange={load} />
       {#if c.outreach.length}
         <Card class="flex flex-col gap-3 p-5">
@@ -233,6 +241,13 @@
     </div>
   </div>
 
+  <Composer
+    bind:open={composerOpen}
+    people={c.people.map((p) => ({ ...p, companyName: c.name }))}
+    companyId={c.id}
+    initial={composerInitial}
+    onDone={load}
+  />
   <TurnIntoClientDialog bind:open={turnOpen} company={c} onDone={load} />
   <ConfirmModal
     bind:open={unlinkOpen}

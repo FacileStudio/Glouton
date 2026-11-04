@@ -7,7 +7,7 @@ const backendUrl = process.env.BACKEND_URL || 'http://localhost:3001';
 export default defineConfig({
   plugins: [sveltekit(), tailwindcss()],
   clearScreen: false,
-  optimizeDeps: { exclude: ['@facile/muse'] },
+  optimizeDeps: { exclude: ['@facile/muse', '@facile/blob'] },
   server: {
     port: Number(process.env.PORT) || 3000,
     proxy: {
