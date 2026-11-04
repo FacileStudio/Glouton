@@ -9,6 +9,7 @@ interface TrpcConfig {
   baseUrl: string;
   getToken: () => string | null | Promise<string | null>;
   onUnauthorized: () => void;
+  onPaymentRequired?: () => void;
 }
 
 export const createUniversalTrpcClient = (config: TrpcConfig): ReturnType<typeof createTRPCProxyClient<AppRouter>> => {
@@ -34,6 +35,10 @@ export const createUniversalTrpcClient = (config: TrpcConfig): ReturnType<typeof
             !window.location.pathname.includes('/login')
           ) {
             config.onUnauthorized();
+          }
+
+          if (res.status === 402 && typeof window !== 'undefined') {
+            config.onPaymentRequired?.();
           }
 
           return res;

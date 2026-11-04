@@ -1,6 +1,8 @@
 import { PrismaClient, Prisma } from '@prisma/client';
 import { TRPCError } from '@trpc/server';
 import { logger } from '@repo/logger';
+import { dbForfait } from '../modules/forfait/store';
+import { requirePersonal, requireTeam } from '../modules/forfait/gate';
 
 export type Scope =
   | { type: 'personal'; userId: string }
@@ -12,26 +14,16 @@ export async function resolveScope(
   teamId?: string | null
 ): Promise<Scope> {
   if (!teamId) {
+    await requirePersonal(dbForfait(prisma), userId);
     return { type: 'personal', userId };
   }
 
-  const membership = await prisma.teamMember.findFirst({
-    where: {
-      teamId: teamId,
-      userId: userId,
-    },
-    select: {
-      id: true,
-    },
+  await requireTeam(dbForfait(prisma), userId, teamId).catch((error: unknown) => {
+    if (error instanceof TRPCError && error.code === 'FORBIDDEN') {
+      logger.warn({ userId, teamId }, '[SCOPE] User not a member of team');
+    }
+    throw error;
   });
-
-  if (!membership) {
-    logger.warn({ userId, teamId }, '[SCOPE] User not a member of team');
-    throw new TRPCError({
-      code: 'FORBIDDEN',
-      message: 'You do not have access to this team',
-    });
-  }
 
   logger.info({ userId, teamId }, '[SCOPE] Resolved team scope');
   return { type: 'team', teamId, userId };

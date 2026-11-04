@@ -20,7 +20,8 @@ import { wsHandler, websocket, broadcastToUser, broadcastToAll, clients } from '
 import { events } from './services/events';
 import { checkOrphanedSessions, cleanupStalled } from './services/job-monitor';
 import { registerWorkers } from './services/register-workers';
-import { DirectoryClient, SyncPath } from './services/registre-directory';
+import { DirectoryClient } from './services/registre-directory';
+import { createRegistreSyncRoutes } from './handlers/registre';
 import { applySnapshot, buildImport, startDirectorySync } from './services/registre-spaces';
 import { registreIssuer, registreKeys } from './services/oidc';
 import { delegatedVerifierFromEnv } from './services/delegated';
@@ -178,12 +179,7 @@ app.get('/health/ready', createReadinessHandler({ prisma }));
 
 app.get('/ws', wsHandler);
 
-if (directory) {
-  app.post(SyncPath, (c) => {
-    directory.nudge();
-    return c.body(null, 202);
-  });
-}
+if (directory) app.route('/', createRegistreSyncRoutes(directory));
 
 function requireInternalAuth(c: Context): boolean {
   const token = c.req.header('x-internal-secret');

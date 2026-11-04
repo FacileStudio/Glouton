@@ -10,7 +10,9 @@ export {
 export { verifyEmail } from './services/email-verifier';
 export type { EmailVerificationResult, VerificationReason } from './services/email-verifier';
 
+export { allowEveryScope } from './types';
 export type {
+  ScopeGate,
   JobConfig,
   JobProcessor,
   JobDefinition,

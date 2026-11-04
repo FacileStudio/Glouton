@@ -2,6 +2,7 @@ model Team {
   id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Text
   name               String    @db.Text
   registreSpaceId    String?   @unique @db.Text
+  entitlements       Json?
   description        String?   @db.Text
   smtpHost           String?   @db.Text
   smtpPort           Int?

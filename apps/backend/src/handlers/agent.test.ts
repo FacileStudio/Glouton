@@ -35,6 +35,7 @@ const tokens: Record<string, DelegatedPrincipal> = {
 };
 
 const emptyPrisma = {
+  forfaitState: { findUnique: async () => null },
   teamMember: { findMany: async () => [] },
   company: { findMany: async () => [], count: async () => 0 },
   person: { findMany: async () => [], count: async () => 0 },
@@ -93,6 +94,19 @@ describe('agent API scopes', () => {
       expect(res.status).toBe(200);
       expect(await res.json()).toEqual({ data: [] });
     }
+  });
+
+  test('a caller with no entitled scope gets 402 and the upgrade URL once entitlements are enforced', async () => {
+    const enforced = {
+      ...emptyPrisma,
+      forfaitState: { findUnique: async () => ({ issuer: 'https://sso.test' }) },
+      account: { findFirst: async () => null },
+    };
+    const res = await app(enforced).request('/contacts', { headers: { authorization: 'Bearer session' } });
+    expect(res.status).toBe(402);
+    expect(await res.json()).toMatchObject({
+      error: { code: 'PAYMENT_REQUIRED', upgrade_url: 'https://sso.test/spaces' },
+    });
   });
 
   test('no route can send mail', async () => {

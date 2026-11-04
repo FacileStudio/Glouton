@@ -68,6 +68,7 @@
     if (path.match(/^\/app\/teams\/.+/)) return 'Espace · Glouton';
     if (path === '/app/teams') return 'Espaces · Glouton';
     if (path === '/app/settings') return 'Paramètres · Glouton';
+    if (path === '/app/paywall') return 'Forfait · Glouton';
     return 'Glouton';
   }
 

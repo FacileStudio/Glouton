@@ -11,6 +11,20 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+### Added
+
+- Glouton needs a plan with `glouton.access` (Pro or Studio). Registre's directory snapshot now carries `entitlements_revision`, per-space `entitlements` and per-person `people[]`; Glouton stores them on `Team.entitlements` and in `PersonEntitlement` (by Registre `sub`), in the same transaction as the space sync (migration 022)
+- Every tRPC procedure is gated by default. A team call needs the team's space to have access, a personal call needs the person's own access; refused calls answer HTTP 402 `PAYMENT_REQUIRED` with `data.upgrade_url` (`<OIDC_ISSUER>/spaces/<space id>` or `<OIDC_ISSUER>/spaces`). Exempt: sign-in, session, `user.me`, account deletion, the space list and `forfait.status`. The Registre sync webhook and health routes stay outside tRPC and are not gated
+- The agent REST API answers 402 when the caller has no scope with access, and cross-scope reads only show scopes with access
+- Hunt, audit and CSV import jobs, Courrier reply sync and the Courrier contact import skip scopes without access and log it. No data is deleted
+- A paywall page at `/app/paywall`, reached from any 402, explains that Glouton is part of the Pro and Studio plans and links to the space's Registre page
+
+### Security
+
+- Fail-open lasts only until the first snapshot with `entitlements_revision > 0`. That fact is stored in `ForfaitState`, so a restart with Registre down keeps the last known values. Older snapshots (lower version or revision) never overwrite newer values
+- Malformed entitlement values (wrong type, bad key, more than 200 keys) read as the default, which denies access
+- The Registre snapshot fetch now times out after 10 s and refuses bodies over 16 MiB
+
 ## [0.6.0] - 2026-11-04
 
 ### Added

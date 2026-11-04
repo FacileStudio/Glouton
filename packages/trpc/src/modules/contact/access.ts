@@ -1,6 +1,8 @@
 import type { PrismaClient } from '@prisma/client';
 import { TRPCError } from '@trpc/server';
 import type { Scope } from '../../utils/scope';
+import { dbForfait } from '../forfait/store';
+import { PAYWALL_MESSAGE } from '../forfait/gate';
 
 /** Who is reading or writing contacts, and which scopes (personal, teams) they can see. */
 export interface Access {
@@ -29,21 +31,26 @@ export function accessForScope(scope: Scope, actor: string | null): Access {
     : { userId: scope.userId, actor, teamIds: [], personal: true };
 }
 
-/** Access across the personal scope and every team the user belongs to. */
+/**
+ * Access across every scope the user may use now: the personal scope and the
+ * teams they belong to, each kept only while it has `glouton.access`.
+ */
 export async function accessForUser(
   prisma: PrismaClient,
   userId: string,
   actor: string | null
 ): Promise<Access> {
-  const memberships = await prisma.teamMember.findMany({ where: { userId }, select: { teamId: true } });
-  return { userId, actor, teamIds: memberships.map((m) => m.teamId), personal: true };
+  const scopes = await dbForfait(prisma).entitledScopes(userId);
+  return { userId, actor, teamIds: scopes.teamIds, personal: scopes.personal };
 }
 
 /** The team a new row lands in: null for personal, else a team the caller belongs to. */
 export function targetTeam(access: Access, teamId: string | null | undefined): string | null {
   if (!teamId) {
     if (access.personal) return null;
-    return access.teamIds[0] ?? null;
+    const first = access.teamIds[0];
+    if (first) return first;
+    throw new TRPCError({ code: 'PAYMENT_REQUIRED', message: PAYWALL_MESSAGE });
   }
   if (!access.teamIds.includes(teamId)) {
     throw new TRPCError({ code: 'FORBIDDEN', message: 'You do not have access to this team' });

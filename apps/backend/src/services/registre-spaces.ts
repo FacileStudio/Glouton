@@ -11,6 +11,7 @@ import {
   type SyncLogger,
 } from './registre-directory';
 import { httpsPicture, splitName } from './oidc';
+import { forfait } from '@repo/trpc';
 
 /**
  * Glouton's half of the suite shared-spaces contract: every `Team` is a
@@ -84,7 +85,8 @@ export async function buildImport(db: PrismaClient, issuer: string): Promise<Imp
  * sign-in lands on it. Memberships of users with a Registre identity who are
  * absent from the space are removed; local-only users and unlinked teams are
  * never touched. A linked team missing from the snapshot is left alone and
- * logged, because Registre v1 has no space deletion.
+ * logged, because Registre v1 has no space deletion. Plan entitlements are
+ * stored in the same transaction (see forfait.applyEntitlements).
  */
 export async function applySnapshot(deps: DirectoryDeps, snapshot: Snapshot): Promise<void> {
   const orphans = await deps.db.$transaction(
@@ -94,6 +96,18 @@ export async function applySnapshot(deps: DirectoryDeps, snapshot: Snapshot): Pr
         const teamId = await linkTeam(tx, space);
         seen.push(teamId);
         await syncMembers(tx, deps, teamId, space.members);
+      }
+      const outcome = await forfait.applyEntitlements(tx, snapshot, deps.issuer);
+      if (outcome === 'not-pushed') {
+        deps.logger.warn(
+          { version: snapshot.version },
+          '[FORFAIT] Snapshot has no entitlements revision, keeping the stored values (fail-open until the first one)'
+        );
+      } else if (outcome === 'stale') {
+        deps.logger.warn(
+          { version: snapshot.version, revision: snapshot.entitlements_revision },
+          '[FORFAIT] Snapshot is older than the last applied entitlements, ignored them'
+        );
       }
       return tx.team.findMany({
         where: { registreSpaceId: { not: null }, id: { notIn: seen } },

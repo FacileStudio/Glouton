@@ -1,6 +1,7 @@
 import type { PrismaClient } from '@prisma/client';
 import { CourrierReconnectError, type CourrierClient } from '@repo/courrier';
 import { logger } from '@repo/logger';
+import { allowEveryScope, type ScopeGate } from '../../types';
 
 export type ReplySource = Pick<CourrierClient, 'searchFrom'>;
 
@@ -15,6 +16,7 @@ interface Setting {
 
 export interface ReplySyncResult {
   users: number;
+  skipped: number;
   checked: number;
   replied: number;
   failedUsers: number;
@@ -118,20 +120,28 @@ async function syncUser(prisma: PrismaClient, courrier: ReplySource, rows: Candi
  * OPENED or CLICKED outreach of the last 30 days that went out through
  * Courrier, or whose scope now sends through Courrier, it searches that
  * Courrier account for mail from the recipient after `sentAt`. One user's
- * failure is logged and never stops the others.
+ * failure is logged and never stops the others. Outreach of a scope whose
+ * plan lacks Glouton is skipped and counted.
  */
 export async function syncReplies(
   prisma: PrismaClient,
   courrier: ReplySource,
-  now: Date = new Date()
+  now: Date = new Date(),
+  allowed: ScopeGate = allowEveryScope
 ): Promise<ReplySyncResult> {
   const since = new Date(now.getTime() - REPLY_WINDOW_DAYS * 24 * 60 * 60 * 1000);
   const byUser = new Map<string, Candidate[]>();
+  let skipped = 0;
   for (const row of await candidates(prisma, since)) {
+    if (!(await allowed({ userId: row.userId, teamId: row.teamId }))) {
+      skipped++;
+      continue;
+    }
     byUser.set(row.userId, [...(byUser.get(row.userId) ?? []), row]);
   }
+  if (skipped > 0) logger.info({ skipped }, '[COURRIER] Reply sync skipped outreach of scopes without a Glouton plan');
 
-  const result: ReplySyncResult = { users: byUser.size, checked: 0, replied: 0, failedUsers: 0 };
+  const result: ReplySyncResult = { users: byUser.size, skipped, checked: 0, replied: 0, failedUsers: 0 };
   for (const [userId, rows] of byUser) {
     try {
       result.replied += await syncUser(prisma, courrier, rows, since);

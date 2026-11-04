@@ -4,6 +4,7 @@ import { createCsvImportWorker } from './csv-import';
 import { createOpportunityScraperWorker } from './opportunity-scraper';
 import { createCompanyCreationWorker } from './company-creation';
 import type { CourrierClient } from '@repo/courrier';
+import type { ScopeGate } from '../types';
 import {
   createCourrierContactsImportWorker,
   createCourrierReplySyncWorker,
@@ -11,6 +12,7 @@ import {
 
 export interface WorkerDependencies {
   courrier?: CourrierClient | null;
+  allowed?: ScopeGate;
 }
 
 export interface EventEmitter {
@@ -26,8 +28,8 @@ export function createWorkers(events: EventEmitter, deps: WorkerDependencies = {
     'csv-import': createCsvImportWorker(events),
     'opportunity-scraper': createOpportunityScraperWorker(events),
     'company-creation': createCompanyCreationWorker(events),
-    'courrier-reply-sync': createCourrierReplySyncWorker(deps.courrier ?? null),
-    'courrier-contacts-import': createCourrierContactsImportWorker(deps.courrier ?? null, events),
+    'courrier-reply-sync': createCourrierReplySyncWorker(deps.courrier ?? null, deps.allowed),
+    'courrier-contacts-import': createCourrierContactsImportWorker(deps.courrier ?? null, events, deps.allowed),
   };
 }
 

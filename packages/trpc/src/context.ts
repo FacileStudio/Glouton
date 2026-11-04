@@ -7,6 +7,7 @@ import type { Logger } from '@repo/logger';
 import type { DelegatedVerifier } from './delegation';
 import type { CourrierClient } from '@repo/courrier';
 import type { BulleClient } from './modules/assistant/bulle';
+import { dbForfait, type ForfaitReader } from './modules/forfait/store';
 
 export interface CreateContextOptions extends FetchCreateContextFnOptions {
   prisma: PrismaClient;
@@ -17,6 +18,7 @@ export interface CreateContextOptions extends FetchCreateContextFnOptions {
   verifyDelegated?: DelegatedVerifier | null;
   courrier?: CourrierClient | null;
   bulle?: BulleClient | null;
+  forfait?: ForfaitReader;
   events?: {
     emit: (userId: string, type: string, data?: any) => void;
     broadcast: (type: string, data?: any) => void;
@@ -60,6 +62,7 @@ export const createContext = async (options: CreateContextOptions) => {
     events: options.events,
     courrier: options.courrier ?? null,
     bulle: options.bulle ?? null,
+    forfait: options.forfait ?? dbForfait(options.prisma, options.env.OIDC_ISSUER),
   };
 };
 

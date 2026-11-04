@@ -4,6 +4,7 @@ import { hasAccess } from '@repo/auth-shared';
 import { UserRole } from '@repo/types';
 import { type OpenApiMeta } from 'trpc-to-openapi';
 import { READ_SCOPE, WRITE_SCOPE, hasScope } from './delegation';
+import { authorize, upgradeUrlOf } from './modules/forfait/gate';
 
 const t = initTRPC.context<Context>().meta<OpenApiMeta>().create({
   
@@ -30,6 +31,7 @@ const t = initTRPC.context<Context>().meta<OpenApiMeta>().create({
       data: {
         ...shape.data,
         stack: isProduction ? undefined : shape.data.stack,
+        upgrade_url: upgradeUrlOf(error),
       },
     };
   },
@@ -55,7 +57,16 @@ const loggingMiddleware = t.middleware(async ({ path, type, next, ctx }) => {
   return result;
 });
 
-export const publicProcedure = t.procedure.use(loggingMiddleware);
+/**
+ * The subscription gate, on every procedure: default-deny, so only paths in
+ * the forfait EXEMPT list run without `glouton.access` in the call's scope.
+ */
+const requiresPlan = t.middleware(async ({ next, ctx, path, getRawInput }) => {
+  await authorize(ctx.forfait, { path, userId: ctx.user?.id ?? null, rawInput: await getRawInput() });
+  return next();
+});
+
+export const publicProcedure = t.procedure.use(loggingMiddleware).use(requiresPlan);
 
 const isAuthed = t.middleware(({ next, ctx, type }) => {
   if (!ctx.user) {
@@ -92,6 +103,6 @@ const isHuman = t.middleware(({ next, ctx }) => {
   return next();
 });
 
-export const protectedProcedure = t.procedure.use(loggingMiddleware).use(isAuthed);
+export const protectedProcedure = t.procedure.use(loggingMiddleware).use(isAuthed).use(requiresPlan);
 export const humanProcedure = protectedProcedure.use(isHuman);
 export const adminProcedure = humanProcedure.use(isAdmin);

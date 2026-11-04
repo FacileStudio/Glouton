@@ -10,6 +10,7 @@ import { contactRouter } from './modules/contact/router';
 import { inboxRouter } from './modules/inbox/router';
 import { ardoiseRouter } from './modules/ardoise/router';
 import { assistantRouter } from './modules/assistant/router';
+import { forfaitRouter } from './modules/forfait/router';
 import { createOpenApiDocument } from './openapi';
 
 export const appRouter = router({
@@ -24,6 +25,7 @@ export const appRouter = router({
   inbox: inboxRouter,
   ardoise: ardoiseRouter,
   assistant: assistantRouter,
+  forfait: forfaitRouter,
 });
 
 export const openApiDocument = createOpenApiDocument(appRouter);
@@ -31,7 +33,7 @@ export const openApiDocument = createOpenApiDocument(appRouter);
 export type AppRouter = typeof appRouter;
 
 export { createContext, type Context, type CreateContextOptions } from './context';
-export { publicProcedure, protectedProcedure, humanProcedure, adminProcedure } from './trpc';
+export { router, publicProcedure, protectedProcedure, humanProcedure, adminProcedure } from './trpc';
 export * from './delegation';
 export { globalCacheFactory } from './cache';
 export * as contactService from './modules/contact/service';
@@ -46,5 +48,6 @@ export {
   suggestionStatusSchema,
   suggestionInput,
 } from './modules/inbox/router';
+export * as forfait from './modules/forfait';
 export * as mailTransport from './modules/email/transport';
 export { BulleClient, bulleFromEnv } from './modules/assistant/bulle';
