@@ -76,7 +76,7 @@ export const teamRouter = router({
     );
   }),
 
-  removeMember: humanProcedure
+  removeMember: humanProcedure.meta({ forfait: { ids: 'scoped' } })
     .input(removeMemberSchema)
     .mutation(async ({ ctx, input }) => {
       ctx.log.info(
@@ -92,7 +92,7 @@ export const teamRouter = router({
       );
     }),
 
-  updateMemberRole: humanProcedure
+  updateMemberRole: humanProcedure.meta({ forfait: { ids: 'scoped' } })
     .input(updateMemberRoleSchema)
     .mutation(async ({ ctx, input }) => {
       ctx.log.info(
@@ -237,7 +237,7 @@ export const teamRouter = router({
       return await teamService.createTeamWebhook(teamId, ctx.user.id, data);
     }),
 
-  updateWebhook: humanProcedure
+  updateWebhook: humanProcedure.meta({ forfait: { ids: 'scoped' } })
     .input(updateWebhookSchema)
     .mutation(async ({ ctx, input }) => {
       ctx.log.info(
@@ -248,7 +248,7 @@ export const teamRouter = router({
       return await teamService.updateTeamWebhook(teamId, ctx.user.id, webhookId, data);
     }),
 
-  deleteWebhook: humanProcedure
+  deleteWebhook: humanProcedure.meta({ forfait: { ids: 'scoped' } })
     .input(deleteWebhookSchema)
     .mutation(async ({ ctx, input }) => {
       ctx.log.info(

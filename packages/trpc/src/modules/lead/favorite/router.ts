@@ -19,7 +19,7 @@ const getFavoritesSchema = z.object({
 }).optional();
 
 export const favoriteRouter = router({
-  toggle: protectedProcedure
+  toggle: protectedProcedure.meta({ forfait: { row: { model: 'lead', key: 'leadId' } } })
     .input(toggleFavoriteSchema)
     .mutation(async ({ ctx, input }) => {
       return await FavoriteService.toggleFavorite(
@@ -41,7 +41,7 @@ export const favoriteRouter = router({
       });
     }),
 
-  isFavorite: protectedProcedure
+  isFavorite: protectedProcedure.meta({ forfait: { row: { model: 'lead', key: 'leadId' } } })
     .input(isFavoriteSchema)
     .query(async ({ ctx, input }) => {
       const scope = await resolveScope(ctx.prisma, ctx.user.id, input.teamId);

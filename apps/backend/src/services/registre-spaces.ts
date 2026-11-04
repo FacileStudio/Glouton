@@ -106,7 +106,7 @@ export async function applySnapshot(deps: DirectoryDeps, snapshot: Snapshot): Pr
       } else if (outcome === 'stale') {
         deps.logger.warn(
           { version: snapshot.version, revision: snapshot.entitlements_revision },
-          '[FORFAIT] Snapshot is older than the last applied entitlements, ignored them'
+          '[FORFAIT] Snapshot entitlements revision is older than the last applied one, ignored them'
         );
       }
       return tx.team.findMany({

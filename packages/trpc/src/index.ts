@@ -12,6 +12,8 @@ import { ardoiseRouter } from './modules/ardoise/router';
 import { assistantRouter } from './modules/assistant/router';
 import { forfaitRouter } from './modules/forfait/router';
 import { createOpenApiDocument } from './openapi';
+import { bindProcedures } from './modules/forfait/procedures';
+import { isIdKey } from './modules/forfait/gate';
 
 export const appRouter = router({
   auth: authRouter,
@@ -28,6 +30,8 @@ export const appRouter = router({
   forfait: forfaitRouter,
 });
 
+bindProcedures(appRouter._def.procedures, isIdKey);
+
 export const openApiDocument = createOpenApiDocument(appRouter);
 
 export type AppRouter = typeof appRouter;
@@ -40,7 +44,7 @@ export * as contactService from './modules/contact/service';
 export * as contactSchemas from './modules/contact/schemas';
 export * as inboxService from './modules/inbox/service';
 export * as ardoise from './modules/ardoise';
-export { accessForUser, type Access } from './modules/contact/access';
+export { accessForUser, targetTeam, type Access } from './modules/contact/access';
 export {
   draftCreateSchema,
   draftUpdateSchema,

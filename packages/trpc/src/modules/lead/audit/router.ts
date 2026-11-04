@@ -11,14 +11,14 @@ export const listAuditSessionsSchema = z.object({
 });
 
 export const auditRouter = router({
-  list: protectedProcedure
+  list: protectedProcedure.meta({ forfait: { ids: 'scoped' } })
     .input(listAuditSessionsSchema.optional())
     .query(async ({ ctx, input = {} }) => {
       const scope = await resolveScope(ctx.prisma, ctx.user.id, input.teamId);
       return LeadAuditService.list(scope, input, ctx);
     }),
 
-  cancel: protectedProcedure
+  cancel: protectedProcedure.meta({ forfait: { row: { model: 'auditSession', key: 'auditSessionId' } } })
     .input(z.object({ auditSessionId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       return LeadAuditService.cancel(input.auditSessionId, ctx);

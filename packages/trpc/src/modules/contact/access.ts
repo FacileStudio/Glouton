@@ -2,7 +2,7 @@ import type { PrismaClient } from '@prisma/client';
 import { TRPCError } from '@trpc/server';
 import type { Scope } from '../../utils/scope';
 import { dbForfait } from '../forfait/store';
-import { PAYWALL_MESSAGE } from '../forfait/gate';
+import { planRequired } from '../forfait/gate';
 
 /** Who is reading or writing contacts, and which scopes (personal, teams) they can see. */
 export interface Access {
@@ -10,6 +10,10 @@ export interface Access {
   actor: string | null;
   teamIds: string[];
   personal: boolean;
+  /** The team a new row lands in when none is named: set only when the web app works in one team. */
+  defaultTeamId?: string;
+  /** Where to buy access for the personal scope, set when it has none. */
+  upgradeUrl?: string;
 }
 
 export type OwnedWhere = {
@@ -27,7 +31,7 @@ export function ownedWhere(access: Access): OwnedWhere {
 /** Access narrowed to one resolved scope, as the web app works one space at a time. */
 export function accessForScope(scope: Scope, actor: string | null): Access {
   return scope.type === 'team'
-    ? { userId: scope.userId, actor, teamIds: [scope.teamId], personal: false }
+    ? { userId: scope.userId, actor, teamIds: [scope.teamId], personal: false, defaultTeamId: scope.teamId }
     : { userId: scope.userId, actor, teamIds: [], personal: true };
 }
 
@@ -40,17 +44,24 @@ export async function accessForUser(
   userId: string,
   actor: string | null
 ): Promise<Access> {
-  const scopes = await dbForfait(prisma).entitledScopes(userId);
-  return { userId, actor, teamIds: scopes.teamIds, personal: scopes.personal };
+  const reader = dbForfait(prisma);
+  const scopes = await reader.entitledScopes(userId);
+  const access: Access = { userId, actor, teamIds: scopes.teamIds, personal: scopes.personal };
+  if (!scopes.personal) access.upgradeUrl = (await reader.personal(userId)).upgradeUrl;
+  return access;
 }
 
-/** The team a new row lands in: null for personal, else a team the caller belongs to. */
+/**
+ * The team a new row lands in: the named team when the caller may use it,
+ * else personal, else the one team the web app works in. Without any of
+ * these the write is refused with the personal upgrade URL; it never lands
+ * in some other team.
+ */
 export function targetTeam(access: Access, teamId: string | null | undefined): string | null {
   if (!teamId) {
     if (access.personal) return null;
-    const first = access.teamIds[0];
-    if (first) return first;
-    throw new TRPCError({ code: 'PAYMENT_REQUIRED', message: PAYWALL_MESSAGE });
+    if (access.defaultTeamId) return access.defaultTeamId;
+    throw planRequired(access.upgradeUrl ?? '');
   }
   if (!access.teamIds.includes(teamId)) {
     throw new TRPCError({ code: 'FORBIDDEN', message: 'You do not have access to this team' });
