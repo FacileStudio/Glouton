@@ -143,7 +143,7 @@
     <div class="min-w-0">
       <p class="text-fc-md font-semibold text-fc-fg">{name}</p>
       <p class="text-fc-xs text-fc-fg-muted" aria-live="polite">
-        {#if !status && !statusError}Connexion…{:else if reason}Indisponible{:else if busy}Réfléchit…{:else}Prête à vous aider{/if}
+        {#if !status && !statusError}Connexion…{:else if reason}Indisponible{:else if busy}Réfléchit…{:else}Disponible{/if}
       </p>
     </div>
   </header>
