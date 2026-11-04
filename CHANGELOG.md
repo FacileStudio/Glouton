@@ -11,6 +11,8 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-04
+
 ### Added
 
 - Glouton needs a plan with `glouton.access` (Pro or Studio). Registre's directory snapshot now carries `entitlements_revision`, per-space `entitlements` and per-person `people[]`; Glouton stores them on `Team.entitlements` and in `PersonEntitlement` (by Registre `sub`), in the same transaction as the space sync (migration 022)
