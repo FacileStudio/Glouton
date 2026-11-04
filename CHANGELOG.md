@@ -11,6 +11,26 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-04
+
+### Added
+
+- One mail composer for people, companies, drafts and leads, with Bulle docked beside it: draft, reply, shorten, warm up, formalize, fix, translate and suggest a subject, in place
+- Bulle's blob shows in the composer and reacts while it writes
+- "Prochaine action" on company pages: Bulle reads the contact and its history and proposes the next steps and a draft
+- `email.sendToLead` sends free text to a legacy lead through the configured transport
+- `BULLE_URL` turns the assistant on; Glouton reaches Bulle with a Registre token exchange (`bulle.read`, `bulle.write`)
+
+### Changed
+
+- Courrier and Bulle share one Registre token store, so a user's refresh token is never rotated twice at once
+- Lead and outreach pages use the shared composer; templates fill the composer as plain text
+
+### Removed
+
+- The "Demander à Bulle" clipboard and new-tab flow
+- The unused `isomorphic-dompurify` dependency
+
 ## [0.5.5] - 2026-11-03
 
 ### Changed
