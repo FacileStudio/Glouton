@@ -5,7 +5,7 @@ import { UserRole } from '@repo/types';
 import { type OpenApiMeta } from 'trpc-to-openapi';
 import { READ_SCOPE, WRITE_SCOPE, hasScope } from './delegation';
 import { authorize, upgradeUrlOf, type ForfaitMeta } from './modules/forfait/gate';
-import { idKeysOf, parsedInput } from './modules/forfait/procedures';
+import { idKeysOf, isReadable, parsedInput } from './modules/forfait/procedures';
 import { rowLoader } from './modules/forfait/store';
 
 const t = initTRPC.context<Context>().meta<OpenApiMeta & ForfaitMeta>().create({
@@ -71,6 +71,7 @@ const requiresPlan = t.middleware(async ({ next, ctx, path, meta, getRawInput })
     userId: ctx.user?.id ?? null,
     input: await parsedInput(path, await getRawInput()),
     idKeys: idKeysOf(path),
+    readable: isReadable(path),
     meta,
     loadRow: rowLoader(ctx.prisma),
   });

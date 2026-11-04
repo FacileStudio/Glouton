@@ -33,9 +33,12 @@ function withStringPayloads<T extends { activities: PayloadRow[]; suggestions: P
 }
 
 const scoped = z.object({ teamId: z.string().uuid().optional() });
-const target = z
-  .object({ companyId: z.string().optional(), personId: z.string().optional() })
-  .refine((v) => Boolean(v.companyId || v.personId), 'Give a company or a person');
+const targetShape = z.object({ companyId: z.string().optional(), personId: z.string().optional() });
+const hasTarget = (v: { companyId?: string; personId?: string }) => Boolean(v.companyId || v.personId);
+const target = targetShape.refine(hasTarget, 'Give a company or a person');
+const noteInput = targetShape
+  .extend({ text: z.string().trim().min(1).max(5000) })
+  .refine(hasTarget, 'Give a company or a person');
 
 async function scopeAccess(ctx: AuthedContext, teamId: string | undefined) {
   const scope = await resolveScope(ctx.prisma, ctx.user.id, teamId);
@@ -121,7 +124,7 @@ export const contactRouter = router({
     ),
 
   addNote: protectedProcedure
-    .input(target.and(z.object({ text: z.string().trim().min(1).max(5000) })))
+    .input(noteInput)
     .mutation(async ({ ctx, input }) =>
       contacts.addNote(ctx.prisma, await userAccess(ctx), input, input.text)
     ),

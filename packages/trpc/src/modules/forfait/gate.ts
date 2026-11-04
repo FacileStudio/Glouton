@@ -23,6 +23,9 @@ import type { ForfaitReader, ScopeVerdict } from './store';
  * - A procedure whose input names a row id (`id`, `leadId`, `ids`...) must
  *   say how that id is scoped (`row`, or `ids: 'scoped' | 'unscoped'`), or it
  *   is refused, so a new by-id procedure cannot skip the row check.
+ * - A procedure whose input is not an object schema the gate can read
+ *   (union, intersection, array, primitive) is refused unless cross-scope:
+ *   the gate fails closed rather than guess its scope.
  */
 
 /** Procedures that work without a plan or a session: sign-in, the session itself, the scope switcher and the paywall. */
@@ -166,6 +169,8 @@ export interface GateCall {
   userId: string | null;
   input: unknown;
   idKeys: readonly string[];
+  /** False when the procedure's input schema cannot be read; such a procedure is refused unless cross-scope. */
+  readable?: boolean;
   meta: ForfaitMeta | undefined;
   loadRow: RowLoader;
 }
@@ -187,6 +192,9 @@ export async function authorize(reader: ForfaitReader, call: GateCall): Promise<
   }
 
   const crossScope = isCrossScope(call.path);
+  if (call.readable === false && !crossScope) {
+    throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: `Procedure ${call.path} has an input the plan gate cannot read` });
+  }
   if (call.idKeys.length > 0 && !rule?.ids && !crossScope) {
     throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: `Procedure ${call.path} does not declare how its ids are scoped` });
   }

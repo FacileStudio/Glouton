@@ -147,6 +147,7 @@ async function syncMembers(tx: Tx, deps: DirectoryDeps, teamId: string, members:
   for (const member of members) {
     if (!member.sub) continue;
     const userId = await resolveMember(tx, deps, member);
+    if (!userId) continue;
     const role = toTeamRole(member.role);
     const held = desired.get(userId);
     desired.set(userId, held && rank[held] > rank[role] ? held : role);
@@ -177,9 +178,12 @@ async function syncMembers(tx: Tx, deps: DirectoryDeps, teamId: string, members:
 /**
  * Returns the local user for a snapshot member: by Registre identity, then by
  * email (recording the identity), else a pre-provisioned user with an
- * unguessable password, since sign-in for them goes through SSO.
+ * unguessable password, since sign-in for them goes through SSO. Like the SSO
+ * fallback, the email match links only a local account whose email Glouton
+ * verified; an unverified match is skipped and logged, never linked, and the
+ * member gets no membership until an admin verifies that account.
  */
-async function resolveMember(tx: Tx, deps: DirectoryDeps, member: DirectoryMember): Promise<string> {
+async function resolveMember(tx: Tx, deps: DirectoryDeps, member: DirectoryMember): Promise<string | null> {
   const picture = httpsPicture(member.picture);
   const account = await tx.account.findUnique({
     where: { providerId_accountId: { providerId: deps.issuer, accountId: member.sub } },
@@ -190,9 +194,16 @@ async function resolveMember(tx: Tx, deps: DirectoryDeps, member: DirectoryMembe
     const existing = member.email
       ? await tx.user.findFirst({
           where: { email: { equals: member.email.trim(), mode: 'insensitive' } },
-          select: { id: true },
+          select: { id: true, emailVerified: true },
         })
       : null;
+    if (existing && !existing.emailVerified) {
+      deps.logger.warn(
+        { userId: existing.id, sub: member.sub },
+        '[REGISTRE] Skipped a member whose email matches an unverified local account; an admin must verify it'
+      );
+      return null;
+    }
     userId = existing?.id ?? (await provisionUser(tx, deps, member, picture));
     await tx.account.create({ data: { userId, providerId: deps.issuer, accountId: member.sub } });
   }
