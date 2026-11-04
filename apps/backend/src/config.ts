@@ -2,7 +2,8 @@ import { AuthManager } from '@repo/auth';
 import { prisma } from '@repo/database';
 import { QueueManager, createJobConfig } from '@repo/jobs';
 import env from './env';
-import { courrierFromEnv } from './services/courrier';
+import { bulleFromEnv } from '@repo/trpc';
+import { courrierFromEnv, registreFromEnv } from './services/courrier';
 
 const authManager = new AuthManager({
   encryptionSecret: env.ENCRYPTION_SECRET,
@@ -17,10 +18,13 @@ const jobs = new QueueManager(
   })
 );
 
-const courrier = courrierFromEnv(env, prisma, authManager);
+const registre = registreFromEnv(env, prisma, authManager);
+const courrier = courrierFromEnv(env, registre);
+const bulle = bulleFromEnv(env, registre);
 
 export default {
   authManager,
+  bulle,
   courrier,
   env,
   jobs,

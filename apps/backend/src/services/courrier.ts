@@ -1,5 +1,5 @@
 import type { PrismaClient } from '@prisma/client';
-import { CourrierClient, type RefreshTokenStore } from '@repo/courrier';
+import { CourrierClient, RegistreTokens, type RefreshTokenStore } from '@repo/courrier';
 import { logger } from '@repo/logger';
 
 export interface Cipher {
@@ -45,22 +45,30 @@ export function accountTokenStore(prisma: PrismaClient, issuer: string, cipher: 
   };
 }
 
+/**
+ * The one Registre token minter every downstream client shares, or null when
+ * OIDC is not configured. Registre rotates the refresh token on every refresh,
+ * so Courrier and Bulle must go through this single instance.
+ */
+export function registreFromEnv(env: CourrierSettings, prisma: PrismaClient, cipher: Cipher): RegistreTokens | null {
+  if (!env.OIDC_ISSUER || !env.OIDC_CLIENT_ID || !env.OIDC_CLIENT_SECRET) return null;
+  return new RegistreTokens({
+    issuer: env.OIDC_ISSUER,
+    clientId: env.OIDC_CLIENT_ID,
+    clientSecret: env.OIDC_CLIENT_SECRET,
+    store: accountTokenStore(prisma, env.OIDC_ISSUER, cipher),
+  });
+}
+
 /** The Courrier client, or null when COURRIER_URL or the Registre client is not configured. */
-export function courrierFromEnv(env: CourrierSettings, prisma: PrismaClient, cipher: Cipher): CourrierClient | null {
+export function courrierFromEnv(env: CourrierSettings, registre: RegistreTokens | null): CourrierClient | null {
   if (!env.COURRIER_URL) {
     logger.info('[COURRIER] COURRIER_URL unset: Courrier transport, reply sync and contact import are off');
     return null;
   }
-  if (!env.OIDC_ISSUER || !env.OIDC_CLIENT_ID || !env.OIDC_CLIENT_SECRET) {
+  if (!registre) {
     logger.warn('[COURRIER] COURRIER_URL is set but OIDC is not configured: Courrier stays off');
     return null;
   }
-  return new CourrierClient({
-    courrierUrl: env.COURRIER_URL,
-    issuer: env.OIDC_ISSUER,
-    clientId: env.OIDC_CLIENT_ID,
-    clientSecret: env.OIDC_CLIENT_SECRET,
-    audience: env.COURRIER_AUDIENCE,
-    store: accountTokenStore(prisma, env.OIDC_ISSUER, cipher),
-  });
+  return new CourrierClient({ courrierUrl: env.COURRIER_URL, audience: env.COURRIER_AUDIENCE, registre });
 }
