@@ -24,7 +24,6 @@
     "@types/canvas-confetti": "^1.9.0",
     "canvas-confetti": "^1.9.4",
     "iconify-icon": "^3.0.2",
-    "isomorphic-dompurify": "^3.14.0",
     "leaflet": "^1.9.4",
     "sveltekit-superforms": "^2.30.1"
   },

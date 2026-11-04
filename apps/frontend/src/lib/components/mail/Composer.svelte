@@ -8,7 +8,7 @@
   }
 
   export interface ComposerMessage {
-    personId: string;
+    recipientId: string;
     subject: string;
     text: string;
   }
@@ -70,11 +70,11 @@
 
   const recipients = $derived(person ? [person] : people);
   const recipient = $derived(recipients.find((r) => r.id === personId) ?? null);
-  const transportReady = $derived(onSend ? true : transport?.configured === true);
+  const transportReady = $derived(transport?.configured === true);
   const complete = $derived(Boolean(recipient && subject.trim() && body.trim()));
   const canSend = $derived(complete && Boolean(recipient?.email) && transportReady && !busy);
   const canSave = $derived(!onSend && complete && !busy);
-  const bulleContext = $derived({ teamId, personId: personId || undefined, companyId });
+  const bulleContext = $derived({ teamId, personId: (!onSend && personId) || undefined, companyId });
 
   $effect(() => {
     if (open) untrack(reset);
@@ -168,7 +168,7 @@
     if (!canSend) return;
     busy = 'send';
     try {
-      if (onSend) await onSend({ personId, subject: subject.trim(), text: body });
+      if (onSend) await onSend({ recipientId: personId, subject: subject.trim(), text: body });
       else await trpc.email.sendDraft.mutate({ id: await persist() });
       toast.success('E-mail envoyé');
       open = false;
@@ -244,7 +244,7 @@
 
       <div class="flex flex-wrap items-center justify-between gap-2">
         <div class="flex flex-wrap items-center gap-2">
-          {#if !onSend && transport}
+          {#if transport}
             {#if transport.configured}
               <Badge tone="success">Envoi via {transport.transport === 'courrier' ? 'Courrier' : 'SMTP'}</Badge>
             {:else}

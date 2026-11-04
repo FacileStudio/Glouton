@@ -125,12 +125,14 @@ async function callerFor(token: string) {
 }
 
 const sendInput = { leadId: 'lead-1', templateId: 'intro', variables: {} };
+const freeTextInput = { leadId: 'lead-1', subject: 'Bonjour', text: 'Un mot.' };
 
 describe('humanProcedure guard', () => {
   test('a delegated token is refused on send with FORBIDDEN', async () => {
     const { ctx, caller } = await callerFor(await sign(bulle));
     expect(ctx.actor).toBe('bulle');
     await expect(caller.email.sendEmail(sendInput)).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    await expect(caller.email.sendToLead(freeTextInput)).rejects.toMatchObject({ code: 'FORBIDDEN' });
   });
 
   test('a delegated token is refused on SMTP settings', async () => {
@@ -152,6 +154,7 @@ describe('humanProcedure guard', () => {
     const { ctx, caller } = await callerFor('session-token');
     expect(ctx.actor).toBeNull();
     await expect(caller.email.sendEmail(sendInput)).rejects.toThrow('Lead not found');
+    await expect(caller.email.sendToLead(freeTextInput)).rejects.toThrow('Lead not found');
   });
 
   test('a read-only delegated token cannot call a mutation', async () => {

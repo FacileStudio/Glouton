@@ -9,17 +9,46 @@ import { verifyEmail } from '@repo/jobs';
 import type { CourrierClient } from '@repo/courrier';
 import { accessForScope } from '../contact/access';
 import { logActivity } from '../contact/service';
+import { textToHtml } from '../inbox/service';
+
+interface LeadSendBase {
+  scope: Scope;
+  leadId: string;
+  auth: AuthManager;
+  prisma: PrismaClient;
+  courrier?: CourrierClient | null;
+}
+
+interface LeadMessage {
+  subject: string;
+  html: string;
+  text: string;
+  templateId: string | null;
+  variables: Record<string, string>;
+}
 
 export class EmailService {
-  async sendEmail(params: {
-    scope: Scope;
-    leadId: string;
-    templateId: string;
-    variables: Record<string, string>;
-    auth: AuthManager;
-    prisma: PrismaClient;
-    courrier?: CourrierClient | null;
-  }) {
+  async sendEmail(params: LeadSendBase & { templateId: string; variables: Record<string, string> }) {
+    return this.deliverToLead(params, () => {
+      const rendered = renderTemplate(params.templateId, params.variables);
+      if (!rendered) {
+        throw new Error('Template not found');
+      }
+      return { ...rendered, templateId: params.templateId, variables: params.variables };
+    });
+  }
+
+  async sendToLead(params: LeadSendBase & { subject: string; text: string }) {
+    return this.deliverToLead(params, () => ({
+      subject: params.subject,
+      html: textToHtml(params.text),
+      text: params.text,
+      templateId: null,
+      variables: {},
+    }));
+  }
+
+  private async deliverToLead(params: LeadSendBase, build: () => LeadMessage) {
     const lead = await params.prisma.lead.findUnique({
       where: { id: params.leadId },
       select: { id: true, email: true, emailVerified: true },
@@ -54,10 +83,7 @@ export class EmailService {
       logger.info({ leadId: params.leadId, email: lead.email, result: verification.reason }, '[EMAIL] Email verified successfully');
     }
 
-    const rendered = renderTemplate(params.templateId, params.variables);
-    if (!rendered) {
-      throw new Error('Template not found');
-    }
+    const message = build();
 
     logger.info({
       leadId: params.leadId,
@@ -77,11 +103,11 @@ export class EmailService {
         teamId: params.scope.type === 'team' ? params.scope.teamId : null,
         companyId: company?.id ?? null,
         personId: person?.id ?? null,
-        templateId: params.templateId,
-        subject: rendered.subject,
-        htmlBody: rendered.html,
-        textBody: rendered.text,
-        variables: params.variables,
+        templateId: message.templateId,
+        subject: message.subject,
+        htmlBody: message.html,
+        textBody: message.text,
+        variables: message.variables,
         status: 'PENDING',
       },
       select: { id: true },
@@ -94,7 +120,7 @@ export class EmailService {
         auth: params.auth,
         scope: params.scope,
         courrier: params.courrier,
-        mail: { to: lead.email, subject: rendered.subject, html: rendered.html, text: rendered.text },
+        mail: { to: lead.email, subject: message.subject, html: message.html, text: message.text },
       });
     } catch (error) {
       await params.prisma.emailOutreach.update({
@@ -131,7 +157,7 @@ export class EmailService {
           companyId,
           personId: person?.id ?? null,
           kind: 'email.sent',
-          summary: `Email sent: ${rendered.subject}`,
+          summary: `Email sent: ${message.subject}`,
           payload: { outreachId: outreach.id, to: lead.email, transport: sent.transport },
         });
       }

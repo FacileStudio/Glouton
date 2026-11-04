@@ -1,18 +1,16 @@
 <script lang="ts">
-  import { getErrorMessage } from '$lib/utils/trpc-error';
   import { onMount } from 'svelte';
   import { SvelteSet } from 'svelte/reactivity';
   import type { PageProps } from './$types';
   import { fade, fly } from 'svelte/transition';
-  import DOMPurify from 'isomorphic-dompurify';
   import { trpc } from '$lib/trpc';
-  import { Alert, Badge, Button, Card, EmptyState, Field, Input, PageHeader, Select, Spinner, toast } from '@facile/muse';
+  import { Alert, Badge, Button, Card, EmptyState, PageHeader, Spinner, toast } from '@facile/muse';
   import { getFaviconUrl, handleFaviconError } from '$lib/utils/favicon';
   import LeadLocationMap from '$lib/components/leads/LeadLocationMap.svelte';
+  import Composer, { type ComposerMessage } from '$lib/components/mail/Composer.svelte';
   import { teamContextStore } from '$lib/stores/team-context.svelte';
 
   let teamId = $derived(teamContextStore.getTeamId());
-  let settingsUrl = $derived(teamId ? `/app/teams/${teamId}/settings` : '/app/settings');
 
   interface SocialProfile {
     platform: string;
@@ -59,13 +57,6 @@
     createdAt: string;
   }
 
-  interface EmailTemplate {
-    id: string;
-    name: string;
-    subject: string;
-    variables: string[];
-  }
-
   interface EmailOutreach {
     id: string;
     leadId: string | null;
@@ -85,163 +76,41 @@
   }
 
   let lead = $state<Lead | null>(null);
-  let templates = $state<EmailTemplate[]>([]);
   let outreachHistory = $state<EmailOutreach[]>([]);
   let loading = $state(true);
-  let sending = $state(false);
-  let selectedTemplate = $state('');
-  let variables: Record<string, string> = $state({});
-  let emailPreview = $state({ subject: '', html: '', text: '' });
-  let previewLoading = $state(false);
   const expandedEmails = new SvelteSet<string>();
-  let isInitialLoad = $state(true);
+  let composerOpen = $state(false);
   let isFavorite = $state(false);
   let togglingFavorite = $state(false);
-  let smtpConfigured = $state<boolean>(true);
-  let checkingSmtp = $state(true);
 
   let { params }: PageProps = $props();
   let leadId = $derived(params.id);
 
-  onMount(async () => {
-    await Promise.all([loadData(), checkSmtpConfiguration()]);
-  });
+  onMount(loadData);
 
   async function loadData() {
     loading = true;
     try {
       const currentTeamId = teamId;
-      const [leadData, templatesData, historyData, favoriteStatus] = await Promise.all([
+      const [leadData, historyData, favoriteStatus] = await Promise.all([
         trpc.lead.query.getById.query({ leadId }),
-        trpc.email.getTemplates.query(),
         trpc.email.getLeadOutreach.query({ leadId, teamId: currentTeamId }),
         trpc.lead.favorite.isFavorite.query({ leadId, teamId: currentTeamId }),
       ]);
 
       lead = leadData;
-      templates = [...templatesData];
       outreachHistory = [...historyData];
       isFavorite = favoriteStatus.isFavorite;
-
-      if (templatesData.length > 0 && !selectedTemplate) {
-        selectedTemplate = templatesData[0].id;
-        variables = {};
-        templatesData[0].variables.forEach((variable: string) => {
-          if (variable === 'recipientName' && leadData) {
-            variables[variable] = leadData.firstName || leadData.businessName || leadData.domain || '';
-          } else if (variable === 'companyName' && leadData) {
-            variables[variable] = leadData.businessName || leadData.companyInfo?.name || leadData.domain || '';
-          } else {
-            variables[variable] = '';
-          }
-        });
-      }
     } catch (error) {
       toast.danger('Échec du chargement du lead');
       console.error(error);
     } finally {
-      isInitialLoad = false;
       loading = false;
     }
   }
 
-  async function checkSmtpConfiguration() {
-    checkingSmtp = true;
-    try {
-      const status = await trpc.email.getSmtpStatus.query({ teamId });
-      smtpConfigured = status.configured;
-    } catch (error) {
-      console.error('[LEAD] Error checking SMTP config:', error);
-      smtpConfigured = false;
-    } finally {
-      checkingSmtp = false;
-    }
-  }
-
-  function updateVariables(template: EmailTemplate) {
-    const newVars: Record<string, string> = {};
-    template.variables.forEach((variable) => {
-      if (variable === 'recipientName' && lead) {
-        newVars[variable] = lead.firstName || lead.businessName || lead.domain || '';
-      } else if (variable === 'companyName' && lead) {
-        newVars[variable] = lead.businessName || lead.companyInfo?.name || lead.domain || '';
-      } else {
-        newVars[variable] = '';
-      }
-    });
-    variables = newVars;
-    if (!isInitialLoad) {
-      updatePreview();
-    }
-  }
-
-  async function updatePreview() {
-    if (!selectedTemplate) {
-      emailPreview = { subject: '', html: '', text: '' };
-      return;
-    }
-
-    previewLoading = true;
-    try {
-      const vars = { ...variables };
-      Object.keys(vars).forEach((key) => {
-        if (!vars[key]) vars[key] = `{{${key}}}`;
-      });
-
-      const preview = await trpc.email.previewEmail.query({
-        templateId: selectedTemplate,
-        variables: vars,
-      });
-
-      emailPreview = preview;
-    } catch (error) {
-      console.error('Failed to update preview:', error);
-    } finally {
-      previewLoading = false;
-    }
-  }
-
-  function handleTemplateChange() {
-    const template = templates.find((t) => t.id === selectedTemplate);
-    if (template) updateVariables(template);
-  }
-
-  async function sendEmail() {
-    if (!lead || !lead.email) {
-      toast.danger("Ce lead n'a pas d'adresse e-mail");
-      return;
-    }
-
-    const template = templates.find((t) => t.id === selectedTemplate);
-    if (!template) {
-      toast.danger('Veuillez sélectionner un modèle');
-      return;
-    }
-
-    for (const variable of template.variables) {
-      if (!variables[variable]) {
-        toast.danger(`Veuillez remplir : ${variable}`);
-        return;
-      }
-    }
-
-    sending = true;
-    try {
-      await trpc.email.sendEmail.mutate({
-        teamId,
-        leadId: lead.id,
-        templateId: selectedTemplate,
-        variables,
-      });
-
-      toast.success('E-mail envoyé avec succès !');
-      await loadData();
-    } catch (error) {
-      toast.danger(getErrorMessage(error, "Échec de l'envoi de l'e-mail"));
-      console.error(error);
-    } finally {
-      sending = false;
-    }
+  async function sendToLead(message: ComposerMessage) {
+    await trpc.email.sendToLead.mutate({ teamId, leadId, subject: message.subject, text: message.text });
   }
 
   function formatDate(date: string | Date | null): string {
@@ -346,16 +215,6 @@
   let additionalEmails = $derived(lead?.additionalEmails ?? []);
   let phoneNumbers = $derived(lead?.phoneNumbers ?? []);
   let socialProfiles = $derived(lead?.socialProfiles ?? []);
-  const previewStyles =
-    "body{margin:0;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;line-height:1.6;font-size:14px}p{margin:0 0 .875em}h1,h2,h3{margin:1.25em 0 .5em}.container{max-width:100%;margin:0 auto}.header{padding:20px;border-radius:8px 8px 0 0}.content{padding:20px;border-radius:0 0 8px 8px}.footer{text-align:center;margin-top:20px;font-size:11px}";
-  let previewDocument = $derived(`<style>${previewStyles}</style>${DOMPurify.sanitize(emailPreview.html)}`);
-
-  $effect(() => {
-    const _ = [selectedTemplate, variables];
-    if (!isInitialLoad && selectedTemplate) {
-      updatePreview();
-    }
-  });
 </script>
 
 {#snippet contactRow(icon: string, label: string, value: string)}
@@ -417,7 +276,7 @@
         </Button>
 
         {#if lead!.email}
-          <Button href="#email-section" icon="solar:letter-linear">Envoyer un e-mail</Button>
+          <Button onclick={() => (composerOpen = true)} icon="solar:letter-linear">Envoyer un e-mail</Button>
         {/if}
       {/snippet}
     </PageHeader>
@@ -682,107 +541,8 @@
         {/if}
       </div>
 
-      <div class="flex scroll-mt-24 flex-col gap-4 lg:col-span-3" id="email-section">
-        {#if lead.email}
-          <Card class="overflow-hidden p-0">
-            <div class="flex flex-col gap-1 border-b border-fc-border p-5">
-              <h2 class="flex items-center gap-2 text-fc-lg font-semibold text-fc-fg">
-                <iconify-icon icon="solar:letter-linear" width="20" height="20" class="block"></iconify-icon>
-                Prospection par e-mail
-              </h2>
-              <p class="text-fc-sm text-fc-fg-muted">
-                Envoi à <span class="font-medium text-fc-fg">{lead.email}</span>
-              </p>
-            </div>
-
-            {#if !checkingSmtp && !smtpConfigured}
-              <Alert tone="warning" title="Configuration SMTP manquante" class="mx-5 mt-4 flex flex-col items-start gap-2">
-                <p class="text-fc-xs leading-relaxed">
-                  Vous devez configurer vos paramètres SMTP pour pouvoir envoyer des e-mails.
-                </p>
-                <Button href={settingsUrl} size="sm" icon="solar:settings-linear">Configurer SMTP</Button>
-              </Alert>
-            {/if}
-
-            <div class="grid grid-cols-1 xl:grid-cols-2">
-              <div class="flex flex-col gap-4 p-5 xl:border-r xl:border-fc-border">
-                <Field label="Modèle">
-                  <Select bind:value={selectedTemplate} onchange={handleTemplateChange} class="text-fc-sm">
-                    {#each templates as template (template.id)}
-                      <option value={template.id}>{template.name}</option>
-                    {/each}
-                  </Select>
-                </Field>
-
-                {#if selectedTemplate}
-                  {@const template = templates.find(t => t.id === selectedTemplate)}
-                  {#if template && template.variables.length > 0}
-                    <div class="flex flex-col gap-3">
-                      <p class="text-fc-xs text-fc-fg-muted">Variables</p>
-
-                      {#each template.variables as variable, i (i)}
-                        <Field label={variable.replace(/([A-Z])/g, ' $1').trim()} class="[&_label]:capitalize">
-                          <Input
-                            type="text"
-                            bind:value={variables[variable]}
-                            placeholder={variable.replace(/([A-Z])/g, ' $1').trim().toLowerCase()}
-                            class="text-fc-sm"
-                          />
-                        </Field>
-                      {/each}
-                    </div>
-                  {/if}
-                {/if}
-
-                <Button
-                  onclick={sendEmail}
-                  disabled={sending || !selectedTemplate || !smtpConfigured}
-                  icon={sending ? undefined : 'solar:rocket-2-linear'}
-                  class="w-full"
-                >
-                  {#if sending}
-                    <Spinner size="sm" class="border-t-fc-accent-fg" />
-                    Envoi...
-                  {:else}
-                    Envoyer l'e-mail
-                  {/if}
-                </Button>
-              </div>
-
-              <div class="flex flex-col gap-3 border-t border-fc-border p-5 xl:border-t-0">
-                <div class="flex items-center justify-between">
-                  <p class="text-fc-xs text-fc-fg-muted">Aperçu en direct</p>
-                  {#if previewLoading}
-                    <div class="flex items-center gap-1.5 text-fc-xs text-fc-fg-muted">
-                      <Spinner size="sm" />
-                      Mise à jour
-                    </div>
-                  {:else}
-                    <Badge>EN DIRECT</Badge>
-                  {/if}
-                </div>
-
-                {#if emailPreview.subject || emailPreview.html}
-                  <div class="overflow-hidden rounded-fc-md border border-fc-border bg-fc-bg" class:opacity-60={previewLoading}>
-                    <div class="border-b border-fc-border bg-fc-surface px-4 py-2.5">
-                      <p class="mb-0.5 text-fc-xs text-fc-fg-muted">Objet</p>
-                      <p class="text-fc-sm font-medium text-fc-fg">{emailPreview.subject || '—'}</p>
-                    </div>
-                    <div class="p-4">
-                      {#if emailPreview.html}
-                        <iframe title="Aperçu de l'email" sandbox="" srcdoc={previewDocument} class="h-[468px] w-full rounded-fc-md border-0 bg-white"></iframe>
-                      {:else}
-                        <p class="text-fc-sm text-fc-fg-muted italic">Remplissez les variables pour voir l'aperçu...</p>
-                      {/if}
-                    </div>
-                  </div>
-                {:else}
-                  <EmptyState bare icon="solar:document-linear" title="Sélectionnez un modèle pour l'aperçu" class="rounded-fc-md border border-dashed border-fc-border py-10" />
-                {/if}
-              </div>
-            </div>
-          </Card>
-        {:else}
+      <div class="flex flex-col gap-4 lg:col-span-3">
+        {#if !lead.email}
           <EmptyState
             icon="solar:letter-linear"
             title="Aucune adresse e-mail"
@@ -874,3 +634,11 @@
   </div>
 {/if}
 
+{#if lead}
+  <Composer
+    bind:open={composerOpen}
+    person={{ ...lead, companyName: lead.businessName || lead.companyInfo?.name || lead.domain }}
+    onSend={sendToLead}
+    onDone={loadData}
+  />
+{/if}

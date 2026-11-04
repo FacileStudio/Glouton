@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { getErrorMessage } from '$lib/utils/trpc-error';
   import { SvelteURLSearchParams } from 'svelte/reactivity';
   import { fade, slide } from 'svelte/transition';
   import { onMount } from 'svelte';
@@ -8,17 +7,14 @@
   import { trpc } from '$lib/trpc';
   import {
     toast,
-    Alert,
     Badge,
     Button,
     Card,
     EmptyState,
-    Field,
     Icon,
     IconButton,
     Input,
     PageHeader,
-    Select,
     Skeleton,
     Spinner,
     StatCard,
@@ -28,9 +24,9 @@
   import type { BadgeProps } from '@facile/muse';
   import { getFaviconUrl, handleFaviconError } from '$lib/utils/favicon';
   import { teamContextStore } from '$lib/stores/team-context.svelte';
+  import Composer, { type ComposerMessage } from '$lib/components/mail/Composer.svelte';
 
   let teamId = $derived(teamContextStore.getTeamId());
-  let settingsUrl = $derived(teamId ? `/app/teams/${teamId}/settings` : '/app/settings');
 
   interface OutreachLead {
     leadId: string;
@@ -50,13 +46,6 @@
     lastEmailCreatedAt: string;
     daysSinceLastContact: number;
     needsFollowUp: boolean;
-  }
-
-  interface EmailTemplate {
-    id: string;
-    name: string;
-    subject: string;
-    variables: string[];
   }
 
   interface EmailHistory {
@@ -82,7 +71,6 @@
 
   let outreachLeads = $state<OutreachLead[]>([]);
   let stats = $state<Stats | null>(null);
-  let templates = $state<EmailTemplate[]>([]);
   let initialLoading = $state(true);
   let activeTab = $state<'all' | 'followup' | 'pending' | 'replied'>('all');
   let search = $state('');
@@ -109,11 +97,8 @@
   let panelLoading = $state(false);
   let expandedEmailId = $state<string | null>(null);
 
-  let selectedTemplate = $state('');
-  let composeVariables = $state<Record<string, string>>({});
-  let sending = $state(false);
-  let smtpConfigured = $state<boolean>(true);
-  let checkingSmtp = $state(true);
+  let composing = $state<OutreachLead | null>(null);
+  let composerOpen = $state(false);
 
   onMount(async () => {
     const params = new URLSearchParams(location.search);
@@ -121,43 +106,27 @@
     const tab = params.get('tab');
     if (tab === 'followup' || tab === 'pending' || tab === 'replied') activeTab = tab;
 
-    await Promise.all([loadData(), checkSmtpConfiguration()]);
+    await loadData();
     mounted = true;
   });
 
   async function loadData() {
     initialLoading = true;
     try {
-      const [outreachData, statsData, templatesData] = await Promise.all([
+      const [outreachData, statsData] = await Promise.all([
         trpc.email.getAllOutreach.query({ teamId }),
         trpc.email.getStats.query({ teamId }),
-        trpc.email.getTemplates.query(),
       ]);
       outreachLeads = outreachData as OutreachLead[];
       stats = statsData as Stats;
-      templates = templatesData;
     } catch (error) {
       console.error('[OUTREACH] Error loading data:', error);
       toast.danger('Échec du chargement des données de prospection');
 
       outreachLeads = [];
       stats = null;
-      templates = [];
     } finally {
       initialLoading = false;
-    }
-  }
-
-  async function checkSmtpConfiguration() {
-    checkingSmtp = true;
-    try {
-      const status = await trpc.email.getSmtpStatus.query({ teamId });
-      smtpConfigured = status.configured;
-    } catch (error) {
-      console.error('[OUTREACH] Error checking SMTP config:', error);
-      smtpConfigured = false;
-    } finally {
-      checkingSmtp = false;
     }
   }
 
@@ -169,12 +138,9 @@
     }
     expandedLeadId = lead.leadId;
     expandedEmailId = null;
-    selectedTemplate = templates[0]?.id ?? '';
-    composeVariables = {};
-    if (templates[0]) initVariables(templates[0], lead);
     panelLoading = true;
     try {
-      panelHistory = (await trpc.email.getLeadOutreach.query({ leadId: lead.leadId, teamId })) as EmailHistory[];
+      await loadHistory(lead.leadId);
     } catch {
       toast.danger("Échec du chargement de l'historique");
     } finally {
@@ -182,52 +148,22 @@
     }
   }
 
-  function initVariables(template: EmailTemplate, lead: OutreachLead) {
-    composeVariables = {};
-    template.variables.forEach((v) => {
-      if (v === 'recipientName') composeVariables[v] = lead.firstName || lead.domain || '';
-      else if (v === 'companyName') composeVariables[v] = lead.businessName || lead.domain || '';
-      else composeVariables[v] = '';
-    });
+  async function loadHistory(leadId: string) {
+    panelHistory = (await trpc.email.getLeadOutreach.query({ leadId, teamId })) as EmailHistory[];
   }
 
-  function handleTemplateChange(lead: OutreachLead) {
-    const tpl = templates.find((t) => t.id === selectedTemplate);
-    if (tpl) initVariables(tpl, lead);
+  function compose(lead: OutreachLead) {
+    composing = lead;
+    composerOpen = true;
   }
 
-  async function sendFromPanel(lead: OutreachLead) {
-    if (!lead.email) {
-      toast.danger("Ce lead n'a pas d'adresse e-mail");
-      return;
-    }
-    const template = templates.find((t) => t.id === selectedTemplate);
-    if (!template) {
-      toast.danger('Sélectionnez un modèle');
-      return;
-    }
-    for (const v of template.variables) {
-      if (!composeVariables[v]) {
-        toast.danger(`Veuillez remplir : ${v}`);
-        return;
-      }
-    }
-    sending = true;
-    try {
-      await trpc.email.sendEmail.mutate({
-        teamId,
-        leadId: lead.leadId,
-        templateId: selectedTemplate,
-        variables: composeVariables,
-      });
-      toast.success('E-mail envoyé avec succès !');
-      panelHistory = (await trpc.email.getLeadOutreach.query({ leadId: lead.leadId, teamId })) as EmailHistory[];
-      await loadData();
-    } catch (e) {
-      toast.danger(getErrorMessage(e, "Échec de l'envoi"));
-    } finally {
-      sending = false;
-    }
+  async function sendToLead(message: ComposerMessage) {
+    await trpc.email.sendToLead.mutate({ teamId, leadId: message.recipientId, subject: message.subject, text: message.text });
+  }
+
+  async function sent() {
+    if (expandedLeadId) await loadHistory(expandedLeadId);
+    await loadData();
   }
 
   function getLeadName(lead: OutreachLead): string {
@@ -340,19 +276,6 @@
 
 <div class="flex flex-col gap-6">
   <PageHeader title="Prospection" description="Historique des e-mails, relances et réponses" />
-
-  {#if !checkingSmtp && !smtpConfigured}
-    <div transition:slide={{ duration: 200 }}>
-      <Alert tone="warning" title="Configuration SMTP manquante">
-        <div class="flex flex-col items-start gap-3">
-          <p class="text-fc-fg-muted">
-            Vous devez configurer vos paramètres SMTP pour pouvoir envoyer des e-mails. Rendez-vous dans les paramètres de l'espace pour ajouter votre configuration SMTP.
-          </p>
-          <Button href={settingsUrl} icon={icons.settings}>Configurer SMTP</Button>
-        </div>
-      </Alert>
-    </div>
-  {/if}
 
   <section class="grid grid-cols-1 gap-4 sm:grid-cols-3">
     {#if initialLoading}
@@ -509,132 +432,59 @@
                     <Spinner size="md" label="Chargement" />
                   </div>
                 {:else}
-                  <div class="grid grid-cols-1 divide-y divide-fc-border lg:grid-cols-2 lg:divide-x lg:divide-y-0">
-                    <div class="flex flex-col gap-3 p-4 sm:p-6">
-                      <div class="flex items-center justify-between gap-2">
-                        <h3 class="flex items-center gap-2 text-fc-sm font-semibold text-fc-fg">
-                          <Icon icon={icons.history} size={16} />
-                          Historique des e-mails
-                        </h3>
-                        <Button
-                          href={`/app/leads/${lead.leadId}`}
-                          variant="ghost"
-                          size="sm"
-                          iconRight="solar:arrow-right-up-linear"
-                        >
+                  <div class="flex flex-col gap-3 p-4 sm:p-6">
+                    <div class="flex items-center justify-between gap-2">
+                      <h3 class="flex items-center gap-2 text-fc-sm font-semibold text-fc-fg">
+                        <Icon icon={icons.history} size={16} />
+                        Historique des e-mails
+                      </h3>
+                      <div class="flex flex-wrap gap-2">
+                        <Button href={`/app/leads/${lead.leadId}`} variant="ghost" size="sm" iconRight="solar:arrow-right-up-linear">
                           Profil complet
                         </Button>
-                      </div>
-
-                      {#if panelHistory.length === 0}
-                        <p class="py-6 text-center text-fc-sm text-fc-fg-muted">Aucun e-mail envoyé</p>
-                      {:else}
-                        <div class="flex max-h-64 flex-col gap-1 overflow-y-auto pr-1">
-                          {#each panelHistory as email (email.id)}
-                            <button
-                              type="button"
-                              onclick={(e) => { e.stopPropagation(); expandedEmailId = expandedEmailId === email.id ? null : email.id; }}
-                              aria-expanded={expandedEmailId === email.id}
-                              class="flex w-full items-start gap-3 rounded-fc-md p-3 text-left transition-colors hover:bg-fc-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fc-ring"
-                            >
-                              <div class="flex size-7 shrink-0 items-center justify-center rounded-fc-md {getHistoryStatusColor(email.status)}">
-                                <Icon icon={getHistoryStatusIcon(email.status)} size={14} />
-                              </div>
-                              <div class="min-w-0 flex-1">
-                                <p class="truncate text-fc-sm font-medium text-fc-fg">{email.subject}</p>
-                                <p class="mt-0.5 text-fc-xs text-fc-fg-muted">{formatDate(email.sentAt || email.createdAt)}</p>
-                                {#if expandedEmailId === email.id && email.textBody}
-                                  <p class="mt-2 whitespace-pre-wrap border-t border-fc-border pt-2 text-fc-sm leading-relaxed text-fc-fg" in:slide={{ duration: 150 }}>
-                                    {email.textBody}
-                                  </p>
-                                {/if}
-                                {#if email.error}
-                                  <p class="mt-1 text-fc-xs text-fc-danger">{email.error}</p>
-                                {/if}
-                              </div>
-                              <Icon
-                                icon={expandedEmailId === email.id ? icons.chevronUp : icons.chevronDown}
-                                size={14}
-                                class="mt-1 text-fc-fg-muted"
-                              />
-                            </button>
-                          {/each}
-                        </div>
-                      {/if}
-                    </div>
-
-                    <div class="flex flex-col gap-4 p-4 sm:p-6" role="presentation" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
-                      <h3 class="flex items-center gap-2 text-fc-sm font-semibold text-fc-fg">
-                        <Icon icon="solar:rocket-2-linear" size={16} />
-                        {lead.emailsSentCount > 0 ? 'Envoyer une relance' : 'Envoyer un e-mail'}
-                      </h3>
-
-                      {#if !lead.email}
-                        <p class="rounded-fc-md bg-fc-component py-6 text-center text-fc-sm text-fc-fg-muted">Aucune adresse e-mail</p>
-                      {:else if templates.length === 0}
-                        <p class="rounded-fc-md bg-fc-component py-6 text-center text-fc-sm text-fc-fg-muted">Aucun modèle disponible</p>
-                      {:else}
-                        {#if !smtpConfigured}
-                          <Alert tone="warning" title="SMTP non configuré">
-                            <p class="text-fc-xs text-fc-fg-muted">
-                              Configurez vos paramètres SMTP dans les paramètres de l'espace pour envoyer des e-mails.
-                            </p>
-                          </Alert>
+                        {#if lead.email}
+                          <Button size="sm" icon="solar:letter-linear" onclick={() => compose(lead)}>
+                            {lead.emailsSentCount > 0 ? 'Envoyer une relance' : 'Envoyer un e-mail'}
+                          </Button>
                         {/if}
-
-                        <div class="flex flex-col gap-3">
-                          <Field label="Modèle">
-                            <Select
-                              bind:value={selectedTemplate}
-                              onchange={() => handleTemplateChange(lead)}
-                            >
-                              {#each templates as template (template.id)}
-                                <option value={template.id}>{template.name}</option>
-                              {/each}
-                            </Select>
-                          </Field>
-
-                          {#if selectedTemplate}
-                            {@const tpl = templates.find((t) => t.id === selectedTemplate)}
-                            {#if tpl && tpl.variables.length > 0}
-                              <div class="flex flex-col gap-2">
-                                <p class="text-fc-sm font-medium text-fc-fg">Variables</p>
-
-                                {#each tpl.variables as variable, i (i)}
-                                  <Field label={variable.replace(/([A-Z])/g, ' $1').trim()} class="capitalize">
-                                    <Input
-                                      type="text"
-                                      bind:value={composeVariables[variable]}
-                                      placeholder={variable.replace(/([A-Z])/g, ' $1').trim().toLowerCase()}
-                                      class="normal-case"
-                                    />
-                                  </Field>
-                                {/each}
-                              </div>
-                            {/if}
-                          {/if}
-
-                          <div class="flex flex-col gap-3 pt-1">
-                            <p class="text-fc-xs text-fc-fg-muted">
-                              Envoi à <span class="font-medium text-fc-fg">{lead.email}</span>
-                            </p>
-                            <Button
-                              onclick={() => sendFromPanel(lead)}
-                              disabled={sending || !selectedTemplate || !smtpConfigured}
-                              icon={sending ? undefined : 'solar:rocket-2-linear'}
-                              class="w-full"
-                            >
-                              {#if sending}
-                                <Spinner size="sm" label="Envoi" class="border-fc-accent-fg/30 border-t-fc-accent-fg" />
-                                Envoi...
-                              {:else}
-                                {lead.emailsSentCount > 0 ? 'Envoyer une relance' : 'Envoyer un e-mail'}
-                              {/if}
-                            </Button>
-                          </div>
-                        </div>
-                      {/if}
+                      </div>
                     </div>
+
+                    {#if panelHistory.length === 0}
+                      <p class="py-6 text-center text-fc-sm text-fc-fg-muted">Aucun e-mail envoyé</p>
+                    {:else}
+                      <div class="flex max-h-64 flex-col gap-1 overflow-y-auto pr-1">
+                        {#each panelHistory as email (email.id)}
+                          <button
+                            type="button"
+                            onclick={(e) => { e.stopPropagation(); expandedEmailId = expandedEmailId === email.id ? null : email.id; }}
+                            aria-expanded={expandedEmailId === email.id}
+                            class="flex w-full items-start gap-3 rounded-fc-md p-3 text-left transition-colors hover:bg-fc-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fc-ring"
+                          >
+                            <div class="flex size-7 shrink-0 items-center justify-center rounded-fc-md {getHistoryStatusColor(email.status)}">
+                              <Icon icon={getHistoryStatusIcon(email.status)} size={14} />
+                            </div>
+                            <div class="min-w-0 flex-1">
+                              <p class="truncate text-fc-sm font-medium text-fc-fg">{email.subject}</p>
+                              <p class="mt-0.5 text-fc-xs text-fc-fg-muted">{formatDate(email.sentAt || email.createdAt)}</p>
+                              {#if expandedEmailId === email.id && email.textBody}
+                                <p class="mt-2 whitespace-pre-wrap border-t border-fc-border pt-2 text-fc-sm leading-relaxed text-fc-fg" in:slide={{ duration: 150 }}>
+                                  {email.textBody}
+                                </p>
+                              {/if}
+                              {#if email.error}
+                                <p class="mt-1 text-fc-xs text-fc-danger">{email.error}</p>
+                              {/if}
+                            </div>
+                            <Icon
+                              icon={expandedEmailId === email.id ? icons.chevronUp : icons.chevronDown}
+                              size={14}
+                              class="mt-1 text-fc-fg-muted"
+                            />
+                          </button>
+                        {/each}
+                      </div>
+                    {/if}
                   </div>
                 {/if}
               </div>
@@ -645,3 +495,12 @@
     </Card>
   {/if}
 </div>
+
+{#if composing}
+  <Composer
+    bind:open={composerOpen}
+    person={{ id: composing.leadId, firstName: composing.firstName, lastName: composing.lastName, email: composing.email, companyName: composing.businessName || composing.domain }}
+    onSend={sendToLead}
+    onDone={sent}
+  />
+{/if}

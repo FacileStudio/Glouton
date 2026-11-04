@@ -86,6 +86,28 @@ export const emailRouter = router({
       }).catch(courrierFailure);
     }),
 
+  sendToLead: humanProcedure
+    .input(
+      z.object({
+        teamId: z.string().uuid().optional(),
+        leadId: z.string(),
+        subject: z.string().trim().min(1).max(300).refine((val) => !/[\r\n]/.test(val), 'Subject cannot contain line breaks'),
+        text: z.string().trim().min(1).max(50000),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const scope = await resolveScope(ctx.prisma, ctx.user.id, input.teamId);
+      return new EmailService().sendToLead({
+        scope,
+        leadId: input.leadId,
+        subject: input.subject,
+        text: input.text,
+        auth: ctx.auth,
+        prisma: ctx.prisma,
+        courrier: ctx.courrier,
+      }).catch(courrierFailure);
+    }),
+
   sendDraft: humanProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) =>
