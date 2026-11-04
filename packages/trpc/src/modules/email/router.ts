@@ -86,7 +86,7 @@ export const emailRouter = router({
       }).catch(courrierFailure);
     }),
 
-  sendToLead: humanProcedure
+  sendToLead: humanProcedure.meta({ forfait: { row: { model: 'lead', key: 'leadId' } } })
     .input(
       z.object({
         teamId: z.string().uuid().optional(),

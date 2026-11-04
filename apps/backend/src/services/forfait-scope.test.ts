@@ -143,6 +143,28 @@ describe('account procedures and shared templates', () => {
   });
 });
 
+describe('assistant procedures', () => {
+  const user = { id: 'user-1', email: 'u@example.com', role: 'USER' };
+  const teamId = '00000000-0000-4000-8000-0000000000bb';
+
+  test('none is exempt: status needs the personal plan or the named team', async () => {
+    for (const path of ['assistant.status', 'assistant.write', 'assistant.nextAction']) {
+      expect(forfait.EXEMPT.has(path) || forfait.ACCOUNT.has(path)).toBe(false);
+    }
+    expect((await call('assistant.status', user, reader(false), undefined)).status).toBe(402);
+    expect((await call('assistant.status', user, reader(false, { [teamId]: false }), { teamId })).status).toBe(402);
+    expect((await call('assistant.status', user, reader(true), { teamId })).status).toBe(403);
+  });
+
+  test('write and nextAction need one entitled scope, and a named team must have access', async () => {
+    const input = { companyId: 'c1' };
+    expect((await call('assistant.nextAction', user, reader(false, { [teamId]: false }), input, { mutation: true })).status).toBe(402);
+    expect(
+      (await call('assistant.nextAction', user, reader(true, { [teamId]: false }), { ...input, teamId }, { mutation: true })).status
+    ).toBe(402);
+  });
+});
+
 describe('targetTeam', () => {
   test('refuses with the personal upgrade URL instead of writing into some team', () => {
     const access = { userId: 'u', actor: null, teamIds: ['t1'], personal: false, upgradeUrl: 'https://sso.test/spaces' };
@@ -287,6 +309,7 @@ describe.skipIf(!databaseUrl)('by-id procedures take the scope of their row', ()
       ['lead.favorite.isFavorite', { leadId: rows.teamLead }, false],
       ['lead.query.delete', { leadId: rows.teamLead }, true],
       ['email.sendEmail', { leadId: rows.teamLead, templateId: 'intro', variables: {} }, true],
+      ['email.sendToLead', { leadId: rows.teamLead, subject: 'Hello', text: 'Hi' }, true],
       ['lead.hunt.getStatus', { huntSessionId: rows.teamHunt }, false],
       ['lead.hunt.getRunDetails', { huntSessionId: rows.teamHunt }, false],
       ['lead.hunt.getRunEvents', { huntSessionId: rows.teamHunt }, false],
