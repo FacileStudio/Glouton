@@ -54,6 +54,8 @@ export const CROSS_SCOPE: readonly string[] = [
   'inbox.',
   'contact.',
   'ardoise.',
+  'assistant.write',
+  'assistant.nextAction',
   'opportunity.',
   'companyCreation.list',
   'companyCreation.get',
