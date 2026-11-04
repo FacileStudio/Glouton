@@ -1,47 +1,50 @@
+import {
+  RegistreError,
+  RegistreReconnectError,
+  RegistreTokens,
+  readJson,
+  record,
+  text,
+  type ExchangeTarget,
+  type RefreshTokenStore,
+} from './registre';
+
+export {
+  RECONNECT_MESSAGE,
+  RegistreError,
+  RegistreReconnectError,
+  RegistreTokens,
+  readJson,
+  record,
+  text,
+  type ExchangeTarget,
+  type RefreshTokenStore,
+  type RegistreConfig,
+} from './registre';
+
 export const COURRIER_AUDIENCE = 'tniN7PWx8mSOCwVAAvYpBexYnMFWAM5flt19rNl0';
 export const COURRIER_SCOPES = 'courrier.read courrier.write';
-export const RECONNECT_MESSAGE = 'Reconnect your Facile account';
-
-const TOKEN_EXCHANGE_GRANT = 'urn:ietf:params:oauth:grant-type:token-exchange';
-const ACCESS_TOKEN_TYPE = 'urn:ietf:params:oauth:token-type:access_token';
-const EXPIRY_MARGIN_MS = 30_000;
-const FALLBACK_LIFETIME_MS = 60_000;
 
 /** Thrown when Glouton holds no usable Registre grant for the user: they must sign in again. */
-export class CourrierReconnectError extends Error {
-  constructor(readonly detail?: string) {
-    super(RECONNECT_MESSAGE);
-    this.name = 'CourrierReconnectError';
-  }
-}
+export const CourrierReconnectError = RegistreReconnectError;
+export type CourrierReconnectError = RegistreReconnectError;
 
 /** Thrown when Registre or Courrier answers with an error other than a lost grant. */
-export class CourrierError extends Error {
-  constructor(
-    message: string,
-    readonly status: number
-  ) {
-    super(message);
-    this.name = 'CourrierError';
-  }
-}
+export const CourrierError = RegistreError;
+export type CourrierError = RegistreError;
 
-/** Where the user's Registre refresh token lives; Registre rotates it on every refresh. */
-export interface RefreshTokenStore {
-  load(userId: string): Promise<string | null>;
-  save(userId: string, refreshToken: string): Promise<void>;
-}
-
-export interface CourrierConfig {
+interface CourrierBase {
   courrierUrl: string;
-  issuer: string;
-  clientId: string;
-  clientSecret: string;
   audience?: string;
-  store: RefreshTokenStore;
   fetch?: typeof fetch;
-  now?: () => number;
 }
+
+/** Either a shared RegistreTokens (so every audience rotates one refresh token), or the settings to build one. */
+export type CourrierConfig = CourrierBase &
+  (
+    | { registre: RegistreTokens }
+    | { issuer: string; clientId: string; clientSecret: string; store: RefreshTokenStore; now?: () => number }
+  );
 
 export interface CourrierAccount {
   id: number;
@@ -72,42 +75,8 @@ export interface CourrierContact {
   lastSentAt: Date | null;
 }
 
-interface CachedToken {
-  value: string;
-  expiresAt: number;
-}
-
-interface TokenResponse {
-  access_token?: string;
-  refresh_token?: string;
-  expires_in?: number;
-  error?: string;
-  error_description?: string;
-}
-
-type Json = Record<string, unknown>;
-
-function record(value: unknown): Json {
-  return value && typeof value === 'object' && !Array.isArray(value) ? (value as Json) : {};
-}
-
-function text(value: unknown): string {
-  return typeof value === 'string' ? value : '';
-}
-
 function list(value: unknown): unknown[] {
   return Array.isArray(value) ? value : [];
-}
-
-function jwtExpiry(token: string): number | null {
-  const payload = token.split('.')[1];
-  if (!payload) return null;
-  try {
-    const exp = record(JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')))).exp;
-    return typeof exp === 'number' ? exp * 1000 : null;
-  } catch {
-    return null;
-  }
 }
 
 function errorMessage(body: unknown, fallback: string): string {
@@ -116,40 +85,22 @@ function errorMessage(body: unknown, fallback: string): string {
   return text(nested.message) || text(root.error_description) || text(root.error) || text(root.message) || fallback;
 }
 
-async function readJson(response: Response): Promise<unknown> {
-  const raw = await response.text();
-  if (!raw) return null;
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return raw;
-  }
-}
-
 /**
- * Talks to Courrier as a Glouton user. Each call turns the user's stored
- * Registre refresh token into a Registre access token, exchanges that
- * (RFC 8693) for a Courrier token, and caches both per user until 30 seconds
- * before they expire. Concurrent calls for one user share a single refresh, so
- * Registre's refresh-token rotation never sees the same grant twice.
+ * Talks to Courrier as a Glouton user, with a Courrier token minted by
+ * RegistreTokens (refresh, then RFC 8693 exchange, cached per user). Pass the
+ * shared RegistreTokens when other audiences are minted for the same users.
  */
 export class CourrierClient {
   private readonly baseUrl: string;
-  private readonly issuer: string;
-  private readonly audience: string;
   private readonly http: typeof fetch;
-  private readonly now: () => number;
-  private readonly registreTokens = new Map<string, CachedToken>();
-  private readonly courrierTokens = new Map<string, CachedToken>();
-  private readonly pending = new Map<string, Promise<string>>();
-  private tokenEndpoint: string | null = null;
+  private readonly registre: RegistreTokens;
+  private readonly target: ExchangeTarget;
 
-  constructor(private readonly config: CourrierConfig) {
+  constructor(config: CourrierConfig) {
     this.baseUrl = config.courrierUrl.replace(/\/$/, '');
-    this.issuer = config.issuer.replace(/\/$/, '');
-    this.audience = config.audience ?? COURRIER_AUDIENCE;
     this.http = config.fetch ?? fetch;
-    this.now = config.now ?? Date.now;
+    this.registre = 'registre' in config ? config.registre : new RegistreTokens(config);
+    this.target = { audience: config.audience ?? COURRIER_AUDIENCE, scopes: COURRIER_SCOPES, label: 'Courrier' };
   }
 
   /** Lists the mail accounts the user can send from, narrowed to a Registre space when given. */
@@ -220,101 +171,13 @@ export class CourrierClient {
   }
 
   /** A Courrier access token for the user, minted through Registre when the cached one is stale. */
-  async courrierToken(userId: string): Promise<string> {
-    const cached = this.fresh(this.courrierTokens, userId);
-    if (cached) return cached;
-    const running = this.pending.get(userId);
-    if (running) return running;
-    const minting = this.mintCourrierToken(userId).finally(() => this.pending.delete(userId));
-    this.pending.set(userId, minting);
-    return minting;
+  courrierToken(userId: string): Promise<string> {
+    return this.registre.token(userId, this.target);
   }
 
   /** Drops every cached token for the user, so the next call goes back to Registre. */
   forget(userId: string): void {
-    this.registreTokens.delete(userId);
-    this.courrierTokens.delete(userId);
-  }
-
-  private fresh(cache: Map<string, CachedToken>, userId: string): string | null {
-    const entry = cache.get(userId);
-    if (entry && entry.expiresAt > this.now()) return entry.value;
-    cache.delete(userId);
-    return null;
-  }
-
-  private remember(cache: Map<string, CachedToken>, userId: string, token: string, expiresIn?: number): void {
-    const expiry =
-      typeof expiresIn === 'number' && expiresIn > 0
-        ? this.now() + expiresIn * 1000
-        : (jwtExpiry(token) ?? this.now() + FALLBACK_LIFETIME_MS);
-    cache.set(userId, { value: token, expiresAt: expiry - EXPIRY_MARGIN_MS });
-  }
-
-  private async mintCourrierToken(userId: string): Promise<string> {
-    const reused = this.fresh(this.registreTokens, userId);
-    try {
-      return await this.exchange(userId, reused ?? (await this.refresh(userId)));
-    } catch (error) {
-      if (!reused || error instanceof CourrierReconnectError) throw error;
-      this.registreTokens.delete(userId);
-      return this.exchange(userId, await this.refresh(userId));
-    }
-  }
-
-  private async endpoint(): Promise<string> {
-    if (this.tokenEndpoint) return this.tokenEndpoint;
-    const response = await this.http(`${this.issuer}/.well-known/openid-configuration`);
-    if (!response.ok) throw new CourrierError(`Registre discovery failed (${response.status})`, response.status);
-    const endpoint = text(record(await readJson(response)).token_endpoint);
-    if (!endpoint) throw new CourrierError('Registre discovery has no token endpoint', 502);
-    this.tokenEndpoint = endpoint;
-    return endpoint;
-  }
-
-  private async tokenRequest(form: Record<string, string>): Promise<{ status: number; body: TokenResponse }> {
-    const basic = btoa(`${encodeURIComponent(this.config.clientId)}:${encodeURIComponent(this.config.clientSecret)}`);
-    const response = await this.http(await this.endpoint(), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded', Authorization: `Basic ${basic}` },
-      body: new URLSearchParams(form),
-    });
-    return { status: response.status, body: record(await readJson(response)) as TokenResponse };
-  }
-
-  private async refresh(userId: string): Promise<string> {
-    const refreshToken = await this.config.store.load(userId);
-    if (!refreshToken) throw new CourrierReconnectError('no refresh token stored');
-    const { status, body } = await this.tokenRequest({ grant_type: 'refresh_token', refresh_token: refreshToken });
-    if (body.refresh_token && body.refresh_token !== refreshToken) {
-      await this.config.store.save(userId, body.refresh_token);
-    }
-    if (status >= 400 || !body.access_token) {
-      if (body.error === 'invalid_grant' || status === 400 || status === 401) {
-        throw new CourrierReconnectError(body.error_description ?? body.error);
-      }
-      throw new CourrierError(`Registre refused the refresh (${status})`, status);
-    }
-    this.remember(this.registreTokens, userId, body.access_token, body.expires_in);
-    return body.access_token;
-  }
-
-  private async exchange(userId: string, subjectToken: string): Promise<string> {
-    const { status, body } = await this.tokenRequest({
-      grant_type: TOKEN_EXCHANGE_GRANT,
-      subject_token: subjectToken,
-      subject_token_type: ACCESS_TOKEN_TYPE,
-      audience: this.audience,
-      scope: COURRIER_SCOPES,
-    });
-    if (status >= 400 || !body.access_token) {
-      throw new CourrierError(
-        `Registre refused the Courrier token exchange: ${body.error_description ?? body.error ?? status}`,
-        status
-      );
-    }
-    this.remember(this.courrierTokens, userId, body.access_token, body.expires_in);
-    return body.access_token;
+    this.registre.forget(userId, this.target);
   }
 
   private async request(userId: string, method: string, path: string, payload?: unknown): Promise<unknown> {

@@ -11,6 +11,7 @@ export const trpcHandler =
     events,
     verifyDelegated,
     courrier,
+    bulle,
   }: Omit<CreateContextOptions, 'req' | 'resHeaders' | 'info' | 'logger' | 'db'>) =>
   (c: Context, next: Next) =>
     trpcServer({
@@ -28,6 +29,7 @@ export const trpcHandler =
           events,
           verifyDelegated,
           courrier,
+          bulle,
         });
       },
     })(c, next);

@@ -40,6 +40,7 @@ export const serverEnvSchema = baseSchema
 
     COURRIER_URL: optionalUrl,
     COURRIER_AUDIENCE: optionalString,
+    BULLE_URL: optionalUrl,
     ARDOISE_URL: optionalUrl,
     ARDOISE_API_TOKEN: optionalString,
     ARDOISE_WEBHOOK_SECRET: z.preprocess(emptyAsUndefined, z.string().min(16).optional()),

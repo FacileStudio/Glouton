@@ -251,6 +251,7 @@ app.all('/trpc/*', trpcHandler({
   events,
   verifyDelegated,
   courrier: config.courrier,
+  bulle: config.bulle,
 }));
 
 app.get('/', (c) => c.json({ message: "Welcome to the Glouton's API !" }));

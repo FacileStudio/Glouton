@@ -9,6 +9,7 @@ import { companyCreationRouter } from './modules/company-creation/router';
 import { contactRouter } from './modules/contact/router';
 import { inboxRouter } from './modules/inbox/router';
 import { ardoiseRouter } from './modules/ardoise/router';
+import { assistantRouter } from './modules/assistant/router';
 import { createOpenApiDocument } from './openapi';
 
 export const appRouter = router({
@@ -22,6 +23,7 @@ export const appRouter = router({
   contact: contactRouter,
   inbox: inboxRouter,
   ardoise: ardoiseRouter,
+  assistant: assistantRouter,
 });
 
 export const openApiDocument = createOpenApiDocument(appRouter);
@@ -45,3 +47,4 @@ export {
   suggestionInput,
 } from './modules/inbox/router';
 export * as mailTransport from './modules/email/transport';
+export { BulleClient, bulleFromEnv } from './modules/assistant/bulle';

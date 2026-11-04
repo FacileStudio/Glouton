@@ -6,6 +6,7 @@ import { QueueManager } from '@repo/jobs';
 import type { Logger } from '@repo/logger';
 import type { DelegatedVerifier } from './delegation';
 import type { CourrierClient } from '@repo/courrier';
+import type { BulleClient } from './modules/assistant/bulle';
 
 export interface CreateContextOptions extends FetchCreateContextFnOptions {
   prisma: PrismaClient;
@@ -15,6 +16,7 @@ export interface CreateContextOptions extends FetchCreateContextFnOptions {
   jobs: QueueManager;
   verifyDelegated?: DelegatedVerifier | null;
   courrier?: CourrierClient | null;
+  bulle?: BulleClient | null;
   events?: {
     emit: (userId: string, type: string, data?: any) => void;
     broadcast: (type: string, data?: any) => void;
@@ -57,6 +59,7 @@ export const createContext = async (options: CreateContextOptions) => {
     jobs: options.jobs,
     events: options.events,
     courrier: options.courrier ?? null,
+    bulle: options.bulle ?? null,
   };
 };
 
