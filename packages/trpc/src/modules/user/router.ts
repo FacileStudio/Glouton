@@ -28,7 +28,7 @@ export const userRouter = router({
       return userService.getAllUsers(input);
     }),
 
-  getById: adminProcedure.input(z.object({ id: z.string() })).query(async ({ input }) => {
+  getById: adminProcedure.meta({ forfait: { ids: 'unscoped' } }).input(z.object({ id: z.string() })).query(async ({ input }) => {
     return userService.getUserById(input.id);
   }),
 
@@ -36,7 +36,7 @@ export const userRouter = router({
     return userService.getUserStats();
   }),
 
-  update: adminProcedure
+  update: adminProcedure.meta({ forfait: { ids: 'unscoped' } })
     .input(
       z.object({
         id: z.string(),
@@ -49,7 +49,7 @@ export const userRouter = router({
       return userService.updateUser(id, data);
     }),
 
-  ban: adminProcedure
+  ban: adminProcedure.meta({ forfait: { ids: 'unscoped' } })
     .input(
       z.object({
         id: z.string(),
@@ -60,11 +60,11 @@ export const userRouter = router({
       return userService.banUser(input.id, input.reason, ctx.user.id);
     }),
 
-  unban: adminProcedure.input(z.object({ id: z.string() })).mutation(async ({ input }) => {
+  unban: adminProcedure.meta({ forfait: { ids: 'unscoped' } }).input(z.object({ id: z.string() })).mutation(async ({ input }) => {
     return userService.unbanUser(input.id);
   }),
 
-  suspend: adminProcedure
+  suspend: adminProcedure.meta({ forfait: { ids: 'unscoped' } })
     .input(
       z.object({
         id: z.string(),
@@ -76,21 +76,21 @@ export const userRouter = router({
       return userService.suspendUser(input.id, input.reason, input.until);
     }),
 
-  unsuspend: adminProcedure.input(z.object({ id: z.string() })).mutation(async ({ input }) => {
+  unsuspend: adminProcedure.meta({ forfait: { ids: 'unscoped' } }).input(z.object({ id: z.string() })).mutation(async ({ input }) => {
     return userService.unsuspendUser(input.id);
   }),
 
-  verifyEmail: adminProcedure
+  verifyEmail: adminProcedure.meta({ forfait: { ids: 'unscoped' } })
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input }) => {
       return userService.verifyEmail(input.id);
     }),
 
-  delete: adminProcedure.input(z.object({ id: z.string() })).mutation(async ({ input }) => {
+  delete: adminProcedure.meta({ forfait: { ids: 'unscoped' } }).input(z.object({ id: z.string() })).mutation(async ({ input }) => {
     return userService.deleteUser(input.id);
   }),
 
-  bulkDelete: adminProcedure
+  bulkDelete: adminProcedure.meta({ forfait: { ids: 'unscoped' } })
     .input(z.object({ ids: z.array(z.string()) }))
     .mutation(async ({ input }) => {
       return userService.bulkDeleteUsers(input.ids);

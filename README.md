@@ -22,9 +22,13 @@ a WebSocket. Leads, hunts and missions belong either to a user or to a team.
 ## Subscription gate
 
 Registre pushes plan entitlements in its directory snapshot. Glouton stores the last known values
-in its database and checks `glouton.access` on every tRPC call, in the scope of the call (the
-team named by `teamId`, after a server-side membership check, or the personal scope). New
-procedures are gated unless added to `EXEMPT` in `packages/trpc/src/modules/forfait/gate.ts`.
+in its database and checks `glouton.access` on every tRPC call, in the scope of the call: the
+row a by-id procedure acts on, else the team named by `teamId` (after a server-side membership
+check), else the personal scope. New procedures are gated unless added to `EXEMPT` or `ACCOUNT`
+in `packages/trpc/src/modules/forfait/gate.ts`, and one that takes a row id must declare its scope.
+
+When OIDC is configured, password sign-up and sign-in are off, and SSO links to an existing local
+account by email only if Glouton verified that email.
 
 Until a snapshot with `entitlements_revision > 0` has been applied once, Glouton allows every scope
 and logs a warning, so deploying it before Registre and Ardoise locks nobody out. After that it

@@ -36,7 +36,7 @@ export const emailRouter = router({
     .input(optionalTeam)
     .query(async ({ ctx, input }) => listCourrierAccounts(ctx.prisma, ctx.courrier, ctx.user.id, input?.teamId)),
 
-  setMailTransport: humanProcedure
+  setMailTransport: humanProcedure.meta({ forfait: { ids: 'unscoped' } })
     .input(setMailTransportSchema)
     .mutation(async ({ ctx, input }) => setMailTransport(ctx.prisma, ctx.courrier, ctx.user.id, input)),
 
@@ -59,7 +59,7 @@ export const emailRouter = router({
       return rendered;
     }),
 
-  sendEmail: humanProcedure
+  sendEmail: humanProcedure.meta({ forfait: { row: { model: 'lead', key: 'leadId' } } })
     .input(
       z.object({
         teamId: z.string().uuid().optional(),
@@ -114,7 +114,7 @@ export const emailRouter = router({
       sendDraft(ctx.prisma, ctx.auth, await accessForUser(ctx.prisma, ctx.user.id, ctx.actor), input.id, ctx.courrier)
     ),
 
-  getLeadOutreach: protectedProcedure
+  getLeadOutreach: protectedProcedure.meta({ forfait: { ids: 'scoped' } })
     .input(z.object({
       leadId: z.string(),
       teamId: z.string().uuid().optional()

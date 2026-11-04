@@ -50,7 +50,7 @@ export const huntRouter = router({
       return await huntService.getHuntSessions(scope, ctx.prisma, ctx.jobs);
     }),
 
-  getStatus: protectedProcedure.input(huntStatusSchema).query(async ({ ctx, input }) => {
+  getStatus: protectedProcedure.meta({ forfait: { row: { model: 'huntSession', key: 'huntSessionId' } } }).input(huntStatusSchema).query(async ({ ctx, input }) => {
     const session = await prisma.huntSession.findUnique({
       where: { id: input.huntSessionId },
     });
@@ -61,7 +61,7 @@ export const huntRouter = router({
     return session;
   }),
 
-  cancel: protectedProcedure.input(cancelHuntSchema).mutation(async ({ ctx, input }) => {
+  cancel: protectedProcedure.meta({ forfait: { row: { model: 'huntSession', key: 'huntSessionId' } } }).input(cancelHuntSchema).mutation(async ({ ctx, input }) => {
     try {
       const result = await huntService.cancelHunt(
         input.huntSessionId,
@@ -95,7 +95,7 @@ export const huntRouter = router({
     }
   }),
 
-  delete: humanProcedure.input(deleteHuntSchema).mutation(async ({ ctx, input }) => {
+  delete: humanProcedure.meta({ forfait: { row: { model: 'huntSession', key: 'huntSessionId' } } }).input(deleteHuntSchema).mutation(async ({ ctx, input }) => {
     const session = await prisma.huntSession.findUnique({
       where: { id: input.huntSessionId },
       select: { userId: true },
@@ -111,7 +111,7 @@ export const huntRouter = router({
     return { success: true };
   }),
 
-  getRunDetails: protectedProcedure
+  getRunDetails: protectedProcedure.meta({ forfait: { row: { model: 'huntSession', key: 'huntSessionId' } } })
     .input(getRunDetailsSchema)
     .query(async ({ ctx, input }) => {
       try {
@@ -145,7 +145,7 @@ export const huntRouter = router({
       }
     }),
 
-  getRunEvents: protectedProcedure
+  getRunEvents: protectedProcedure.meta({ forfait: { row: { model: 'huntSession', key: 'huntSessionId' } } })
     .input(getRunEventsSchema)
     .query(async ({ ctx, input }) => {
       try {

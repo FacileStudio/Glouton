@@ -4,9 +4,11 @@ import { hasAccess } from '@repo/auth-shared';
 import { UserRole } from '@repo/types';
 import { type OpenApiMeta } from 'trpc-to-openapi';
 import { READ_SCOPE, WRITE_SCOPE, hasScope } from './delegation';
-import { authorize, upgradeUrlOf } from './modules/forfait/gate';
+import { authorize, upgradeUrlOf, type ForfaitMeta } from './modules/forfait/gate';
+import { idKeysOf, parsedInput } from './modules/forfait/procedures';
+import { rowLoader } from './modules/forfait/store';
 
-const t = initTRPC.context<Context>().meta<OpenApiMeta>().create({
+const t = initTRPC.context<Context>().meta<OpenApiMeta & ForfaitMeta>().create({
   
 
   errorFormatter({ shape, error, ctx, path }) {
@@ -59,10 +61,19 @@ const loggingMiddleware = t.middleware(async ({ path, type, next, ctx }) => {
 
 /**
  * The subscription gate, on every procedure: default-deny, so only paths in
- * the forfait EXEMPT list run without `glouton.access` in the call's scope.
+ * the forfait EXEMPT and ACCOUNT lists run without `glouton.access` in the
+ * call's scope. The scope comes from the input as the procedure parses it,
+ * or from the row a by-id procedure declares in its meta.
  */
-const requiresPlan = t.middleware(async ({ next, ctx, path, getRawInput }) => {
-  await authorize(ctx.forfait, { path, userId: ctx.user?.id ?? null, rawInput: await getRawInput() });
+const requiresPlan = t.middleware(async ({ next, ctx, path, meta, getRawInput }) => {
+  await authorize(ctx.forfait, {
+    path,
+    userId: ctx.user?.id ?? null,
+    input: await parsedInput(path, await getRawInput()),
+    idKeys: idKeysOf(path),
+    meta,
+    loadRow: rowLoader(ctx.prisma),
+  });
   return next();
 });
 
@@ -103,6 +114,8 @@ const isHuman = t.middleware(({ next, ctx }) => {
   return next();
 });
 
-export const protectedProcedure = t.procedure.use(loggingMiddleware).use(isAuthed).use(requiresPlan);
-export const humanProcedure = protectedProcedure.use(isHuman);
-export const adminProcedure = humanProcedure.use(isAdmin);
+const authedProcedure = t.procedure.use(loggingMiddleware).use(isAuthed);
+
+export const protectedProcedure = authedProcedure.use(requiresPlan);
+export const humanProcedure = authedProcedure.use(isHuman).use(requiresPlan);
+export const adminProcedure = authedProcedure.use(isHuman).use(isAdmin).use(requiresPlan);

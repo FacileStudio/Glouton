@@ -4,8 +4,9 @@ import { loginSchema, registerSchema } from '@repo/auth-shared';
 import authService from './service';
 import { z } from 'zod';
 
-const assertPasswordAuthEnabled = (ctx: { env: { SSO_ONLY?: boolean } }) => {
-  if (ctx.env.SSO_ONLY) {
+/** Password sign-in and sign-up exist only when SSO is not configured at all. */
+const assertPasswordAuthEnabled = (ctx: { env: { SSO_ONLY?: boolean; OIDC_ISSUER?: string } }) => {
+  if (ctx.env.SSO_ONLY || ctx.env.OIDC_ISSUER) {
     throw new TRPCError({
       code: 'FORBIDDEN',
       message: 'Password authentication is disabled, use SSO',

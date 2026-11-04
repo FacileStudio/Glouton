@@ -90,8 +90,38 @@ export interface SnapshotSource {
 }
 
 /**
+ * Refuses an issuer that would send the client secret in clear: outside
+ * development it must be https. Development is any NODE_ENV but production.
+ */
+export function assertSecureIssuer(issuer: string, production = process.env.NODE_ENV === 'production'): void {
+  if (production && new URL(issuer).protocol !== 'https:') {
+    throw new Error('directory: OIDC_ISSUER must be https in production');
+  }
+}
+
+/** Reads a response body, aborting as soon as it passes `max` bytes instead of buffering it whole. */
+export async function readCapped(response: Response, max: number): Promise<string> {
+  const reader = response.body?.getReader();
+  if (!reader) return '';
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > max) {
+      await reader.cancel().catch(() => {});
+      throw new Error(`more than ${max} bytes`);
+    }
+    chunks.push(value);
+  }
+  return new TextDecoder().decode(Buffer.concat(chunks));
+}
+
+/**
  * Talks to Registre's directory API with the app's own OIDC client
- * credentials over HTTP Basic, exactly like the Go client.
+ * credentials over HTTP Basic, exactly like the Go client. Redirects are
+ * refused, so the credentials only ever go to the configured issuer.
  */
 export class DirectoryClient implements SnapshotSource {
   constructor(
@@ -99,7 +129,9 @@ export class DirectoryClient implements SnapshotSource {
     private readonly clientId: string,
     private readonly clientSecret: string,
     private readonly timeoutMs = 10_000
-  ) {}
+  ) {
+    assertSecureIssuer(issuer);
+  }
 
   /** Fetches every shared space as Registre holds it now. */
   snapshot(): Promise<Snapshot> {
@@ -125,6 +157,7 @@ export class DirectoryClient implements SnapshotSource {
         body,
         headers: { Authorization: `Basic ${credentials}`, 'Content-Type': 'application/json' },
         signal: AbortSignal.timeout(this.timeoutMs),
+        redirect: 'error',
       });
     } catch (error) {
       throw new DirectoryUnavailableError(error instanceof Error ? error.message : String(error));
@@ -139,9 +172,7 @@ export class DirectoryClient implements SnapshotSource {
       throw new DirectoryUnavailableError(`${path} answered more than ${MAX_SNAPSHOT_BYTES} bytes`);
     }
     try {
-      const body = await response.arrayBuffer();
-      if (body.byteLength > MAX_SNAPSHOT_BYTES) throw new Error(`more than ${MAX_SNAPSHOT_BYTES} bytes`);
-      return decodeSnapshot(JSON.parse(new TextDecoder().decode(body)));
+      return decodeSnapshot(JSON.parse(await readCapped(response, MAX_SNAPSHOT_BYTES)));
     } catch (error) {
       throw new DirectoryUnavailableError(`decode the snapshot: ${String(error)}`);
     }

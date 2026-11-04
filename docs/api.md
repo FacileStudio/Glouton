@@ -388,7 +388,8 @@ Enforcement points:
 
 | Where | Check |
 |---|---|
-| tRPC middleware on `publicProcedure` and `protectedProcedure` | `teamId` in the input: member of that team (else `FORBIDDEN`) and team access. No `teamId`: personal access, except `inbox.*`, `contact.*`, `ardoise.*`, `opportunity.*`, `companyCreation.*` and `email.sendDraft`, which need one scope with access |
+| tRPC middleware on every procedure builder | Runs on the input as the procedure parses it. `meta.forfait.row` (lead, hunt, audit by-id procedures and `email.sendEmail`): the row's scope; a declared `teamId` must match the row's team, and another person's personal row reads as `NOT_FOUND`. Else a declared `teamId`: member of that team (else `FORBIDDEN`) and team access. Else personal access, except the `CROSS_SCOPE` list (`inbox.*`, `contact.*`, `ardoise.*`, `opportunity.*`, `companyCreation` reads, `email.sendDraft`, `email.getTemplates`, `email.previewEmail`, `user.getConfiguredSources`), which needs one scope with access. A procedure whose input has an id key (`id`, `ids`, `*Id`, `*Ids` other than `teamId`) must declare `row` or `ids: 'scoped' \| 'unscoped'`, or it is refused; `forfait-scope.test.ts` checks every procedure |
+| `ACCOUNT` list | `user.updateProfile`, `user.changePassword`, `user.deleteOwnAccount`, `user.*SmtpConfig`: a session, no plan |
 | `resolveScope` | The same team or personal check, for every scoped router |
 | `accessForUser` | Drops the personal scope and teams without access from cross-scope reads |
 | `/api/agent/*` | `402` when no scope has access |

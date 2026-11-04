@@ -14,7 +14,7 @@ in the root `package.json`.
 ### Added
 
 - Glouton needs a plan with `glouton.access` (Pro or Studio). Registre's directory snapshot now carries `entitlements_revision`, per-space `entitlements` and per-person `people[]`; Glouton stores them on `Team.entitlements` and in `PersonEntitlement` (by Registre `sub`), in the same transaction as the space sync (migration 022)
-- Every tRPC procedure is gated by default. A team call needs the team's space to have access, a personal call needs the person's own access; refused calls answer HTTP 402 `PAYMENT_REQUIRED` with `data.upgrade_url` (`<OIDC_ISSUER>/spaces/<space id>` or `<OIDC_ISSUER>/spaces`). Exempt: sign-in, session, `user.me`, account deletion, the space list and `forfait.status`. The Registre sync webhook and health routes stay outside tRPC and are not gated
+- Every tRPC procedure is gated by default. A by-id procedure takes the scope of the row it loads (lead, hunt or audit session); otherwise a team call needs the team's space to have access and a personal call needs the person's own access. The scope is read from the input as the procedure parses it, so a `teamId` it does not declare is ignored, and a procedure that takes a row id without declaring how it is scoped is refused. Refused calls answer HTTP 402 `PAYMENT_REQUIRED` with `data.upgrade_url` (`<OIDC_ISSUER>/spaces/<space id>` or `<OIDC_ISSUER>/spaces`). Exempt: sign-in, session, `user.me`, the space list and `forfait.status`; the person's own account (profile, password, SMTP, deletion) needs a session but no plan. The Registre sync webhook and health routes stay outside tRPC
 - The agent REST API answers 402 when the caller has no scope with access, and cross-scope reads only show scopes with access
 - Hunt, audit and CSV import jobs, Courrier reply sync and the Courrier contact import skip scopes without access and log it. No data is deleted
 - A paywall page at `/app/paywall`, reached from any 402, explains that Glouton is part of the Pro and Studio plans and links to the space's Registre page
@@ -23,7 +23,12 @@ in the root `package.json`.
 
 - Fail-open lasts only until the first snapshot with `entitlements_revision > 0`. That fact is stored in `ForfaitState`, so a restart with Registre down keeps the last known values. Older snapshots (lower version or revision) never overwrite newer values
 - Malformed entitlement values (wrong type, bad key, more than 200 keys) read as the default, which denies access
-- The Registre snapshot fetch now times out after 10 s and refuses bodies over 16 MiB
+- A snapshot from a new issuer, or whose version went back, is logged as an error and becomes the new baseline; enforcement stays on
+- `email.sendEmail` and the lead, hunt and audit by-id procedures now check that the row belongs to a scope the caller may use; before, a lead id from any scope was accepted
+- A contact write with no team named and no personal access is refused instead of landing in the caller's first team
+- The Registre snapshot fetch times out after 10 s, streams the body with a 16 MiB cap, refuses redirects, and requires an https `OIDC_ISSUER` in production. The sync nudge is rate limited to 30 requests a minute per IP
+- Account takeover: password sign-up and sign-in are off whenever OIDC is configured (not only under `SSO_ONLY`), `auth.register` needs a session, and an SSO sign-in links to an existing local account by email only when Glouton verified that email (earlier SSO sign-in, directory sync, or an admin's "verify email"). An unverified match is refused until an admin verifies it
+- The paywall only links to https upgrade URLs
 
 ## [0.6.0] - 2026-11-04
 

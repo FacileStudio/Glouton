@@ -37,6 +37,13 @@ function fakeReader(options: { personal: boolean; teams?: Record<string, boolean
   };
 }
 
+const noRows = async () => null;
+
+/** One gate call with no input, ids or meta unless given. */
+function gateCall(path: string, userId: string | null, extra: Partial<Parameters<typeof forfait.authorize>[1]> = {}) {
+  return { path, userId, input: undefined, idKeys: [], meta: undefined, loadRow: noRows, ...extra };
+}
+
 const user = { id: 'user-1', email: 'u@example.com', firstName: 'U', lastName: '', role: 'USER', isPremium: false };
 
 /** Calls one procedure over HTTP, as the web app does, and returns the status and decoded body. */
@@ -157,7 +164,7 @@ describe('plan gate middleware', () => {
   test('cross-scope reads pass with one entitled team and fail with none', async () => {
     const teamId = '00000000-0000-4000-8000-000000000003';
     const gate = (scopes: ReturnType<typeof fakeReader>) =>
-      forfait.authorize(scopes, { path: 'inbox.counts', userId: user.id, rawInput: undefined });
+      forfait.authorize(scopes, gateCall('inbox.counts', user.id));
     await expect(gate(fakeReader({ personal: false, teams: { [teamId]: true } }))).resolves.toBeUndefined();
     await expect(gate(fakeReader({ personal: false, teams: { [teamId]: false } }))).rejects.toMatchObject({
       code: 'PAYMENT_REQUIRED',
@@ -166,9 +173,9 @@ describe('plan gate middleware', () => {
 
   test('exempt procedures answer without a plan', async () => {
     const reader = fakeReader({ personal: false });
-    await expect(forfait.authorize(reader, { path: 'user.me', userId: user.id, rawInput: undefined })).resolves.toBeUndefined();
+    await expect(forfait.authorize(reader, gateCall('user.me', user.id))).resolves.toBeUndefined();
     await expect(
-      forfait.authorize(reader, { path: 'auth.login', userId: null, rawInput: { email: 'a' } })
+      forfait.authorize(reader, gateCall('auth.login', null, { input: { email: 'a' } }))
     ).resolves.toBeUndefined();
     const status = await call('forfait.status', reader);
     expect(status.status).toBe(200);
@@ -300,7 +307,7 @@ describe.skipIf(!databaseUrl)('entitlements persistence', () => {
     expect((await restarted.team(ids.free!, await teamOf('spc_pro')))?.allowed).toBe(true);
   });
 
-  test('ignores a snapshot whose revision or version is lower than the last applied one', async () => {
+  test('ignores a snapshot whose revision is lower than the last applied one', async () => {
     const wipe = (version: number, revision: number) => ({
       version,
       entitlements_revision: revision,
@@ -308,12 +315,31 @@ describe.skipIf(!databaseUrl)('entitlements persistence', () => {
       people: [],
     });
     await spaces.applySnapshot(deps(), wipe(9, 4));
-    await spaces.applySnapshot(deps(), wipe(1, 6));
     const reader = forfait.dbForfait(db, issuer);
     expect((await reader.personal(ids.paid!)).allowed).toBe(true);
     expect((await reader.team(ids.free!, await teamOf('spc_pro')))?.allowed).toBe(true);
     const state = await db.forfaitState.findUniqueOrThrow({ where: { id: 1 } });
     expect({ version: state.version, revision: state.revision }).toEqual({ version: 2n, revision: 5n });
+  });
+
+  test('a version rollback or a new issuer resets the marks and keeps enforcing', async () => {
+    const snapshot = (version: number, revision: number, access: boolean) => ({
+      version,
+      entitlements_revision: revision,
+      spaces: [{ id: 'spc_pro', name: 'Pro', members: [member('sub-paid'), member('sub-free', 'member')] }],
+      people: [{ sub: 'sub-paid', entitlements: { 'glouton.access': access } }],
+    });
+    await spaces.applySnapshot(deps(), snapshot(1, 1, false));
+    let state = await db.forfaitState.findUniqueOrThrow({ where: { id: 1 } });
+    expect({ version: state.version, revision: state.revision }).toEqual({ version: 1n, revision: 1n });
+    const reader = forfait.dbForfait(db, issuer);
+    expect(await reader.personal(ids.paid!)).toMatchObject({ allowed: false, enforced: true });
+
+    await spaces.applySnapshot({ ...deps(), issuer: 'https://sso2.test' }, snapshot(1, 1, true));
+    state = await db.forfaitState.findUniqueOrThrow({ where: { id: 1 } });
+    expect(state.issuer).toBe('https://sso2.test');
+    expect((await forfait.dbForfait(db, issuer).personal(ids.free!)).enforced).toBe(true);
+    await spaces.applySnapshot(deps(), snapshot(2, 5, true));
   });
 
   test('a full snapshot replaces values: a team with no values reads no access, dropped people lose theirs', async () => {

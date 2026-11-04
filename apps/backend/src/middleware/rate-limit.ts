@@ -91,3 +91,8 @@ export const registerLimiter = rateLimiter('register', {
   windowMs: 60 * 60 * 1000,
   maxRequests: 3,
 });
+
+export const nudgeLimiter = rateLimiter('registre-nudge', {
+  windowMs: 60 * 1000,
+  maxRequests: 30,
+});

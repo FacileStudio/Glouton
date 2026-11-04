@@ -44,7 +44,7 @@ export interface EntitlementSnapshot {
 }
 
 /** What `applyEntitlements` did with a snapshot. */
-export type ApplyOutcome = 'applied' | 'not-pushed' | 'stale';
+export type ApplyOutcome = 'applied' | 'reset' | 'not-pushed' | 'stale';
 
 let warnedOpen = false;
 
@@ -65,8 +65,11 @@ export function revisionOf(snapshot: EntitlementSnapshot): number {
  * Stores the snapshot's entitlements inside the Apply transaction.
  * `entitlements_revision` is the only signal: while it is 0 or absent nothing
  * changes (fail-open before the first push, last known values after it). A
- * snapshot whose version or revision is lower than the last applied one is
- * stale and ignored. Otherwise the snapshot is the whole truth: every linked
+ * snapshot from another issuer, or whose version went back (Registre was
+ * restored or replaced), is logged as an error and becomes the new baseline:
+ * the marks are reset and enforcement stays on. Otherwise a snapshot whose
+ * revision is lower than the last applied one is stale and ignored. An
+ * applied snapshot is the whole truth: every linked
  * team gets its space's values (none means the feature defaults, so no
  * access) and people missing from it lose theirs.
  */
@@ -77,8 +80,19 @@ export async function applyEntitlements(
 ): Promise<ApplyOutcome> {
   const revision = revisionOf(snapshot);
   if (revision === 0) return 'not-pushed';
-  const last = await tx.forfaitState.findUnique({ where: { id: 1 }, select: { version: true, revision: true } });
-  if (last && (BigInt(revision) < last.revision || BigInt(snapshot.version) < last.version)) return 'stale';
+  const last = await tx.forfaitState.findUnique({
+    where: { id: 1 },
+    select: { issuer: true, version: true, revision: true },
+  });
+  const reset = Boolean(last && (last.issuer !== issuer || BigInt(snapshot.version) < last.version));
+  if (reset) {
+    logger.error(
+      { issuer, lastIssuer: last!.issuer, version: snapshot.version, lastVersion: String(last!.version) },
+      '[FORFAIT] Registre issuer changed or its directory version went back: resetting the entitlement marks, enforcement stays on'
+    );
+  } else if (last && BigInt(revision) < last.revision) {
+    return 'stale';
+  }
   const bySpace = new Map(snapshot.spaces.map((space) => [space.id, sanitize(space.entitlements) ?? {}]));
   const linked = await tx.team.findMany({ where: { registreSpaceId: { not: null } }, select: { id: true, registreSpaceId: true } });
   for (const team of linked) {
@@ -101,7 +115,7 @@ export async function applyEntitlements(
     create: { id: 1, ...marks, firstAppliedAt: now },
     update: marks,
   });
-  return 'applied';
+  return reset ? 'reset' : 'applied';
 }
 
 /** The database-backed reader every request and job uses. */
@@ -171,5 +185,15 @@ export function jobGate(reader: ForfaitReader) {
   return async (scope: { userId: string; teamId: string | null }): Promise<boolean> => {
     if (scope.teamId) return (await reader.team(scope.userId, scope.teamId))?.allowed ?? false;
     return (await reader.personal(scope.userId)).allowed;
+  };
+}
+
+/** Loads the owner and team of the row a by-id procedure acts on. */
+export function rowLoader(prisma: PrismaClient) {
+  const select = { userId: true, teamId: true } as const;
+  return (model: 'lead' | 'huntSession' | 'auditSession', id: string) => {
+    if (model === 'lead') return prisma.lead.findUnique({ where: { id }, select });
+    if (model === 'huntSession') return prisma.huntSession.findUnique({ where: { id }, select });
+    return prisma.auditSession.findUnique({ where: { id }, select });
   };
 }

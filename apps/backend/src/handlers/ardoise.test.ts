@@ -172,7 +172,7 @@ describe.skipIf(!databaseUrl)('Ardoise sync (database)', () => {
       data: { name: 'Studio', registreSpaceId: 'space-1', members: { create: { userId: ownerId, role: 'OWNER' } } },
     });
     teamId = team.id;
-  });
+  }, 60_000);
 
   beforeEach(async () => {
     jobs = fakeJobs();

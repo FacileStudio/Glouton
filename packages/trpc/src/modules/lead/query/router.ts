@@ -15,11 +15,11 @@ export const queryRouter = router({
     });
   }),
 
-  getById: protectedProcedure.input(getByIdSchema).query(async ({ ctx, input }) => {
+  getById: protectedProcedure.meta({ forfait: { row: { model: 'lead', key: 'leadId' } } }).input(getByIdSchema).query(async ({ ctx, input }) => {
     return await LeadQueryService.getLeadById(input.leadId, ctx);
   }),
 
-  delete: humanProcedure.input(deleteLeadSchema).mutation(async ({ ctx, input }) => {
+  delete: humanProcedure.meta({ forfait: { row: { model: 'lead', key: 'leadId' } } }).input(deleteLeadSchema).mutation(async ({ ctx, input }) => {
     return await LeadQueryService.deleteLead(input.leadId, ctx.user.id, ctx.prisma);
   }),
 

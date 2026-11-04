@@ -32,7 +32,8 @@ interface DiscoveryDocument {
 }
 
 export const oidcEnabled = Boolean(env.OIDC_ISSUER);
-export const ssoOnly = env.SSO_ONLY;
+/** Password sign-in and sign-up are off whenever SSO is configured, not only under SSO_ONLY. */
+export const ssoOnly = Boolean(env.SSO_ONLY) || oidcEnabled;
 
 const redirectUrl = env.OIDC_REDIRECT_URL ?? `${env.DOMAIN}/auth/oidc/callback`;
 const successUrl = env.OIDC_SUCCESS_URL ?? `${env.DOMAIN}/auth/callback`;
@@ -163,21 +164,38 @@ export function registreIssuer(): string | null {
   return env.OIDC_ISSUER ? env.OIDC_ISSUER.replace(/\/$/, '') : null;
 }
 
+/** Raised when an SSO sign-in matches a local account Glouton never verified. */
+export class UnverifiedAccountError extends Error {
+  constructor() {
+    super('An unverified local account already uses this email; an administrator must verify it before SSO can link it');
+    this.name = 'UnverifiedAccountError';
+  }
+}
+
 /**
  * Finds the user for an SSO sign-in: by Registre identity (issuer, sub) first,
  * so a user pre-provisioned by the directory sync lands on their row, then by
- * email.
+ * email. The email fallback links only a local account whose email Glouton
+ * marked verified (an earlier SSO sign-in, the directory sync, or an admin);
+ * otherwise anyone who registered with a victim's email would inherit the
+ * victim's SSO identity. An unverified match is refused, not replaced.
  */
-async function findOidcUser(claims: OidcClaims): Promise<{ id: string } | null> {
+export async function findOidcUser(
+  claims: Pick<OidcClaims, 'email' | 'subject'>,
+  db: Pick<typeof prisma, 'account' | 'user'> = prisma
+): Promise<{ id: string } | null> {
   const issuer = registreIssuer();
   if (issuer && claims.subject) {
-    const account = await prisma.account.findUnique({
+    const account = await db.account.findUnique({
       where: { providerId_accountId: { providerId: issuer, accountId: claims.subject } },
       select: { userId: true },
     });
     if (account) return { id: account.userId };
   }
-  return prisma.user.findUnique({ where: { email: claims.email }, select: { id: true } });
+  const local = await db.user.findUnique({ where: { email: claims.email }, select: { id: true, emailVerified: true } });
+  if (!local) return null;
+  if (!local.emailVerified) throw new UnverifiedAccountError();
+  return { id: local.id };
 }
 
 /**

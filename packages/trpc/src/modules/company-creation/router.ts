@@ -60,7 +60,7 @@ export const companyCreationRouter = router({
       }
     }),
 
-  convertToLead: humanProcedure
+  convertToLead: humanProcedure.meta({ forfait: { ids: 'unscoped' } })
     .input(convertToLeadSchema)
     .mutation(async ({ ctx, input }) => {
       try {

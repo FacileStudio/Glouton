@@ -26,7 +26,7 @@
     if (!url) return null;
     try {
       const parsed = new URL(url);
-      return parsed.protocol === 'https:' || parsed.protocol === 'http:' ? parsed.href : null;
+      return parsed.protocol === 'https:' ? parsed.href : null;
     } catch {
       return null;
     }

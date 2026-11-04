@@ -5,7 +5,7 @@ import { exportToCsvSchema, importFromCsvSchema } from '../schemas';
 import { resolveScope } from '../../../utils/scope';
 
 export const importExportRouter = router({
-  exportToCsv: protectedProcedure.input(exportToCsvSchema).query(async ({ ctx, input }) => {
+  exportToCsv: protectedProcedure.meta({ forfait: { ids: 'scoped' } }).input(exportToCsvSchema).query(async ({ ctx, input }) => {
     try {
       const scope = await resolveScope(ctx.prisma, ctx.user.id, input.teamId);
       const csv = await importExportService.exportToCsv({
@@ -40,7 +40,7 @@ export const importExportRouter = router({
     }
   }),
 
-  importFromCsv: protectedProcedure.input(importFromCsvSchema).mutation(async ({ ctx, input }) => {
+  importFromCsv: protectedProcedure.meta({ forfait: { ids: 'scoped' } }).input(importFromCsvSchema).mutation(async ({ ctx, input }) => {
     try {
       const lines = input.csvContent.split(/\r?\n/).filter((line) => line.trim());
 
