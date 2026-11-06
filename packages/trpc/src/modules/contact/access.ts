@@ -2,7 +2,7 @@ import type { PrismaClient } from '@prisma/client';
 import { TRPCError } from '@trpc/server';
 import type { Scope } from '../../utils/scope';
 import { dbForfait } from '../forfait/store';
-import { planRequired } from '../forfait/gate';
+import { planRequired, type PlanMode } from '../forfait/gate';
 
 /** Who is reading or writing contacts, and which scopes (personal, teams) they can see. */
 export interface Access {
@@ -37,13 +37,20 @@ export function accessForScope(scope: Scope, actor: string | null): Access {
 
 /**
  * Access across every scope the user may use now: the personal scope and the
- * teams they belong to, each kept only while it has `glouton.access`.
+ * teams they belong to. In `paid` mode (the default) each is kept only while
+ * it has `glouton.access`; in `free` mode (reading, exporting, deleting
+ * existing data) every scope the user belongs to is kept.
  */
 export async function accessForUser(
   prisma: PrismaClient,
   userId: string,
-  actor: string | null
+  actor: string | null,
+  mode: PlanMode = 'paid'
 ): Promise<Access> {
+  if (mode === 'free') {
+    const memberships = await prisma.teamMember.findMany({ where: { userId }, select: { teamId: true } });
+    return { userId, actor, teamIds: memberships.map((m) => m.teamId), personal: true };
+  }
   const reader = dbForfait(prisma);
   const scopes = await reader.entitledScopes(userId);
   const access: Access = { userId, actor, teamIds: scopes.teamIds, personal: scopes.personal };

@@ -14,7 +14,7 @@ export const auditRouter = router({
   list: protectedProcedure.meta({ forfait: { ids: 'scoped' } })
     .input(listAuditSessionsSchema.optional())
     .query(async ({ ctx, input = {} }) => {
-      const scope = await resolveScope(ctx.prisma, ctx.user.id, input.teamId);
+      const scope = await resolveScope(ctx.prisma, ctx.user.id, input.teamId, ctx.planMode);
       return LeadAuditService.list(scope, input, ctx);
     }),
 
@@ -26,7 +26,7 @@ export const auditRouter = router({
   start: protectedProcedure
     .input(z.object({ teamId: z.string().uuid().optional() }).optional())
     .mutation(async ({ ctx, input }) => {
-      const scope = await resolveScope(ctx.prisma, ctx.user.id, input?.teamId);
+      const scope = await resolveScope(ctx.prisma, ctx.user.id, input?.teamId, ctx.planMode);
       return LeadAuditService.start(scope, ctx);
     }),
 });

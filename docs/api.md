@@ -389,7 +389,8 @@ Enforcement points:
 | Where | Check |
 |---|---|
 | tRPC middleware on every procedure builder | Runs on the input as the procedure parses it. `meta.forfait.row` (lead, hunt, audit by-id procedures, `email.sendEmail` and `email.sendToLead`): the row's scope; a declared `teamId` must match the row's team, and another person's personal row reads as `NOT_FOUND`. Else a declared `teamId`: member of that team (else `FORBIDDEN`) and team access. Else personal access, except the `CROSS_SCOPE` list (`inbox.*`, `contact.*`, `ardoise.*`, `assistant.write`, `assistant.nextAction`, `opportunity.*`, `companyCreation` reads, `email.sendDraft`, `email.getTemplates`, `email.previewEmail`, `user.getConfiguredSources`), which needs one scope with access. A procedure whose input has an id key (`id`, `ids`, `*Id`, `*Ids` other than `teamId`) must declare `row` or `ids: 'scoped' \| 'unscoped'`, or it is refused; `forfait-scope.test.ts` checks every procedure. An input schema that is not a (wrapped) object, such as a union, intersection or array, is refused unless the procedure is cross-scope |
-| `ACCOUNT` list | `user.updateProfile`, `user.changePassword`, `user.deleteOwnAccount`, `user.*SmtpConfig`: a session, no plan |
+| `ACCOUNT` list | `user.updateProfile`, `user.changePassword`, `user.deleteOwnAccount`, `user.*SmtpConfig`, `team.leave`, `team.delete`: a session, no plan (the procedures check membership and ownership) |
+| `meta.forfait.free` | Reading, exporting and deleting existing data (`lead.query.*` reads and `delete`, `lead.favorite.list`/`isFavorite`, `exportToCsv`, `lead.hunt` reads and `delete`, contact reads and deletes, `team.get`/`getMembers`): same scope and membership checks, no plan; runs with `ctx.planMode = 'free'` |
 | `resolveScope` | The same team or personal check, for every scoped router |
 | `accessForUser` | Drops the personal scope and teams without access from cross-scope reads |
 | `/api/agent/*` | `402` when no scope has access |

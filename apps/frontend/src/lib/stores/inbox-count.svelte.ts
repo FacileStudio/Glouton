@@ -1,4 +1,5 @@
 import trpc from '$lib/trpc';
+import { QUIET } from '@repo/trpc-client';
 
 class InboxCount {
   value = $state(0);
@@ -9,7 +10,7 @@ class InboxCount {
 
   async refresh(): Promise<void> {
     try {
-      this.value = (await trpc.inbox.counts.query()).total;
+      this.value = (await trpc.inbox.counts.query(undefined, { context: QUIET })).total;
     } catch {
       this.value = 0;
     }

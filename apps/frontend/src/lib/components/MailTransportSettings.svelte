@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { trpc } from '$lib/trpc';
+  import { QUIET } from '@repo/trpc-client';
   import { Alert, Button, Field, Select, SettingsRow, SettingsSection, Switch, icons, toast } from '@facile/muse';
 
   interface Props {
@@ -25,7 +26,7 @@
   async function loadAccounts() {
     accountsError = null;
     try {
-      accounts = await trpc.email.listCourrierAccounts.query(scope);
+      accounts = await trpc.email.listCourrierAccounts.query(scope, { context: QUIET });
       if (!accountId) {
         const first = accounts.find((a) => a.isDefault) ?? accounts[0];
         if (first) accountId = String(first.id);
@@ -43,7 +44,7 @@
         teamId,
         transport: useCourrier ? 'COURRIER' : 'SMTP',
         courrierAccountId: useCourrier && accountId ? Number(accountId) : null,
-      });
+      }, { context: QUIET });
       saved = {
         useCourrier: result.transport === 'COURRIER',
         accountId: result.courrierAccountId ? String(result.courrierAccountId) : '',
@@ -63,7 +64,7 @@
 
   onMount(async () => {
     try {
-      const current = await trpc.email.getMailTransport.query(scope);
+      const current = await trpc.email.getMailTransport.query(scope, { context: QUIET });
       enabled = current.courrierEnabled;
       useCourrier = current.transport === 'COURRIER';
       accountId = current.courrierAccountId ? String(current.courrierAccountId) : '';

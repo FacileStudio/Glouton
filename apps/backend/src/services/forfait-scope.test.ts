@@ -103,7 +103,7 @@ describe('every by-id procedure declares its scope', () => {
     await expect(forfait.authorize(reader(true), { ...base, path: 'lead.brandNew' })).rejects.toMatchObject({
       code: 'INTERNAL_SERVER_ERROR',
     });
-    await expect(forfait.authorize(reader(true), { ...base, path: 'contact.brandNew' })).resolves.toBeUndefined();
+    await expect(forfait.authorize(reader(true), { ...base, path: 'contact.brandNew' })).resolves.toBeDefined();
   });
 
   test('an undeclared by-id procedure is refused at runtime', async () => {
@@ -129,7 +129,7 @@ describe('account procedures and shared templates', () => {
     }
     await expect(
       forfait.authorize(scopes, { path: 'user.getSmtpConfig', userId: user.id, input: undefined, idKeys: [], meta: undefined, loadRow: async () => null })
-    ).resolves.toBeUndefined();
+    ).resolves.toBeDefined();
     expect((await call('email.getTemplates', user, scopes, undefined)).status).toBe(200);
   });
 
@@ -276,22 +276,34 @@ describe.skipIf(!databaseUrl)('by-id procedures take the scope of their row', ()
 
   const soloInPaidTeam = () => reader(false, { [rows.unpaid!]: false, [rows.paid!]: true });
 
-  test('A: a Pro-personal member cannot read an unpaid team lead', async () => {
-    const a = await call('lead.query.getById', user, reader(true, { [rows.unpaid!]: false, [rows.paid!]: true }), {
+  test('A: a Pro-personal member cannot act on an unpaid team lead', async () => {
+    const a = await call('lead.favorite.toggle', user, reader(true, { [rows.unpaid!]: false, [rows.paid!]: true }), {
       leadId: rows.teamLead,
-    }, { prisma });
+    }, { prisma, mutation: true });
     expect(a.status).toBe(402);
   });
 
-  test('B: a Solo person cannot read a personal lead, with or without a stray paid teamId', async () => {
-    const plain = await call('lead.query.getById', user, soloInPaidTeam(), { leadId: rows.personalLead }, { prisma });
-    const stray = await call('lead.query.getById', user, soloInPaidTeam(), { leadId: rows.personalLead, teamId: rows.paid }, { prisma });
+  test('B: a Solo person cannot act on a personal lead, with or without a stray paid teamId', async () => {
+    const plain = await call('lead.favorite.toggle', user, soloInPaidTeam(), { leadId: rows.personalLead }, { prisma, mutation: true });
+    const stray = await call(
+      'lead.favorite.toggle',
+      user,
+      soloInPaidTeam(),
+      { leadId: rows.personalLead, teamId: rows.paid },
+      { prisma, mutation: true }
+    );
     expect(plain.status).toBe(402);
     expect(stray.status).toBe(402);
   });
 
-  test('C: a team-only member cannot read an unpaid team lead by naming a paid team', async () => {
-    const c = await call('lead.query.getById', user, soloInPaidTeam(), { leadId: rows.teamLead, teamId: rows.paid }, { prisma });
+  test('C: a team-only member cannot act on an unpaid team lead by naming a paid team', async () => {
+    const c = await call(
+      'lead.favorite.toggle',
+      user,
+      soloInPaidTeam(),
+      { leadId: rows.teamLead, teamId: rows.paid },
+      { prisma, mutation: true }
+    );
     expect(c.status).toBe(402);
   });
 
@@ -302,27 +314,70 @@ describe.skipIf(!databaseUrl)('by-id procedures take the scope of their row', ()
     expect(fav.status).not.toBe(402);
   });
 
-  test('every other by-id procedure refuses an unpaid row', async () => {
+  test('every by-id procedure that creates or runs work refuses an unpaid row', async () => {
     const scopes = reader(true, { [rows.unpaid!]: false });
     const cases: Array<[string, unknown, boolean]> = [
       ['lead.favorite.toggle', { leadId: rows.teamLead }, true],
-      ['lead.favorite.isFavorite', { leadId: rows.teamLead }, false],
-      ['lead.query.delete', { leadId: rows.teamLead }, true],
       ['email.sendEmail', { leadId: rows.teamLead, templateId: 'intro', variables: {} }, true],
       ['email.sendToLead', { leadId: rows.teamLead, subject: 'Hello', text: 'Hi' }, true],
-      ['lead.hunt.getStatus', { huntSessionId: rows.teamHunt }, false],
-      ['lead.hunt.getRunDetails', { huntSessionId: rows.teamHunt }, false],
-      ['lead.hunt.getRunEvents', { huntSessionId: rows.teamHunt }, false],
       ['lead.hunt.cancel', { huntSessionId: rows.teamHunt }, true],
-      ['lead.hunt.delete', { huntSessionId: rows.teamHunt }, true],
       ['lead.audit.cancel', { auditSessionId: rows.teamAudit }, true],
     ];
     for (const [path, input, mutation] of cases) {
       const res = await call(path, user, scopes, input, { prisma, mutation });
       expect({ path, status: res.status }).toEqual({ path, status: 402 });
     }
-    expect(await prisma.lead.count({ where: { id: rows.teamLead } })).toBe(1);
-    expect(await prisma.huntSession.count({ where: { id: rows.teamHunt } })).toBe(1);
+  });
+
+  test('without any plan, a member still reads, exports and deletes existing data', async () => {
+    const none = reader(false, { [rows.unpaid!]: false, [rows.paid!]: false });
+    const reads: Array<[string, unknown]> = [
+      ['lead.query.getById', { leadId: rows.teamLead }],
+      ['lead.query.getById', { leadId: rows.personalLead }],
+      ['lead.query.list', {}],
+      ['lead.query.list', { teamId: rows.unpaid }],
+      ['lead.query.getStats', { teamId: rows.unpaid }],
+      ['lead.favorite.isFavorite', { leadId: rows.teamLead }],
+      ['lead.importExport.exportToCsv', { teamId: rows.unpaid }],
+      ['lead.hunt.list', { teamId: rows.unpaid }],
+      ['lead.hunt.getStatus', { huntSessionId: rows.teamHunt }],
+      ['lead.hunt.getRunDetails', { huntSessionId: rows.teamHunt }],
+      ['contact.listCompanies', { teamId: rows.unpaid }],
+      ['contact.listCompanies', {}],
+      ['team.get', { teamId: rows.unpaid }],
+      ['team.getMembers', { teamId: rows.unpaid }],
+    ];
+    for (const [path, input] of reads) {
+      const res = await call(path, user, none, input, { prisma });
+      expect({ path, status: res.status }).toEqual({ path, status: 200 });
+    }
+    const deleted = await call('lead.query.delete', user, none, { leadId: rows.personalLead }, { prisma, mutation: true });
+    expect(deleted.status).toBe(200);
+    expect(await prisma.lead.count({ where: { id: rows.personalLead } })).toBe(0);
+  });
+
+  test('without a plan, creating, hunting, auditing and outreach stay refused', async () => {
+    const none = reader(false, { [rows.unpaid!]: false });
+    const writes: Array<[string, unknown]> = [
+      ['contact.createCompany', { name: 'Acme', teamId: rows.unpaid }],
+      ['lead.hunt.startLocalBusiness', { teamId: rows.unpaid, location: 'Paris', categories: ['restaurant'] }],
+      ['lead.audit.start', { teamId: rows.unpaid }],
+      ['email.sendToLead', { leadId: rows.teamLead, subject: 'Hello', text: 'Hi' }],
+    ];
+    for (const [path, input] of writes) {
+      const res = await call(path, user, none, input, { prisma, mutation: true });
+      expect({ path, status: res.status }).toEqual({ path, status: 402 });
+    }
+  });
+
+  test('free procedures still refuse a team the caller does not belong to', async () => {
+    const outsider = await prisma.team.create({ data: { name: `outsider-${tag}` } });
+    try {
+      const res = await call('lead.query.list', user, reader(true), { teamId: outsider.id }, { prisma });
+      expect(res.status).toBe(403);
+    } finally {
+      await prisma.team.delete({ where: { id: outsider.id } });
+    }
   });
 
   test("someone else's personal row reads as not found", async () => {

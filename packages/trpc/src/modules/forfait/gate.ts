@@ -23,6 +23,10 @@ import type { ForfaitReader, ScopeVerdict } from './store';
  * - A procedure whose input names a row id (`id`, `leadId`, `ids`...) must
  *   say how that id is scoped (`row`, or `ids: 'scoped' | 'unscoped'`), or it
  *   is refused, so a new by-id procedure cannot skip the row check.
+ * - A procedure marked `free` (reading, exporting or deleting existing data)
+ *   gets the same scope and membership checks without the plan check, and
+ *   runs with `ctx.planMode = 'free'` so its scope helpers do not hide
+ *   scopes without a plan.
  * - A procedure whose input is not an object schema the gate can read
  *   (union, intersection, array, primitive) is refused unless cross-scope:
  *   the gate fails closed rather than guess its scope.
@@ -39,7 +43,12 @@ export const EXEMPT: ReadonlySet<string> = new Set([
   'forfait.status',
 ]);
 
-/** Procedures about the signed-in person's own account: they need a session but no plan. */
+/**
+ * Procedures about the signed-in person's own account or memberships: they
+ * need a session but no plan. `team.leave` and `team.delete` check
+ * membership and ownership themselves, so a team without a plan (one not
+ * linked to Registre, say) can still be left or removed.
+ */
 export const ACCOUNT: ReadonlySet<string> = new Set([
   'user.updateProfile',
   'user.changePassword',
@@ -47,7 +56,16 @@ export const ACCOUNT: ReadonlySet<string> = new Set([
   'user.getSmtpConfig',
   'user.updateSmtpConfig',
   'user.testSmtpConfig',
+  'team.leave',
+  'team.delete',
 ]);
+
+/**
+ * How a call may use its scopes: `paid` needs `glouton.access`, `free`
+ * (reading, exporting and deleting existing data) only needs the caller to
+ * belong to the scope. Procedures read it from `ctx.planMode`.
+ */
+export type PlanMode = 'paid' | 'free';
 
 /** Path prefixes and paths whose teamId-less calls span every scope the caller may use. */
 export const CROSS_SCOPE: readonly string[] = [
@@ -81,6 +99,11 @@ export interface ForfaitMeta {
      * scope (`scoped`).
      */
     ids?: 'scoped' | 'unscoped';
+    /**
+     * The procedure only reads, exports or deletes existing data: it works
+     * without a plan in any scope the caller belongs to.
+     */
+    free?: boolean;
   };
 }
 
@@ -177,20 +200,50 @@ export interface GateCall {
   loadRow: RowLoader;
 }
 
-/** Decides one call. `userId` is null for an unauthenticated caller, who only gets through exempt procedures. */
-export async function authorize(reader: ForfaitReader, call: GateCall): Promise<void> {
-  if (EXEMPT.has(call.path)) return;
+/** Throws FORBIDDEN unless the user belongs to the team, whatever its plan. */
+async function requireMember(reader: ForfaitReader, userId: string, teamId: string): Promise<void> {
+  if (!(await reader.team(userId, teamId))) {
+    throw new TRPCError({ code: 'FORBIDDEN', message: 'You do not have access to this team' });
+  }
+}
+
+/** Checks a free call on one row: the caller must own it or belong to its team, as for a paid call, minus the plan. */
+async function requireRowMember(
+  reader: ForfaitReader,
+  userId: string,
+  row: { userId: string; teamId: string | null },
+  declaredTeamId: string | null
+): Promise<void> {
+  if (row.teamId) {
+    if (declaredTeamId && declaredTeamId !== row.teamId) throw notFound();
+    return requireMember(reader, userId, row.teamId);
+  }
+  if (declaredTeamId || row.userId !== userId) throw notFound();
+}
+
+/**
+ * Decides one call and says how it may use its scopes. `userId` is null for
+ * an unauthenticated caller, who only gets through exempt procedures.
+ */
+export async function authorize(reader: ForfaitReader, call: GateCall): Promise<PlanMode> {
+  if (EXEMPT.has(call.path)) return 'paid';
   if (!call.userId) throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Please log in.' });
-  if (ACCOUNT.has(call.path)) return;
+  if (ACCOUNT.has(call.path)) return 'paid';
   const declared = teamIdOf(call.input);
   const rule = call.meta?.forfait;
+  const free = rule?.free === true;
 
   if (rule?.row) {
     const id = (call.input as Record<string, unknown> | undefined)?.[rule.row.key];
     if (typeof id !== 'string' || !id) throw new TRPCError({ code: 'BAD_REQUEST', message: 'Missing id' });
     const row = await call.loadRow(rule.row.model, id);
-    if (!row) return;
-    return requireRow(reader, call.userId, row, declared);
+    if (!row) return free ? 'free' : 'paid';
+    if (free) {
+      await requireRowMember(reader, call.userId, row, declared);
+      return 'free';
+    }
+    await requireRow(reader, call.userId, row, declared);
+    return 'paid';
   }
 
   const crossScope = isCrossScope(call.path);
@@ -200,9 +253,19 @@ export async function authorize(reader: ForfaitReader, call: GateCall): Promise<
   if (call.idKeys.length > 0 && !rule?.ids && !crossScope) {
     throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: `Procedure ${call.path} does not declare how its ids are scoped` });
   }
-  if (declared) return requireTeam(reader, call.userId, declared);
-  if (!crossScope) return requirePersonal(reader, call.userId);
+  if (free) {
+    if (declared) await requireMember(reader, call.userId, declared);
+    return 'free';
+  }
+  if (declared) {
+    await requireTeam(reader, call.userId, declared);
+    return 'paid';
+  }
+  if (!crossScope) {
+    await requirePersonal(reader, call.userId);
+    return 'paid';
+  }
   const scopes = await reader.entitledScopes(call.userId);
-  if (scopes.personal || scopes.teamIds.length > 0) return;
-  ensure(await reader.personal(call.userId));
+  if (!scopes.personal && scopes.teamIds.length === 0) ensure(await reader.personal(call.userId));
+  return 'paid';
 }

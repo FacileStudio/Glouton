@@ -27,6 +27,9 @@ row a by-id procedure acts on, else the team named by `teamId` (after a server-s
 check), else the personal scope. New procedures are gated unless added to `EXEMPT` or `ACCOUNT`
 in `packages/trpc/src/modules/forfait/gate.ts`, and one that takes a row id must declare its scope.
 
+Without a plan, members keep reading, exporting and deleting their existing data, and can leave
+or delete teams; only new work (creating, hunts, audits, outreach, the assistant) is refused.
+
 When OIDC is configured, password sign-up and sign-in are off, and SSO links to an existing local
 account by email only if Glouton verified that email.
 

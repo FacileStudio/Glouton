@@ -66,7 +66,7 @@ const loggingMiddleware = t.middleware(async ({ path, type, next, ctx }) => {
  * or from the row a by-id procedure declares in its meta.
  */
 const requiresPlan = t.middleware(async ({ next, ctx, path, meta, getRawInput }) => {
-  await authorize(ctx.forfait, {
+  const planMode = await authorize(ctx.forfait, {
     path,
     userId: ctx.user?.id ?? null,
     input: await parsedInput(path, await getRawInput()),
@@ -75,7 +75,7 @@ const requiresPlan = t.middleware(async ({ next, ctx, path, meta, getRawInput })
     meta,
     loadRow: rowLoader(ctx.prisma),
   });
-  return next();
+  return next({ ctx: { planMode } });
 });
 
 export const publicProcedure = t.procedure.use(loggingMiddleware).use(requiresPlan);

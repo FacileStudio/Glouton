@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
+  import { page } from '$app/state';
   import { resolve } from '$app/paths';
   import { Alert, Button, Field, Input } from '@facile/muse';
   import { trpc } from '$lib/trpc';
@@ -16,6 +17,13 @@
   let ssoOnly = $state(false);
   let oidcEnabled = $state(false);
   let configLoaded = $state(false);
+
+  const ssoErrors: Record<string, string> = {
+    unverified_account:
+      "Un compte Glouton non vérifié utilise déjà cette adresse. Demandez à un administrateur de le vérifier, puis reconnectez-vous.",
+    sso_failed: 'La connexion avec Facile a échoué. Réessayez.',
+  };
+  const ssoError = $derived(ssoErrors[page.url.searchParams.get('sso_error') ?? ''] ?? '');
 
   onMount(async () => {
     try {
@@ -79,6 +87,10 @@
             : 'Connectez-vous à votre espace de prospection.'}
         </p>
       </div>
+
+      {#if ssoError}
+        <div class="mb-6"><Alert tone="danger">{ssoError}</Alert></div>
+      {/if}
 
       {#if !configLoaded}
         <div class="h-40"></div>

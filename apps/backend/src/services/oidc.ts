@@ -288,3 +288,15 @@ export async function loginWithOidc(
 }
 
 export const oidcSuccessUrl = successUrl;
+
+/** The login page an SSO failure sends the browser back to. */
+export const oidcLoginUrl = `${env.DOMAIN}/login`;
+
+/**
+ * Where a failed SSO callback redirects: the login page with a short error
+ * code it turns into a message. Only the code travels, never error details.
+ */
+export function ssoFailureUrl(error: unknown, loginUrl: string = oidcLoginUrl): string {
+  const code = error instanceof UnverifiedAccountError ? 'unverified_account' : 'sso_failed';
+  return `${loginUrl}?sso_error=${code}`;
+}

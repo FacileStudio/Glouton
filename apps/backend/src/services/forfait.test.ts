@@ -121,15 +121,19 @@ describe('snapshot decoding', () => {
     expect(good.entitlements_revision).toBe(7);
     expect(good.spaces.map((space) => space.id)).toEqual(['spc_1']);
     expect(good.people).toEqual([{ sub: 'sub-1', entitlements: undefined }]);
-    for (const revision of ['7', -1, 0, 1.5, null]) {
+    for (const revision of [0, null, undefined]) {
       expect(decodeSnapshot({ version: 1, entitlements_revision: revision }).entitlements_revision).toBeUndefined();
+    }
+    for (const bad of ['7', -1, 1.5, Number.MAX_SAFE_INTEGER + 1]) {
+      expect(() => decodeSnapshot({ version: 1, entitlements_revision: bad })).toThrow();
+      expect(() => decodeSnapshot({ version: bad })).toThrow();
     }
   });
 });
 
 describe('plan gate middleware', () => {
   test('refuses a personal call without access with 402 and the upgrade URL', async () => {
-    const { status, body } = await call('lead.query.getStats', fakeReader({ personal: false }));
+    const { status, body } = await call('email.getStats', fakeReader({ personal: false }));
     expect(status).toBe(402);
     expect(body.error?.data?.code).toBe('PAYMENT_REQUIRED');
     expect(body.error?.data?.upgrade_url).toBe(`${issuer}/spaces`);
@@ -138,7 +142,7 @@ describe('plan gate middleware', () => {
   test('refuses a team call when the team has no access, pointing at that space', async () => {
     const teamId = '00000000-0000-4000-8000-000000000001';
     const { status, body } = await call(
-      'lead.query.getStats',
+      'email.getStats',
       fakeReader({ personal: true, teams: { [teamId]: false } }),
       { teamId }
     );
@@ -147,7 +151,7 @@ describe('plan gate middleware', () => {
   });
 
   test('a forged team id the caller is not a member of is refused, even with personal access', async () => {
-    const { status, body } = await call('lead.query.getStats', fakeReader({ personal: true }), {
+    const { status, body } = await call('email.getStats', fakeReader({ personal: true }), {
       teamId: '00000000-0000-4000-8000-00000000dead',
     });
     expect(status).toBe(403);
@@ -165,7 +169,7 @@ describe('plan gate middleware', () => {
     const teamId = '00000000-0000-4000-8000-000000000003';
     const gate = (scopes: ReturnType<typeof fakeReader>) =>
       forfait.authorize(scopes, gateCall('inbox.counts', user.id));
-    await expect(gate(fakeReader({ personal: false, teams: { [teamId]: true } }))).resolves.toBeUndefined();
+    await expect(gate(fakeReader({ personal: false, teams: { [teamId]: true } }))).resolves.toBeDefined();
     await expect(gate(fakeReader({ personal: false, teams: { [teamId]: false } }))).rejects.toMatchObject({
       code: 'PAYMENT_REQUIRED',
     });
@@ -173,10 +177,10 @@ describe('plan gate middleware', () => {
 
   test('exempt procedures answer without a plan', async () => {
     const reader = fakeReader({ personal: false });
-    await expect(forfait.authorize(reader, gateCall('user.me', user.id))).resolves.toBeUndefined();
+    await expect(forfait.authorize(reader, gateCall('user.me', user.id))).resolves.toBeDefined();
     await expect(
       forfait.authorize(reader, gateCall('auth.login', null, { input: { email: 'a' } }))
-    ).resolves.toBeUndefined();
+    ).resolves.toBeDefined();
     const status = await call('forfait.status', reader);
     expect(status.status).toBe(200);
   });

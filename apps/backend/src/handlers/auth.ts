@@ -10,6 +10,7 @@ import {
   exchangeCode,
   loginWithOidc,
   oidcSuccessUrl,
+  ssoFailureUrl,
 } from '../services/oidc';
 
 const OIDC_STATE_COOKIE = 'oidc_state';
@@ -63,8 +64,8 @@ export function createAuthRoutes(authManager: AuthManager) {
       // Hand the JWT to the SPA via the URL fragment (never sent to servers/logs).
       return c.redirect(`${oidcSuccessUrl}#token=${encodeURIComponent(token)}`);
     } catch (error) {
-      logger.error({ error }, '[OIDC] Callback failed');
-      return c.json({ error: 'OIDC authentication failed' }, 401);
+      logger.error({ err: error }, '[OIDC] Callback failed');
+      return c.redirect(ssoFailureUrl(error));
     }
   });
 

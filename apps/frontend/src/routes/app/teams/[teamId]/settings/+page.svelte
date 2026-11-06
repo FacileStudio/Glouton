@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { RouterOutputs } from '@repo/trpc-client';
+  import { QUIET, type RouterOutputs } from '@repo/trpc-client';
   import { getErrorMessage } from '$lib/utils/trpc-error';
   import { onMount } from 'svelte';
   import type { PageProps } from './$types';
@@ -98,7 +98,7 @@
 
   async function loadSmtpConfig() {
     try {
-      const smtpConfig = await trpc.team.getSmtpConfig.query({ teamId });
+      const smtpConfig = await trpc.team.getSmtpConfig.query({ teamId }, { context: QUIET });
       smtpForm.smtpHost = smtpConfig.smtpHost || '';
       smtpForm.smtpPort = smtpConfig.smtpPort || 587;
       smtpForm.smtpSecure = smtpConfig.smtpSecure || false;

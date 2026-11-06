@@ -25,7 +25,7 @@ export const teamRouter = router({
     return await teamService.listUserTeams(ctx.user.id);
   }),
 
-  get: protectedProcedure.input(teamIdSchema).query(async ({ ctx, input }) => {
+  get: protectedProcedure.meta({ forfait: { free: true } }).input(teamIdSchema).query(async ({ ctx, input }) => {
     ctx.log.info({ userId: ctx.user.id, teamId: input.teamId }, '[TEAM] Getting team');
     const team = await teamService.getTeam(input.teamId, ctx.user.id);
     return { ...team, manageUrl: manageUrl(ctx.env, team.registreSpaceId) };
@@ -53,7 +53,7 @@ export const teamRouter = router({
     return await teamService.deleteTeam(input.teamId, ctx.user.id);
   }),
 
-  getMembers: protectedProcedure.input(teamIdSchema).query(async ({ ctx, input }) => {
+  getMembers: protectedProcedure.meta({ forfait: { free: true } }).input(teamIdSchema).query(async ({ ctx, input }) => {
     ctx.log.info(
       { userId: ctx.user.id, teamId: input.teamId },
       '[TEAM] Getting team members'
