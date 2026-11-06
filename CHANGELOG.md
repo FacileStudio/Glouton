@@ -11,6 +11,8 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-11-06
+
 ### Fixed
 
 - A person without a plan can reach their settings again. Only a page's own query sends the browser to the paywall on a 402; the layout's inbox counter, the mail transport settings and the team SMTP and stats widgets fail quietly (`{ context: QUIET }` from `@repo/trpc-client`)
