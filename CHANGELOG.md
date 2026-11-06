@@ -23,7 +23,7 @@ in the root `package.json`.
 
 - A Registre snapshot whose `version` or `entitlements_revision` is not a non-negative integer is rejected whole
 - Entitlement applies take a Postgres advisory lock, so concurrent applies cannot race on the stale checks or the state row
-- When a user has several Registre identities, the personal plan comes from the oldest one, every time
+- When a user has several Registre identities, the personal plan comes from the most recent one that Registre's snapshot lists, ties broken by `sub`, like Courrier; a recreated account is never shadowed by its dead predecessor
 
 ## [0.7.0] - 2026-11-04
 

@@ -7,7 +7,10 @@ import { GLOUTON_ACCESS, enabled, sanitize, upgradeUrl } from './features';
  * `Team` row for a shared space, in `PersonEntitlement` (by Registre `sub`)
  * for personal work, and a singleton `ForfaitState` row recording that a
  * snapshot with a non-zero `entitlements_revision` was applied, with the
- * highest revision and version seen. Reading the database on
+ * highest revision and version seen. A person with several Registre
+ * identities gets the values of the most recent identity that the snapshot
+ * lists in `people[]` (ties broken by `sub`), like Courrier, so a recreated
+ * account is not shadowed by its dead predecessor. Reading the database on
  * every check, instead of an in-memory store, means a restart while Registre
  * is down keeps the last known values and never reopens fail-open.
  */
@@ -129,17 +132,19 @@ export function dbForfait(prisma: PrismaClient, fallbackIssuer = process.env.OID
   const state = () => prisma.forfaitState.findUnique({ where: { id: 1 }, select: { issuer: true } });
 
   const personalValues = async (issuer: string, userId: string) => {
-    const account = await prisma.account.findFirst({
+    const accounts = await prisma.account.findMany({
       where: { userId, providerId: issuer },
-      orderBy: [{ createdAt: 'asc' }, { accountId: 'asc' }],
+      orderBy: [{ createdAt: 'desc' }, { accountId: 'asc' }],
       select: { accountId: true },
     });
-    if (!account) return null;
-    const person = await prisma.personEntitlement.findUnique({
-      where: { sub: account.accountId },
-      select: { entitlements: true },
+    if (accounts.length === 0) return null;
+    const rows = await prisma.personEntitlement.findMany({
+      where: { sub: { in: accounts.map((account) => account.accountId) } },
+      select: { sub: true, entitlements: true },
     });
-    return person?.entitlements ?? null;
+    const bySub = new Map(rows.map((row) => [row.sub, row.entitlements]));
+    const chosen = accounts.find((account) => bySub.has(account.accountId));
+    return chosen ? bySub.get(chosen.accountId)! : null;
   };
 
   return {

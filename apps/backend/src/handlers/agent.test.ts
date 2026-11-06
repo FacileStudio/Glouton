@@ -100,7 +100,7 @@ describe('agent API scopes', () => {
     const enforced = {
       ...emptyPrisma,
       forfaitState: { findUnique: async () => ({ issuer: 'https://sso.test' }) },
-      account: { findFirst: async () => null },
+      account: { findMany: async () => [] },
     };
     const res = await app(enforced).request('/contacts', { headers: { authorization: 'Bearer session' } });
     expect(res.status).toBe(402);
