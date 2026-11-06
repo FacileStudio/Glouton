@@ -5,10 +5,12 @@
   import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
   import { page } from '$app/state';
-  import { Spinner, Toaster } from '@facile/muse';
+  import { Spinner, Toaster, provideLocale } from '@facile/muse';
   import { authStore } from '$lib/auth-store';
 
   let { children } = $props();
+
+  provideLocale('fr');
 
   if (browser) void import('iconify-icon');
 

@@ -11,6 +11,14 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+### Added
+
+- The landing page shows the live plans from the public catalog, with Glouton access highlighted and a note that the app is included in the Pro and Studio offers. The section stays hidden while the catalog is empty.
+
+### Changed
+
+- Bump `@facile/muse` from v0.7.4 to v0.11.0 and set the muse locale to French explicitly, since muse now defaults to English.
+
 ## [0.7.1] - 2026-11-06
 
 ### Fixed
