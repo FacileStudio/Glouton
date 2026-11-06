@@ -29,10 +29,10 @@ export const favoriteRouter = router({
       );
     }),
 
-  list: protectedProcedure
+  list: protectedProcedure.meta({ forfait: { free: true } })
     .input(getFavoritesSchema)
     .query(async ({ ctx, input }) => {
-      const scope = await resolveScope(ctx.prisma, ctx.user.id, input?.teamId);
+      const scope = await resolveScope(ctx.prisma, ctx.user.id, input?.teamId, ctx.planMode);
       return await FavoriteService.getFavorites({
         scope,
         prisma: ctx.prisma,
@@ -41,10 +41,10 @@ export const favoriteRouter = router({
       });
     }),
 
-  isFavorite: protectedProcedure.meta({ forfait: { row: { model: 'lead', key: 'leadId' } } })
+  isFavorite: protectedProcedure.meta({ forfait: { free: true, row: { model: 'lead', key: 'leadId' } } })
     .input(isFavoriteSchema)
     .query(async ({ ctx, input }) => {
-      const scope = await resolveScope(ctx.prisma, ctx.user.id, input.teamId);
+      const scope = await resolveScope(ctx.prisma, ctx.user.id, input.teamId, ctx.planMode);
       return await FavoriteService.isFavorite(
         scope,
         input.leadId,

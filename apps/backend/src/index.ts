@@ -9,7 +9,7 @@ import trpcHandler from './handlers/trpc';
 import { createAuthRoutes } from './handlers/auth';
 import { createAgentRoutes } from './handlers/agent';
 import { ARDOISE_ROUTES_PREFIX, createArdoiseRoutes } from './handlers/ardoise';
-import { ardoise } from '@repo/trpc';
+import { ardoise, forfait } from '@repo/trpc';
 import { openApiHandler } from './handlers/openapi';
 import { apiReference } from '@scalar/hono-api-reference';
 import {
@@ -51,6 +51,12 @@ async function startup() {
     }
   } catch (error) {
     logger.error({ error }, '[REDIS] Validation failed');
+  }
+
+  try {
+    await forfait.reportUnlinkedTeams(prisma);
+  } catch (error) {
+    logger.error({ err: error }, '[FORFAIT] Could not count teams not linked to Registre');
   }
 
   const orphaned = await checkOrphanedSessions(prisma);

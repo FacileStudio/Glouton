@@ -185,9 +185,21 @@ function isObject(value: unknown): value is Record<string, unknown> {
 }
 
 /**
+ * Reads a snapshot counter: absent is undefined, anything but a non-negative
+ * safe integer rejects the whole snapshot, so a garbled version or revision
+ * can never pass the stale checks.
+ */
+function counter(value: unknown, name: string): number | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value === 'number' && Number.isSafeInteger(value) && value >= 0) return value;
+  throw new Error(`snapshot ${name} is not a non-negative integer`);
+}
+
+/**
  * Turns a decoded body into a snapshot, dropping malformed entries: spaces
  * without a string id and people without a string `sub`. Entitlement maps
  * that are not objects are dropped too; their values are validated on read.
+ * A version or revision that is not a non-negative integer throws.
  */
 export function decodeSnapshot(raw: unknown): Snapshot {
   const body = isObject(raw) ? raw : {};
@@ -195,17 +207,15 @@ export function decodeSnapshot(raw: unknown): Snapshot {
     (space): space is DirectorySpace => isObject(space) && typeof space.id === 'string'
   );
   const snapshot: Snapshot = {
-    version: Number(body.version ?? 0),
+    version: counter(body.version, 'version') ?? 0,
     spaces: spaces.map((space) => ({
       ...space,
       members: Array.isArray(space.members) ? space.members : [],
       entitlements: isObject(space.entitlements) ? space.entitlements : undefined,
     })),
   };
-  const revision = body.entitlements_revision;
-  if (typeof revision === 'number' && Number.isSafeInteger(revision) && revision > 0) {
-    snapshot.entitlements_revision = revision;
-  }
+  const revision = counter(body.entitlements_revision, 'entitlements_revision');
+  if (revision) snapshot.entitlements_revision = revision;
   if (Array.isArray(body.people)) {
     snapshot.people = body.people
       .filter((person): person is DirectoryPerson => isObject(person) && typeof person.sub === 'string' && person.sub !== '')

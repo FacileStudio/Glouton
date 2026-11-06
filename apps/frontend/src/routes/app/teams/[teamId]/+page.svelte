@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { RouterOutputs } from '@repo/trpc-client';
+  import { QUIET, type RouterOutputs } from '@repo/trpc-client';
   import { getErrorMessage } from '$lib/utils/trpc-error';
   import { onMount } from 'svelte';
   import type { PageProps } from './$types';
@@ -47,7 +47,7 @@
   async function loadStats() {
     loadingStats = true;
     try {
-      stats = await trpc.team.getStats.query({ teamId });
+      stats = await trpc.team.getStats.query({ teamId }, { context: QUIET });
     } catch (error) {
       console.error('Error loading stats:', error);
       stats = null;

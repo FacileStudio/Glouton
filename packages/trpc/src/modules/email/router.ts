@@ -21,7 +21,7 @@ export const emailRouter = router({
   getSmtpStatus: protectedProcedure
     .input(z.object({ teamId: z.string().uuid().optional() }).optional())
     .query(async ({ ctx, input }) => {
-      const scope = await resolveScope(ctx.prisma, ctx.user.id, input?.teamId);
+      const scope = await resolveScope(ctx.prisma, ctx.user.id, input?.teamId, ctx.planMode);
       const transport = await resolveTransport(ctx.prisma, scope, Boolean(ctx.courrier));
       if (transport.kind === 'courrier') return { configured: true, transport: 'courrier' as const };
       const config = await getSmtpConfig(ctx.prisma, scope, ctx.auth);
@@ -73,7 +73,7 @@ export const emailRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const scope = await resolveScope(ctx.prisma, ctx.user.id, input.teamId);
+      const scope = await resolveScope(ctx.prisma, ctx.user.id, input.teamId, ctx.planMode);
       const emailService = new EmailService();
       return emailService.sendEmail({
         scope,
@@ -96,7 +96,7 @@ export const emailRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const scope = await resolveScope(ctx.prisma, ctx.user.id, input.teamId);
+      const scope = await resolveScope(ctx.prisma, ctx.user.id, input.teamId, ctx.planMode);
       return new EmailService().sendToLead({
         scope,
         leadId: input.leadId,
@@ -120,7 +120,7 @@ export const emailRouter = router({
       teamId: z.string().uuid().optional()
     }))
     .query(async ({ ctx, input }) => {
-      const scope = await resolveScope(ctx.prisma, ctx.user.id, input.teamId);
+      const scope = await resolveScope(ctx.prisma, ctx.user.id, input.teamId, ctx.planMode);
       const emailService = new EmailService();
       return emailService.getLeadOutreach(input.leadId, scope, ctx.prisma);
     }),
@@ -128,7 +128,7 @@ export const emailRouter = router({
   getStats: protectedProcedure
     .input(z.object({ teamId: z.string().uuid().optional() }).optional())
     .query(async ({ ctx, input }) => {
-      const scope = await resolveScope(ctx.prisma, ctx.user.id, input?.teamId);
+      const scope = await resolveScope(ctx.prisma, ctx.user.id, input?.teamId, ctx.planMode);
       const emailService = new EmailService();
       return emailService.getOutreachStats(scope, ctx.prisma);
     }),
@@ -136,7 +136,7 @@ export const emailRouter = router({
   getAllOutreach: protectedProcedure
     .input(z.object({ teamId: z.string().uuid().optional() }).optional())
     .query(async ({ ctx, input }) => {
-      const scope = await resolveScope(ctx.prisma, ctx.user.id, input?.teamId);
+      const scope = await resolveScope(ctx.prisma, ctx.user.id, input?.teamId, ctx.planMode);
       const emailService = new EmailService();
       return emailService.getAllOutreach(scope, ctx.prisma);
     }),

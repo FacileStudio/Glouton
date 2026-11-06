@@ -11,6 +11,20 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+### Fixed
+
+- A person without a plan can reach their settings again. Only a page's own query sends the browser to the paywall on a 402; the layout's inbox counter, the mail transport settings and the team SMTP and stats widgets fail quietly (`{ context: QUIET }` from `@repo/trpc-client`)
+- Without a plan, members can still list, read, export (`lead.importExport.exportToCsv`) and delete their existing leads, contacts and hunt history in scopes they belong to. Creating, hunts, audits, outreach, scrapers and the assistant stay gated. Procedures mark this with `meta.forfait.free`; the gate keeps every membership check and passes `ctx.planMode = 'free'` so scope helpers do not hide scopes without a plan
+- `team.leave` and `team.delete` need no plan, so teams not linked to Registre can be left or removed; the backend logs how many such teams exist at boot
+- A failed SSO sign-in redirects to the login page with a message (`?sso_error=unverified_account` or `sso_failed`) instead of answering raw JSON
+- Hunt and audit sessions whose job was skipped for lack of a plan are marked `CANCELLED` with the reason instead of staying pending
+
+### Security
+
+- A Registre snapshot whose `version` or `entitlements_revision` is not a non-negative integer is rejected whole
+- Entitlement applies take a Postgres advisory lock, so concurrent applies cannot race on the stale checks or the state row
+- When a user has several Registre identities, the personal plan comes from the oldest one, every time
+
 ## [0.7.0] - 2026-11-04
 
 ### Added

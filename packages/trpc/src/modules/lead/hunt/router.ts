@@ -28,7 +28,7 @@ export const huntRouter = router({
     .input(startLocalBusinessHuntSchema)
     .mutation(async ({ ctx, input }) => {
       try {
-        const scope = await resolveScope(ctx.prisma, ctx.user.id, input.teamId);
+        const scope = await resolveScope(ctx.prisma, ctx.user.id, input.teamId, ctx.planMode);
 
         return await huntService.startLocalBusinessHunt({
           scope,
@@ -43,14 +43,14 @@ export const huntRouter = router({
       }
     }),
 
-  list: protectedProcedure
+  list: protectedProcedure.meta({ forfait: { free: true } })
     .input(z.object({ teamId: z.string().uuid().optional() }).optional())
     .query(async ({ ctx, input }) => {
-      const scope = await resolveScope(ctx.prisma, ctx.user.id, input?.teamId);
+      const scope = await resolveScope(ctx.prisma, ctx.user.id, input?.teamId, ctx.planMode);
       return await huntService.getHuntSessions(scope, ctx.prisma, ctx.jobs);
     }),
 
-  getStatus: protectedProcedure.meta({ forfait: { row: { model: 'huntSession', key: 'huntSessionId' } } }).input(huntStatusSchema).query(async ({ ctx, input }) => {
+  getStatus: protectedProcedure.meta({ forfait: { free: true, row: { model: 'huntSession', key: 'huntSessionId' } } }).input(huntStatusSchema).query(async ({ ctx, input }) => {
     const session = await prisma.huntSession.findUnique({
       where: { id: input.huntSessionId },
     });
@@ -95,7 +95,7 @@ export const huntRouter = router({
     }
   }),
 
-  delete: humanProcedure.meta({ forfait: { row: { model: 'huntSession', key: 'huntSessionId' } } }).input(deleteHuntSchema).mutation(async ({ ctx, input }) => {
+  delete: humanProcedure.meta({ forfait: { free: true, row: { model: 'huntSession', key: 'huntSessionId' } } }).input(deleteHuntSchema).mutation(async ({ ctx, input }) => {
     const session = await prisma.huntSession.findUnique({
       where: { id: input.huntSessionId },
       select: { userId: true },
@@ -111,7 +111,7 @@ export const huntRouter = router({
     return { success: true };
   }),
 
-  getRunDetails: protectedProcedure.meta({ forfait: { row: { model: 'huntSession', key: 'huntSessionId' } } })
+  getRunDetails: protectedProcedure.meta({ forfait: { free: true, row: { model: 'huntSession', key: 'huntSessionId' } } })
     .input(getRunDetailsSchema)
     .query(async ({ ctx, input }) => {
       try {
@@ -145,7 +145,7 @@ export const huntRouter = router({
       }
     }),
 
-  getRunEvents: protectedProcedure.meta({ forfait: { row: { model: 'huntSession', key: 'huntSessionId' } } })
+  getRunEvents: protectedProcedure.meta({ forfait: { free: true, row: { model: 'huntSession', key: 'huntSessionId' } } })
     .input(getRunEventsSchema)
     .query(async ({ ctx, input }) => {
       try {

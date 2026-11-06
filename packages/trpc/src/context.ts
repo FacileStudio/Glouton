@@ -8,6 +8,7 @@ import type { DelegatedVerifier } from './delegation';
 import type { CourrierClient } from '@repo/courrier';
 import type { BulleClient } from './modules/assistant/bulle';
 import { dbForfait, type ForfaitReader } from './modules/forfait/store';
+import type { PlanMode } from './modules/forfait/gate';
 
 export interface CreateContextOptions extends FetchCreateContextFnOptions {
   prisma: PrismaClient;
@@ -63,6 +64,7 @@ export const createContext = async (options: CreateContextOptions) => {
     courrier: options.courrier ?? null,
     bulle: options.bulle ?? null,
     forfait: options.forfait ?? dbForfait(options.prisma, options.env.OIDC_ISSUER),
+    planMode: 'paid' as PlanMode,
   };
 };
 

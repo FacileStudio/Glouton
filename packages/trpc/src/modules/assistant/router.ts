@@ -28,7 +28,7 @@ export const assistantNextActionSchema = z
 
 async function access(ctx: AuthedContext, team: string | undefined) {
   if (!team) return accessForUser(ctx.prisma, ctx.user.id, ctx.actor);
-  return accessForScope(await resolveScope(ctx.prisma, ctx.user.id, team), ctx.actor);
+  return accessForScope(await resolveScope(ctx.prisma, ctx.user.id, team, ctx.planMode), ctx.actor);
 }
 
 function sender(ctx: AuthedContext) {
@@ -39,7 +39,7 @@ export const assistantRouter = router({
   status: humanProcedure
     .input(z.object({ teamId }).optional())
     .query(async ({ ctx, input }) => {
-      if (input?.teamId) await resolveScope(ctx.prisma, ctx.user.id, input.teamId);
+      if (input?.teamId) await resolveScope(ctx.prisma, ctx.user.id, input.teamId, ctx.planMode);
       return assistantStatus(ctx.bulle, ctx.user.id);
     }),
 

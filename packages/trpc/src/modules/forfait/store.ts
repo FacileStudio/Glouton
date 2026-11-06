@@ -43,6 +43,9 @@ export interface EntitlementSnapshot {
   people?: Array<{ sub: string; entitlements?: Record<string, unknown> }>;
 }
 
+/** The advisory lock key that serialises entitlement applies across processes. */
+export const FORFAIT_LOCK = 7_243_117_001;
+
 /** What `applyEntitlements` did with a snapshot. */
 export type ApplyOutcome = 'applied' | 'reset' | 'not-pushed' | 'stale';
 
@@ -62,7 +65,9 @@ export function revisionOf(snapshot: EntitlementSnapshot): number {
 }
 
 /**
- * Stores the snapshot's entitlements inside the Apply transaction.
+ * Stores the snapshot's entitlements inside the Apply transaction, holding a
+ * transaction-scoped advisory lock so two applies (two replicas, or a nudge
+ * racing the timer) never interleave their stale checks and writes.
  * `entitlements_revision` is the only signal: while it is 0 or absent nothing
  * changes (fail-open before the first push, last known values after it). A
  * snapshot from another issuer, or whose version went back (Registre was
@@ -80,6 +85,7 @@ export async function applyEntitlements(
 ): Promise<ApplyOutcome> {
   const revision = revisionOf(snapshot);
   if (revision === 0) return 'not-pushed';
+  await tx.$executeRawUnsafe(`SELECT pg_advisory_xact_lock(${FORFAIT_LOCK})`);
   const last = await tx.forfaitState.findUnique({
     where: { id: 1 },
     select: { issuer: true, version: true, revision: true },
@@ -125,6 +131,7 @@ export function dbForfait(prisma: PrismaClient, fallbackIssuer = process.env.OID
   const personalValues = async (issuer: string, userId: string) => {
     const account = await prisma.account.findFirst({
       where: { userId, providerId: issuer },
+      orderBy: [{ createdAt: 'asc' }, { accountId: 'asc' }],
       select: { accountId: true },
     });
     if (!account) return null;
@@ -196,4 +203,24 @@ export function rowLoader(prisma: PrismaClient) {
     if (model === 'huntSession') return prisma.huntSession.findUnique({ where: { id }, select });
     return prisma.auditSession.findUnique({ where: { id }, select });
   };
+}
+
+/**
+ * Counts the teams not linked to any Registre space. They never receive
+ * entitlements, so once enforcement is on their members can only read,
+ * export, delete and leave; the boot log reports them so an admin can link
+ * or remove them.
+ */
+export async function reportUnlinkedTeams(prisma: PrismaClient): Promise<number> {
+  const [count, enforced] = await Promise.all([
+    prisma.team.count({ where: { registreSpaceId: null } }),
+    prisma.forfaitState.count(),
+  ]);
+  if (count > 0) {
+    const message = enforced
+      ? '[FORFAIT] Teams not linked to Registre have no plan: members can only read, export, delete and leave'
+      : '[FORFAIT] Teams not linked to Registre will have no plan once entitlements arrive';
+    logger.warn({ count }, message);
+  }
+  return count;
 }

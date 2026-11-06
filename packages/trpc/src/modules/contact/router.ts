@@ -41,12 +41,12 @@ const noteInput = targetShape
   .refine(hasTarget, 'Give a company or a person');
 
 async function scopeAccess(ctx: AuthedContext, teamId: string | undefined) {
-  const scope = await resolveScope(ctx.prisma, ctx.user.id, teamId);
+  const scope = await resolveScope(ctx.prisma, ctx.user.id, teamId, ctx.planMode);
   return accessForScope(scope, ctx.actor);
 }
 
 function userAccess(ctx: AuthedContext) {
-  return accessForUser(ctx.prisma, ctx.user.id, ctx.actor);
+  return accessForUser(ctx.prisma, ctx.user.id, ctx.actor, ctx.planMode);
 }
 
 function hooks(ctx: AuthedContext) {
@@ -58,25 +58,25 @@ function originOf(ctx: AuthedContext) {
 }
 
 export const contactRouter = router({
-  listCompanies: protectedProcedure
+  listCompanies: protectedProcedure.meta({ forfait: { free: true } })
     .input(listFiltersSchema.merge(scoped))
     .query(async ({ ctx, input }) =>
       contacts.listCompanies(ctx.prisma, await scopeAccess(ctx, input.teamId), input)
     ),
 
-  listPeople: protectedProcedure
+  listPeople: protectedProcedure.meta({ forfait: { free: true } })
     .input(listFiltersSchema.merge(scoped))
     .query(async ({ ctx, input }) =>
       contacts.listPeople(ctx.prisma, await scopeAccess(ctx, input.teamId), input)
     ),
 
-  search: protectedProcedure
+  search: protectedProcedure.meta({ forfait: { free: true } })
     .input(listFiltersSchema.merge(scoped))
     .query(async ({ ctx, input }) =>
       contacts.searchContacts(ctx.prisma, await scopeAccess(ctx, input.teamId), input)
     ),
 
-  getCompany: protectedProcedure
+  getCompany: protectedProcedure.meta({ forfait: { free: true } })
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
       const { websiteAudit: _audit, socialProfiles: _profiles, ...company } = await contacts.getCompany(
@@ -87,7 +87,7 @@ export const contactRouter = router({
       return withStringPayloads(company);
     }),
 
-  getPerson: protectedProcedure
+  getPerson: protectedProcedure.meta({ forfait: { free: true } })
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) =>
       withStringPayloads(await contacts.getPerson(ctx.prisma, await userAccess(ctx), input.id))
@@ -133,7 +133,7 @@ export const contactRouter = router({
     .input(duplicateCheckSchema)
     .query(async ({ ctx, input }) => contacts.findDuplicates(ctx.prisma, await userAccess(ctx), input)),
 
-  outreach: protectedProcedure
+  outreach: protectedProcedure.meta({ forfait: { free: true } })
     .input(target)
     .query(async ({ ctx, input }) => contacts.listOutreach(ctx.prisma, await userAccess(ctx), input)),
 
@@ -149,11 +149,11 @@ export const contactRouter = router({
       contacts.mergePeople(ctx.prisma, await userAccess(ctx), input.targetId, input.sourceId)
     ),
 
-  deleteCompany: humanProcedure
+  deleteCompany: humanProcedure.meta({ forfait: { free: true } })
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => contacts.deleteCompany(ctx.prisma, await userAccess(ctx), input.id, hooks(ctx))),
 
-  deletePerson: humanProcedure
+  deletePerson: humanProcedure.meta({ forfait: { free: true } })
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => contacts.deletePerson(ctx.prisma, await userAccess(ctx), input.id)),
 });
