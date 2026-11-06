@@ -11,6 +11,8 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-06
+
 ### Added
 
 - The landing page shows the live plans from the public catalog, with Glouton access highlighted and a note that the app is included in the Pro and Studio offers. The section stays hidden while the catalog is empty.
