@@ -118,6 +118,31 @@ describe('every by-id procedure declares its scope', () => {
   });
 });
 
+describe('free procedures', () => {
+  type Proc = { _def: { type: string; meta?: { forfait?: { free?: boolean } } } };
+  const procedures = appRouter._def.procedures as unknown as Record<string, Proc>;
+  const free = Object.entries(procedures).filter(([, p]) => p._def.meta?.forfait?.free === true);
+
+  test('a free procedure is a query, a delete or an export: never a create or update path', () => {
+    expect(free.length).toBeGreaterThan(0);
+    const writes = free
+      .filter(([path, p]) => p._def.type !== 'query' && !/\.delete[A-Za-z]*$/.test(path))
+      .map(([path]) => path);
+    expect(writes).toEqual([]);
+  });
+
+  test('free mode lasts one call: a gated procedure in the same session is still refused', async () => {
+    const none = reader(false);
+    const base = { userId: 'u', idKeys: [], loadRow: async () => null };
+    await expect(
+      forfait.authorize(none, { ...base, path: 'lead.query.list', input: {}, meta: { forfait: { free: true } } })
+    ).resolves.toBe('free');
+    await expect(forfait.authorize(none, { ...base, path: 'contact.createCompany', input: { name: 'x' }, meta: undefined })).rejects.toMatchObject({
+      code: 'PAYMENT_REQUIRED',
+    });
+  });
+});
+
 describe('account procedures and shared templates', () => {
   const user = { id: 'user-1', email: 'u@example.com', role: 'USER' };
   const teamId = '00000000-0000-4000-8000-0000000000aa';
@@ -371,12 +396,26 @@ describe.skipIf(!databaseUrl)('by-id procedures take the scope of their row', ()
   });
 
   test('free procedures still refuse a team the caller does not belong to', async () => {
+    const owner = await prisma.user.create({ data: { email: `owner-${tag}@x.test`, firstName: 'O', lastName: 'O', password: 'x' } });
     const outsider = await prisma.team.create({ data: { name: `outsider-${tag}` } });
+    const lead = await prisma.lead.create({ data: { userId: owner.id, teamId: outsider.id, domain: `o-${tag}.test` } });
+    const company = await prisma.company.create({ data: { userId: owner.id, teamId: outsider.id, name: `Outsider ${tag}`, origin: 'MANUAL' } });
     try {
-      const res = await call('lead.query.list', user, reader(true), { teamId: outsider.id }, { prisma });
-      expect(res.status).toBe(403);
+      const none = reader(false);
+      expect((await call('lead.query.list', user, reader(true), { teamId: outsider.id }, { prisma })).status).toBe(403);
+      expect((await call('contact.listCompanies', user, none, { teamId: outsider.id }, { prisma })).status).toBe(403);
+      expect((await call('contact.getCompany', user, none, { id: company.id }, { prisma })).status).toBe(404);
+      const listed = await call('contact.listCompanies', user, none, {}, { prisma });
+      expect(JSON.stringify(listed.body)).not.toContain(company.id);
+      expect((await call('lead.query.delete', user, none, { leadId: lead.id }, { prisma, mutation: true })).status).toBe(403);
+      expect((await call('contact.deleteCompany', user, none, { id: company.id }, { prisma, mutation: true })).status).toBe(404);
+      expect(await prisma.lead.count({ where: { id: lead.id } })).toBe(1);
+      expect(await prisma.company.count({ where: { id: company.id, deletedAt: null } })).toBe(1);
     } finally {
+      await prisma.company.deleteMany({ where: { id: company.id } });
+      await prisma.lead.deleteMany({ where: { id: lead.id } });
       await prisma.team.delete({ where: { id: outsider.id } });
+      await prisma.user.delete({ where: { id: owner.id } });
     }
   });
 

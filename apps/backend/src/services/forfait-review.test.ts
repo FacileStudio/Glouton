@@ -128,16 +128,30 @@ describe.skipIf(!databaseUrl)('review fixes against the database', () => {
     expect([state.version, state.revision]).toEqual([10n, 3n]);
   }, 60_000);
 
-  test('the personal sub is chosen deterministically: the oldest account', async () => {
-    await db.account.create({ data: { userId, providerId: issuer, accountId: `old-${tag}`, createdAt: new Date('2025-01-01') } });
-    await db.account.create({ data: { userId, providerId: issuer, accountId: `new-${tag}`, createdAt: new Date('2026-01-01') } });
-    await db.personEntitlement.createMany({
-      data: [
-        { sub: `old-${tag}`, entitlements: { 'glouton.access': true } },
-        { sub: `new-${tag}`, entitlements: { 'glouton.access': false } },
-      ],
-    });
+  test('the personal plan comes from the most recent identity the snapshot lists', async () => {
     const reader = forfait.dbForfait(db, issuer);
+    const identity = (name: string, at: string) =>
+      db.account.create({ data: { userId, providerId: issuer, accountId: `${name}-${tag}`, createdAt: new Date(at) } });
+    const entitle = (name: string, access: boolean) =>
+      db.personEntitlement.create({ data: { sub: `${name}-${tag}`, entitlements: { 'glouton.access': access } } });
+
+    await identity('dead', '2025-01-01');
+    await identity('live', '2026-01-01');
+    expect((await reader.personal(userId)).allowed).toBe(false);
+
+    await entitle('live', true);
+    for (let i = 0; i < 3; i++) expect((await reader.personal(userId)).allowed).toBe(true);
+
+    await entitle('dead', false);
+    expect((await reader.personal(userId)).allowed).toBe(true);
+
+    await db.personEntitlement.delete({ where: { sub: `live-${tag}` } });
+    expect((await reader.personal(userId)).allowed).toBe(false);
+
+    await identity('twin-a', '2026-06-01');
+    await identity('twin-b', '2026-06-01');
+    await entitle('twin-b', false);
+    await entitle('twin-a', true);
     for (let i = 0; i < 3; i++) expect((await reader.personal(userId)).allowed).toBe(true);
   });
 });
