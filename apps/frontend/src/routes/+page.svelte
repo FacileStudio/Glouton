@@ -1,6 +1,6 @@
 <script lang="ts">
   import { resolve } from '$app/paths';
-  import { Button, Divider, icons } from '@facile/muse';
+  import { Button, Divider, PricingPlans, icons } from '@facile/muse';
   import authStore from '$lib/auth-store';
 
   const features = [
@@ -114,6 +114,16 @@
         {/each}
       </div>
     </section>
+
+    <div id="tarifs" class="hidden has-[section]:block">
+      <Divider class="my-0" />
+      <div class="mx-auto max-w-5xl px-4 py-20 sm:px-6">
+        <PricingPlans title="Tarifs" highlight={['glouton.access']} />
+        <p class="mt-8 text-center text-fc-sm text-fc-fg-muted">
+          Glouton est inclus dans les offres Pro et Studio de Facile. Un abonnement donne accès à toute l'app.
+        </p>
+      </div>
+    </div>
   </main>
 
   <footer class="border-t border-fc-border">
