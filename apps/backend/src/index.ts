@@ -196,6 +196,8 @@ app.get('/docs', apiReference({ url: '/docs/openapi.json', pageTitle: 'Glouton A
 app.get('/health/live', createLivenessHandler());
 app.get('/health/ready', createReadinessHandler({ prisma }));
 
+app.get('/version', (c) => c.json({ version: process.env.APP_VERSION ?? 'dev' }));
+
 app.get('/ws', wsHandler);
 
 if (directory) app.route('/', createRegistreSyncRoutes(directory));

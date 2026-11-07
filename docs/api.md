@@ -46,10 +46,7 @@ tRPC procedures above, and it does not document the plain Hono routes below eith
 | `me` | query | protected | `{}` |
 | `logout` | mutation | protected | `{}` |
 
-`login` and `register` return a JWT in the response body — the client stores it and sends it as a
-bearer header. There is no refresh procedure; the token simply lasts 7 days. `logout` is
-client-side only. `/trpc/auth.login` and `/trpc/auth.register` each sit behind their own rate
-limiter.
+Sign-in goes only through Registre OIDC (`/auth/oidc`); the callback hands the client a JWT in the URL fragment, which it sends as a bearer header. There is no password login, register or change-password procedure. There is no refresh procedure; the token simply lasts 7 days. `logout` is client-side only.
 
 ## `user`
 
@@ -273,9 +270,11 @@ All protected. Freelance missions scraped from public boards.
 
 | Method | Path | Auth | Proxied publicly | What it does |
 |---|---|---|---|---|
-| `GET` | `/auth/config` | none | yes | `{ sso_only, oidc_enabled }`, so the login page knows whether to show the password form |
+| `GET` | `/auth/config` | none | yes | `{ oidc_enabled }` |
 | `GET` | `/auth/oidc` | none | yes | Starts the OIDC flow, setting an `oidc_state` cookie with a 10 minute TTL. Registered only when OIDC is enabled |
 | `GET` | `/auth/oidc/callback` | state cookie | yes | Verifies `state`, exchanges the code, verifies the id token against the cached JWKS, upserts the user, redirects to `OIDC_SUCCESS_URL#token=<jwt>` |
+| `GET` | `/version` | none | yes | `{ version }` from `APP_VERSION` |
+| `POST` | `/api/registre/deletions` | signed secevent+jwt | yes | Registre's GDPR deletion push; verified RS256 against Registre's JWKS, erases the person, answers 202. Glouton also polls `GET /api/directory/deletions` every five minutes |
 | `GET` | `/docs` | none | yes | Scalar API reference UI |
 | `GET` | `/docs/openapi.json` | none | yes | Generated OpenAPI document |
 | `GET` | `/ws` | bearer | **no** | Bun WebSocket for live hunt, audit and lead events |

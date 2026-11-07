@@ -7,7 +7,10 @@
   import { teamContextStore } from '$lib/stores/team-context.svelte';
   import { ws } from '$lib/websocket';
   import trpc from '$lib/trpc';
+  import { useT } from '$lib/i18n';
   import { inboxCount } from '$lib/stores/inbox-count.svelte';
+
+  const t = useT();
 
   type Team = { id: string; name: string; role: 'OWNER' | 'ADMIN' | 'MEMBER' };
 
@@ -21,19 +24,19 @@
   }
 
   const navPages = $derived([
-    { label: 'Chasses', icon: 'solar:radar-2-linear', href: '/app/hunts', active: isActive('/app/hunts') },
-    { label: 'Contacts', icon: 'solar:users-group-two-rounded-linear', href: '/app/contacts', active: isActive('/app/contacts') },
+    { label: t('nav.hunts'), icon: 'solar:radar-2-linear', href: '/app/hunts', active: isActive('/app/hunts') },
+    { label: t('nav.contacts'), icon: 'solar:users-group-two-rounded-linear', href: '/app/contacts', active: isActive('/app/contacts') },
     {
-      label: inboxCount.value > 0 ? `Boîte agent (${inboxCount.value})` : 'Boîte agent',
+      label: inboxCount.value > 0 ? `${t('nav.inbox')} (${inboxCount.value})` : t('nav.inbox'),
       icon: 'solar:inbox-linear',
       href: '/app/inbox',
       active: isActive('/app/inbox'),
     },
-    { label: 'Leads', icon: 'solar:magnet-linear', href: '/app/leads', active: isActive('/app/leads') },
-    { label: 'Créations', icon: 'solar:buildings-2-linear', href: '/app/creations', active: isActive('/app/creations') },
-    { label: 'Missions', icon: 'solar:case-round-linear', href: '/app/missions', active: isActive('/app/missions') },
-    { label: 'Prospection', icon: 'solar:letter-linear', href: '/app/outreach', active: isActive('/app/outreach') },
-    { label: 'Espaces', icon: icons.space, href: '/app/teams', active: isActive('/app/teams') },
+    { label: t('nav.leads'), icon: 'solar:magnet-linear', href: '/app/leads', active: isActive('/app/leads') },
+    { label: t('nav.creations'), icon: 'solar:buildings-2-linear', href: '/app/creations', active: isActive('/app/creations') },
+    { label: t('nav.missions'), icon: 'solar:case-round-linear', href: '/app/missions', active: isActive('/app/missions') },
+    { label: t('nav.outreach'), icon: 'solar:letter-linear', href: '/app/outreach', active: isActive('/app/outreach') },
+    { label: t('nav.spaces'), icon: icons.space, href: '/app/teams', active: isActive('/app/teams') },
   ]);
 
   const navUser = $derived(
@@ -50,26 +53,28 @@
   );
 
   function getPageTitle(path: string): string {
-    if (path.startsWith('/app/hunts/new')) return 'Nouvelle chasse · Glouton';
-    if (path.match(/^\/app\/hunts\/.+/)) return 'Chasse · Glouton';
-    if (path === '/app/hunts') return 'Chasses · Glouton';
-    if (path.match(/^\/app\/leads\/.+/)) return 'Lead · Glouton';
-    if (path === '/app/leads') return 'Leads · Glouton';
-    if (path.startsWith('/app/contacts/companies/')) return 'Entreprise · Glouton';
-    if (path.startsWith('/app/contacts/people/')) return 'Personne · Glouton';
-    if (path === '/app/contacts') return 'Contacts · Glouton';
-    if (path === '/app/inbox') return 'Boîte agent · Glouton';
-    if (path === '/app/creations') return 'Créations · Glouton';
-    if (path.startsWith('/app/missions')) return 'Missions · Glouton';
-    if (path === '/app/outreach') return 'Prospection · Glouton';
-    if (path === '/app/teams/new') return 'Nouvel espace · Glouton';
-    if (path.match(/^\/app\/teams\/.+\/settings/)) return "Paramètres d'espace · Glouton";
-    if (path.match(/^\/app\/teams\/.+\/members/)) return 'Membres · Glouton';
-    if (path.match(/^\/app\/teams\/.+/)) return 'Espace · Glouton';
-    if (path === '/app/teams') return 'Espaces · Glouton';
-    if (path === '/app/settings') return 'Paramètres · Glouton';
-    if (path === '/app/paywall') return 'Forfait · Glouton';
-    return 'Glouton';
+    const name = t('app.name');
+    const title = (key: Parameters<typeof t>[0]) => `${t(key)} · ${name}`;
+    if (path.startsWith('/app/hunts/new')) return title('title.newHunt');
+    if (path.match(/^\/app\/hunts\/.+/)) return title('title.hunt');
+    if (path === '/app/hunts') return title('nav.hunts');
+    if (path.match(/^\/app\/leads\/.+/)) return title('title.lead');
+    if (path === '/app/leads') return title('nav.leads');
+    if (path.startsWith('/app/contacts/companies/')) return title('title.company');
+    if (path.startsWith('/app/contacts/people/')) return title('title.person');
+    if (path === '/app/contacts') return title('nav.contacts');
+    if (path === '/app/inbox') return title('nav.inbox');
+    if (path === '/app/creations') return title('nav.creations');
+    if (path.startsWith('/app/missions')) return title('nav.missions');
+    if (path === '/app/outreach') return title('nav.outreach');
+    if (path === '/app/teams/new') return title('title.newSpace');
+    if (path.match(/^\/app\/teams\/.+\/settings/)) return title('title.spaceSettings');
+    if (path.match(/^\/app\/teams\/.+\/members/)) return title('title.members');
+    if (path.match(/^\/app\/teams\/.+/)) return title('title.space');
+    if (path === '/app/teams') return title('nav.spaces');
+    if (path === '/app/settings') return title('title.settings');
+    if (path === '/app/paywall') return title('title.plan');
+    return name;
   }
 
   const pageTitle = $derived(getPageTitle(page.url.pathname));
@@ -102,7 +107,7 @@
         window.location.reload();
       }
     } catch {
-      toast.danger('Échec du chargement des espaces');
+      toast.danger(t('nav.spacesFailed'));
     }
   });
 
@@ -142,8 +147,8 @@
       {activeSpaceId}
       onSpaceSelect={selectSpace}
       manageSpacesHref="/app/teams"
-      personalSpaceLabel="Personnel"
-      manageSpacesLabel="Gérer les espaces"
+      personalSpaceLabel={t('nav.personal')}
+      manageSpacesLabel={t('nav.manageSpaces')}
     />
   </div>
   <main class="min-w-0 flex-1 overflow-auto overscroll-contain pb-28 md:pb-0">

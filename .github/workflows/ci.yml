@@ -1,0 +1,71 @@
+name: ci
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  DATABASE_URL: postgres://glouton:glouton@127.0.0.1:5432/glouton_test
+  TEST_DATABASE_URL: postgres://glouton:glouton@127.0.0.1:5432/glouton_test
+  DOMAIN: http://localhost:3000
+  ENCRYPTION_SECRET: ci-encryption-secret-at-least-32-characters
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: glouton
+          POSTGRES_PASSWORD: glouton
+          POSTGRES_DB: glouton_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.13
+
+      - name: install
+        run: bun install --frozen-lockfile
+
+      - name: prisma client
+        run: bunx prisma generate
+
+      - name: migrate
+        working-directory: scripts
+        run: bash migrate.sh "$DATABASE_URL"
+
+      - name: typecheck
+        run: bun run typecheck
+
+      - name: lint
+        run: bun run lint
+
+      - name: tests
+        working-directory: apps/backend
+        run: bun test
+
+      - name: build
+        run: bun run build
+
+  filet:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v7
+      - uses: FacileStudio/filet@v0.3.0
+        with:
+          version: v0.3.0
+          fail-on: error

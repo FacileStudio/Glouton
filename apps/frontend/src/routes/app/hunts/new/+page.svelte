@@ -218,9 +218,9 @@
     <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3">
       {#each businessCategories as category (category.value)}
         <label
-          class="flex min-h-11 cursor-pointer items-center gap-2 rounded-fc-md border p-3 transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-fc-ring {localBusinessFilters.categories.includes(category.value)
-            ? 'border-fc-fg bg-fc-surface'
-            : 'border-fc-border bg-fc-bg hover:bg-fc-surface'}"
+          class="flex min-h-11 cursor-pointer items-center gap-2 rounded-fc-md p-3 transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-fc-ring {localBusinessFilters.categories.includes(category.value)
+            ? 'bg-fc-accent text-fc-accent-fg'
+            : 'bg-fc-component hover:bg-fc-surface'}"
         >
           <input
             type="checkbox"
@@ -332,7 +332,7 @@
     </Field>
   </div>
 
-  <div class="border-t border-fc-border pt-6">
+  <div class="pt-6">
     <Button
       class="w-full"
       size="lg"
@@ -341,7 +341,7 @@
       disabled={loading}
     >
       {#if loading}
-        <Spinner size="sm" label="Recherche" class="border-fc-accent-fg/30 border-t-fc-accent-fg" />
+        <Spinner size="sm" label="Recherche" class="text-fc-accent-fg" />
         Recherche
       {:else}
         Lancer la chasse locale

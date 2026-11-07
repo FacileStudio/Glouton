@@ -282,7 +282,7 @@
     </form>
 
     {#if desktop.current && bulleShown}
-      <aside class="border-l border-fc-border pl-5">{@render bulle()}</aside>
+      <aside class="pl-5">{@render bulle()}</aside>
     {/if}
   </div>
 

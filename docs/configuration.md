@@ -34,7 +34,6 @@ time.
 All optional, but cross-validated by a `superRefine` on the schema:
 
 - setting `OIDC_ISSUER` without `OIDC_CLIENT_ID` **and** `OIDC_CLIENT_SECRET` fails startup
-- setting `SSO_ONLY` without `OIDC_ISSUER` fails startup
 
 | Variable | Required | Default | What it does |
 |---|---|---|---|
@@ -43,7 +42,7 @@ All optional, but cross-validated by a `superRefine` on the schema:
 | `OIDC_CLIENT_SECRET` | with issuer | — | Authentik client secret |
 | `OIDC_REDIRECT_URL` | no | `${DOMAIN}/auth/oidc/callback` | Must match the callback registered in Authentik |
 | `OIDC_SUCCESS_URL` | no | `${DOMAIN}/auth/callback` | Where the backend redirects with `#token=…` |
-| `SSO_ONLY` | no | `false` | Truthy for the strings `true` or `1`. Reported by `GET /auth/config` so the login page can hide the password form |
+| `APP_VERSION` | no | `dev` | Served by `GET /version`. Set it at release time (compose build arg and env) |
 
 The same variables configure delegated access for agents. With `OIDC_ISSUER` and
 `OIDC_CLIENT_ID` set, the backend also accepts Registre token-exchange tokens whose `aud` is

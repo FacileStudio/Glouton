@@ -360,7 +360,7 @@
     </EmptyState>
   {:else}
     <Card class="overflow-hidden p-0">
-      <div class="divide-y divide-fc-border">
+      <div class="flex flex-col gap-1">
         {#each filteredLeads as lead (lead.leadId)}
           {@const statusConfig = getEmailStatusConfig(lead.lastEmailStatus, lead.needsFollowUp)}
           {@const isExpanded = expandedLeadId === lead.leadId}
@@ -424,7 +424,7 @@
 
             {#if isExpanded}
               <div
-                class="border-t border-fc-border bg-fc-bg"
+                class="bg-fc-bg"
                 transition:slide={{ duration: 200 }}
               >
                 {#if panelLoading}
@@ -468,7 +468,7 @@
                               <p class="truncate text-fc-sm font-medium text-fc-fg">{email.subject}</p>
                               <p class="mt-0.5 text-fc-xs text-fc-fg-muted">{formatDate(email.sentAt || email.createdAt)}</p>
                               {#if expandedEmailId === email.id && email.textBody}
-                                <p class="mt-2 whitespace-pre-wrap border-t border-fc-border pt-2 text-fc-sm leading-relaxed text-fc-fg" in:slide={{ duration: 150 }}>
+                                <p class="mt-2 whitespace-pre-wrap pt-2 text-fc-sm leading-relaxed text-fc-fg" in:slide={{ duration: 150 }}>
                                   {email.textBody}
                                 </p>
                               {/if}

@@ -108,7 +108,7 @@
     aria-pressed={active}
     class="inline-flex h-11 items-center gap-1.5 rounded-fc-pill px-3 text-fc-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fc-ring md:h-8 {active
       ? 'bg-fc-accent text-fc-accent-fg'
-      : 'border border-fc-border text-fc-fg hover:bg-fc-surface'}"
+      : 'text-fc-fg hover:bg-fc-surface'}"
   >
     <iconify-icon {icon} width="12" height="12" class="block"></iconify-icon>
     {label}
@@ -163,7 +163,7 @@
   </div>
 
   {#if filtersExpanded}
-    <div class="flex flex-wrap items-start gap-4 border-t border-fc-border pt-4">
+    <div class="flex flex-wrap items-start gap-4 pt-4">
       <div class="flex flex-col gap-1.5">
         <span class="text-fc-xs text-fc-fg-muted">Statut</span>
         <div class="flex flex-wrap items-center gap-1">
@@ -226,7 +226,7 @@
       </label>
     </div>
 
-    <div class="flex flex-wrap items-start gap-4 border-t border-fc-border pt-4">
+    <div class="flex flex-wrap items-start gap-4 pt-4">
       {#each presenceGroups as group (group.key)}
         <div class="flex flex-col gap-1.5">
           <span class="text-fc-xs text-fc-fg-muted">{group.label}</span>

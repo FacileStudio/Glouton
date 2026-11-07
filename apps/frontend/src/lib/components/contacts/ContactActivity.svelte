@@ -92,7 +92,7 @@
     <h2 class="text-fc-md font-semibold text-fc-fg">Suggestions ouvertes</h2>
     <ul class="flex flex-col gap-3">
       {#each suggestions as s (s.id)}
-        <li class="flex flex-col gap-2 border-b border-fc-border pb-3 last:border-b-0 last:pb-0">
+        <li class="flex flex-col gap-2 pb-3 last:pb-0">
           <div class="flex flex-wrap items-center gap-2">
             <Badge tone="accent">{SUGGESTION_KINDS[s.kind ?? ''] ?? s.kind}</Badge>
             <span class="text-fc-sm font-semibold text-fc-fg">{s.title}</span>

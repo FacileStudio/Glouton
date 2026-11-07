@@ -39,7 +39,7 @@ upgrade is not proxied by `server.js`.
 
 - `apps/backend` — Hono. Wires CORS from `DOMAIN`, request logging, security headers
   (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, HSTS on
-  HTTPS), and rate limiters on `auth.login` and `auth.register`. Registers the BullMQ workers and
+  HTTPS). Registers the BullMQ workers and
   the opportunity scraper schedule at startup, then serves.
 - `apps/frontend` — SvelteKit with `adapter-node`, wrapped by `server.js`. Routes: `/login`,
   `/register`, `/auth/callback`, `/app/{leads,hunts,missions,outreach,teams,settings}`,
@@ -142,7 +142,7 @@ boolean. Nothing imports either package across repos.
 
 Optional, in `apps/backend/src/services/oidc.ts` and mounted by `handlers/auth.ts`. Active only
 when `OIDC_ISSUER` is set; `serverEnvSchema` refuses to boot if the issuer is present without
-`OIDC_CLIENT_ID` and `OIDC_CLIENT_SECRET`, or if `SSO_ONLY` is set without an issuer.
+`OIDC_CLIENT_ID` and `OIDC_CLIENT_SECRET`.
 
 The flow is standard authorization code with a `state` nonce in an `HttpOnly` cookie, discovery
 document and JWKS both cached in memory, and `jose` verifying the id token. `OIDC_REDIRECT_URL`

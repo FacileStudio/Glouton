@@ -5,12 +5,17 @@
   import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
   import { page } from '$app/state';
-  import { Spinner, Toaster, provideLocale } from '@facile/muse';
+  import { Spinner, Toaster, LOCALE_COOKIE, provideLocale } from '@facile/muse';
   import { authStore } from '$lib/auth-store';
 
-  let { children } = $props();
+  let { data, children } = $props();
 
-  provideLocale('fr');
+  provideLocale(() => $authStore.user?.locale ?? data.locale);
+
+  $effect(() => {
+    const locale = $authStore.user?.locale;
+    if (browser && locale) document.cookie = `${LOCALE_COOKIE}=${locale}; path=/; max-age=31536000; samesite=lax`;
+  });
 
   if (browser) void import('iconify-icon');
 
@@ -25,7 +30,7 @@
 
       if (path.startsWith('/app') && !user) goto(resolve('/login'));
 
-      if ((path === '/login' || path === '/register') && user) goto(resolve('/app/leads'));
+      if (path === '/login' && user) goto(resolve('/app/leads'));
     }
   });
 </script>

@@ -46,6 +46,7 @@ services:
       args:
         DATABASE_URL: postgresql://glouton:${POSTGRES_PASSWORD:-glouton}@glouton-postgres:5432/glouton
         CACHE_BUST: ${CACHE_BUST:-2026-05-15-1}
+        APP_VERSION: ${APP_VERSION:-dev}
     container_name: glouton-backend
     environment:
       NODE_ENV: production
@@ -61,7 +62,7 @@ services:
       OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
       OIDC_REDIRECT_URL: ${OIDC_REDIRECT_URL:-}
       OIDC_SUCCESS_URL: ${OIDC_SUCCESS_URL:-}
-      SSO_ONLY: ${SSO_ONLY:-}
+      APP_VERSION: ${APP_VERSION:-dev}
       COURRIER_URL: ${COURRIER_URL:-}
       COURRIER_AUDIENCE: ${COURRIER_AUDIENCE:-}
       BULLE_URL: ${BULLE_URL:-}

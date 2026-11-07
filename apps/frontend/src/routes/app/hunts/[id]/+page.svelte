@@ -506,7 +506,7 @@
           <EmptyState bare icon="solar:hourglass-linear" title="En attente d'événements…" />
         {:else}
           {#each liveEvents as event (event.id)}
-            <div class="flex items-start gap-3 border-b border-fc-border py-2 last:border-0" in:fly={{ y: -8, duration: 200 }}>
+            <div class="flex items-start gap-3 py-2 last:border-0" in:fly={{ y: -8, duration: 200 }}>
               <span
                 class="mt-1.5 size-1.5 shrink-0 rounded-fc-full {event.level === 'error' ? 'bg-fc-danger' : 'bg-fc-fg'}"
               ></span>
@@ -524,7 +524,7 @@
       {/snippet}
       <div class="flex max-h-[400px] flex-col overflow-y-auto">
         {#each discoveredItems as item (item.index)}
-          <div class="flex items-center gap-4 border-b border-fc-border py-2.5 last:border-0" in:fly={{ y: -6, duration: 150 }}>
+          <div class="flex items-center gap-4 py-2.5 last:border-0" in:fly={{ y: -6, duration: 150 }}>
             <span class="w-8 shrink-0 font-fc-mono text-fc-xs text-fc-fg-muted">#{item.index}</span>
             <div class="min-w-0 flex-1">
               <p class="truncate text-fc-sm font-medium text-fc-fg">{item.organization || item.domain}</p>
@@ -547,7 +547,7 @@
     {/snippet}
     <div class="flex max-h-[500px] flex-col overflow-y-auto">
       {#each details.leads as lead (lead.id)}
-        <div class="-mx-2 flex items-center gap-3 rounded-fc-md border-b border-fc-border px-2 py-2.5 transition-colors last:border-0 hover:bg-fc-surface">
+        <div class="-mx-2 flex items-center gap-3 rounded-fc-md px-2 py-2.5 transition-colors last:border-0 hover:bg-fc-surface">
           <div class="flex size-9 shrink-0 items-center justify-center rounded-fc-md bg-fc-surface text-fc-fg-muted">
             <Icon icon="solar:user-linear" />
           </div>
@@ -582,7 +582,7 @@
         disabled={relaunching}
       >
         {#if relaunching}
-          <Spinner size="sm" label="Relance" class="border-fc-accent-fg/30 border-t-fc-accent-fg" />
+          <Spinner size="sm" label="Relance" class="text-fc-accent-fg" />
           Relance
         {:else}
           Relancer la chasse

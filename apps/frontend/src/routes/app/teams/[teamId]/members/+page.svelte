@@ -235,7 +235,7 @@
     </Card>
   {:else}
     <Card class="overflow-hidden p-0">
-      <ul class="divide-y divide-fc-border">
+      <ul class="flex flex-col gap-1">
         {#each members as member (member.id)}
           <li class="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
             <div class="flex min-w-0 flex-1 items-center gap-3">

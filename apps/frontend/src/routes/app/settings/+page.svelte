@@ -36,9 +36,6 @@
     firstName: $authStore.user?.firstName || '',
     lastName: $authStore.user?.lastName || '',
     email: $authStore.user?.email || '',
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
     smtpHost: '',
     smtpPort: 587,
     smtpSecure: false,
@@ -110,45 +107,6 @@
     } catch (error) {
       const errorMessage = getErrorMessage(error, 'Échec de la mise à jour du profil');
       console.error('Failed to update profile:', error);
-      toast.danger(errorMessage);
-      message = { type: 'error', text: errorMessage };
-    } finally {
-      saving = false;
-    }
-  }
-
-
-
-  async function handleChangePassword() {
-
-
-    if (formData.newPassword !== formData.confirmPassword) {
-      toast.danger('Les mots de passe ne correspondent pas');
-      message = { type: 'error', text: 'Les mots de passe ne correspondent pas' };
-      return;
-    }
-
-
-    if (formData.newPassword.length < 8) {
-      toast.danger('Le mot de passe doit contenir au moins 8 caractères');
-      message = { type: 'error', text: 'Le mot de passe doit contenir au moins 8 caractères' };
-      return;
-    }
-    saving = true;
-    message = null;
-    try {
-      await trpc.user.changePassword.mutate({
-        currentPassword: formData.currentPassword,
-        newPassword: formData.newPassword,
-      });
-      formData.currentPassword = '';
-      formData.newPassword = '';
-      formData.confirmPassword = '';
-      toast.success('Mot de passe modifié avec succès !');
-      message = { type: 'success', text: 'Mot de passe modifié avec succès !' };
-    } catch (error) {
-      const errorMessage = getErrorMessage(error, 'Failed to change password');
-      console.error('Failed to change password:', error);
       toast.danger(errorMessage);
       message = { type: 'error', text: errorMessage };
     } finally {
@@ -344,49 +302,6 @@
       </SettingsRow>
     </SettingsSection>
   {:else if activeTab === 'account'}
-    <SettingsSection
-      title="Sécurité"
-      description="Mettez à jour votre mot de passe pour sécuriser votre compte"
-    >
-      {#snippet actions()}
-        <Button icon={icons.check} onclick={handleChangePassword} disabled={saving}>
-          {saving ? 'Mise à jour...' : 'Modifier le mot de passe'}
-        </Button>
-      {/snippet}
-
-      <SettingsRow stacked>
-        <Field label="Mot de passe actuel" for="currentPassword">
-          <Input
-            id="currentPassword"
-            type="password"
-            bind:value={formData.currentPassword}
-            placeholder="••••••••"
-          />
-        </Field>
-      </SettingsRow>
-
-      <SettingsRow stacked>
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <Field label="Nouveau mot de passe" for="newPassword">
-            <Input
-              id="newPassword"
-              type="password"
-              bind:value={formData.newPassword}
-              placeholder="••••••••"
-            />
-          </Field>
-          <Field label="Confirmer le mot de passe" for="confirmPassword">
-            <Input
-              id="confirmPassword"
-              type="password"
-              bind:value={formData.confirmPassword}
-              placeholder="••••••••"
-            />
-          </Field>
-        </div>
-      </SettingsRow>
-    </SettingsSection>
-
     <MailTransportSettings />
 
     <SettingsSection
