@@ -10,11 +10,11 @@
 
   let { data, children } = $props();
 
-  provideLocale(() => $authStore.user?.locale ?? data.locale);
+  provideLocale(() => (data.chosen ? data.locale : ($authStore.user?.locale ?? data.locale)));
 
   $effect(() => {
     const locale = $authStore.user?.locale;
-    if (browser && locale) document.cookie = `${LOCALE_COOKIE}=${locale}; path=/; max-age=31536000; samesite=lax`;
+    if (browser && locale && !data.chosen) document.cookie = `${LOCALE_COOKIE}=${locale}; path=/; max-age=31536000; samesite=lax`;
   });
 
   if (browser) void import('iconify-icon');

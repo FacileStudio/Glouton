@@ -2,7 +2,20 @@
   import { onMount, onDestroy } from 'svelte';
   import { browser } from '$app/environment';
   import { page } from '$app/state';
-  import { SideBar, MobileNav, PageTransition, toast, icons } from '@facile/muse';
+  import {
+    SideBar,
+    MobileNav,
+    PageTransition,
+    toast,
+    icons,
+    getI18n,
+    isSafeUpgradeUrl,
+    readTheme,
+    type Theme,
+    type UserMenuOptions,
+  } from '@facile/muse';
+  import { QUIET } from '@repo/trpc-client';
+  import { persistLocale, persistTheme } from '$lib/preferences';
   import authStore from '$lib/auth-store';
   import { teamContextStore } from '$lib/stores/team-context.svelte';
   import { ws } from '$lib/websocket';
@@ -11,6 +24,7 @@
   import { inboxCount } from '$lib/stores/inbox-count.svelte';
 
   const t = useT();
+  const i18n = getI18n();
 
   type Team = { id: string; name: string; role: 'OWNER' | 'ADMIN' | 'MEMBER' };
 
@@ -39,11 +53,17 @@
     { label: t('nav.spaces'), icon: icons.space, href: '/app/teams', active: isActive('/app/teams') },
   ]);
 
+  const activeSpaceName = $derived(
+    teamContextStore.context.type === 'team' ? teamContextStore.context.name : t('nav.personal'),
+  );
+
   const navUser = $derived(
     $authStore.user
       ? {
           name: $authStore.user.firstName?.trim() || $authStore.user.email,
           avatar: $authStore.user.avatarUrl ?? undefined,
+          email: $authStore.user.email,
+          secondary: activeSpaceName,
         }
       : undefined,
   );
@@ -51,6 +71,28 @@
   const activeSpaceId = $derived(
     teamContextStore.context.type === 'team' ? teamContextStore.context.teamId : null,
   );
+
+  let theme = $state<Theme>(browser ? readTheme() : 'system');
+  let plan = $state<{ allowed: boolean; plans: string[]; upgradeUrl: string } | null>(null);
+
+  function changeTheme(next: Theme) {
+    theme = next;
+    persistTheme(next);
+  }
+
+  const userMenu = $derived<UserMenuOptions>({
+    settingsHref: '/app/settings',
+    subscription:
+      plan?.allowed && isSafeUpgradeUrl(plan.upgradeUrl)
+        ? { plan: plan.plans.join(' / '), href: plan.upgradeUrl }
+        : null,
+    helpHref: 'https://github.com/FacileStudio/Glouton/tree/main/docs',
+    onSignOut: () => authStore.logout(),
+    locale: i18n.locale,
+    onLocaleChange: persistLocale,
+    theme,
+    onThemeChange: changeTheme,
+  });
 
   function getPageTitle(path: string): string {
     const name = t('app.name');
@@ -101,6 +143,12 @@
     if (token) ws.connect(token);
     inboxCount.refresh();
     try {
+      const teamId = activeSpaceId ?? undefined;
+      plan = await trpc.forfait.status.query(teamId ? { teamId } : undefined, { context: QUIET });
+    } catch {
+      plan = null;
+    }
+    try {
       teams = await trpc.team.list.query();
       if (activeSpaceId && !teams.some((t) => t.id === activeSpaceId)) {
         teamContextStore.setPersonal();
@@ -143,6 +191,7 @@
       user={navUser}
       userHref="/app/settings"
       userActive={settingsActive}
+      {userMenu}
       spaces={teams}
       {activeSpaceId}
       onSpaceSelect={selectSpace}
@@ -165,5 +214,6 @@
     user={navUser}
     profileHref="/app/settings"
     profileActive={settingsActive}
+    {userMenu}
   />
 </div>

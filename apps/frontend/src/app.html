@@ -9,6 +9,17 @@
     <link rel="apple-touch-icon" href="%sveltekit.assets%/apple-touch-icon.png" />
     <link rel="manifest" href="%sveltekit.assets%/site.webmanifest" />
 
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem('glouton.theme');
+          var root = document.documentElement;
+          root.classList.toggle('dark', stored === 'dark');
+          root.classList.toggle('light', stored === 'light');
+        } catch (e) {}
+      })();
+    </script>
+
     <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0a" />
