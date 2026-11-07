@@ -9,7 +9,10 @@
   import LeadLocationMap from '$lib/components/leads/LeadLocationMap.svelte';
   import Composer, { type ComposerMessage } from '$lib/components/mail/Composer.svelte';
   import { teamContextStore } from '$lib/stores/team-context.svelte';
+  import { useFormat, useT } from '$lib/i18n';
 
+  const t = useT();
+  const format = useFormat();
   let teamId = $derived(teamContextStore.getTeamId());
 
   interface SocialProfile {
@@ -102,7 +105,7 @@
       outreachHistory = [...historyData];
       isFavorite = favoriteStatus.isFavorite;
     } catch (error) {
-      toast.danger('Échec du chargement du lead');
+      toast.danger(t('leads.detail.loadFailed'));
       console.error(error);
     } finally {
       loading = false;
@@ -114,14 +117,8 @@
   }
 
   function formatDate(date: string | Date | null): string {
-    if (!date) return 'Jamais';
-    return new Date(date).toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    if (!date) return t('leads.detail.never');
+    return format.date(date, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   }
 
   function getStatusTone(status: string): 'danger' | 'neutral' {
@@ -202,9 +199,9 @@
       const result = await trpc.lead.favorite.toggle.mutate({ leadId });
       isFavorite = result.isFavorite;
       toast.success(
-        isFavorite ? 'Lead ajouté aux favoris' : 'Lead retiré des favoris');
+        isFavorite ? t('leads.detail.favAdded') : t('leads.detail.favRemoved'));
     } catch (error) {
-      toast.danger('Échec de la mise à jour des favoris');
+      toast.danger(t('leads.detail.favFailed'));
       console.error(error);
     } finally {
       togglingFavorite = false;
@@ -235,8 +232,8 @@
   </div>
 {:else if !lead}
   <div in:fade>
-    <EmptyState icon="solar:close-circle-linear" title="Lead introuvable">
-      <Button href="/app/leads">Retour aux leads</Button>
+    <EmptyState icon="solar:close-circle-linear" title={t('leads.detail.notFound')}>
+      <Button href="/app/leads">{t('leads.detail.back')}</Button>
     </EmptyState>
   </div>
 {:else}
@@ -246,7 +243,7 @@
       description={(lead.firstName || lead.lastName) && lead.domain
         ? `${lead.domain}${lead.position ? ` · ${lead.position}` : ''}`
         : (lead.position ?? undefined)}
-      back={{ href: '/app/leads', label: 'Leads' }}
+      back={{ href: '/app/leads', label: t('leads.title') }}
     >
       {#snippet actions()}
         <Badge tone={getPriorityTone(lead!.status)}>{lead!.status}</Badge>
@@ -254,12 +251,12 @@
         {#if lead!.contacted}
           <Badge>
             <iconify-icon icon="solar:check-circle-linear" width="12" height="12" class="block"></iconify-icon>
-            Contacté
+            {t('leads.contacted')}
           </Badge>
         {:else}
           <Badge>
             <iconify-icon icon="solar:clock-circle-linear" width="12" height="12" class="block"></iconify-icon>
-            Non contacté
+            {t('leads.detail.notContacted')}
           </Badge>
         {/if}
 
@@ -272,7 +269,7 @@
           {#if togglingFavorite}
             <Spinner size="sm" />
           {/if}
-          {isFavorite ? 'Retirer favori' : 'Ajouter favori'}
+          {isFavorite ? t('leads.detail.removeFav') : t('leads.detail.addFav')}
         </Button>
 
         {#if lead!.email}
@@ -310,7 +307,7 @@
                 <div
                   class="h-1.5 flex-1 overflow-hidden rounded-fc-pill bg-fc-surface"
                   role="progressbar"
-                  aria-label="Score"
+                  aria-label={t('leads.sort.score')}
                   aria-valuemin={0}
                   aria-valuemax={100}
                   aria-valuenow={Math.min(lead.score, 100)}
@@ -324,11 +321,11 @@
 
           <div class="grid grid-cols-2 gap-3 pt-4">
             <div>
-              <p class="text-fc-xs text-fc-fg-muted">E-mails envoyés</p>
+              <p class="text-fc-xs text-fc-fg-muted">{t('leads.detail.emailsSent')}</p>
               <p class="mt-0.5 text-fc-xl font-semibold text-fc-fg">{lead.emailsSentCount}</p>
             </div>
             <div>
-              <p class="text-fc-xs text-fc-fg-muted">Dernier contact</p>
+              <p class="text-fc-xs text-fc-fg-muted">{t('leads.detail.lastContact')}</p>
               <p class="mt-0.5 text-fc-sm text-fc-fg">{lead.lastContactedAt ? formatDate(lead.lastContactedAt) : '—'}</p>
             </div>
           </div>
@@ -337,26 +334,26 @@
         <Card class="flex flex-col gap-3">
           <h3 class="flex items-center gap-2 text-fc-md font-semibold text-fc-fg">
             <iconify-icon icon="solar:user-id-linear" width="18" height="18" class="block"></iconify-icon>
-            Coordonnées
+            {t('leads.detail.contactInfo')}
           </h3>
 
           {#if lead.email}
             <a href="mailto:{lead.email}" class={rowLinkClass}>
-              {@render contactRow('solar:letter-linear', 'E-mail principal', lead.email)}
+              {@render contactRow('solar:letter-linear', t('leads.detail.primaryEmail'), lead.email)}
               {#if lead.emailVerified === true}
-                <Badge tone="success" class="shrink-0" title="Email vérifié le {lead.emailVerifiedAt ? formatDate(lead.emailVerifiedAt) : ''}">
+                <Badge tone="success" class="shrink-0" title={t('leads.detail.verifiedOn', { date: lead.emailVerifiedAt ? formatDate(lead.emailVerifiedAt) : '' })}>
                   <iconify-icon icon="solar:check-circle-linear" width="12" height="12" class="block"></iconify-icon>
-                  Vérifié
+                  {t('leads.detail.verified')}
                 </Badge>
               {:else if lead.emailVerified === false}
-                <Badge tone="danger" class="shrink-0" title="Email invalide ({lead.emailVerificationMethod ?? ''})">
+                <Badge tone="danger" class="shrink-0" title={t('leads.detail.invalidTitle', { method: lead.emailVerificationMethod ?? '' })}>
                   <iconify-icon icon="solar:close-circle-linear" width="12" height="12" class="block"></iconify-icon>
-                  Invalide
+                  {t('leads.detail.invalid')}
                 </Badge>
               {:else}
                 <Badge class="shrink-0">
                   <iconify-icon icon="solar:question-circle-linear" width="12" height="12" class="block"></iconify-icon>
-                  Non vérifié
+                  {t('leads.detail.unverified')}
                 </Badge>
               {/if}
               <iconify-icon icon="solar:arrow-right-up-linear" width="14" height="14" class="block shrink-0 text-fc-fg-muted"></iconify-icon>
@@ -365,35 +362,35 @@
 
           {#each additionalEmails as email, i (i)}
             <a href="mailto:{email}" class={rowLinkClass}>
-              {@render contactRow('solar:letter-linear', `E-mail ${i + 2}`, email)}
+              {@render contactRow('solar:letter-linear', t('leads.detail.emailN', { n: i + 2 }), email)}
               <iconify-icon icon="solar:arrow-right-up-linear" width="14" height="14" class="block shrink-0 text-fc-fg-muted"></iconify-icon>
             </a>
           {/each}
 
           {#each phoneNumbers as phone, i (i)}
             <a href="tel:{phone}" class={rowLinkClass}>
-              {@render contactRow('solar:phone-linear', 'Téléphone', phone)}
+              {@render contactRow('solar:phone-linear', t('leads.filter.phone'), phone)}
               <iconify-icon icon="solar:arrow-right-up-linear" width="14" height="14" class="block shrink-0 text-fc-fg-muted"></iconify-icon>
             </a>
           {/each}
 
           {#if lead.domain}
             <a href="https://{lead.domain}" target="_blank" rel="noopener noreferrer" class={rowLinkClass}>
-              {@render contactRow('solar:global-linear', 'Site web', lead.domain)}
+              {@render contactRow('solar:global-linear', t('leads.filter.website'), lead.domain)}
               <iconify-icon icon="solar:arrow-right-up-linear" width="14" height="14" class="block shrink-0 text-fc-fg-muted"></iconify-icon>
             </a>
           {/if}
 
           {#if lead.city || lead.country}
             <div class="flex items-center gap-3 rounded-fc-md px-3 py-2.5">
-              {@render contactRow('solar:map-point-linear', 'Localisation', [lead.city, lead.country].filter(Boolean).join(', '))}
+              {@render contactRow('solar:map-point-linear', t('leads.sort.location'), [lead.city, lead.country].filter(Boolean).join(', '))}
             </div>
           {/if}
 
           {#if !lead.email && additionalEmails.length === 0 && phoneNumbers.length === 0}
             <Alert tone="danger" class="flex items-center gap-2 text-fc-xs">
               <iconify-icon icon="solar:danger-triangle-linear" width="14" height="14" class="block shrink-0"></iconify-icon>
-              Aucune information de contact disponible
+              {t('leads.detail.noContact')}
             </Alert>
           {/if}
         </Card>
@@ -403,7 +400,7 @@
             <div class="flex items-center justify-between gap-3 px-5 pt-5">
               <h3 class="flex items-center gap-2 text-fc-md font-semibold text-fc-fg">
                 <iconify-icon icon="solar:map-point-linear" width="18" height="18" class="block"></iconify-icon>
-                Localisation
+                {t('leads.sort.location')}
               </h3>
               <Button
                 variant="outline"
@@ -430,7 +427,7 @@
           <Card class="flex flex-col gap-3">
             <h3 class="flex items-center gap-2 text-fc-md font-semibold text-fc-fg">
               <iconify-icon icon="solar:share-linear" width="18" height="18" class="block"></iconify-icon>
-              Profils sociaux
+              {t('leads.stats.socials')}
               <Badge class="ml-auto">{socialProfiles.length}</Badge>
             </h3>
             <div class="flex flex-col gap-2">
@@ -455,38 +452,38 @@
           <Card class="flex flex-col gap-4">
             <h3 class="flex items-center gap-2 text-fc-md font-semibold text-fc-fg">
               <iconify-icon icon="solar:buildings-2-linear" width="18" height="18" class="block"></iconify-icon>
-              Entreprise
+              {t('leads.detail.company')}
             </h3>
             <div class="flex flex-col gap-3">
               {#if lead.companyInfo.name}
                 <div>
-                  <p class="text-fc-xs text-fc-fg-muted">Nom</p>
+                  <p class="text-fc-xs text-fc-fg-muted">{t('leads.detail.name')}</p>
                   <p class="mt-0.5 text-fc-sm font-medium text-fc-fg">{lead.companyInfo.name}</p>
                 </div>
               {/if}
               <div class="grid grid-cols-2 gap-3">
                 {#if lead.companyInfo.industry}
                   <div>
-                    <p class="text-fc-xs text-fc-fg-muted">Secteur</p>
+                    <p class="text-fc-xs text-fc-fg-muted">{t('leads.detail.industry')}</p>
                     <p class="mt-0.5 text-fc-sm text-fc-fg">{lead.companyInfo.industry}</p>
                   </div>
                 {/if}
                 {#if lead.companyInfo.size}
                   <div>
-                    <p class="text-fc-xs text-fc-fg-muted">Taille</p>
+                    <p class="text-fc-xs text-fc-fg-muted">{t('leads.detail.size')}</p>
                     <p class="mt-0.5 text-fc-sm text-fc-fg">{lead.companyInfo.size}</p>
                   </div>
                 {/if}
                 {#if lead.companyInfo.founded}
                   <div>
-                    <p class="text-fc-xs text-fc-fg-muted">Fondée en</p>
+                    <p class="text-fc-xs text-fc-fg-muted">{t('leads.detail.founded')}</p>
                     <p class="mt-0.5 text-fc-sm text-fc-fg">{lead.companyInfo.founded}</p>
                   </div>
                 {/if}
               </div>
               {#if lead.companyInfo.website}
                 <div>
-                  <p class="text-fc-xs text-fc-fg-muted">Site web</p>
+                  <p class="text-fc-xs text-fc-fg-muted">{t('leads.filter.website')}</p>
                   <a
                     href={lead.companyInfo.website}
                     target="_blank"
@@ -499,7 +496,7 @@
               {/if}
               {#if lead.companyInfo.description}
                 <div class="pt-3">
-                  <p class="mb-1 text-fc-xs text-fc-fg-muted">À propos</p>
+                  <p class="mb-1 text-fc-xs text-fc-fg-muted">{t('leads.detail.about')}</p>
                   <p class="text-fc-sm leading-relaxed text-fc-fg">{lead.companyInfo.description}</p>
                 </div>
               {/if}
@@ -511,7 +508,7 @@
           <Card class="flex flex-col gap-3">
             <h3 class="flex items-center gap-2 text-fc-md font-semibold text-fc-fg">
               <iconify-icon icon="solar:code-linear" width="18" height="18" class="block"></iconify-icon>
-              Stack technique
+              {t('leads.detail.techStack')}
             </h3>
             <div class="flex flex-wrap gap-1.5">
               {#each technologies as tech, i (i)}
@@ -526,14 +523,14 @@
             {#if lead.scrapedAt}
               <div class="flex items-center gap-2 text-fc-xs text-fc-fg-muted">
                 <iconify-icon icon="solar:refresh-linear" width="14" height="14" class="block"></iconify-icon>
-                <span>Collecté :</span>
+                <span>{t('leads.detail.scraped')}</span>
                 <span class="font-medium text-fc-fg">{formatDate(lead.scrapedAt)}</span>
               </div>
             {/if}
             {#if lead.auditedAt}
               <div class="flex items-center gap-2 text-fc-xs text-fc-fg-muted">
                 <iconify-icon icon="solar:shield-check-linear" width="14" height="14" class="block"></iconify-icon>
-                <span>Audité :</span>
+                <span>{t('leads.detail.audited')}</span>
                 <span class="font-medium text-fc-fg">{formatDate(lead.auditedAt)}</span>
               </div>
             {/if}
@@ -545,8 +542,8 @@
         {#if !lead.email}
           <EmptyState
             icon="solar:letter-linear"
-            title="Aucune adresse e-mail"
-            description="La prospection par e-mail n'est pas disponible pour ce lead."
+            title={t('leads.detail.noEmail')}
+            description={t('leads.detail.noEmailText')}
           />
         {/if}
 
@@ -554,14 +551,14 @@
           <div class="flex items-center justify-between gap-3 px-5 py-4">
             <h2 class="flex items-center gap-2 text-fc-lg font-semibold text-fc-fg">
               <iconify-icon icon="solar:history-linear" width="18" height="18" class="block"></iconify-icon>
-              Historique des e-mails
+              {t('leads.detail.history')}
             </h2>
-            <Badge>{outreachHistory.length} e-mail{outreachHistory.length !== 1 ? 's' : ''}</Badge>
+            <Badge>{t('leads.detail.emailCount', { count: outreachHistory.length })}</Badge>
           </div>
 
           <div class="p-5">
             {#if outreachHistory.length === 0}
-              <EmptyState bare icon="solar:inbox-line-linear" title="Aucun e-mail envoyé" class="py-10" />
+              <EmptyState bare icon="solar:inbox-line-linear" title={t('leads.detail.noneSent')} class="py-10" />
             {:else}
               <div class="flex flex-col gap-2">
                 {#each outreachHistory as email (email.id)}
@@ -602,15 +599,15 @@
                         {/if}
 
                         <div>
-                          <p class="mb-1.5 text-fc-xs text-fc-fg-muted">Contenu de l'e-mail</p>
+                          <p class="mb-1.5 text-fc-xs text-fc-fg-muted">{t('leads.detail.content')}</p>
                           <div class="rounded-fc-md bg-fc-bg p-3">
-                            <p class="text-fc-sm leading-relaxed whitespace-pre-wrap text-fc-fg">{email.textBody || 'Aucun contenu'}</p>
+                            <p class="text-fc-sm leading-relaxed whitespace-pre-wrap text-fc-fg">{email.textBody || t('leads.detail.noContent')}</p>
                           </div>
                         </div>
 
                         {#if email.variables && Object.keys(email.variables).length > 0}
                           <div>
-                            <p class="mb-1.5 text-fc-xs text-fc-fg-muted">Variables utilisées</p>
+                            <p class="mb-1.5 text-fc-xs text-fc-fg-muted">{t('leads.detail.variables')}</p>
                             <div class="grid grid-cols-2 gap-2">
                               {#each Object.entries(email.variables) as [key, value] (key)}
                                 <div class="rounded-fc-md bg-fc-bg px-3 py-2">

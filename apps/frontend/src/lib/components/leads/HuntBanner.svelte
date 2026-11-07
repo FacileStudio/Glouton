@@ -4,6 +4,10 @@
   import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
   import { Badge, Button, Spinner } from '@facile/muse';
+  import { useFormat, useT } from '$lib/i18n';
+
+  const t = useT();
+  const format = useFormat();
 
   interface HuntSession {
     id: string;
@@ -55,52 +59,36 @@
   });
 
   function formatElapsedTime(startedAt: string | null, current: Date = new Date()): string {
-    if (!startedAt) return '0s';
+    if (!startedAt) return format.duration(0);
 
     const elapsedMs = current.getTime() - new Date(startedAt).getTime();
-    const seconds = Math.floor(elapsedMs / 1000);
-    const minutes = Math.floor(seconds / 60);
-    const hours = Math.floor(minutes / 60);
-
-    if (hours > 0) {
-      return `${hours}h ${minutes % 60}m ${seconds % 60}s`;
-    } else if (minutes > 0) {
-      return `${minutes}m ${seconds % 60}s`;
-    } else {
-      return `${seconds}s`;
-    }
+    return format.duration(elapsedMs, 3);
   }
 
   function calculateETA(hunt: HuntSession, current: Date = new Date()): string {
     if (!hunt.startedAt || hunt.progress === 0) {
-      return 'Calcul en cours...';
+      return t('hunts.eta.computing');
     }
 
     const elapsedMs = current.getTime() - new Date(hunt.startedAt).getTime();
     const progressPercentage = hunt.progress / 100;
 
     if (progressPercentage === 0) {
-      return 'Calcul en cours...';
+      return t('hunts.eta.computing');
     }
 
     const estimatedTotalMs = elapsedMs / progressPercentage;
     const remainingMs = estimatedTotalMs - elapsedMs;
 
     if (remainingMs <= 0) {
-      return 'Presque terminé';
+      return t('hunts.eta.almost');
     }
 
-    const remainingSeconds = Math.floor(remainingMs / 1000);
-    const remainingMinutes = Math.floor(remainingSeconds / 60);
-    const remainingHours = Math.floor(remainingMinutes / 60);
-
-    if (remainingHours > 0) {
-      return `~${remainingHours}h ${remainingMinutes % 60}m`;
-    } else if (remainingMinutes > 0) {
-      return `~${remainingMinutes}m`;
-    } else {
-      return 'Moins d\'1 min';
+    if (remainingMs < 60_000) {
+      return t('hunts.eta.lessThanMinute');
     }
+
+    return `~${format.duration(remainingMs)}`;
   }
 
   const isLocalBusiness = $derived(session?.huntType === 'LOCAL_BUSINESS');
@@ -110,17 +98,17 @@
   );
 
   const huntTitle = $derived(
-    isLocalBusiness ? 'Chasse locale en cours' : 'Découverte de domaines en cours'
+    isLocalBusiness ? t('hunts.banner.local') : t('hunts.banner.domains')
   );
 
   const huntLabel = $derived.by(() => {
     if (!session) return '';
     if (isLocalBusiness) {
-      const cat = session.filters?.categories?.[0] || 'Commerce';
+      const cat = session.filters?.categories?.[0] || t('hunts.business');
       const loc = session.filters?.location || '';
-      return loc ? `${cat} à ${loc}` : cat;
+      return loc ? t('hunts.catAt', { category: cat, location: loc }) : cat;
     }
-    return session.filters?.domain || 'Recherche large';
+    return session.filters?.domain || t('hunts.broadSearch');
   });
 
   const elapsedTime = $derived(session ? formatElapsedTime(session.startedAt, currentTime) : '');
@@ -151,12 +139,12 @@
             {#if session.successfulLeads > 0}
               <span class="inline-flex items-center gap-1">
                 <iconify-icon icon="solar:check-circle-linear" width="12" height="12" class="block"></iconify-icon>
-                {session.successfulLeads} trouvés
+                {t('hunts.banner.found', { count: session.successfulLeads })}
               </span>
             {:else if session.totalLeads > 0 && session.progress === 0}
               <span class="inline-flex items-center gap-1">
                 <iconify-icon icon="solar:map-point-search-linear" width="12" height="12" class="block"></iconify-icon>
-                {session.totalLeads} découverts
+                {t('hunts.banner.discovered', { count: session.totalLeads })}
               </span>
             {/if}
             {#if session.lastDiscoveredDomain}
@@ -171,8 +159,8 @@
 
       <div class="flex items-center justify-between gap-4 sm:shrink-0 sm:justify-start">
         <div class="text-left text-fc-xs text-fc-fg-muted sm:text-right">
-          <div>En cours : <span class="font-medium text-fc-fg">{elapsedTime}</span></div>
-          <div>ETA : <span class="font-medium text-fc-fg">{eta}</span></div>
+          <div>{t('hunts.banner.elapsed')} <span class="font-medium text-fc-fg">{elapsedTime}</span></div>
+          <div>{t('hunts.banner.eta')} <span class="font-medium text-fc-fg">{eta}</span></div>
         </div>
         <Button
           variant="ghost-danger"
@@ -185,9 +173,9 @@
         >
           {#if cancelling}
             <Spinner size="sm" />
-            Annulation...
+            {t('hunts.cancellingDots')}
           {:else}
-            Annuler
+            {t('common.cancel')}
           {/if}
         </Button>
       </div>
@@ -195,7 +183,7 @@
 
     <div class="flex flex-col gap-2">
       <div class="flex justify-between text-fc-xs text-fc-fg-muted">
-        <span>Progression</span>
+        <span>{t('hunts.progress')}</span>
         <span class="font-medium text-fc-fg">{session.progress}%</span>
       </div>
       <div class="h-1.5 overflow-hidden rounded-fc-pill bg-fc-surface">

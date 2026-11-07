@@ -1,4 +1,7 @@
 <script module lang="ts">
+  import { useT } from '$lib/i18n';
+
+  const t = useT();
   export interface Recipient {
     id: string;
     firstName?: string | null;
@@ -103,7 +106,7 @@
   }
 
   function variable(key: string): string {
-    if (key === 'recipientName' && recipient) return recipient.firstName || personName(recipient);
+    if (key === 'recipientName' && recipient) return recipient.firstName || personName(recipient, t);
     if (key === 'companyName' && recipient?.companyName) return recipient.companyName;
     return `{{${key}}}`;
   }
@@ -155,7 +158,7 @@
     busy = 'save';
     try {
       await persist();
-      toast.success('Brouillon enregistré');
+      toast.success(t('inbox.draftSaved'));
       onDone?.();
     } catch (error) {
       toast.danger(getTrpcErrorMessage(error));
@@ -170,7 +173,7 @@
     try {
       if (onSend) await onSend({ recipientId: personId, subject: subject.trim(), text: body });
       else await trpc.email.sendDraft.mutate({ id: await persist() });
-      toast.success('E-mail envoyé');
+      toast.success(t('inbox.sent'));
       open = false;
       onDone?.();
     } catch (error) {
@@ -205,51 +208,51 @@
   <BullePanel context={bulleContext} {subject} {body} inputId={bulleInputId} onApply={applyBulle} />
 {/snippet}
 
-<Modal bind:open title={draft ? 'Modifier le brouillon' : 'Nouvel e-mail'} showClose class="max-w-5xl">
+<Modal bind:open title={draft ? t('composer.editDraft') : t('composer.new')} showClose class="max-w-5xl">
   <div class="grid grid-cols-1 gap-5 {desktop.current && bulleShown ? 'lg:grid-cols-[minmax(0,1fr)_20rem]' : ''}">
     <form class="flex min-w-0 flex-col gap-4" onsubmit={(e) => { e.preventDefault(); void send(); }}>
       {#if person}
-        <Field label="À">
+        <Field label={t('composer.to')}>
           {#snippet children({ id })}
             <p {id} class="text-fc-sm text-fc-fg">
-              {personName(person)}
+              {personName(person, t)}
               {#if person.email}<span class="text-fc-fg-muted">&lt;{person.email}&gt;</span>{/if}
             </p>
           {/snippet}
         </Field>
       {:else}
-        <Field label="À" error={recipients.length === 0 ? 'Ajoutez d’abord une personne' : undefined}>
+        <Field label={t('composer.to')} error={recipients.length === 0 ? t('composer.addPersonFirst') : undefined}>
           <Select bind:value={personId} disabled={recipients.length === 0}>
             {#each recipients as r (r.id)}
-              <option value={r.id}>{personName(r)}{r.email ? ` <${r.email}>` : ' (sans e-mail)'}</option>
+              <option value={r.id}>{personName(r, t)}{r.email ? ` <${r.email}>` : ` (${t('composer.noEmailSuffix')})`}</option>
             {/each}
           </Select>
         </Field>
       {/if}
       {#if recipient && !recipient.email}
-        <p class="text-fc-xs text-fc-danger" role="status">Cette personne n’a pas d’adresse e-mail.</p>
+        <p class="text-fc-xs text-fc-danger" role="status">{t('composer.noEmail')}</p>
       {/if}
 
       {#if templates.length}
-        <Field label="Modèle">
+        <Field label={t('composer.template')}>
           <Select value={templateId} disabled={busy !== null} onchange={(e) => applyTemplate(e.currentTarget.value)}>
-            <option value="">Sans modèle</option>
-            {#each templates as t (t.id)}<option value={t.id}>{t.name}</option>{/each}
+            <option value="">{t('composer.noTemplate')}</option>
+            {#each templates as tpl (tpl.id)}<option value={tpl.id}>{tpl.name}</option>{/each}
           </Select>
         </Field>
       {/if}
 
-      <Field label="Objet"><Input bind:value={subject} maxlength={300} autocomplete="off" /></Field>
-      <Field label="Message"><Textarea id={bodyId} bind:value={body} rows={12} maxlength={50000} /></Field>
+      <Field label={t('inbox.subject')}><Input bind:value={subject} maxlength={300} autocomplete="off" /></Field>
+      <Field label={t('inbox.message')}><Textarea id={bodyId} bind:value={body} rows={12} maxlength={50000} /></Field>
 
       <div class="flex flex-wrap items-center justify-between gap-2">
         <div class="flex flex-wrap items-center gap-2">
           {#if transport}
             {#if transport.configured}
-              <Badge tone="success">Envoi via {transport.transport === 'courrier' ? 'Courrier' : 'SMTP'}</Badge>
+              <Badge tone="success">{t('composer.via', { transport: transport.transport === 'courrier' ? 'Courrier' : 'SMTP' })}</Badge>
             {:else}
               <a href={resolve('/app/settings')} class="rounded-fc-pill focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fc-ring">
-                <Badge tone="danger">Envoi non configuré</Badge>
+                <Badge tone="danger">{t('composer.notConfigured')}</Badge>
               </a>
             {/if}
           {/if}
@@ -260,24 +263,24 @@
             aria-expanded={desktop.current ? bulleShown : sheetOpen}
             onclick={() => (desktop.current ? (bulleShown = !bulleShown) : (sheetOpen = true))}
           >
-            {desktop.current && bulleShown ? 'Masquer Bulle' : 'Bulle'}
+            {desktop.current && bulleShown ? t('composer.hideBulle') : 'Bulle'}
           </Button>
         </div>
         <div class="flex flex-wrap gap-2">
           {#if !onSend}
             <Button variant="outline" onclick={save} disabled={!canSave}>
               {#if busy === 'save'}<Spinner size="sm" />{/if}
-              Enregistrer le brouillon
+              {t('composer.saveDraft')}
             </Button>
           {/if}
           <Button type="submit" icon="solar:plain-linear" disabled={!canSend}>
             {#if busy === 'send'}<Spinner size="sm" />{/if}
-            Envoyer
+            {t('common.send')}
           </Button>
         </div>
       </div>
       {#if desktop.current}
-        <p class="text-fc-xs text-fc-fg-muted">Ctrl ou ⌘ + Entrée pour envoyer · Ctrl ou ⌘ + J pour Bulle</p>
+        <p class="text-fc-xs text-fc-fg-muted">{t('composer.shortcuts')}</p>
       {/if}
     </form>
 

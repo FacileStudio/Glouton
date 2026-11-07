@@ -2,8 +2,11 @@
   import { Badge, Button, Card, Spinner, Textarea, toast } from '@facile/muse';
   import { trpc } from '$lib/trpc';
   import { getTrpcErrorMessage } from '$lib/utils/trpc-error';
-  import { SUGGESTION_KINDS, formatDate } from './labels';
+  import { suggestionLabel } from './labels';
+  import { useFormat, useT } from '$lib/i18n';
 
+  const t = useT();
+  const format = useFormat();
   type Activity = {
     id?: string;
     kind?: string;
@@ -53,7 +56,7 @@
   }
 
   function actorText(actor: string | null): string {
-    if (!actor || actor.startsWith('user:')) return 'Vous';
+    if (!actor || actor.startsWith('user:')) return t('common.you');
     if (actor === 'bulle') return 'Bulle';
     return actor === 'ardoise' ? 'Ardoise' : actor;
   }
@@ -77,7 +80,7 @@
     deciding = id;
     try {
       await trpc.inbox.decideSuggestion.mutate({ id, decision });
-      toast.success(decision === 'ACCEPT' ? 'Suggestion appliquée' : 'Suggestion écartée');
+      toast.success(decision === 'ACCEPT' ? t('contacts.suggestionApplied') : t('contacts.suggestionDismissed'));
       await onChange();
     } catch (error) {
       toast.danger(getTrpcErrorMessage(error));
@@ -89,19 +92,19 @@
 
 {#if suggestions.length > 0}
   <Card class="flex flex-col gap-4 p-5">
-    <h2 class="text-fc-md font-semibold text-fc-fg">Suggestions ouvertes</h2>
+    <h2 class="text-fc-md font-semibold text-fc-fg">{t('contacts.openSuggestions')}</h2>
     <ul class="flex flex-col gap-3">
       {#each suggestions as s (s.id)}
         <li class="flex flex-col gap-2 pb-3 last:pb-0">
           <div class="flex flex-wrap items-center gap-2">
-            <Badge tone="accent">{SUGGESTION_KINDS[s.kind ?? ''] ?? s.kind}</Badge>
+            <Badge tone="accent">{suggestionLabel(s.kind ?? '', t)}</Badge>
             <span class="text-fc-sm font-semibold text-fc-fg">{s.title}</span>
           </div>
           {#if s.body}<p class="whitespace-pre-line text-fc-sm text-fc-fg">{s.body}</p>{/if}
           {#if s.rationale}<p class="text-fc-xs text-fc-fg-muted">{s.rationale}</p>{/if}
           <div class="flex gap-2">
-            <Button size="sm" onclick={() => decide(s.id ?? '', 'ACCEPT')} disabled={deciding === s.id}>Accepter</Button>
-            <Button size="sm" variant="ghost" onclick={() => decide(s.id ?? '', 'DISMISS')} disabled={deciding === s.id}>Écarter</Button>
+            <Button size="sm" onclick={() => decide(s.id ?? '', 'ACCEPT')} disabled={deciding === s.id}>{t('contacts.accept')}</Button>
+            <Button size="sm" variant="ghost" onclick={() => decide(s.id ?? '', 'DISMISS')} disabled={deciding === s.id}>{t('contacts.dismiss')}</Button>
           </div>
         </li>
       {/each}
@@ -110,18 +113,18 @@
 {/if}
 
 <Card class="flex flex-col gap-4 p-5">
-  <h2 class="text-fc-md font-semibold text-fc-fg">Historique</h2>
+  <h2 class="text-fc-md font-semibold text-fc-fg">{t('contacts.history')}</h2>
   <form class="flex flex-col gap-2" onsubmit={addNote}>
-    <Textarea bind:value={note} rows={2} placeholder="Ajouter une note" aria-label="Nouvelle note" maxlength={5000} />
+    <Textarea bind:value={note} rows={2} placeholder={t('contacts.addNotePlaceholder')} aria-label={t('contacts.newNote')} maxlength={5000} />
     <div class="flex justify-end">
       <Button type="submit" size="sm" disabled={savingNote || !note.trim()}>
         {#if savingNote}<Spinner size="sm" />{/if}
-        Ajouter la note
+        {t('contacts.addNote')}
       </Button>
     </div>
   </form>
   {#if activities.length === 0}
-    <p class="text-fc-sm text-fc-fg-muted">Rien pour le moment.</p>
+    <p class="text-fc-sm text-fc-fg-muted">{t('contacts.nothing')}</p>
   {:else}
     <ol class="flex flex-col gap-3">
       {#each activities as a (a.id)}
@@ -135,9 +138,9 @@
           <div class="min-w-0">
             <p class="whitespace-pre-line text-fc-sm text-fc-fg">{a.summary}</p>
             {#if linkOf(a.payload)}
-              <a href={linkOf(a.payload)} target="_blank" rel="external noopener noreferrer" class="text-fc-xs text-fc-fg underline">Voir dans Ardoise</a>
+              <a href={linkOf(a.payload)} target="_blank" rel="external noopener noreferrer" class="text-fc-xs text-fc-fg underline">{t('contacts.viewArdoise')}</a>
             {/if}
-            <p class="text-fc-xs text-fc-fg-muted">{actorText(a.actor ?? null)} · {formatDate(a.occurredAt)}</p>
+            <p class="text-fc-xs text-fc-fg-muted">{actorText(a.actor ?? null)} · {format.date(a.occurredAt)}</p>
           </div>
         </li>
       {/each}

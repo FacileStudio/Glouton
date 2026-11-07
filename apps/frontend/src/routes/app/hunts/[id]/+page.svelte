@@ -10,6 +10,10 @@
   import { toast, Spinner, PageHeader, Button, Badge, Section, StatCard, EmptyState, Alert, Icon, StatusDot, icons } from '@facile/muse';
   import { ws } from '$lib/websocket';
   import HuntBanner from '$lib/components/leads/HuntBanner.svelte';
+  import { useFormat, useT } from '$lib/i18n';
+
+  const t = useT();
+  const format = useFormat();
 
   let { params }: PageProps = $props();
   let huntSessionId = $derived(params.id);
@@ -67,7 +71,7 @@
       ws.on('hunt-started', (data) => {
         if (data.huntSessionId !== huntSessionId) return;
         updateDetails({ status: 'PROCESSING', startedAt: new Date().toISOString() });
-        pushEvent('hunt-started', 'info', data.message || 'Chasse démarrée');
+        pushEvent('hunt-started', 'info', data.message || t('hunts.event.started'));
       })
     );
 
@@ -99,7 +103,7 @@
           successfulLeads: data.totalDiscovered ?? details?.successfulLeads ?? 0,
           progress: data.progress ?? details?.progress ?? 0,
         });
-        pushEvent('domain-discovered', 'success', `Découvert : ${data.organization || data.domain}`);
+        pushEvent('domain-discovered', 'success', t('hunts.event.discovered', { name: (data.organization || data.domain || '') }));
       })
     );
 
@@ -108,7 +112,7 @@
         if (data.huntSessionId !== huntSessionId) return;
         const count = data.count ?? 0;
         updateDetails({ successfulLeads: (details?.successfulLeads ?? 0) + count });
-        pushEvent('leads-created', 'success', `${count} nouveau${count > 1 ? 'x' : ''} lead${count > 1 ? 's' : ''} ajouté${count > 1 ? 's' : ''}${data.source ? ` depuis ${data.source}` : ''}`);
+        pushEvent('leads-created', 'success', t(data.source ? 'hunts.event.leadsCreatedFrom' : 'hunts.event.leadsCreated', { count, source: data.source ?? '' }));
       })
     );
 
@@ -116,7 +120,7 @@
       ws.on('businesses-discovered', (data) => {
         if (data.huntSessionId !== huntSessionId) return;
         const count = data.count ?? 0;
-        pushEvent('businesses-discovered', 'info', `${count} entreprise${count > 1 ? 's' : ''} trouvée${count > 1 ? 's' : ''} sur la carte`);
+        pushEvent('businesses-discovered', 'info', t('hunts.event.businesses', { count }));
       })
     );
 
@@ -124,28 +128,28 @@
       ws.on('extraction-progress', (data) => {
         if (data.huntSessionId !== huntSessionId) return;
         updateDetails({ progress: data.progress ?? details?.progress ?? 0, successfulLeads: data.leadsFound ?? details?.successfulLeads ?? 0 });
-        pushEvent('extraction-progress', 'info', data.message || `Source ${data.currentSource}: ${data.sourcesCompleted}/${data.totalSources}`);
+        pushEvent('extraction-progress', 'info', data.message || t('hunts.event.progress', { source: (data.currentSource ?? ''), done: (data.sourcesCompleted ?? ''), total: (data.totalSources ?? '') }));
       })
     );
 
     unsubscribers.push(
       ws.on('source-started', (data) => {
         if (data.huntSessionId !== huntSessionId) return;
-        pushEvent('source-started', 'info', data.message || `Starting source ${data.source}`);
+        pushEvent('source-started', 'info', data.message || t('hunts.event.sourceStarted', { source: (data.source ?? '') }));
       })
     );
 
     unsubscribers.push(
       ws.on('leads-discovered', (data) => {
         if (data.huntSessionId !== huntSessionId) return;
-        pushEvent('leads-discovered', 'info', data.message || `Found ${data.count} leads from ${data.source}`);
+        pushEvent('leads-discovered', 'info', data.message || t('hunts.event.leadsFound', { count: (data.count ?? ''), source: (data.source ?? '') }));
       })
     );
 
     unsubscribers.push(
       ws.on('rate-limit-reached', (data) => {
         if (data.huntSessionId !== huntSessionId) return;
-        pushEvent('rate-limit-reached', 'warning', `Limite de taux atteinte pour ${data.source}`);
+        pushEvent('rate-limit-reached', 'warning', t('hunts.event.rateLimit', { source: (data.source ?? '') }));
       })
     );
 
@@ -153,8 +157,8 @@
       ws.on('hunt-completed', async (data) => {
         if (data.huntSessionId !== huntSessionId) return;
         updateDetails({ status: 'COMPLETED', progress: 100, completedAt: new Date().toISOString() });
-        pushEvent('hunt-completed', 'success', data.message || `Chasse terminée ! ${data.successfulLeads} leads trouvés`);
-        toast.success(data.message || `Chasse terminée ! ${data.successfulLeads} leads trouvés`);
+        pushEvent('hunt-completed', 'success', data.message || t('hunts.event.completed', { count: (data.successfulLeads ?? '') }));
+        toast.success(data.message || t('hunts.event.completed', { count: (data.successfulLeads ?? '') }));
         await loadData();
       })
     );
@@ -163,8 +167,8 @@
       ws.on('extraction-completed', async (data) => {
         if (data.huntSessionId !== huntSessionId) return;
         updateDetails({ status: 'COMPLETED', progress: 100, completedAt: new Date().toISOString() });
-        pushEvent('extraction-completed', 'success', data.message || `Extraction terminée ! ${data.successfulLeads} leads trouvés`);
-        toast.success(data.message || 'Extraction terminée !');
+        pushEvent('extraction-completed', 'success', data.message || t('hunts.event.extractionDone', { count: (data.successfulLeads ?? '') }));
+        toast.success(data.message || t('hunts.event.extractionDoneShort'));
         await loadData();
       })
     );
@@ -173,7 +177,7 @@
       ws.on('hunt-cancelled', (data) => {
         if (data.huntSessionId !== huntSessionId) return;
         updateDetails({ status: 'CANCELLED', completedAt: new Date().toISOString() });
-        pushEvent('hunt-cancelled', 'warning', 'Chasse annulée par l\'utilisateur');
+        pushEvent('hunt-cancelled', 'warning', t('hunts.event.cancelledByUser'));
       })
     );
 
@@ -181,8 +185,8 @@
       ws.on('hunt-failed', (data) => {
         if (data.huntSessionId !== huntSessionId) return;
         updateDetails({ status: 'FAILED', completedAt: new Date().toISOString(), error: data.error ?? null });
-        pushEvent('hunt-failed', 'error', data.message || `Chasse échouée : ${data.error}`);
-        toast.danger(data.message || 'Chasse échouée');
+        pushEvent('hunt-failed', 'error', data.message || t('hunts.event.failed', { error: (data.error ?? '') }));
+        toast.danger(data.message || t('hunts.event.failedShort'));
       })
     );
 
@@ -190,7 +194,7 @@
       ws.on('extraction-failed', (data) => {
         if (data.huntSessionId !== huntSessionId) return;
         updateDetails({ status: 'FAILED', completedAt: new Date().toISOString(), error: data.error ?? null });
-        pushEvent('extraction-failed', 'error', data.message || `Extraction échouée : ${data.error}`);
+        pushEvent('extraction-failed', 'error', data.message || t('hunts.event.extractionFailed', { error: (data.error ?? '') }));
       })
     );
   });
@@ -204,7 +208,7 @@
       const detailsData = await trpc.lead.hunt.getRunDetails.query({ huntSessionId });
       details = detailsData;
     } catch (error) {
-      toast.danger('Échec du chargement des détails');
+      toast.danger(t('hunts.detail.loadFailed'));
       if (getErrorMessage(error, '').includes('not found')) goto(resolve('/app/hunts'));
     } finally {
       loading = false;
@@ -215,9 +219,9 @@
     cancelling = true;
     try {
       await trpc.lead.hunt.cancel.mutate({ huntSessionId: id });
-      toast.info('Chasse annulée');
+      toast.info(t('hunts.detail.cancelled'));
     } catch (err) {
-      toast.danger(getErrorMessage(err, "Échec de l'annulation"));
+      toast.danger(getErrorMessage(err, t('hunts.detail.cancelFailed')));
     } finally {
       cancelling = false;
     }
@@ -225,7 +229,7 @@
 
   async function relaunchHunt() {
     if (!details || !details.filters) {
-      toast.danger('Impossible de relancer cette chasse');
+      toast.danger(t('hunts.relaunchImpossible'));
       return;
     }
 
@@ -235,7 +239,7 @@
 
       const { location, categories } = filters;
       if (!location || !categories) {
-        toast.danger('Type de chasse non reconnu');
+        toast.danger(t('hunts.unknownType'));
         return;
       }
 
@@ -247,32 +251,35 @@
         hasWebsite: filters.hasWebsite,
       });
 
-      toast.success('Nouvelle chasse lancée avec les mêmes paramètres !');
+      toast.success(t('hunts.relaunched'));
       goto(resolve('/app/hunts'));
     } catch (error) {
-      toast.danger(getErrorMessage(error, 'Échec de la relance'));
+      toast.danger(getErrorMessage(error, t('hunts.relaunchFailed')));
     } finally {
       relaunching = false;
     }
   }
 
   function formatDuration(seconds: number | null): string {
-    if (!seconds) return 'N/A';
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    if (mins > 0) return `${mins}m ${secs}s`;
-    return `${secs}s`;
+    if (!seconds) return t('common.na');
+    return format.duration(seconds * 1000);
   }
 
   function formatTs(date: Date): string {
-    return new Date(date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    return format.time(date);
+  }
+
+  function formatRadius(meters: number): string {
+    return meters >= 1000
+      ? format.number(meters / 1000, { style: 'unit', unit: 'kilometer', maximumFractionDigits: 1 })
+      : format.number(meters, { style: 'unit', unit: 'meter' });
   }
 
   function sourceLabel(source: string): string {
     if (source === 'GOOGLE_MAPS') return 'Google Maps';
     if (source === 'OPENSTREETMAP') return 'OpenStreetMap';
     if (source === 'HUNTER') return 'Hunter';
-    if (source === 'MANUAL') return 'Manuel';
+    if (source === 'MANUAL') return t('hunts.source.manual');
     return source;
   }
 
@@ -280,26 +287,26 @@
 
   const headerTitle = $derived.by(() => {
     if (!details) return '';
-    if (isCsvImport) return 'Import CSV';
-    if (details.huntType === 'LOCAL_BUSINESS') return details.filters?.location || 'Recherche locale';
-    return details.domain || 'Recherche large';
+    if (isCsvImport) return t('hunts.csvImport');
+    if (details.huntType === 'LOCAL_BUSINESS') return details.filters?.location || t('hunts.detail.localSearch');
+    return details.domain || t('hunts.broadSearch');
   });
 
   const headerDescription = $derived.by(() => {
     if (!details) return '';
-    if (isCsvImport) return 'Import depuis fichier CSV';
-    if (details.huntType === 'LOCAL_BUSINESS') return details.filters?.categories?.join(', ') || 'Commerce local';
+    if (isCsvImport) return t('hunts.detail.csvFile');
+    if (details.huntType === 'LOCAL_BUSINESS') return details.filters?.categories?.join(', ') || t('hunts.localBusiness');
     if (details.sources && details.sources.length > 0) return details.sources.map(sourceLabel).join(', ');
-    return 'Aucune source';
+    return t('hunts.detail.noSource');
   });
 
   const statusLabel = $derived.by(() => {
     switch (details?.status) {
-      case 'COMPLETED': return 'Terminée';
-      case 'PROCESSING': return 'En cours';
-      case 'PENDING': return 'En attente';
-      case 'FAILED': return 'Échouée';
-      case 'CANCELLED': return 'Annulée';
+      case 'COMPLETED': return t('hunts.status.completed');
+      case 'PROCESSING': return t('hunts.status.processing');
+      case 'PENDING': return t('hunts.status.pending');
+      case 'FAILED': return t('hunts.status.failed');
+      case 'CANCELLED': return t('hunts.status.cancelled');
       default: return details?.status ?? '';
     }
   });
@@ -340,17 +347,17 @@
 
 {#if loading}
   <div class="flex items-center justify-center py-24" in:fade>
-    <Spinner size="lg" label="Chargement" />
+    <Spinner size="lg" label={t('common.loading')} />
   </div>
 {:else if !details}
-  <EmptyState title="Chasse introuvable">
-    <Button href="/app/hunts">Retour aux chasses</Button>
+  <EmptyState title={t('hunts.detail.notFound')}>
+    <Button href="/app/hunts">{t('hunts.backToHunts')}</Button>
   </EmptyState>
 {:else}
   <PageHeader
     title={headerTitle}
     description={headerDescription}
-    back={{ href: '/app/hunts', label: 'Retour aux chasses' }}
+    back={{ href: '/app/hunts', label: t('hunts.backToHunts') }}
   >
     {#snippet actions()}
       <Badge tone={details?.status === 'FAILED' ? 'danger' : 'neutral'}>
@@ -368,10 +375,10 @@
           disabled={relaunching}
         >
           {#if relaunching}
-            <Spinner size="sm" label="Relance" />
-            Relance
+            <Spinner size="sm" label={t('hunts.relaunching')} />
+            {t('hunts.relaunching')}
           {:else}
-            Relancer
+            {t('hunts.relaunchShort')}
           {/if}
         </Button>
       {/if}
@@ -384,38 +391,38 @@
     </div>
   {/if}
 
-  <Section title="Configuration" card>
+  <Section title={t('hunts.detail.config')} card>
     <div class="flex flex-col gap-4 text-fc-sm">
       <div class="flex flex-col gap-2">
-        <p class="text-fc-fg-muted">Type de chasse</p>
+        <p class="text-fc-fg-muted">{t('hunts.detail.type')}</p>
         {#if details.huntType === 'LOCAL_BUSINESS'}
-          <Badge><Icon icon="solar:map-point-linear" size={14} />Commerce local</Badge>
+          <Badge><Icon icon="solar:map-point-linear" size={14} />{t('hunts.localBusiness')}</Badge>
         {:else}
-          <Badge><Icon icon={icons.globe} size={14} />Domaine</Badge>
+          <Badge><Icon icon={icons.globe} size={14} />{t('hunts.kind.domain')}</Badge>
         {/if}
       </div>
 
       {#if details.huntType === 'LOCAL_BUSINESS' && details.filters}
         <div class="flex flex-col gap-2">
-          <p class="text-fc-fg-muted">Paramètres</p>
+          <p class="text-fc-fg-muted">{t('hunts.detail.params')}</p>
           <div class="flex flex-col gap-3 rounded-fc-md bg-fc-surface p-4">
             {#if details.filters.location}
-              {@render row('Localisation', details.filters.location)}
+              {@render row(t('hunts.new.location'), details.filters.location)}
             {/if}
             {#if details.filters.categories?.length}
               <div class="flex flex-col gap-2">
-                <p class="text-fc-fg-muted">Catégories</p>
+                <p class="text-fc-fg-muted">{t('hunts.detail.categories')}</p>
                 {@render chips(details.filters.categories.map((cat: string) => cat.replace(/-/g, ' ')), true)}
               </div>
             {/if}
             {#if details.filters.radius}
-              {@render row('Rayon', details.filters.radius >= 1000 ? `${(details.filters.radius / 1000).toFixed(1)} km` : `${details.filters.radius} m`)}
+              {@render row(t('hunts.detail.radius'), formatRadius(details.filters.radius))}
             {/if}
             {#if details.filters.maxResults}
-              {@render row('Max résultats', details.filters.maxResults)}
+              {@render row(t('hunts.detail.maxResults'), details.filters.maxResults)}
             {/if}
             {#if details.filters.hasWebsite !== undefined}
-              {@render row('Avec site web', details.filters.hasWebsite ? 'Oui' : 'Non')}
+              {@render row(t('hunts.detail.withWebsite'), details.filters.hasWebsite ? t('common.yes') : t('common.no'))}
             {/if}
           </div>
         </div>
@@ -424,7 +431,7 @@
       {#if details.huntType !== 'LOCAL_BUSINESS'}
         {#if details.sources?.length > 0}
           <div class="flex flex-col gap-2">
-            <p class="text-fc-fg-muted">Sources</p>
+            <p class="text-fc-fg-muted">{t('hunts.detail.sources')}</p>
             {@render chips(details.sources.map(sourceLabel))}
           </div>
         {/if}
@@ -432,17 +439,17 @@
 
       {#if details.sourceStats && typeof details.sourceStats === 'object' && Object.keys(details.sourceStats).length > 0}
         <div class="flex flex-col gap-2">
-          <p class="text-fc-fg-muted">Performance des sources</p>
+          <p class="text-fc-fg-muted">{t('hunts.detail.sourcePerf')}</p>
           {#each Object.entries(details.sourceStats) as [source, stats] (source)}
             <div class="flex flex-col gap-2 rounded-fc-md bg-fc-surface p-4">
               <p class="font-medium text-fc-fg">{source}</p>
               <div class="flex flex-col gap-1">
-                {@render row('Leads', stats.leads || 0)}
+                {@render row(t('hunts.leadsUpper'), stats.leads || 0)}
                 {#if stats.errors}
-                  {@render row('Erreurs', stats.errors)}
+                  {@render row(t('hunts.detail.errors'), stats.errors)}
                 {/if}
                 {#if stats.rateLimited}
-                  {@render row('Limite dépassée', 'Oui')}
+                  {@render row(t('hunts.detail.rateLimited'), t('common.yes'))}
                 {/if}
               </div>
             </div>
@@ -451,14 +458,14 @@
       {/if}
 
       <div class="flex flex-col gap-2">
-        <p class="text-fc-fg-muted">Dates</p>
+        <p class="text-fc-fg-muted">{t('hunts.detail.dates')}</p>
         <div class="flex flex-col gap-3 rounded-fc-md bg-fc-surface p-4">
-          {@render row('Créée le', new Date(details.createdAt).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' }))}
+          {@render row(t('hunts.detail.createdOn'), format.dateTime(details.createdAt))}
           {#if details.startedAt}
-            {@render row('Démarrée le', new Date(details.startedAt).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' }))}
+            {@render row(t('hunts.detail.startedOn'), format.dateTime(details.startedAt))}
           {/if}
           {#if details.completedAt}
-            {@render row('Terminée le', new Date(details.completedAt).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' }))}
+            {@render row(t('hunts.detail.completedOn'), format.dateTime(details.completedAt))}
           {/if}
         </div>
       </div>
@@ -475,35 +482,35 @@
   </Section>
 
   {#if discoveredItems.length > 0}
-    <Section title="Stats">
+    <Section title={t('hunts.detail.stats')}>
       <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <StatCard label="Total" value={details.stats.totalLeads} />
-        <StatCard label="Chaud" value={details.stats.hotLeads} />
-        <StatCard label="Tiède" value={details.stats.warmLeads} />
-        <StatCard label="Froid" value={details.stats.coldLeads} />
+        <StatCard label={t('common.total')} value={details.stats.totalLeads} />
+        <StatCard label={t('temp.HOT')} value={details.stats.hotLeads} />
+        <StatCard label={t('temp.WARM')} value={details.stats.warmLeads} />
+        <StatCard label={t('temp.COLD')} value={details.stats.coldLeads} />
       </div>
       <div class="grid grid-cols-3 gap-4">
-        <StatCard label="Taux" value="{details.stats.successRate.toFixed(0)}%" />
-        <StatCard label="Score" value={details.stats.averageScore.toFixed(0)} />
-        <StatCard label="Durée" value={formatDuration(details.stats.duration)} />
+        <StatCard label={t('hunts.detail.rate')} value={format.number(details.stats.successRate / 100, { style: 'percent' })} />
+        <StatCard label={t('hunts.detail.score')} value={format.number(Math.round(details.stats.averageScore))} />
+        <StatCard label={t('hunts.detail.duration')} value={formatDuration(details.stats.duration)} />
       </div>
     </Section>
   {/if}
 
   {#if isProcessing || liveEvents.length > 0}
-    <Section title="Flux en direct" card>
+    <Section title={t('hunts.detail.live')} card>
       {#snippet actions()}
         {#if isProcessing}
-          <Badge tone="info"><StatusDot tone="info" pulse />En direct</Badge>
+          <Badge tone="info"><StatusDot tone="info" pulse />{t('hunts.detail.liveBadge')}</Badge>
         {/if}
         <Button variant="outline" size="sm" onclick={() => { autoScroll = !autoScroll; }}>
-          {autoScroll ? 'Défilement auto' : 'En pause'}
+          {autoScroll ? t('hunts.detail.autoScroll') : t('hunts.detail.paused')}
         </Button>
       {/snippet}
 
       <div bind:this={eventsContainer} class="flex max-h-[400px] flex-col overflow-y-auto">
         {#if liveEvents.length === 0}
-          <EmptyState bare icon="solar:hourglass-linear" title="En attente d'événements…" />
+          <EmptyState bare icon="solar:hourglass-linear" title={t('hunts.detail.waiting')} />
         {:else}
           {#each liveEvents as event (event.id)}
             <div class="flex items-start gap-3 py-2 last:border-0" in:fly={{ y: -8, duration: 200 }}>
@@ -518,7 +525,7 @@
       </div>
     </Section>
   {:else if details.status === 'FAILED'}
-    <Section title="Domaines découverts" card>
+    <Section title={t('hunts.detail.domains')} card>
       {#snippet actions()}
         <Badge>{discoveredItems.length}</Badge>
       {/snippet}
@@ -541,7 +548,7 @@
     </Section>
   {/if}
 
-  <Section title="Leads" card>
+  <Section title={t('hunts.leadsUpper')} card>
     {#snippet actions()}
       <Badge>{details?.leads.length ?? 0}</Badge>
     {/snippet}
@@ -553,15 +560,15 @@
           </div>
           <div class="min-w-0 flex-1">
             <p class="truncate text-fc-sm font-medium text-fc-fg">
-              {lead.businessName || [lead.firstName, lead.lastName].filter(Boolean).join(' ') || lead.domain || 'Sans nom'}
+              {lead.businessName || [lead.firstName, lead.lastName].filter(Boolean).join(' ') || lead.domain || t('common.unnamed')}
             </p>
             <p class="truncate text-fc-xs text-fc-fg-muted">
-              {lead.email || lead.domain || 'Aucune information de contact'}
+              {lead.email || lead.domain || t('hunts.detail.noContact')}
             </p>
           </div>
           <div class="flex shrink-0 items-center gap-2">
             <Badge>
-              {lead.status === 'HOT' ? 'Chaud' : lead.status === 'WARM' ? 'Tiède' : 'Froid'}
+              {lead.status === 'HOT' ? t('temp.HOT') : lead.status === 'WARM' ? t('temp.WARM') : t('temp.COLD')}
             </Badge>
             <span class="text-fc-xs text-fc-fg-muted">{lead.score}/100</span>
           </div>
@@ -573,8 +580,8 @@
   {#if details.status === 'FAILED'}
     <EmptyState
       icon={icons.warning}
-      title="La chasse a échoué"
-      description={details.error || "Aucun lead n'a pu être collecté. Vous pouvez relancer la chasse pour réessayer."}
+      title={t('hunts.detail.failedTitle')}
+      description={details.error || t('hunts.detail.failedText')}
     >
       <Button
         icon={relaunching ? undefined : 'solar:restart-linear'}
@@ -582,10 +589,10 @@
         disabled={relaunching}
       >
         {#if relaunching}
-          <Spinner size="sm" label="Relance" class="text-fc-accent-fg" />
-          Relance
+          <Spinner size="sm" label={t('hunts.relaunching')} class="text-fc-accent-fg" />
+          {t('hunts.relaunching')}
         {:else}
-          Relancer la chasse
+          {t('hunts.relaunch')}
         {/if}
       </Button>
     </EmptyState>

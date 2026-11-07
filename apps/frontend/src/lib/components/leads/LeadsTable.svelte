@@ -3,7 +3,10 @@
   import { resolve } from '$app/paths';
   import { getFaviconUrl, handleFaviconError } from '$lib/utils/favicon';
   import { Badge, Card, Table } from '@facile/muse';
+  import { useFormat, useT } from '$lib/i18n';
 
+  const t = useT();
+  const format = useFormat();
   interface Lead {
     id: string;
     domain: string | null;
@@ -34,33 +37,23 @@
   } = $props();
 
   function getRelativeTime(date: string): string {
-    const now = new Date();
-    const past = new Date(date);
-    const diffMs = now.getTime() - past.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
-
-    if (diffDays > 0) return `Il y a ${diffDays}j`;
-    if (diffHours > 0) return `Il y a ${diffHours}h`;
-    if (diffMins > 0) return `Il y a ${diffMins}min`;
-    return "À l'instant";
+    return format.ago(date);
   }
 
   function getStatusTone(status: Lead['status']): 'danger' | 'neutral' {
     return status === 'HOT' ? 'danger' : 'neutral';
   }
 
-  const sortColumns: { key: string; label: string; active: string[] }[] = [
-    { key: 'domain', label: 'Cible', active: ['domain'] },
-    { key: 'email', label: 'Contact', active: ['email'] },
-    { key: 'city', label: 'Localisation', active: ['city', 'country'] },
-  ];
+  const sortColumns = $derived<{ key: string; label: string; active: string[] }[]>([
+    { key: 'domain', label: t('leads.col.target'), active: ['domain'] },
+    { key: 'email', label: t('leads.col.contact'), active: ['email'] },
+    { key: 'city', label: t('leads.sort.location'), active: ['city', 'country'] },
+  ]);
 
-  const trailingSortColumns: { key: string; label: string; active: string[] }[] = [
-    { key: 'score', label: 'Score', active: ['score'] },
-    { key: 'createdAt', label: 'Ajouté', active: ['createdAt'] },
-  ];
+  const trailingSortColumns = $derived<{ key: string; label: string; active: string[] }[]>([
+    { key: 'score', label: t('leads.sort.score'), active: ['score'] },
+    { key: 'createdAt', label: t('leads.col.added'), active: ['createdAt'] },
+  ]);
 
   function navigateToLead(leadId: string) {
     goto(resolve('/app/leads/[id]', { id: leadId }));
@@ -113,7 +106,7 @@
           </span>
           <Badge tone={getStatusTone(lead.status)} class="shrink-0">{lead.status}</Badge>
           {#if lead.contacted}
-            <Badge class="shrink-0">Contacté</Badge>
+            <Badge class="shrink-0">{t('leads.contacted')}</Badge>
           {/if}
         </div>
         {#if lead.email}
@@ -124,7 +117,7 @@
             {[lead.city, lead.country].filter(Boolean).join(', ')}
             ·
           {/if}
-          Score {lead.score}
+          {t('leads.scoreValue', { score: lead.score })}
           · {getRelativeTime(lead.createdAt)}
         </p>
       </div>
@@ -139,7 +132,7 @@
       {#each sortColumns as col (col.key)}
         {@render sortHeader(col)}
       {/each}
-      <th>Statut</th>
+      <th>{t('leads.col.status')}</th>
       {#each trailingSortColumns as col (col.key)}
         {@render sortHeader(col)}
       {/each}
@@ -201,13 +194,13 @@
           <div class="flex flex-wrap items-center gap-1.5">
             <Badge tone={getStatusTone(lead.status)}>{lead.status}</Badge>
             {#if lead.contacted}
-              <Badge>Contacté</Badge>
+              <Badge>{t('leads.contacted')}</Badge>
             {/if}
           </div>
         </td>
 
         <td>
-          <span class="font-medium text-fc-fg" title="Score: {lead.score}">{lead.score}</span>
+          <span class="font-medium text-fc-fg" title={t('leads.scoreTitle', { score: lead.score })}>{lead.score}</span>
         </td>
 
         <td class="whitespace-nowrap text-fc-fg-muted">

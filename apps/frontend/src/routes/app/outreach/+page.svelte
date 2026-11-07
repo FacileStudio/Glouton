@@ -25,7 +25,10 @@
   import { getFaviconUrl, handleFaviconError } from '$lib/utils/favicon';
   import { teamContextStore } from '$lib/stores/team-context.svelte';
   import Composer, { type ComposerMessage } from '$lib/components/mail/Composer.svelte';
+  import { useFormat, useT } from '$lib/i18n';
 
+  const t = useT();
+  const format = useFormat();
   let teamId = $derived(teamContextStore.getTeamId());
 
   interface OutreachLead {
@@ -121,7 +124,7 @@
       stats = statsData as Stats;
     } catch (error) {
       console.error('[OUTREACH] Error loading data:', error);
-      toast.danger('Échec du chargement des données de prospection');
+      toast.danger(t('outreach.loadFailed'));
 
       outreachLeads = [];
       stats = null;
@@ -142,7 +145,7 @@
     try {
       await loadHistory(lead.leadId);
     } catch {
-      toast.danger("Échec du chargement de l'historique");
+      toast.danger(t('outreach.historyFailed'));
     } finally {
       panelLoading = false;
     }
@@ -183,33 +186,25 @@
   }
 
   function formatDays(days: number): string {
-    const d = Math.floor(Number(days));
-    if (d === 0) return "Aujourd'hui";
-    if (d === 1) return 'Hier';
-    return `Il y a ${d}j`;
+    return format.days(Math.floor(Number(days)));
   }
 
   function formatDate(date: string | null): string {
     if (!date) return '—';
-    return new Date(date).toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    return format.date(date, { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
   }
 
   type Tone = NonNullable<BadgeProps['tone']>;
 
   function getEmailStatusConfig(status: string, needsFollowUp: boolean): { label: string; tone: Tone } {
-    if (needsFollowUp) return { label: 'À relancer', tone: 'neutral' };
+    if (needsFollowUp) return { label: t('outreach.followUp'), tone: 'neutral' };
     switch (status) {
-      case 'REPLIED': return { label: 'Répondu', tone: 'neutral' };
-      case 'OPENED': return { label: 'Ouvert', tone: 'neutral' };
-      case 'CLICKED': return { label: 'Cliqué', tone: 'neutral' };
-      case 'SENT': return { label: 'Envoyé', tone: 'neutral' };
-      case 'FAILED': return { label: 'Échoué', tone: 'danger' };
-      case 'BOUNCED': return { label: 'Rejeté', tone: 'danger' };
+      case 'REPLIED': return { label: t('outreach.replied'), tone: 'neutral' };
+      case 'OPENED': return { label: t('outreach.opened'), tone: 'neutral' };
+      case 'CLICKED': return { label: t('outreach.clicked'), tone: 'neutral' };
+      case 'SENT': return { label: t('outreach.sentOne'), tone: 'neutral' };
+      case 'FAILED': return { label: t('outreach.failedOne'), tone: 'danger' };
+      case 'BOUNCED': return { label: t('outreach.bounced'), tone: 'danger' };
       default: return { label: status, tone: 'neutral' };
     }
   }
@@ -261,21 +256,21 @@
 
 
   let tabItems = $derived([
-    { id: 'all', label: 'Tous', badge: outreachLeads.length },
-    { id: 'followup', label: 'À relancer', badge: followUpLeads.length },
-    { id: 'pending', label: 'En attente', badge: pendingLeads.length },
-    { id: 'replied', label: 'Répondu', badge: repliedLeads.length },
+    { id: 'all', label: t('common.all'), badge: outreachLeads.length },
+    { id: 'followup', label: t('outreach.followUp'), badge: followUpLeads.length },
+    { id: 'pending', label: t('hunts.status.pending'), badge: pendingLeads.length },
+    { id: 'replied', label: t('outreach.replied'), badge: repliedLeads.length },
   ]);
 
   let stat = $derived([
-    { label: 'Envoyés', val: (stats?.totalEmails ?? 0).toString() },
-    { label: 'Contactés', val: (stats?.contactedLeads ?? 0).toString() },
-    { label: 'À relancer', val: (stats?.needsFollowUp ?? 0).toString() },
+    { label: t('outreach.sent'), val: (stats?.totalEmails ?? 0).toString() },
+    { label: t('outreach.contacted'), val: (stats?.contactedLeads ?? 0).toString() },
+    { label: t('outreach.followUp'), val: (stats?.needsFollowUp ?? 0).toString() },
   ]);
 </script>
 
 <div class="flex flex-col gap-6">
-  <PageHeader title="Prospection" description="Historique des e-mails, relances et réponses" />
+  <PageHeader title={t('outreach.title')} description={t('outreach.subtitle')} />
 
   <section class="grid grid-cols-1 gap-4 sm:grid-cols-3">
     {#if initialLoading}
@@ -302,14 +297,14 @@
       <Input
         type="text"
         bind:value={search}
-        placeholder="Rechercher par nom, e-mail, domaine..."
-        aria-label="Rechercher"
+        placeholder={t('outreach.searchPlaceholder')}
+        aria-label={t('contacts.search')}
         class="pl-9 pr-11"
       />
       {#if search}
         <IconButton
           variant="ghost"
-          aria-label="Effacer la recherche"
+          aria-label={t('leads.filter.clearSearch')}
           onclick={() => (search = '')}
           class="absolute right-0 top-0"
         >
@@ -322,11 +317,11 @@
       <Tabs
         items={tabItems}
         value={activeTab}
-        label="Filtrer les contacts"
+        label={t('outreach.filter')}
         onChange={(id) => { activeTab = id as typeof activeTab; expandedLeadId = null; }}
         class="w-auto min-w-0 flex-1"
       />
-      <p class="text-fc-xs text-fc-fg-muted">Seuil de relance : 5 jours</p>
+      <p class="text-fc-xs text-fc-fg-muted">{t('outreach.threshold')}</p>
     </div>
   </Card>
 
@@ -347,15 +342,15 @@
     <EmptyState
       icon="solar:inbox-line-linear"
       title={activeTab === 'all'
-        ? 'Aucun e-mail envoyé'
+        ? t('leads.detail.noneSent')
         : activeTab === 'followup'
-          ? 'Aucune relance nécessaire'
+          ? t('outreach.noFollowUp')
           : activeTab === 'pending'
-            ? 'Aucun contact en attente'
-            : 'Aucune réponse'}
+            ? t('outreach.noPending')
+            : t('outreach.noReplies')}
     >
       {#if activeTab === 'all'}
-        <Button href="/app/leads">Aller aux leads</Button>
+        <Button href="/app/leads">{t('outreach.goToLeads')}</Button>
       {/if}
     </EmptyState>
   {:else}
@@ -393,7 +388,7 @@
 
               <div class="hidden min-w-0 flex-1 px-4 md:block">
                 <p class="truncate text-fc-sm text-fc-fg">{lead.lastEmailSubject}</p>
-                <p class="mt-0.5 text-fc-xs text-fc-fg-muted">{lead.emailsSentCount} e-mail{lead.emailsSentCount !== 1 ? 's' : ''} envoyé{lead.emailsSentCount !== 1 ? 's' : ''}</p>
+                <p class="mt-0.5 text-fc-xs text-fc-fg-muted">{t('outreach.emailsSent', { count: lead.emailsSentCount })}</p>
               </div>
 
               <div class="flex shrink-0 items-center gap-3">
@@ -429,29 +424,29 @@
               >
                 {#if panelLoading}
                   <div class="flex items-center justify-center py-12">
-                    <Spinner size="md" label="Chargement" />
+                    <Spinner size="md" label={t('common.loading')} />
                   </div>
                 {:else}
                   <div class="flex flex-col gap-3 p-4 sm:p-6">
                     <div class="flex items-center justify-between gap-2">
                       <h3 class="flex items-center gap-2 text-fc-sm font-semibold text-fc-fg">
                         <Icon icon={icons.history} size={16} />
-                        Historique des e-mails
+                        {t('leads.detail.history')}
                       </h3>
                       <div class="flex flex-wrap gap-2">
                         <Button href={`/app/leads/${lead.leadId}`} variant="ghost" size="sm" iconRight="solar:arrow-right-up-linear">
-                          Profil complet
+                          {t('outreach.fullProfile')}
                         </Button>
                         {#if lead.email}
                           <Button size="sm" icon="solar:letter-linear" onclick={() => compose(lead)}>
-                            {lead.emailsSentCount > 0 ? 'Envoyer une relance' : 'Envoyer un e-mail'}
+                            {lead.emailsSentCount > 0 ? t('outreach.sendFollowUp') : t('outreach.sendEmail')}
                           </Button>
                         {/if}
                       </div>
                     </div>
 
                     {#if panelHistory.length === 0}
-                      <p class="py-6 text-center text-fc-sm text-fc-fg-muted">Aucun e-mail envoyé</p>
+                      <p class="py-6 text-center text-fc-sm text-fc-fg-muted">{t('leads.detail.noneSent')}</p>
                     {:else}
                       <div class="flex max-h-64 flex-col gap-1 overflow-y-auto pr-1">
                         {#each panelHistory as email (email.id)}

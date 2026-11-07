@@ -7,7 +7,9 @@
   import LeadsMap from '$lib/components/leads/LeadsMap.svelte';
   import PaginationControls from '$lib/components/leads/PaginationControls.svelte';
   import { teamContextStore } from '$lib/stores/team-context.svelte';
+  import { useT } from '$lib/i18n';
 
+  const t = useT();
   let teamId = $derived(teamContextStore.getTeamId());
 
   let leads = $state<RouterOutputs['lead']['favorite']['list']['leads']>([]);
@@ -37,7 +39,7 @@
       totalLeads = data?.pagination?.total || 0;
     } catch (error) {
       console.error('Error loading favorites:', error);
-      toast.danger('Échec du chargement des favoris');
+      toast.danger(t('leads.favoritesLoadFailed'));
       leads = [];
     } finally {
       loading = false;
@@ -60,24 +62,24 @@
 
   let processedLeads = $derived(leads);
 
-  const sortOptions = [
-    { label: 'Date', value: 'createdAt' },
-    { label: 'Score', value: 'score' },
-    { label: 'Domaine', value: 'domain' },
-    { label: 'E-mail', value: 'email' },
-    { label: 'Localisation', value: 'city' },
-    { label: 'Priorité', value: 'status' },
-  ];
+  const sortOptions = $derived([
+    { label: t('leads.sort.date'), value: 'createdAt' },
+    { label: t('leads.sort.score'), value: 'score' },
+    { label: t('leads.sort.domain'), value: 'domain' },
+    { label: t('leads.sort.email'), value: 'email' },
+    { label: t('leads.sort.location'), value: 'city' },
+    { label: t('leads.sort.priority'), value: 'status' },
+  ]);
 </script>
 
 <PageHeader
-  title="Favoris"
-  description="{processedLeads.length} lead{processedLeads.length !== 1 ? 's' : ''} favori{processedLeads.length !== 1 ? 's' : ''}"
-  back={{ href: '/app/leads', label: 'Leads' }}
+  title={t('leads.favorites')}
+  description={t('leads.favoriteCount', { count: processedLeads.length })}
+  back={{ href: '/app/leads', label: t('leads.title') }}
 />
 
 <div class="flex flex-col gap-4">
-  <div class="flex flex-wrap items-center gap-1.5" role="group" aria-label="Trier par">
+  <div class="flex flex-wrap items-center gap-1.5" role="group" aria-label={t('leads.sortBy')}>
     {#each sortOptions as opt (opt.value)}
       <button
         type="button"
@@ -104,10 +106,10 @@
   {:else if processedLeads.length === 0}
     <EmptyState
       icon="solar:heart-linear"
-      title="Aucun lead favori"
-      description="Ajoutez des leads à vos favoris pour les retrouver facilement ici"
+      title={t('leads.noFavorites')}
+      description={t('leads.noFavoritesText')}
     >
-      <Button href="/app/leads">Voir tous les leads</Button>
+      <Button href="/app/leads">{t('leads.seeAll')}</Button>
     </EmptyState>
   {:else}
     <LeadsTable leads={processedLeads} bind:sortBy bind:sortOrder onSort={handleSort} />

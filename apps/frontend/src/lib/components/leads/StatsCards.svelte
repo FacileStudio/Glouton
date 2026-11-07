@@ -1,5 +1,8 @@
 <script lang="ts">
   import { Card, Skeleton, StatCard } from '@facile/muse';
+  import { useT } from '$lib/i18n';
+
+  const t = useT();
 
   interface Stats {
     totalLeads: number;
@@ -18,11 +21,11 @@
   let { stats = $bindable() }: { stats: Stats | null } = $props();
 
   const statCards = $derived([
-    { label: 'Leads', value: stats?.totalLeads ?? 0 },
-    { label: 'Emails', value: stats?.totalEmails ?? 0 },
-    { label: 'Téléphones', value: stats?.totalPhoneNumbers ?? 0 },
-    { label: 'Domaines', value: stats?.totalDomains ?? 0 },
-    { label: 'Profils sociaux', value: stats?.totalSocials ?? 0 },
+    { label: t('leads.stats.leads'), value: stats?.totalLeads ?? 0 },
+    { label: t('leads.stats.emails'), value: stats?.totalEmails ?? 0 },
+    { label: t('leads.stats.phones'), value: stats?.totalPhoneNumbers ?? 0 },
+    { label: t('leads.stats.domains'), value: stats?.totalDomains ?? 0 },
+    { label: t('leads.stats.socials'), value: stats?.totalSocials ?? 0 },
   ]);
 </script>
 

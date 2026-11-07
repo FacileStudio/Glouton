@@ -57,6 +57,10 @@ jobs:
         working-directory: apps/backend
         run: bun test
 
+      - name: i18n catalog
+        working-directory: apps/frontend
+        run: bun test
+
       - name: build
         run: bun run build
 

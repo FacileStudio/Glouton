@@ -5,7 +5,10 @@
   import { trpc } from '$lib/trpc';
   import { toast, Badge, Button, Card, EmptyState, Icon, Spinner, icons } from '@facile/muse';
   import type { BadgeProps } from '@facile/muse';
+  import { useFormat, useT } from '$lib/i18n';
 
+  const t = useT();
+  const format = useFormat();
   type Tier = 'HOT' | 'WARM' | 'COLD';
 
   interface Opportunity {
@@ -65,10 +68,10 @@
     COLD: 'solar:snowflake-linear',
   };
 
-  const CATEGORY_LABELS: Record<string, string> = {
-    WEB_DEVELOPMENT: 'Développement web',
-    WEB_DESIGN: 'Web design',
-    MOBILE_DEVELOPMENT: 'Développement mobile',
+  const CATEGORY_LABELS = $derived<Record<string, string>>({
+    WEB_DEVELOPMENT: t('missions.cat.web'),
+    WEB_DESIGN: t('missions.cat.webDesign'),
+    MOBILE_DEVELOPMENT: t('missions.cat.mobile'),
     UI_UX_DESIGN: 'UI/UX Design',
     FRONTEND: 'Frontend',
     BACKEND: 'Backend',
@@ -77,18 +80,18 @@
     DATA_SCIENCE: 'Data science',
     MACHINE_LEARNING: 'Machine learning',
     BLOCKCHAIN: 'Blockchain',
-    GAME_DEVELOPMENT: 'Développement de jeux',
+    GAME_DEVELOPMENT: t('missions.cat.games'),
     WORDPRESS: 'WordPress',
     ECOMMERCE: 'E-commerce',
     SEO: 'SEO',
-    CONTENT_WRITING: 'Rédaction de contenu',
+    CONTENT_WRITING: t('missions.cat.writing'),
     COPYWRITING: 'Copywriting',
-    GRAPHIC_DESIGN: 'Design graphique',
-    VIDEO_EDITING: 'Montage vidéo',
+    GRAPHIC_DESIGN: t('missions.cat.graphic'),
+    VIDEO_EDITING: t('missions.cat.video'),
     MARKETING: 'Marketing',
-    CONSULTING: 'Conseil',
-    OTHER: 'Autre',
-  };
+    CONSULTING: t('missions.cat.consulting'),
+    OTHER: t('leads.cat.other'),
+  });
 
   function sourceLabel(platform: string): string {
     return SOURCE_LABELS[platform] ?? platform;
@@ -96,21 +99,19 @@
 
   function formatBudget(opp: Opportunity): string {
     if (opp.budget) return opp.budget;
+    const currency = opp.currency ?? '€';
     if (opp.budgetMin && opp.budgetMax) {
-      return `${opp.budgetMin.toLocaleString()} – ${opp.budgetMax.toLocaleString()} ${opp.currency ?? '€'}`;
+      return `${format.number(opp.budgetMin)} – ${format.number(opp.budgetMax)} ${currency}`;
     }
-    if (opp.budgetMin) return `${opp.budgetMin.toLocaleString()}+ ${opp.currency ?? '€'}`;
+    if (opp.budgetMin) return `${format.number(opp.budgetMin)}+ ${currency}`;
     return '';
   }
 
   function formatDate(dateStr: string): string {
     const d = new Date(dateStr);
-    const diff = Date.now() - d.getTime();
-    const days = Math.floor(diff / 86400000);
-    if (days === 0) return "aujourd'hui";
-    if (days === 1) return 'hier';
-    if (days < 7) return `il y a ${days}j`;
-    return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+    const days = Math.floor((Date.now() - d.getTime()) / 86400000);
+    if (days < 7) return format.days(days);
+    return format.date(d, { day: 'numeric', month: 'long', year: 'numeric' });
   }
 
   function applicantTone(count: number): Tone {
@@ -127,7 +128,7 @@
       if (getErrorCode(err) === 'NOT_FOUND') {
         notFound = true;
       } else {
-        toast.danger('Erreur lors du chargement de la mission');
+        toast.danger(t('missions.detail.loadFailed'));
       }
     } finally {
       loading = false;
@@ -145,20 +146,20 @@
 
 <div class="flex w-full flex-col gap-6">
   <Button href="/app/missions" variant="ghost" size="sm" icon={icons.chevronLeft} class="-ml-3 w-fit">
-    Retour aux missions
+    {t('missions.detail.back')}
   </Button>
 
   {#if loading}
     <div class="flex items-center justify-center py-24">
-      <Spinner size="lg" label="Chargement" />
+      <Spinner size="lg" label={t('common.loading')} />
     </div>
   {:else if notFound || !opportunity}
     <EmptyState
       icon="solar:ghost-linear"
-      title="Mission introuvable"
-      description="Cette mission n'existe plus ou a été retirée des sources."
+      title={t('missions.detail.notFound')}
+      description={t('missions.detail.notFoundText')}
     >
-      <Button href="/app/missions" variant="outline">Voir toutes les missions</Button>
+      <Button href="/app/missions" variant="outline">{t('missions.detail.seeAll')}</Button>
     </EmptyState>
   {:else}
     <Card class="flex flex-col gap-4 p-6">
@@ -174,7 +175,7 @@
         {#if opportunity.applicantCount !== null && opportunity.applicantCount !== undefined}
           <Badge tone={applicantTone(opportunity.applicantCount)}>
             <Icon icon="solar:users-group-rounded-linear" size={13} />
-            {opportunity.applicantCount} sur le coup
+            {t('missions.applicants', { count: opportunity.applicantCount })}
           </Badge>
         {/if}
       </div>
@@ -183,7 +184,7 @@
         {#if opportunity.companyLogo && !logoFailed}
           <img
             src={opportunity.companyLogo}
-            alt={opportunity.company ?? 'Logo'}
+            alt={opportunity.company ?? t('missions.detail.logo')}
             class="size-12 shrink-0 rounded-fc-md bg-fc-bg object-contain"
             onerror={() => (logoFailed = true)}
           />
@@ -200,7 +201,7 @@
         {/if}
         <span class="flex items-center gap-1.5">
           <Icon icon={icons.calendar} size={15} />
-          Publiée {formatDate(opportunity.postedAt)}
+          {t('missions.detail.posted', { date: formatDate(opportunity.postedAt) })}
         </span>
         {#if opportunity.location}
           <span class="flex items-center gap-1.5">
@@ -211,7 +212,7 @@
         {#if opportunity.isRemote}
           <span class="flex items-center gap-1.5">
             <Icon icon="solar:home-wifi-linear" size={15} />
-            Remote
+            {t('missions.remote')}
           </span>
         {/if}
         {#if opportunity.contractType}
@@ -250,14 +251,14 @@
 
       <div class="flex items-center gap-3 pt-1">
         <Button size="lg" icon="solar:square-top-down-linear" onclick={openSource}>
-          Voir l'annonce sur {sourceLabel(opportunity.sourcePlatform)}
+          {t('missions.detail.viewOn', { source: sourceLabel(opportunity.sourcePlatform) })}
         </Button>
       </div>
     </Card>
 
     <Card class="p-6">
       <h2 class="mb-3 text-fc-sm font-semibold uppercase tracking-wide text-fc-fg-muted">
-        Description
+        {t('missions.detail.description')}
       </h2>
       <p class="whitespace-pre-line text-fc-sm leading-relaxed text-fc-fg">{opportunity.description}</p>
     </Card>

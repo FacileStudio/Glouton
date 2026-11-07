@@ -1,4 +1,5 @@
 import { trpc } from '$lib/trpc';
+import type { Key } from '$lib/i18n/rows';
 
 export type AssistantStatus = Awaited<ReturnType<typeof trpc.assistant.status.query>>;
 export type AssistantReason = NonNullable<AssistantStatus['reason']>;
@@ -25,18 +26,8 @@ export function assistantStatus(teamId: string | undefined): Promise<AssistantSt
   return pending;
 }
 
-export const REASONS: Record<AssistantReason, { title: string; text: string; link?: string }> = {
-  not_linked: {
-    title: 'Reconnectez votre compte Facile',
-    text: 'Déconnectez-vous puis reconnectez-vous pour autoriser Bulle à écrire avec vous.',
-  },
-  no_key: {
-    title: 'Ajoutez une clé dans Bulle',
-    text: 'Bulle a besoin d’une clé de modèle pour rédiger. Ajoutez-la dans les réglages de Bulle.',
-    link: 'Ouvrir les réglages de Bulle',
-  },
-  unreachable: {
-    title: 'Bulle ne répond pas',
-    text: 'Bulle est injoignable pour le moment. Réessayez dans quelques minutes.',
-  },
+export const REASONS: Record<Exclude<AssistantReason, 'plan_required'>, { title: Key; text: Key; link?: Key }> = {
+  not_linked: { title: 'assistant.reason.not_linked.title', text: 'assistant.reason.not_linked.text' },
+  no_key: { title: 'assistant.reason.no_key.title', text: 'assistant.reason.no_key.text', link: 'assistant.reason.no_key.link' },
+  unreachable: { title: 'assistant.reason.unreachable.title', text: 'assistant.reason.unreachable.text' },
 };

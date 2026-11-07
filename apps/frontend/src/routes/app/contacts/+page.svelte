@@ -24,7 +24,6 @@
     ORIGINS,
     STAGES,
     TEMPERATURES,
-    formatDate,
     originLabel,
     personName,
     stageOf,
@@ -33,7 +32,10 @@
     type Stage,
     type Temperature,
   } from '$lib/components/contacts/labels';
+  import { useFormat, useT } from '$lib/i18n';
 
+  const t = useT();
+  const format = useFormat();
   type CompanyList = Awaited<ReturnType<typeof trpc.contact.listCompanies.query>>;
   type PeopleList = Awaited<ReturnType<typeof trpc.contact.listPeople.query>>;
 
@@ -119,7 +121,7 @@
   async function addContact(event: SubmitEvent) {
     event.preventDefault();
     if (!form.name.trim()) {
-      toast.danger("Le nom de l'entreprise est requis");
+      toast.danger(t('contacts.nameRequired'));
       return;
     }
     saving = true;
@@ -130,7 +132,7 @@
         email: form.email || undefined,
       }).catch(() => null);
       if (duplicates && (duplicates.companies.length || duplicates.people.length)) {
-        toast.warning('Un contact similaire existe déjà, vérifiez avant de fusionner');
+        toast.warning(t('contacts.duplicate'));
       }
       const company = await trpc.contact.createCompany.mutate({
         name: form.name,
@@ -143,7 +145,7 @@
           ? [{ firstName: form.firstName || null, lastName: form.lastName || null, email: form.email || null, role: form.role || null }]
           : [],
       });
-      toast.success('Contact ajouté');
+      toast.success(t('contacts.added'));
       addOpen = false;
       form = emptyForm();
       await goto(resolve('/app/contacts/companies/[id]', { id: company.id }));
@@ -159,42 +161,42 @@
   onMount(() => load());
 </script>
 
-<PageHeader title="Contacts" description="{total} {tab === 'companies' ? 'entreprise' : 'personne'}{total !== 1 ? 's' : ''}">
+<PageHeader title={t('contacts.title')} description="{total} {tab === 'companies' ? 'entreprise' : 'personne'}{total !== 1 ? 's' : ''}">
   {#snippet actions()}
-    <Button icon="mdi:plus" onclick={() => (addOpen = true)}>Ajouter un contact</Button>
+    <Button icon="mdi:plus" onclick={() => (addOpen = true)}>{t('contacts.add')}</Button>
   {/snippet}
 </PageHeader>
 
 <div class="flex flex-col gap-4">
   <Tabs
-    label="Type de contact"
+    label={t('contacts.type')}
     value={tab}
     onChange={selectTab}
     items={[
-      { id: 'companies', label: 'Entreprises', icon: 'solar:buildings-2-linear' },
-      { id: 'people', label: 'Personnes', icon: 'solar:user-linear' },
+      { id: 'companies', label: t('contacts.companies'), icon: 'solar:buildings-2-linear' },
+      { id: 'people', label: t('contacts.people'), icon: 'solar:user-linear' },
     ]}
   />
 
   <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
     <Input
       type="search"
-      placeholder="Rechercher un nom, un domaine, une ville"
-      aria-label="Rechercher"
+      placeholder={t('contacts.searchPlaceholder')}
+      aria-label={t('contacts.search')}
       value={q}
       oninput={(e) => onSearch(e.currentTarget.value)}
     />
-    <Select aria-label="Étape" value={stage} onchange={(e) => { stage = e.currentTarget.value as '' | Stage; load(); }}>
-      <option value="">Toutes les étapes</option>
-      {#each STAGES as s (s.value)}<option value={s.value}>{s.label}</option>{/each}
+    <Select aria-label={t('contacts.stage')} value={stage} onchange={(e) => { stage = e.currentTarget.value as '' | Stage; load(); }}>
+      <option value="">{t('contacts.allStages')}</option>
+      {#each STAGES as s (s.value)}<option value={s.value}>{t(s.label)}</option>{/each}
     </Select>
-    <Select aria-label="Température" value={temperature} onchange={(e) => { temperature = e.currentTarget.value as '' | Temperature; load(); }}>
-      <option value="">Toutes les températures</option>
-      {#each TEMPERATURES as t (t.value)}<option value={t.value}>{t.label}</option>{/each}
+    <Select aria-label={t('contacts.temperature')} value={temperature} onchange={(e) => { temperature = e.currentTarget.value as '' | Temperature; load(); }}>
+      <option value="">{t('contacts.allTemperatures')}</option>
+      {#each TEMPERATURES as tm (tm.value)}<option value={tm.value}>{t(tm.label)}</option>{/each}
     </Select>
-    <Select aria-label="Origine" value={origin} onchange={(e) => { origin = e.currentTarget.value as '' | Origin; load(); }}>
-      <option value="">Toutes les origines</option>
-      {#each ORIGINS as o (o.value)}<option value={o.value}>{o.label}</option>{/each}
+    <Select aria-label={t('contacts.origin')} value={origin} onchange={(e) => { origin = e.currentTarget.value as '' | Origin; load(); }}>
+      <option value="">{t('contacts.allOrigins')}</option>
+      {#each ORIGINS as o (o.value)}<option value={o.value}>{t(o.label)}</option>{/each}
     </Select>
   </div>
 
@@ -203,7 +205,7 @@
   {:else if shown === 0}
     <EmptyState
       icon="solar:users-group-rounded-linear"
-      title={q || stage || temperature || origin ? 'Aucun contact ne correspond à vos filtres' : 'Aucun contact pour le moment'}
+      title={q || stage || temperature || origin ? t('contacts.noMatch') : t('contacts.none')}
     />
   {:else if tab === 'companies'}
     <ul class="flex flex-col gap-2">
@@ -218,14 +220,14 @@
             <div class="min-w-0">
               <p class="truncate text-fc-sm font-semibold text-fc-fg">{c.name}</p>
               <p class="truncate text-fc-xs text-fc-fg-muted">
-                {[c.domain, c.city, `${c.peopleCount} personne${c.peopleCount !== 1 ? 's' : ''}`].filter(Boolean).join(' · ')}
+                {[c.domain, c.city, t('contacts.peopleCount', { count: c.peopleCount })].filter(Boolean).join(' · ')}
               </p>
             </div>
             <div class="flex flex-wrap items-center gap-1.5">
-              <Badge tone={st.tone}>{st.label}</Badge>
-              {#if temp}<Badge tone={temp.tone}>{temp.label} · {c.score}</Badge>{/if}
-              <Badge>{originLabel(c.origin)}</Badge>
-              {#if c.lastContactedAt}<span class="text-fc-xs text-fc-fg-muted">Contacté le {formatDate(c.lastContactedAt)}</span>{/if}
+              <Badge tone={st.tone}>{t(st.label)}</Badge>
+              {#if temp}<Badge tone={temp.tone}>{t(temp.label)} · {c.score}</Badge>{/if}
+              <Badge>{originLabel(c.origin, t)}</Badge>
+              {#if c.lastContactedAt}<span class="text-fc-xs text-fc-fg-muted">{t('contacts.contactedOn', { date: format.date(c.lastContactedAt) })}</span>{/if}
             </div>
           </a>
         </li>
@@ -241,14 +243,14 @@
             class="flex min-h-11 flex-col gap-2 rounded-fc-lg bg-fc-component p-4 transition-colors hover:bg-fc-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fc-ring sm:flex-row sm:items-center sm:justify-between"
           >
             <div class="min-w-0">
-              <p class="truncate text-fc-sm font-semibold text-fc-fg">{personName(p)}</p>
+              <p class="truncate text-fc-sm font-semibold text-fc-fg">{personName(p, t)}</p>
               <p class="truncate text-fc-xs text-fc-fg-muted">
                 {[p.role, p.company?.name, p.email].filter(Boolean).join(' · ')}
               </p>
             </div>
             <div class="flex flex-wrap items-center gap-1.5">
-              <Badge tone={st.tone}>{st.label}</Badge>
-              <Badge>{originLabel(p.origin)}</Badge>
+              <Badge tone={st.tone}>{t(st.label)}</Badge>
+              <Badge>{originLabel(p.origin, t)}</Badge>
             </div>
           </a>
         </li>
@@ -260,38 +262,38 @@
     <div class="flex justify-center">
       <Button variant="outline" onclick={() => load(true)} disabled={loadingMore}>
         {#if loadingMore}<Spinner size="sm" />{/if}
-        Afficher plus
+        {t('common.showMore')}
       </Button>
     </div>
   {/if}
 </div>
 
-<Modal open={addOpen} title="Ajouter un contact" onClose={() => (addOpen = false)}>
+<Modal open={addOpen} title={t('contacts.add')} onClose={() => (addOpen = false)}>
   <form id="add-contact" class="flex flex-col gap-4" onsubmit={addContact}>
-    <Field label="Entreprise"><Input bind:value={form.name} required maxlength={200} /></Field>
+    <Field label={t('leads.detail.company')}><Input bind:value={form.name} required maxlength={200} /></Field>
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-      <Field label="Domaine"><Input bind:value={form.domain} placeholder="exemple.fr" /></Field>
-      <Field label="Ville"><Input bind:value={form.city} /></Field>
+      <Field label={t('leads.sort.domain')}><Input bind:value={form.domain} placeholder={t('contacts.domainPlaceholder')} /></Field>
+      <Field label={t('hunts.new.city')}><Input bind:value={form.city} /></Field>
     </div>
-    <Field label="Étape">
+    <Field label={t('contacts.stage')}>
       <Select bind:value={form.stage}>
-        {#each STAGES as s (s.value)}<option value={s.value}>{s.label}</option>{/each}
+        {#each STAGES as s (s.value)}<option value={s.value}>{t(s.label)}</option>{/each}
       </Select>
     </Field>
-    <p class="text-fc-xs font-semibold text-fc-fg-muted">Personne (facultatif)</p>
+    <p class="text-fc-xs font-semibold text-fc-fg-muted">{t('contacts.personOptional')}</p>
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-      <Field label="Prénom"><Input bind:value={form.firstName} /></Field>
-      <Field label="Nom"><Input bind:value={form.lastName} /></Field>
-      <Field label="E-mail"><Input type="email" bind:value={form.email} /></Field>
-      <Field label="Fonction"><Input bind:value={form.role} /></Field>
+      <Field label={t('contacts.firstName')}><Input bind:value={form.firstName} /></Field>
+      <Field label={t('leads.detail.name')}><Input bind:value={form.lastName} /></Field>
+      <Field label={t('leads.sort.email')}><Input type="email" bind:value={form.email} /></Field>
+      <Field label={t('contacts.role')}><Input bind:value={form.role} /></Field>
     </div>
-    <Field label="Notes"><Textarea bind:value={form.notes} rows={3} /></Field>
+    <Field label={t('contacts.notes')}><Textarea bind:value={form.notes} rows={3} /></Field>
   </form>
   {#snippet footer()}
-    <Button variant="ghost" onclick={() => (addOpen = false)}>Annuler</Button>
+    <Button variant="ghost" onclick={() => (addOpen = false)}>{t('common.cancel')}</Button>
     <Button type="submit" form="add-contact" disabled={saving}>
       {#if saving}<Spinner size="sm" />{/if}
-      Ajouter
+      {t('common.add')}
     </Button>
   {/snippet}
 </Modal>

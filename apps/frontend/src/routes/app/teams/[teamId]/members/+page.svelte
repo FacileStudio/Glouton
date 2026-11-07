@@ -26,7 +26,10 @@
     icons,
     toast,
   } from '@facile/muse';
+  import { useFormat, useT } from '$lib/i18n';
 
+  const t = useT();
+  const format = useFormat();
   let { params }: PageProps = $props();
   let teamId = $derived(params.teamId);
   let team = $state<RouterOutputs['team']['get'] | null>(null);
@@ -61,7 +64,7 @@
       team = await trpc.team.get.query({ teamId });
     } catch (error) {
       console.error('Error loading team:', error);
-      toast.danger(getErrorMessage(error, 'Échec du chargement de l\'espace'));
+      toast.danger(getErrorMessage(error, t('teams.loadOneFailed')));
       goto(resolve('/app/teams'));
     } finally {
       loading = false;
@@ -75,7 +78,7 @@
       members = result || [];
     } catch (error) {
       console.error('Error loading members:', error);
-      toast.danger('Échec du chargement des membres');
+      toast.danger(t('teams.membersLoadFailed'));
       members = [];
     } finally {
       loadingMembers = false;
@@ -91,11 +94,11 @@
   function getRoleLabel(role: string) {
     switch (role) {
       case 'OWNER':
-        return 'Propriétaire';
+        return t('teams.role.owner');
       case 'ADMIN':
-        return 'Admin';
+        return t('teams.role.admin');
       default:
-        return 'Membre';
+        return t('teams.role.member');
     }
   }
 
@@ -109,13 +112,13 @@
         email: addMemberEmail.trim(),
         role: addMemberRole,
       });
-      toast.success('Membre ajouté avec succès');
+      toast.success(t('teams.memberAdded'));
       addMemberModalOpen = false;
       addMemberEmail = '';
       addMemberRole = 'MEMBER';
       await loadMembers();
     } catch (error) {
-      toast.danger(getErrorMessage(error, 'Échec de l\'ajout du membre'));
+      toast.danger(getErrorMessage(error, t('teams.memberAddFailed')));
     } finally {
       addingMember = false;
     }
@@ -135,12 +138,12 @@
         teamId,
         userId: memberToRemove.userId,
       });
-      toast.success('Membre retiré avec succès');
+      toast.success(t('teams.memberRemoved'));
       removeConfirmModalOpen = false;
       memberToRemove = null;
       await loadMembers();
     } catch (error) {
-      toast.danger(getErrorMessage(error, 'Échec du retrait du membre'));
+      toast.danger(getErrorMessage(error, t('teams.memberRemoveFailed')));
     } finally {
       removingMemberId = null;
     }
@@ -156,10 +159,10 @@
         userId: member.userId,
         role: newRole,
       });
-      toast.success('Rôle mis à jour avec succès');
+      toast.success(t('teams.roleUpdated'));
       await loadMembers();
     } catch (error) {
-      toast.danger(getErrorMessage(error, 'Échec de la mise à jour du rôle'));
+      toast.danger(getErrorMessage(error, t('teams.roleUpdateFailed')));
     } finally {
       updatingRoleMemberId = null;
     }
@@ -167,15 +170,15 @@
 
   async function handleLeaveTeam() {
     if (isOwner) {
-      toast.danger('Le propriétaire ne peut pas quitter l\'espace. Supprimez l\'espace ou transférez la propriété.');
+      toast.danger(t('teams.ownerCannotLeave'));
       return;
     }
     try {
       await trpc.team.leave.mutate({ teamId });
-      toast.success('Vous avez quitté l\'espace');
+      toast.success(t('teams.left'));
       goto(resolve('/app/teams'));
     } catch (error) {
-      toast.danger(getErrorMessage(error, 'Échec du départ de l\'espace'));
+      toast.danger(getErrorMessage(error, t('teams.leaveFailed')));
       leaveConfirmModalOpen = false;
     }
   }
@@ -193,25 +196,25 @@
 
 {#if loading}
   <div class="flex items-center justify-center py-16">
-    <Spinner size="lg" label="Chargement de l'espace" />
+    <Spinner size="lg" label={t('teams.loadingOne')} />
   </div>
 {:else if team}
   <PageHeader
-    title="Membres de {team.name}"
-    description="{members.length} membre{members.length !== 1 ? 's' : ''}"
+    title={t('teams.membersOf', { name: team.name })}
+    description={t('teams.memberCount', { count: members.length })}
     back={{ href: `/app/teams/${teamId}`, label: team.name }}
   >
     {#snippet actions()}
       {#if team}
         {#if linked && team.manageUrl}
-          <Button variant="outline" icon={icons.space} href={team.manageUrl}>Gérer dans Registre</Button>
+          <Button variant="outline" icon={icons.space} href={team.manageUrl}>{t('teams.manage')}</Button>
         {:else if team.userRole !== 'OWNER'}
           <Button variant="ghost-danger" icon={icons.logout} onclick={() => (leaveConfirmModalOpen = true)}>
-            Quitter l'espace
+            {t('teams.leave')}
           </Button>
         {/if}
         {#if canManage}
-          <Button icon={icons.plus} onclick={() => (addMemberModalOpen = true)}>Ajouter un membre</Button>
+          <Button icon={icons.plus} onclick={() => (addMemberModalOpen = true)}>{t('teams.addMember')}</Button>
         {/if}
       {/if}
     {/snippet}
@@ -219,17 +222,17 @@
 
   {#if loadingMembers}
     <div class="flex items-center justify-center py-16">
-      <Spinner size="lg" label="Chargement des membres" />
+      <Spinner size="lg" label={t('teams.loadingMembers')} />
     </div>
   {:else if members.length === 0}
     <Card>
       <EmptyState
-        title="Aucun membre"
-        description="Ajoutez des membres pour collaborer sur cet espace"
+        title={t('teams.noMembers')}
+        description={t('teams.noMembersText')}
         icon={icons.usersGroup}
       >
         {#if canManage}
-          <Button icon={icons.plus} onclick={() => (addMemberModalOpen = true)}>Ajouter un membre</Button>
+          <Button icon={icons.plus} onclick={() => (addMemberModalOpen = true)}>{t('teams.addMember')}</Button>
         {/if}
       </EmptyState>
     </Card>
@@ -260,7 +263,7 @@
                 </div>
                 <p class="truncate text-fc-xs text-fc-fg-muted">{member.email}</p>
                 <p class="text-fc-xs text-fc-fg-muted">
-                  Rejoint le {new Date(member.joinedAt).toLocaleDateString('fr-FR')}
+                  {t('teams.joinedOn', { date: format.date(member.joinedAt) })}
                 </p>
               </div>
             </div>
@@ -271,11 +274,11 @@
                   value={member.role}
                   onchange={(e) => handleUpdateRole(member, e.currentTarget.value as 'ADMIN' | 'MEMBER')}
                   disabled={updatingRoleMemberId === member.userId}
-                  aria-label="Rôle de {member.email}"
+                  aria-label={t('teams.roleOf', { email: member.email })}
                   class="w-36"
                 >
-                  <option value="MEMBER">Membre</option>
-                  <option value="ADMIN">Admin</option>
+                  <option value="MEMBER">{t('teams.role.member')}</option>
+                  <option value="ADMIN">{t('teams.role.admin')}</option>
                 </Select>
               {/if}
 
@@ -284,10 +287,10 @@
                   variant="danger"
                   onclick={() => openRemoveConfirm(member)}
                   disabled={removingMemberId === member.userId}
-                  aria-label="Retirer le membre"
+                  aria-label={t('teams.removeMember')}
                 >
                   {#if removingMemberId === member.userId}
-                    <Spinner size="sm" label="Retrait en cours" />
+                    <Spinner size="sm" label={t('teams.removing')} />
                   {:else}
                     <Icon icon={icons.remove} size={18} />
                   {/if}
@@ -301,23 +304,23 @@
   {/if}
 {/if}
 
-<Modal bind:open={addMemberModalOpen} title="Ajouter un membre">
-  <Field label="Adresse email" helper="L'utilisateur doit avoir un compte Glouton" for="memberEmail">
-    <Input id="memberEmail" type="email" bind:value={addMemberEmail} placeholder="membre@exemple.com" />
+<Modal bind:open={addMemberModalOpen} title={t('teams.addMember')}>
+  <Field label={t('teams.emailAddress')} helper={t('teams.mustHaveAccount')} for="memberEmail">
+    <Input id="memberEmail" type="email" bind:value={addMemberEmail} placeholder={t('teams.memberEmailPlaceholder')} />
   </Field>
 
-  <Field label="Rôle" helper="Les admins peuvent gérer les membres et les paramètres" for="memberRole">
+  <Field label={t('teams.roleLabel')} helper={t('teams.roleHelper')} for="memberRole">
     <Select id="memberRole" bind:value={addMemberRole}>
-      <option value="MEMBER">Membre</option>
-      <option value="ADMIN">Admin</option>
+      <option value="MEMBER">{t('teams.role.member')}</option>
+      <option value="ADMIN">{t('teams.role.admin')}</option>
     </Select>
   </Field>
 
   {#snippet footer()}
     <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-      <Button variant="ghost" onclick={cancelAddMember} disabled={addingMember}>Annuler</Button>
+      <Button variant="ghost" onclick={cancelAddMember} disabled={addingMember}>{t('common.cancel')}</Button>
       <Button icon={icons.plus} onclick={handleAddMember} disabled={addingMember || !addMemberEmail.trim()}>
-        {addingMember ? 'Ajout...' : 'Ajouter'}
+        {addingMember ? t('teams.adding') : t('common.add')}
       </Button>
     </div>
   {/snippet}
@@ -326,10 +329,10 @@
 <ConfirmModal
   bind:open={removeConfirmModalOpen}
   tone="danger"
-  title="Retirer ce membre ?"
-  description="{memberToRemove?.firstName || memberToRemove?.email || 'Ce membre'} sera retiré de l'espace et perdra l'accès aux ressources partagées."
-  confirmLabel="Retirer"
-  cancelLabel="Annuler"
+  title={t('teams.removeTitle')}
+  description={t('teams.removeText', { name: memberToRemove?.firstName || memberToRemove?.email || t('teams.thisMember') })}
+  confirmLabel={t('teams.remove')}
+  cancelLabel={t('common.cancel')}
   onConfirm={handleRemoveMember}
   onCancel={cancelRemoveMember}
 />
@@ -337,9 +340,9 @@
 <ConfirmModal
   bind:open={leaveConfirmModalOpen}
   tone="danger"
-  title="Quitter l'espace ?"
-  description="Vous perdrez l'accès aux ressources de cet espace. Vous pourrez être réinvité par un administrateur."
-  confirmLabel="Quitter"
-  cancelLabel="Annuler"
+  title={t('teams.leaveTitle')}
+  description={t('teams.leaveText')}
+  confirmLabel={t('teams.leaveShort')}
+  cancelLabel={t('common.cancel')}
   onConfirm={handleLeaveTeam}
 />

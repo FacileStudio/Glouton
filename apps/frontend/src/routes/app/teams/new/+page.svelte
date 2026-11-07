@@ -4,7 +4,9 @@
   import { resolve } from '$app/paths';
   import { trpc } from '$lib/trpc';
   import { Alert, Button, Card, Field, Input, PageHeader, Textarea, icons, toast } from '@facile/muse';
+  import { useT } from '$lib/i18n';
 
+  const t = useT();
   let formData = $state({
     name: '',
     description: '',
@@ -17,7 +19,7 @@
     errors = {};
 
     if (!formData.name || formData.name.trim().length < 3) {
-      errors.name = 'Le nom de l\'espace doit contenir au moins 3 caractères';
+      errors.name = t('teams.new.nameShort');
       return false;
     }
 
@@ -26,7 +28,7 @@
 
   async function handleSubmit() {
     if (!validateForm()) {
-      toast.danger('Veuillez corriger les erreurs du formulaire');
+      toast.danger(t('teams.new.fixErrors'));
       return;
     }
 
@@ -37,10 +39,10 @@
         description: formData.description.trim() || undefined,
       });
 
-      toast.success('Espace créé avec succès !');
+      toast.success(t('teams.new.created'));
       goto(resolve('/app/teams/[teamId]', { teamId: newTeam.id }));
     } catch (error) {
-      const errorMessage = getErrorMessage(error, 'Échec de la création de l\'espace');
+      const errorMessage = getErrorMessage(error, t('teams.new.failed'));
       console.error('Error creating team:', error);
       toast.danger(errorMessage);
     } finally {
@@ -55,36 +57,35 @@
 
 <div class="mx-auto flex w-full max-w-fc-md flex-col gap-10">
   <PageHeader
-    title="Créer un espace"
-    description="Créez un nouvel espace pour collaborer avec vos collègues"
-    back={{ href: '/app/teams', label: 'Espaces' }}
+    title={t('teams.create')}
+    description={t('teams.new.subtitle')}
+    back={{ href: '/app/teams', label: t('teams.title') }}
   />
 
   <Card class="flex flex-col gap-4">
-    <Field label="Nom de l'espace *" for="name" error={errors.name}>
-      <Input id="name" bind:value={formData.name} placeholder="Espace Marketing" required />
+    <Field label={t('teams.new.name')} for="name" error={errors.name}>
+      <Input id="name" bind:value={formData.name} placeholder={t('teams.new.namePlaceholder')} required />
     </Field>
 
-    <Field label="Description (optionnel)" for="description">
+    <Field label={t('teams.new.description')} for="description">
       <Textarea
         id="description"
         bind:value={formData.description}
-        placeholder="Décrivez l'objectif de cet espace..."
+        placeholder={t('teams.new.descriptionPlaceholder')}
         rows={4}
         class="min-h-24 resize-none"
       />
     </Field>
 
     <div class="flex flex-col-reverse gap-2 pt-4 sm:flex-row sm:justify-end">
-      <Button variant="ghost" onclick={handleCancel} disabled={creating}>Annuler</Button>
+      <Button variant="ghost" onclick={handleCancel} disabled={creating}>{t('common.cancel')}</Button>
       <Button icon={icons.plus} onclick={handleSubmit} disabled={creating || !formData.name.trim()}>
-        {creating ? 'Création...' : "Créer l'espace"}
+        {creating ? t('teams.new.creating') : t('teams.new.submit')}
       </Button>
     </div>
   </Card>
 
-  <Alert tone="neutral" title="À propos des espaces">
-    En créant un espace, vous deviendrez automatiquement propriétaire. Vous pourrez inviter des
-    membres, configurer les clés API et les paramètres SMTP pour l'espace.
+  <Alert tone="neutral" title={t('teams.new.aboutTitle')}>
+    {t('teams.new.aboutText')}
   </Alert>
 </div>

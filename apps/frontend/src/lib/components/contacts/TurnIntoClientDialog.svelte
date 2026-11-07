@@ -3,7 +3,9 @@
   import { trpc } from '$lib/trpc';
   import { getTrpcErrorMessage } from '$lib/utils/trpc-error';
   import { personName } from './labels';
+  import { useT } from '$lib/i18n';
 
+  const t = useT();
   type Person = {
     id?: string;
     firstName?: string | null;
@@ -69,7 +71,7 @@
     saving = true;
     try {
       await trpc.ardoise.turnIntoClient.mutate({ companyId: company.id, billingPersonId: personId, fill: { ...form } });
-      toast.success('Client créé dans Ardoise');
+      toast.success(t('contacts.clientCreated'));
       open = false;
       await onDone();
     } catch (error) {
@@ -80,33 +82,33 @@
   }
 </script>
 
-<Modal bind:open title="Passer en client" size="lg" onClose={() => (open = false)}>
+<Modal bind:open title={t('contacts.turnIntoClient')} size="lg" onClose={() => (open = false)}>
   {#if people.length === 0}
-    <Alert tone="warning">Ajoutez d'abord une personne : Ardoise a besoin d'un contact de facturation.</Alert>
+    <Alert tone="warning">{t('contacts.needPerson')}</Alert>
   {:else}
     <form id="turn-into-client" class="flex flex-col gap-4" onsubmit={submit}>
       <p class="text-fc-sm text-fc-fg-muted">
-        Glouton crée le client dans Ardoise, puis garde les deux fiches synchronisées.
+        {t('contacts.turnText')}
       </p>
-      <Field label="Contact de facturation">
+      <Field label={t('contacts.billingContact')}>
         <Select value={personId} onchange={(e) => pick(e.currentTarget.value)}>
-          {#each people as p (p.id)}<option value={p.id}>{personName(p)}</option>{/each}
+          {#each people as p (p.id)}<option value={p.id}>{personName(p, t)}</option>{/each}
         </Select>
       </Field>
       <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <Field label="Prénom"><Input bind:value={form.firstName} required maxlength={120} /></Field>
-        <Field label="Nom"><Input bind:value={form.lastName} required maxlength={120} /></Field>
+        <Field label={t('contacts.firstName')}><Input bind:value={form.firstName} required maxlength={120} /></Field>
+        <Field label={t('leads.detail.name')}><Input bind:value={form.lastName} required maxlength={120} /></Field>
       </div>
-      <Field label="E-mail de facturation"><Input type="email" bind:value={form.email} maxlength={320} /></Field>
+      <Field label={t('contacts.billingEmail')}><Input type="email" bind:value={form.email} maxlength={320} /></Field>
       <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field label="SIRET"><Input bind:value={form.siret} maxlength={20} /></Field>
-        <Field label="TVA intracommunautaire"><Input bind:value={form.vatNumber} maxlength={30} /></Field>
+        <Field label={t('contacts.vat')}><Input bind:value={form.vatNumber} maxlength={30} /></Field>
       </div>
-      <Field label="Adresse"><Input bind:value={form.addressLine} maxlength={300} /></Field>
+      <Field label={t('contacts.address')}><Input bind:value={form.addressLine} maxlength={300} /></Field>
       <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Field label="Code postal"><Input bind:value={form.postalCode} maxlength={20} /></Field>
-        <Field label="Ville"><Input bind:value={form.city} maxlength={120} /></Field>
-        <Field label="Pays"><Input bind:value={form.country} maxlength={80} /></Field>
+        <Field label={t('contacts.postalCode')}><Input bind:value={form.postalCode} maxlength={20} /></Field>
+        <Field label={t('hunts.new.city')}><Input bind:value={form.city} maxlength={120} /></Field>
+        <Field label={t('hunts.new.country')}><Input bind:value={form.country} maxlength={80} /></Field>
       </div>
     </form>
   {/if}
@@ -114,7 +116,7 @@
     <Button variant="ghost" onclick={() => (open = false)}>Annuler</Button>
     <Button type="submit" form="turn-into-client" disabled={saving || !personId}>
       {#if saving}<Spinner size="sm" />{/if}
-      Créer le client
+      {t('contacts.createClient')}
     </Button>
   {/snippet}
 </Modal>

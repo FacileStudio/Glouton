@@ -11,6 +11,24 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+### Added
+
+- The hunts, leads, contacts, outreach, settings, spaces, missions and company creations pages, the mail composer and the Bulle panel are now available in French, English, Spanish and German, through the same catalog as v0.9.0 (`lib/i18n/rows`). The French copy is the source of truth. Spanish and German need native review.
+- Dates, times, relative times ("2 hours ago"), durations, percentages, amounts and plurals go through `Intl` in the session locale (`useFormat`, and plural messages in the catalog).
+- When Bulle answers 402 (the plan has no `ai.access`), the assistant panel shows muse's `PlanLimit` with the upgrade link. `assistant.status` reports `plan_required` with the limit, and `assistant.write` and `assistant.nextAction` answer 403 with `data.plan_limit` instead of a 402, so the paywall redirect does not fire.
+- Settings: `SettingsLayout` with Profile, Preferences, Mail, Subscription and Advanced. The old `appearance` and `account` addresses redirect to `preferences` and `mail`.
+- `lib/i18n/rows.test.ts` fails when a translation drops a `{placeholder}` or is empty.
+
+### Changed
+
+- Bump `@facile/muse` from v0.13.0 to v0.14.1.
+- The sidebar and mobile bar open muse's user menu (account, settings, subscription, language, theme, help, sign out). The language is saved in the `fc_locale` cookie and the theme in `localStorage` (`glouton.theme`), applied in `app.html` before first paint. A language chosen in the menu now wins over the locale Registre sends at sign-in.
+- Profile is read-only (name, photo and email come from Facile).
+
+### Removed
+
+- The cog next to the user card, the profile form, the in-settings sign-out and the settings tabs.
+
 ## [0.9.0] - 2026-11-07
 ### Added
 
