@@ -7,7 +7,8 @@
     ".": "./src/index.ts",
     "./prisma": "./src/prisma.ts",
     "./contacts": "./src/contacts.ts",
-    "./utils/prisma-helpers": "./src/utils/prisma-helpers.ts"
+    "./utils/prisma-helpers": "./src/utils/prisma-helpers.ts",
+    "./erase": "./src/erase.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

@@ -36,7 +36,6 @@ export const serverEnvSchema = baseSchema
     OIDC_CLIENT_SECRET: optionalString,
     OIDC_REDIRECT_URL: optionalUrl,
     OIDC_SUCCESS_URL: optionalUrl,
-    SSO_ONLY: booleanFlag,
 
     COURRIER_URL: optionalUrl,
     COURRIER_AUDIENCE: optionalString,
@@ -52,12 +51,6 @@ export const serverEnvSchema = baseSchema
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: 'OIDC_CLIENT_ID and OIDC_CLIENT_SECRET are required when OIDC_ISSUER is set',
-      });
-    }
-    if (env.SSO_ONLY && !env.OIDC_ISSUER) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'SSO_ONLY requires OIDC_ISSUER to be configured',
       });
     }
     const ardoise = [

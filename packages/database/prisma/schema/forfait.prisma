@@ -19,3 +19,12 @@ model ForfaitState {
   firstAppliedAt DateTime @default(now()) @db.Timestamptz(3)
   lastAppliedAt  DateTime @default(now()) @db.Timestamptz(3)
 }
+
+// Singleton row holding the GDPR deletion receiver's state: the polling
+// cursor and every Registre subject already erased (porte/directory's
+// deletionState, stored as its JSON text).
+model DeletionState {
+  id        Int      @id @default(1)
+  state     String   @default("") @db.Text
+  updatedAt DateTime @default(now()) @updatedAt @db.Timestamptz(3)
+}

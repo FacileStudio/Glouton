@@ -32,9 +32,8 @@ import type { ForfaitReader, ScopeVerdict } from './store';
  *   the gate fails closed rather than guess its scope.
  */
 
-/** Procedures that work without a plan or a session: sign-in, the session itself, the scope switcher and the paywall. */
+/** Procedures that work without a plan or a session: the session itself, the scope switcher and the paywall. */
 export const EXEMPT: ReadonlySet<string> = new Set([
-  'auth.login',
   'auth.me',
   'auth.logout',
   'user.me',
@@ -51,7 +50,6 @@ export const EXEMPT: ReadonlySet<string> = new Set([
  */
 export const ACCOUNT: ReadonlySet<string> = new Set([
   'user.updateProfile',
-  'user.changePassword',
   'user.deleteOwnAccount',
   'user.getSmtpConfig',
   'user.updateSmtpConfig',

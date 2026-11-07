@@ -1,4 +1,3 @@
-import { z } from 'zod';
 import { UserRole } from '@repo/types';
 
 export interface SessionUser {
@@ -10,6 +9,7 @@ export interface SessionUser {
   isPremium: boolean;
   avatarUrl?: string | null;
   coverImageUrl?: string | null;
+  locale?: string | null;
 }
 
 export interface AuthState {
@@ -17,25 +17,6 @@ export interface AuthState {
   session: { token: string } | null;
   loading: boolean;
 }
-
-export const loginSchema = z.object({
-  email: z.string().min(1, "L'email est requis").email("Format d'email invalide"),
-  password: z.string().min(8, 'Le mot de passe doit faire au moins 8 caractères'),
-});
-
-export const registerSchema = loginSchema
-  .extend({
-    firstName: z.string().min(1, 'Le prénom est requis'),
-    lastName: z.string().min(1, 'Le nom de famille est requis'),
-    confirmPassword: z.string().min(1, 'La confirmation est requise'),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: 'Les mots de passe ne correspondent pas',
-    path: ['confirmPassword'],
-  });
-
-export type LoginInput = z.infer<typeof loginSchema>;
-export type RegisterInput = z.infer<typeof registerSchema>;
 
 const ROLE_HIERARCHY: Record<UserRole, number> = {
   [UserRole.USER]: 1,

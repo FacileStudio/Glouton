@@ -134,8 +134,26 @@ export class DirectoryClient implements SnapshotSource {
   }
 
   /** Fetches every shared space as Registre holds it now. */
-  snapshot(): Promise<Snapshot> {
-    return this.call('GET', '/api/directory/snapshot');
+  async snapshot(): Promise<Snapshot> {
+    return decodeBody(await this.call('GET', '/api/directory/snapshot'));
+  }
+
+  /** The Registre issuer and this app's client id, which a deletion notice must name. */
+  get identity(): { issuer: string; clientId: string } {
+    return { issuer: this.issuer.replace(/\/$/, ''), clientId: this.clientId };
+  }
+
+  /**
+   * Lists the accounts Registre erased since `since`, oldest first, at most
+   * 1000 per call. Timestamps stay strings so their microseconds survive.
+   */
+  async deletions(since: string): Promise<{ sub: string; deleted_at: string }[]> {
+    const body = await this.call('GET', `/api/directory/deletions?since=${encodeURIComponent(since)}`);
+    const list = isObject(body) && Array.isArray(body.deleted) ? body.deleted : [];
+    return list.filter(
+      (entry): entry is { sub: string; deleted_at: string } =>
+        isObject(entry) && typeof entry.sub === 'string' && typeof entry.deleted_at === 'string'
+    );
   }
 
   /**
@@ -143,12 +161,12 @@ export class DirectoryClient implements SnapshotSource {
    * by name, keeps the highest role, and remembers the import, so a second
    * call is a no-op answering the current snapshot.
    */
-  import(spaces: ImportSpace[]): Promise<Snapshot> {
-    return this.call('POST', '/api/directory/import', JSON.stringify({ spaces }));
+  async import(spaces: ImportSpace[]): Promise<Snapshot> {
+    return decodeBody(await this.call('POST', '/api/directory/import', JSON.stringify({ spaces })));
   }
 
-  /** Sends one authenticated request and decodes the snapshot it answers. */
-  private async call(method: string, path: string, body?: string): Promise<Snapshot> {
+  /** Sends one authenticated request and returns its decoded JSON body. */
+  private async call(method: string, path: string, body?: string): Promise<unknown> {
     const credentials = Buffer.from(`${this.clientId}:${this.clientSecret}`).toString('base64');
     let response: Response;
     try {
@@ -172,10 +190,19 @@ export class DirectoryClient implements SnapshotSource {
       throw new DirectoryUnavailableError(`${path} answered more than ${MAX_SNAPSHOT_BYTES} bytes`);
     }
     try {
-      return decodeSnapshot(JSON.parse(await readCapped(response, MAX_SNAPSHOT_BYTES)));
+      return JSON.parse(await readCapped(response, MAX_SNAPSHOT_BYTES));
     } catch (error) {
-      throw new DirectoryUnavailableError(`decode the snapshot: ${String(error)}`);
+      throw new DirectoryUnavailableError(`decode the body: ${String(error)}`);
     }
+  }
+}
+
+/** Decodes a directory body into a snapshot, wrapping a garbled one in DirectoryUnavailableError. */
+function decodeBody(body: unknown): Snapshot {
+  try {
+    return decodeSnapshot(body);
+  } catch (error) {
+    throw new DirectoryUnavailableError(`decode the snapshot: ${String(error)}`);
   }
 }
 

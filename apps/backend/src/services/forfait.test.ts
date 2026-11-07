@@ -178,9 +178,7 @@ describe('plan gate middleware', () => {
   test('exempt procedures answer without a plan', async () => {
     const reader = fakeReader({ personal: false });
     await expect(forfait.authorize(reader, gateCall('user.me', user.id))).resolves.toBeDefined();
-    await expect(
-      forfait.authorize(reader, gateCall('auth.login', null, { input: { email: 'a' } }))
-    ).resolves.toBeDefined();
+    await expect(forfait.authorize(reader, gateCall('auth.me', user.id))).resolves.toBeDefined();
     const status = await call('forfait.status', reader);
     expect(status.status).toBe(200);
   });

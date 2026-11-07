@@ -1,4 +1,4 @@
-import { createRemoteJWKSet, jwtVerify } from 'jose';
+import { SignJWT, createRemoteJWKSet, jwtVerify } from 'jose';
 import { prisma } from '@repo/database';
 import type { AuthManager, SessionUser } from '@repo/auth';
 import { UserRole } from '@repo/types';
@@ -6,16 +6,17 @@ import { logger } from '@repo/logger';
 import env from '../env';
 
 /**
- * OIDC SSO (authorization code flow), following the same conventions as the
- * other Facile apps (Nuage, Courrier, Agenda):
- *   GET /auth/config        -> { sso_only, oidc_enabled }
- *   GET /auth/oidc          -> redirect to the provider
- *   GET /auth/oidc/callback -> exchange code, upsert user, redirect to the app
+ * Registre OIDC (authorization code flow with PKCE and a nonce), the only way
+ * to sign in to Glouton:
+ *   GET /auth/oidc          -> redirect to Registre
+ *   GET /auth/oidc/callback -> exchange code, resolve the user, redirect to the app
  */
 
 export interface OidcClaims {
   email: string;
+  emailVerified?: boolean;
   subject?: string;
+  locale?: string;
   name?: string;
   preferredUsername?: string;
   givenName?: string;
@@ -32,8 +33,6 @@ interface DiscoveryDocument {
 }
 
 export const oidcEnabled = Boolean(env.OIDC_ISSUER);
-/** Password sign-in and sign-up are off whenever SSO is configured, not only under SSO_ONLY. */
-export const ssoOnly = Boolean(env.SSO_ONLY) || oidcEnabled;
 
 const redirectUrl = env.OIDC_REDIRECT_URL ?? `${env.DOMAIN}/auth/oidc/callback`;
 const successUrl = env.OIDC_SUCCESS_URL ?? `${env.DOMAIN}/auth/callback`;
@@ -71,23 +70,69 @@ export async function registreKeys(): Promise<ReturnType<typeof createRemoteJWKS
   return jwks(doc.jwks_uri);
 }
 
-export function generateState(): string {
-  return Buffer.from(crypto.getRandomValues(new Uint8Array(16))).toString('base64url');
+const STATE_AUDIENCE = 'oidc-state';
+export const STATE_COOKIE = 'oidc_state';
+export const STATE_TTL_SECONDS = 10 * 60;
+
+export interface LoginState {
+  state: string;
+  nonce: string;
+  verifier: string;
 }
 
-export async function buildAuthorizationUrl(state: string): Promise<string> {
+const randomToken = (bytes: number): string =>
+  Buffer.from(crypto.getRandomValues(new Uint8Array(bytes))).toString('base64url');
+
+const pkceChallenge = async (verifier: string): Promise<string> =>
+  Buffer.from(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier))).toString('base64url');
+
+const stateKey = () => new TextEncoder().encode(env.ENCRYPTION_SECRET);
+
+/** Seals the login state into a short-lived signed cookie value, so the callback needs no server memory. */
+export function sealState(payload: LoginState): Promise<string> {
+  return new SignJWT({ ...payload })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setAudience(STATE_AUDIENCE)
+    .setExpirationTime(`${STATE_TTL_SECONDS}s`)
+    .sign(stateKey());
+}
+
+/** Opens a sealed state cookie, or null when it is forged, expired or malformed. */
+export async function openState(cookie: string): Promise<LoginState | null> {
+  try {
+    const { payload } = await jwtVerify(cookie, stateKey(), { audience: STATE_AUDIENCE });
+    const { state, nonce, verifier } = payload as Record<string, unknown>;
+    if (typeof state !== 'string' || typeof nonce !== 'string' || typeof verifier !== 'string') return null;
+    return { state, nonce, verifier };
+  } catch {
+    return null;
+  }
+}
+
+/** Starts a sign-in: the authorization URL and the sealed cookie the callback checks. */
+export async function startLogin(): Promise<{ url: string; cookie: string }> {
   const doc = await discover();
+  const login: LoginState = { state: randomToken(16), nonce: randomToken(16), verifier: randomToken(32) };
   const params = new URLSearchParams({
     response_type: 'code',
     client_id: env.OIDC_CLIENT_ID!,
     redirect_uri: redirectUrl,
     scope: 'openid email profile offline_access',
-    state,
+    state: login.state,
+    nonce: login.nonce,
+    code_challenge: await pkceChallenge(login.verifier),
+    code_challenge_method: 'S256',
   });
-  return `${doc.authorization_endpoint}?${params.toString()}`;
+  return { url: `${doc.authorization_endpoint}?${params.toString()}`, cookie: await sealState(login) };
 }
 
-export async function exchangeCode(code: string): Promise<OidcClaims> {
+/** Maps a `locale` claim, a BCP 47 tag such as fr-FR, onto fr, en, es or de; null when it names none. */
+export function normalizeLocale(tag: string | undefined): string | null {
+  const primary = tag?.trim().toLowerCase().split(/[-_]/)[0];
+  return primary && ['fr', 'en', 'es', 'de'].includes(primary) ? primary : null;
+}
+
+export async function exchangeCode(code: string, login: Pick<LoginState, 'nonce' | 'verifier'>): Promise<OidcClaims> {
   const doc = await discover();
 
   const response = await fetch(doc.token_endpoint, {
@@ -102,12 +147,14 @@ export async function exchangeCode(code: string): Promise<OidcClaims> {
       grant_type: 'authorization_code',
       code,
       redirect_uri: redirectUrl,
+      code_verifier: login.verifier,
     }),
+    signal: AbortSignal.timeout(10_000),
+    redirect: 'error',
   });
 
   if (!response.ok) {
-    const body = await response.text().catch(() => '');
-    logger.error({ status: response.status, body }, '[OIDC] Token exchange failed');
+    logger.error({ status: response.status }, '[OIDC] Token exchange failed');
     throw new Error('OIDC token exchange failed');
   }
 
@@ -120,10 +167,16 @@ export async function exchangeCode(code: string): Promise<OidcClaims> {
     issuer: doc.issuer,
     audience: env.OIDC_CLIENT_ID!,
   });
+  if (payload.nonce !== login.nonce) {
+    throw new Error('OIDC nonce mismatch');
+  }
 
   const email = typeof payload.email === 'string' ? payload.email : '';
   if (!email) {
     throw new Error('OIDC provider did not return an email');
+  }
+  if (typeof payload.sub !== 'string' || payload.sub === '') {
+    throw new Error('OIDC provider did not return a subject');
   }
 
   const str = (value: unknown): string | undefined =>
@@ -131,7 +184,9 @@ export async function exchangeCode(code: string): Promise<OidcClaims> {
 
   return {
     email,
-    subject: str(payload.sub),
+    emailVerified: payload.email_verified === true,
+    subject: payload.sub,
+    locale: str(payload.locale),
     name: str(payload.name),
     preferredUsername: str(payload.preferred_username),
     givenName: str(payload.given_name),
@@ -164,24 +219,38 @@ export function registreIssuer(): string | null {
   return env.OIDC_ISSUER ? env.OIDC_ISSUER.replace(/\/$/, '') : null;
 }
 
+export type IdentityFailure = 'email_unverified' | 'identity_conflict' | 'unverified_account';
+
+/** Raised when a sign-in must not resolve to an account; `code` is the short reason the login page shows. */
+export class IdentityError extends Error {
+  constructor(readonly code: IdentityFailure, message: string = code) {
+    super(message);
+    this.name = 'IdentityError';
+  }
+}
+
 /** Raised when an SSO sign-in matches a local account Glouton never verified. */
-export class UnverifiedAccountError extends Error {
+export class UnverifiedAccountError extends IdentityError {
   constructor() {
-    super('An unverified local account already uses this email; an administrator must verify it before SSO can link it');
-    this.name = 'UnverifiedAccountError';
+    super(
+      'unverified_account',
+      'An unverified local account already uses this email; an administrator must verify it before SSO can link it'
+    );
   }
 }
 
 /**
  * Finds the user for an SSO sign-in: by Registre identity (issuer, sub) first,
  * so a user pre-provisioned by the directory sync lands on their row, then by
- * email. The email fallback links only a local account whose email Glouton
- * marked verified (an earlier SSO sign-in, the directory sync, or an admin);
- * otherwise anyone who registered with a victim's email would inherit the
- * victim's SSO identity. An unverified match is refused, not replaced.
+ * email. The email fallback and the creation of a new user both need Registre
+ * to assert the email as verified. The fallback links only a local account
+ * whose email Glouton marked verified (an earlier SSO sign-in, the directory
+ * sync, or an admin), and refuses an account that already holds another
+ * subject of the same issuer, so an identity is never rebound to a second
+ * person. An unverified match is refused, not replaced.
  */
 export async function findOidcUser(
-  claims: Pick<OidcClaims, 'email' | 'subject'>,
+  claims: Pick<OidcClaims, 'email' | 'subject' | 'emailVerified'>,
   db: Pick<typeof prisma, 'account' | 'user'> = prisma
 ): Promise<{ id: string } | null> {
   const issuer = registreIssuer();
@@ -192,9 +261,17 @@ export async function findOidcUser(
     });
     if (account) return { id: account.userId };
   }
-  const local = await db.user.findUnique({ where: { email: claims.email }, select: { id: true, emailVerified: true } });
+  if (claims.emailVerified !== true) throw new IdentityError('email_unverified');
+  const local = await db.user.findFirst({
+    where: { email: { equals: claims.email, mode: 'insensitive' } },
+    select: { id: true, emailVerified: true },
+  });
   if (!local) return null;
   if (!local.emailVerified) throw new UnverifiedAccountError();
+  if (issuer) {
+    const other = await db.account.findFirst({ where: { userId: local.id, providerId: issuer }, select: { id: true } });
+    if (other) throw new IdentityError('identity_conflict');
+  }
   return { id: local.id };
 }
 
@@ -213,7 +290,24 @@ async function recordIdentity(auth: AuthManager, userId: string, claims: OidcCla
   });
 }
 
+/**
+ * Signs a person in from verified Registre claims. Two first sign-ins for one
+ * new email can race on the unique email: the loser retries once and lands on
+ * the row the winner created.
+ */
 export async function loginWithOidc(
+  auth: AuthManager,
+  claims: OidcClaims
+): Promise<{ token: string; user: SessionUser }> {
+  try {
+    return await signIn(auth, claims);
+  } catch (error) {
+    if ((error as { code?: string }).code !== 'P2002') throw error;
+    return signIn(auth, claims);
+  }
+}
+
+async function signIn(
   auth: AuthManager,
   claims: OidcClaims
 ): Promise<{ token: string; user: SessionUser }> {
@@ -229,6 +323,7 @@ export async function loginWithOidc(
         firstName: firstName || undefined,
         lastName: lastName || undefined,
         avatarUrl: httpsPicture(claims.picture),
+        locale: normalizeLocale(claims.locale) ?? undefined,
         emailVerified: true,
         lastLoginAt: new Date(),
       },
@@ -240,6 +335,7 @@ export async function loginWithOidc(
         role: true,
         isPremium: true,
         avatarUrl: true,
+        locale: true,
       },
     });
   } else {
@@ -254,6 +350,7 @@ export async function loginWithOidc(
         lastName,
         password: await auth.hashPassword(randomPassword),
         avatarUrl: httpsPicture(claims.picture),
+        locale: normalizeLocale(claims.locale),
         emailVerified: true,
         role: UserRole.USER,
         lastLoginAt: new Date(),
@@ -266,6 +363,7 @@ export async function loginWithOidc(
         role: true,
         isPremium: true,
         avatarUrl: true,
+        locale: true,
       },
     });
     logger.info({ email: claims.email }, '[OIDC] Provisioned new user');
@@ -282,6 +380,7 @@ export async function loginWithOidc(
     isPremium: user.isPremium,
     avatarUrl: user.avatarUrl,
     coverImageUrl: null,
+    locale: user.locale,
   };
 
   return { token: await auth.createToken(sessionUser), user: sessionUser };
@@ -297,6 +396,6 @@ export const oidcLoginUrl = `${env.DOMAIN}/login`;
  * code it turns into a message. Only the code travels, never error details.
  */
 export function ssoFailureUrl(error: unknown, loginUrl: string = oidcLoginUrl): string {
-  const code = error instanceof UnverifiedAccountError ? 'unverified_account' : 'sso_failed';
+  const code = error instanceof IdentityError ? error.code : 'sso_failed';
   return `${loginUrl}?sso_error=${code}`;
 }
