@@ -18,6 +18,9 @@ export interface Feature {
 /** The whole app: false on Solo, true on Pro and Studio. */
 export const GLOUTON_ACCESS: Feature = { key: 'glouton.access', kind: 'bool', default: false };
 
+/** The assistant: Bulle gates its model proxy on it. Glouton only reports it. */
+export const AI_ACCESS: Feature = { key: 'ai.access', kind: 'bool', default: false };
+
 /** Every feature Glouton enforces. */
 export const FEATURES: readonly Feature[] = [GLOUTON_ACCESS];
 

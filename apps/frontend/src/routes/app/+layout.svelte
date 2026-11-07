@@ -9,13 +9,12 @@
     toast,
     icons,
     getI18n,
-    isSafeUpgradeUrl,
-    readTheme,
+      readTheme,
     type Theme,
     type UserMenuOptions,
   } from '@facile/muse';
   import { QUIET } from '@repo/trpc-client';
-  import { persistLocale, persistTheme } from '$lib/preferences';
+  import { SPACES_URL, persistLocale, persistTheme } from '$lib/preferences';
   import authStore from '$lib/auth-store';
   import { teamContextStore } from '$lib/stores/team-context.svelte';
   import { ws } from '$lib/websocket';
@@ -73,7 +72,7 @@
   );
 
   let theme = $state<Theme>(browser ? readTheme() : 'system');
-  let plan = $state<{ allowed: boolean; plans: string[]; upgradeUrl: string } | null>(null);
+  let plan = $state<{ allowed: boolean; plans: string[] } | null>(null);
 
   function changeTheme(next: Theme) {
     theme = next;
@@ -82,10 +81,7 @@
 
   const userMenu = $derived<UserMenuOptions>({
     settingsHref: '/app/settings',
-    subscription:
-      plan?.allowed && isSafeUpgradeUrl(plan.upgradeUrl)
-        ? { plan: plan.plans.join(' / '), href: plan.upgradeUrl }
-        : null,
+    subscription: { plan: plan?.allowed ? plan.plans.join(' / ') : t('settings.subscription.none'), href: SPACES_URL },
     helpHref: 'https://github.com/FacileStudio/Glouton/tree/main/docs',
     onSignOut: () => authStore.logout(),
     locale: i18n.locale,
