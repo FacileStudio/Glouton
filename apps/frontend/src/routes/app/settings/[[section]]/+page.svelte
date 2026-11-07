@@ -5,11 +5,12 @@
   import { trpc } from '$lib/trpc';
   import { useT } from '$lib/i18n';
   import { QUIET } from '@repo/trpc-client';
-  import { persistLocale, persistTheme } from '$lib/preferences';
+  import { SPACES_URL, persistLocale, persistTheme } from '$lib/preferences';
   import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
   import { page } from '$app/state';
   import {
+    Badge,
     Button,
     DangerZone,
     Field,
@@ -24,7 +25,6 @@
     SubscriptionSection,
     Switch,
     getI18n,
-    isSafeUpgradeUrl,
     icons,
     readTheme,
     settingsRoute,
@@ -65,7 +65,7 @@
   let testingSmtp = $state(false);
   let form = $state<SmtpForm>(emptySmtp());
   let existing = $state<SmtpForm>(emptySmtp());
-  let plan = $state<{ allowed: boolean; plans: string[]; upgradeUrl: string } | null>(null);
+  let plan = $state<{ allowed: boolean; aiAccess: boolean; plans: string[] } | null>(null);
   let theme = $state<Theme>('system');
 
   const user = $derived($authStore.user);
@@ -81,7 +81,6 @@
       form.smtpFromName !== existing.smtpFromName ||
       form.smtpFromEmail !== existing.smtpFromEmail,
   );
-  const upgradeHref = $derived(isSafeUpgradeUrl(plan?.upgradeUrl) ? plan?.upgradeUrl : undefined);
 
   const sections = $derived([
     { id: 'profile', label: i18n.t('settings.profile.title'), icon: icons.userCircle, href: '/app/settings/profile' },
@@ -288,10 +287,17 @@
     {:else if id === 'subscription'}
       <SubscriptionSection
         plan={plan?.allowed ? plan.plans.join(' / ') : t('settings.subscription.none')}
-        manageHref={plan?.allowed ? upgradeHref : undefined}
-        upgradeHref={plan?.allowed ? undefined : upgradeHref}
+        manageHref={SPACES_URL}
+        upgradeHref={SPACES_URL}
         description={t('settings.subscription.description')}
-      />
+      >
+        <SettingsRow label={t('settings.subscription.gloutonAccess')}>
+          <Badge tone={plan?.allowed ? 'success' : 'neutral'}>{plan?.allowed ? t('settings.subscription.included') : t('settings.subscription.notIncluded')}</Badge>
+        </SettingsRow>
+        <SettingsRow label={t('settings.subscription.aiAccess')}>
+          <Badge tone={plan?.aiAccess ? 'success' : 'neutral'}>{plan?.aiAccess ? t('settings.subscription.included') : t('settings.subscription.notIncluded')}</Badge>
+        </SettingsRow>
+      </SubscriptionSection>
     {:else if id === 'advanced'}
       <DangerZone>
         <SettingsRow label={t('settings.delete.label')} description={t('settings.delete.description')}>

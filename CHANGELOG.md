@@ -21,8 +21,9 @@ in the root `package.json`.
 
 ### Changed
 
-- Bump `@facile/muse` from v0.13.0 to v0.14.1.
+- Bump `@facile/muse` from v0.13.0 to v0.14.2.
 - The sidebar and mobile bar open muse's user menu (account, settings, subscription, language, theme, help, sign out). The language is saved in the `fc_locale` cookie and the theme in `localStorage` (`glouton.theme`), applied in `app.html` before first paint. A language chosen in the menu now wins over the locale Registre sends at sign-in.
+- The subscription row of the user menu and the settings Subscription section link to Registre's spaces page (`https://sso.facile.studio/spaces`) and show `glouton.access` and `ai.access`. `forfait.status` returns `aiAccess`.
 - Profile is read-only (name, photo and email come from Facile).
 
 ### Removed

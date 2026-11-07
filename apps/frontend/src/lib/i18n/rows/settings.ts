@@ -57,5 +57,9 @@ export const settings = {
     'Esta acción es definitiva. Tus datos se eliminarán de forma permanente.',
     'Diese Aktion ist endgültig. Ihre Daten werden dauerhaft gelöscht.'
   ],
-  'settings.delete.typeToConfirm': ['Type "DELETE" to confirm', 'Tapez "DELETE" pour confirmer', 'Escribe "DELETE" para confirmar', 'Geben Sie zur Bestätigung "DELETE" ein']
+  'settings.delete.typeToConfirm': ['Type "DELETE" to confirm', 'Tapez "DELETE" pour confirmer', 'Escribe "DELETE" para confirmar', 'Geben Sie zur Bestätigung "DELETE" ein'],
+  'settings.subscription.gloutonAccess': ['Glouton access', 'Accès à Glouton', 'Acceso a Glouton', 'Zugang zu Glouton'],
+  'settings.subscription.aiAccess': ['Assistant and AI features', 'Assistant et fonctions IA', 'Asistente y funciones de IA', 'Assistent und KI-Funktionen'],
+  'settings.subscription.included': ['Included', 'Inclus', 'Incluido', 'Enthalten'],
+  'settings.subscription.notIncluded': ['Not included', 'Non inclus', 'No incluido', 'Nicht enthalten']
 } as const satisfies Record<string, Row>;

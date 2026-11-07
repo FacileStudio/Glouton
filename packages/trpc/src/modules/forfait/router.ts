@@ -15,6 +15,7 @@ export const forfaitRouter = router({
         allowed: verdict.allowed,
         enforced: verdict.enforced,
         upgradeUrl: verdict.upgradeUrl,
+        aiAccess: verdict.aiAccess ?? false,
         plans: ['Pro', 'Studio'],
       };
     }),

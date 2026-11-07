@@ -17,3 +17,5 @@ export function persistTheme(theme: Theme): void {
     return;
   }
 }
+
+export const SPACES_URL = 'https://sso.facile.studio/spaces';

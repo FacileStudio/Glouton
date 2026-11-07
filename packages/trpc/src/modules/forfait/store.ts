@@ -1,6 +1,6 @@
 import type { Prisma, PrismaClient } from '@prisma/client';
 import { logger } from '@repo/logger';
-import { GLOUTON_ACCESS, enabled, sanitize, upgradeUrl } from './features';
+import { AI_ACCESS, GLOUTON_ACCESS, enabled, sanitize, upgradeUrl } from './features';
 
 /**
  * Glouton keeps the entitlements of every scope in its own database: on the
@@ -20,6 +20,7 @@ export interface ScopeVerdict {
   allowed: boolean;
   enforced: boolean;
   upgradeUrl: string;
+  aiAccess?: boolean;
 }
 
 /** The scopes a person may use now, for cross-scope reads. */
@@ -158,9 +159,14 @@ export function dbForfait(prisma: PrismaClient, fallbackIssuer = process.env.OID
       const url = upgradeUrl(current?.issuer ?? fallbackIssuer, membership.team.registreSpaceId);
       if (!current) {
         warnOpen();
-        return { allowed: true, enforced: false, upgradeUrl: url };
+        return { allowed: true, enforced: false, upgradeUrl: url, aiAccess: true };
       }
-      return { allowed: enabled(membership.team.entitlements, GLOUTON_ACCESS), enforced: true, upgradeUrl: url };
+      return {
+        allowed: enabled(membership.team.entitlements, GLOUTON_ACCESS),
+        enforced: true,
+        upgradeUrl: url,
+        aiAccess: enabled(membership.team.entitlements, AI_ACCESS),
+      };
     },
 
     async personal(userId) {
@@ -168,10 +174,10 @@ export function dbForfait(prisma: PrismaClient, fallbackIssuer = process.env.OID
       const url = upgradeUrl(current?.issuer ?? fallbackIssuer, null);
       if (!current) {
         warnOpen();
-        return { allowed: true, enforced: false, upgradeUrl: url };
+        return { allowed: true, enforced: false, upgradeUrl: url, aiAccess: true };
       }
       const values = await personalValues(current.issuer, userId);
-      return { allowed: enabled(values, GLOUTON_ACCESS), enforced: true, upgradeUrl: url };
+      return { allowed: enabled(values, GLOUTON_ACCESS), enforced: true, upgradeUrl: url, aiAccess: enabled(values, AI_ACCESS) };
     },
 
     async entitledScopes(userId) {
