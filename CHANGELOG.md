@@ -11,6 +11,7 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-11-07
 ### Added
 
 - The hunts, leads, contacts, outreach, settings, spaces, missions and company creations pages, the mail composer and the Bulle panel are now available in French, English, Spanish and German, through the same catalog as v0.9.0 (`lib/i18n/rows`). The French copy is the source of truth. Spanish and German need native review.
