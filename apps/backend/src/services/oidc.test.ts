@@ -16,10 +16,10 @@ const jwk = { ...(await exportJWK(publicKey)), kid: 'k1', alg: 'RS256', use: 'si
 let lastTokenRequest: URLSearchParams | null = null;
 let nonceToSign = '';
 
-let idpPort = 0;
+const idpPort = 38917;
 
 const idp = Bun.serve({
-  port: 0,
+  port: idpPort,
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
     const base = `http://localhost:${idpPort}`;
@@ -47,11 +47,6 @@ const idp = Bun.serve({
     return new Response(null, { status: 404 });
   },
 });
-
-idpPort = idp.port ?? 0;
-process.env.OIDC_ISSUER = `http://localhost:${idpPort}`;
-process.env.OIDC_CLIENT_ID = 'glouton';
-process.env.OIDC_CLIENT_SECRET = 'secret';
 
 const oidc = await import('./oidc');
 const { AuthManager } = await import('@repo/auth');

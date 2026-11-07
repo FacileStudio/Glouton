@@ -41,7 +41,9 @@ RUN bun run --cwd packages/database prisma:generate
 FROM base AS runner
 WORKDIR /app
 
+ARG APP_VERSION=dev
 ENV NODE_ENV=production
+ENV APP_VERSION=$APP_VERSION
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 backend

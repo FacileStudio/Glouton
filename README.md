@@ -16,7 +16,7 @@ a WebSocket. Leads, hunts and missions belong either to a user or to a team.
 - Email outreach with per-user or per-team SMTP, templates, previews and delivery tracking
 - Freelance mission scraping from 21 public sources, re-run every three hours
 - Teams with `OWNER` / `ADMIN` / `MEMBER` roles, mirrored from Registre's shared spaces, with shared leads and outgoing webhooks
-- Email/password auth plus optional OIDC SSO against Authentik, with an `SSO_ONLY` mode
+- Sign-in only through Registre OIDC (no local passwords)
 - A subscription gate: each space, and each person's personal scope, needs `glouton.access` from its Registre plan (Pro or Studio)
 
 ## Subscription gate

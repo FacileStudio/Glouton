@@ -4,7 +4,10 @@
   import { resolve } from '$app/paths';
   import { Badge, Button, Card, Icon, PageHeader, Spinner, icons } from '@facile/muse';
   import { trpc } from '$lib/trpc';
+  import { useT } from '$lib/i18n';
   import { teamContextStore } from '$lib/stores/team-context.svelte';
+
+  const t = useT();
 
   type Status = {
     scope: 'personal' | 'team';
@@ -19,7 +22,7 @@
   let failed = $state(false);
 
   const context = $derived(teamContextStore.context);
-  const scopeName = $derived(context.type === 'team' ? context.name : 'votre espace personnel');
+  const scopeName = $derived(context.type === 'team' ? context.name : t('paywall.yourSpace'));
   const upgradeHref = $derived(safeUrl(status?.upgradeUrl));
 
   function safeUrl(url: string | undefined): string | null {
@@ -44,7 +47,7 @@
   });
 </script>
 
-<PageHeader title="Forfait requis" description="Glouton fait partie des forfaits Pro et Studio" />
+<PageHeader title={t('paywall.title')} description={t('paywall.subtitle')} />
 
 {#if loading}
   <Card class="flex items-center justify-center py-16">
@@ -53,8 +56,8 @@
 {:else if status?.allowed}
   <Card class="flex flex-col items-center gap-4 py-12 text-center">
     <Icon icon={icons.check} size={32} />
-    <p class="text-fc-fg">Le forfait de {scopeName} inclut Glouton.</p>
-    <Button iconRight={icons.arrow} onclick={() => goto(resolve('/app/hunts'))}>Retour à Glouton</Button>
+    <p class="text-fc-fg">{t('paywall.included', { scope: scopeName })}</p>
+    <Button iconRight={icons.arrow} onclick={() => goto(resolve('/app/hunts'))}>{t('paywall.backToApp')}</Button>
   </Card>
 {:else}
   <Card class="flex flex-col items-center gap-6 py-12 text-center">
@@ -66,17 +69,16 @@
         {/each}
       </div>
       <p class="max-w-prose text-fc-fg">
-        Glouton est inclus dans les forfaits Pro et Studio. Le forfait de {scopeName} ne l'inclut pas encore.
+        {t('paywall.notIncluded', { scope: scopeName })}
       </p>
       <p class="max-w-prose text-fc-sm text-fc-fg-muted">
-        Vos leads, contacts et chasses sont conservés : rien n'est supprimé. Un propriétaire de l'espace peut changer
-        de forfait dans Registre, ou vous pouvez basculer vers un espace qui inclut Glouton.
+        {t('paywall.kept')}
       </p>
     </div>
     {#if upgradeHref}
-      <Button icon={icons.card} href={upgradeHref}>Voir les forfaits</Button>
+      <Button icon={icons.card} href={upgradeHref}>{t('paywall.seePlans')}</Button>
     {:else if failed}
-      <p class="text-fc-sm text-fc-fg-muted">Impossible de charger le lien vers les forfaits. Réessayez plus tard.</p>
+      <p class="text-fc-sm text-fc-fg-muted">{t('paywall.loadFailed')}</p>
     {/if}
   </Card>
 {/if}

@@ -172,7 +172,7 @@
     </div>
   {/if}
 
-  <div class="flex items-center gap-4 border-t border-fc-border pt-3">
+  <div class="flex items-center gap-4 pt-3">
     <div class="flex items-center gap-1.5">
       <Icon icon={icons.usersGroup} size={15} class="text-fc-fg-muted" />
       <span class="text-fc-sm font-medium text-fc-fg">{displayLeads}</span>

@@ -113,7 +113,7 @@
     </Card>
   {:else}
     <Card class="overflow-hidden p-0">
-      <ul class="divide-y divide-fc-border">
+      <ul class="flex flex-col gap-1">
         {#each filteredTeams as team (team.id)}
           <li>
             <button

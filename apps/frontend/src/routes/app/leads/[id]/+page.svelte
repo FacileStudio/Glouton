@@ -133,7 +133,7 @@
   }
 
   const rowLinkClass =
-    'flex items-center gap-3 rounded-fc-md border border-fc-border px-3 py-2.5 transition-colors hover:bg-fc-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fc-ring';
+    'flex items-center gap-3 rounded-fc-md px-3 py-2.5 transition-colors hover:bg-fc-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fc-ring';
 
   function toggleEmailExpansion(emailId: string) {
     if (expandedEmails.has(emailId)) {
@@ -322,7 +322,7 @@
             </div>
           </div>
 
-          <div class="grid grid-cols-2 gap-3 border-t border-fc-border pt-4">
+          <div class="grid grid-cols-2 gap-3 pt-4">
             <div>
               <p class="text-fc-xs text-fc-fg-muted">E-mails envoyés</p>
               <p class="mt-0.5 text-fc-xl font-semibold text-fc-fg">{lead.emailsSentCount}</p>
@@ -385,7 +385,7 @@
           {/if}
 
           {#if lead.city || lead.country}
-            <div class="flex items-center gap-3 rounded-fc-md border border-fc-border px-3 py-2.5">
+            <div class="flex items-center gap-3 rounded-fc-md px-3 py-2.5">
               {@render contactRow('solar:map-point-linear', 'Localisation', [lead.city, lead.country].filter(Boolean).join(', '))}
             </div>
           {/if}
@@ -498,7 +498,7 @@
                 </div>
               {/if}
               {#if lead.companyInfo.description}
-                <div class="border-t border-fc-border pt-3">
+                <div class="pt-3">
                   <p class="mb-1 text-fc-xs text-fc-fg-muted">À propos</p>
                   <p class="text-fc-sm leading-relaxed text-fc-fg">{lead.companyInfo.description}</p>
                 </div>
@@ -551,7 +551,7 @@
         {/if}
 
         <Card class="overflow-hidden p-0">
-          <div class="flex items-center justify-between gap-3 border-b border-fc-border px-5 py-4">
+          <div class="flex items-center justify-between gap-3 px-5 py-4">
             <h2 class="flex items-center gap-2 text-fc-lg font-semibold text-fc-fg">
               <iconify-icon icon="solar:history-linear" width="18" height="18" class="block"></iconify-icon>
               Historique des e-mails
@@ -565,7 +565,7 @@
             {:else}
               <div class="flex flex-col gap-2">
                 {#each outreachHistory as email (email.id)}
-                  <div class="overflow-hidden rounded-fc-md border border-fc-border" in:fade>
+                  <div class="overflow-hidden rounded-fc-md " in:fade>
                     <button
                       type="button"
                       onclick={() => toggleEmailExpansion(email.id)}
@@ -593,7 +593,7 @@
                     </button>
 
                     {#if expandedEmails.has(email.id)}
-                      <div class="flex flex-col gap-3 border-t border-fc-border bg-fc-surface px-4 py-3" in:fly={{ y: -8, duration: 150 }}>
+                      <div class="flex flex-col gap-3 bg-fc-surface px-4 py-3" in:fly={{ y: -8, duration: 150 }}>
                         {#if email.error}
                           <Alert tone="danger" class="flex items-start gap-2 text-fc-xs">
                             <iconify-icon icon="solar:danger-triangle-linear" width="14" height="14" class="mt-0.5 block shrink-0"></iconify-icon>
@@ -603,7 +603,7 @@
 
                         <div>
                           <p class="mb-1.5 text-fc-xs text-fc-fg-muted">Contenu de l'e-mail</p>
-                          <div class="rounded-fc-md border border-fc-border bg-fc-bg p-3">
+                          <div class="rounded-fc-md bg-fc-bg p-3">
                             <p class="text-fc-sm leading-relaxed whitespace-pre-wrap text-fc-fg">{email.textBody || 'Aucun contenu'}</p>
                           </div>
                         </div>
@@ -613,7 +613,7 @@
                             <p class="mb-1.5 text-fc-xs text-fc-fg-muted">Variables utilisées</p>
                             <div class="grid grid-cols-2 gap-2">
                               {#each Object.entries(email.variables) as [key, value] (key)}
-                                <div class="rounded-fc-md border border-fc-border bg-fc-bg px-3 py-2">
+                                <div class="rounded-fc-md bg-fc-bg px-3 py-2">
                                   <p class="text-fc-xs text-fc-fg-muted">{key}</p>
                                   <p class="mt-0.5 text-fc-sm text-fc-fg">{value}</p>
                                 </div>

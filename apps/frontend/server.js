@@ -20,9 +20,11 @@ const hopByHopHeaders = new Set([
 const isBackendPath = (url = '') =>
   url === '/trpc' || url.startsWith('/trpc/') || url.startsWith('/trpc?') ||
   url === '/auth/config' || url.startsWith('/auth/config?') ||
+  url === '/version' ||
   url === '/auth/oidc' || url.startsWith('/auth/oidc/') || url.startsWith('/auth/oidc?') ||
   url === '/docs' || url.startsWith('/docs?') || url.startsWith('/docs/') ||
   url === '/api/registre/sync' || url.startsWith('/api/registre/sync?') ||
+  url === '/api/registre/deletions' || url.startsWith('/api/registre/deletions?') ||
   url.startsWith('/api/agent/') ||
   url === '/api/integrations/ardoise/webhook' || url.startsWith('/api/integrations/ardoise/webhook?');
 

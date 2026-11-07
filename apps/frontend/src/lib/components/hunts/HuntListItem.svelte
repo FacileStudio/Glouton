@@ -132,7 +132,7 @@
   </button>
 
   <div
-    class="flex items-center gap-2 border-t border-fc-border px-5 py-3"
+    class="flex items-center gap-2 px-5 py-3"
     role="presentation"
     onclick={(e) => e.stopPropagation()}
     onkeydown={(e) => e.stopPropagation()}

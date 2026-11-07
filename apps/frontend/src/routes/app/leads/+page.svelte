@@ -428,7 +428,7 @@
 
     <Button onclick={startAudit} disabled={startingAudit || !!activeAudit} icon={startingAudit ? undefined : 'solar:shield-check-linear'}>
       {#if startingAudit}
-        <Spinner size="sm" class="border-t-fc-accent-fg" />
+        <Spinner size="sm" class="text-fc-accent-fg" />
         Démarrage...
       {:else}
         Lancer l'audit
@@ -458,7 +458,7 @@
         type="button"
         onclick={() => handleSort(opt.value)}
         aria-pressed={sortBy === opt.value}
-        class="inline-flex h-11 items-center gap-1.5 rounded-fc-pill px-3 text-fc-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fc-ring md:h-8 {sortBy === opt.value ? 'bg-fc-accent text-fc-accent-fg' : 'border border-fc-border text-fc-fg hover:bg-fc-surface'}"
+        class="inline-flex h-11 items-center gap-1.5 rounded-fc-pill px-3 text-fc-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fc-ring md:h-8 {sortBy === opt.value ? 'bg-fc-accent text-fc-accent-fg' : 'text-fc-fg hover:bg-fc-surface'}"
       >
         {opt.label}
         {#if sortBy === opt.value}

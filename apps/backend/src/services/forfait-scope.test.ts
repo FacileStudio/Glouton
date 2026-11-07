@@ -11,9 +11,6 @@ const databaseUrl = process.env.TEST_DATABASE_URL;
 process.env.DATABASE_URL = databaseUrl ?? 'postgresql://unused@localhost/unused';
 process.env.DOMAIN ??= 'http://localhost:3000';
 process.env.ENCRYPTION_SECRET ??= 'test-encryption-secret-at-least-32-chars';
-process.env.OIDC_ISSUER = 'https://sso.test';
-process.env.OIDC_CLIENT_ID = 'glouton';
-process.env.OIDC_CLIENT_SECRET = 'secret';
 
 const { fetchRequestHandler } = await import('@trpc/server/adapters/fetch');
 const { appRouter, forfait, targetTeam } = await import('@repo/trpc');

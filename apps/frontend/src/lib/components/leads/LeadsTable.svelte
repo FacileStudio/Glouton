@@ -90,7 +90,7 @@
   </th>
 {/snippet}
 
-<Card class="divide-y divide-fc-border overflow-hidden p-0 md:hidden">
+<Card class="overflow-hidden p-0 md:hidden">
   {#each leads as lead (lead.id)}
     <button
       type="button"

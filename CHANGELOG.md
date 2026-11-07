@@ -11,6 +11,27 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+### Added
+
+- GDPR erasure. Glouton polls Registre's `GET /api/directory/deletions` every five minutes (a TypeScript port of porte/directory v0.3.0: persisted cursor, one-minute overlap, 60-day record of handled subjects, paging by 1000) and accepts Registre's signed push at `POST /api/registre/deletions` (RS256 `secevent+jwt` verified against Registre's JWKS). A deleted person loses their account, identities, tokens, personal leads, contacts and hunts, and their plan entitlement. Rows they authored inside a team are handed to a banned "deleted user" row, so the team keeps its data. A second call is a no-op. Register `https://glouton.facile.studio/api/registre/deletions` as Glouton's `deletion_uri` in Registre.
+- `GET /version` serves the build's `APP_VERSION` (compose build arg and env).
+- `users.locale`, filled from the OIDC `locale` claim (fr, en, es, de) and carried in the session. The UI follows it, then the `fc_locale` cookie, then `Accept-Language`.
+- The UI is available in French, English, Spanish and German for the landing page, sign-in, callback, error pages, navigation and the paywall. Spanish and German need native review.
+- `.github/workflows/ci.yml`: typecheck, lint, tests against Postgres, build, and filet.
+- Migration `023_registre_only_sign_in.sql`: `User.locale` and the `DeletionState` table.
+
+### Changed
+
+- Sign-in goes only through Registre. The login page is muse's `AuthScreen` with `SignInWithFacile`; the landing page uses `LandingHeader` and `LandingFooter`.
+- Bump `@facile/muse` from v0.11.0 to v0.13.0 (borderless; the custom `Select`). The app's own borders and dividers are removed.
+- The OIDC flow adds PKCE and a nonce in a signed state cookie, and the token call has a timeout and refuses redirects.
+- An SSO sign-in now needs Registre to assert `email_verified`, matches the email case-insensitively, and refuses an account that already holds another subject of the same issuer (`?sso_error=identity_conflict`). It still refuses an unverified local account.
+- `deleteOwnAccount` uses the same erasure as the Registre deletion.
+
+### Removed
+
+- Local sign-up and passwords: the `/register` page, `auth.login`, `auth.register` and `user.changePassword`, their rate limiters, the password form in settings, `SSO_ONLY`, and the local `/legal/*` pages (Registre publishes the legal pages; muse's footer links to them).
+
 ## [0.8.0] - 2026-11-06
 
 ### Added

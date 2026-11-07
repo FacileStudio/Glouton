@@ -75,7 +75,7 @@
       />
     </Field>
 
-    <div class="flex flex-col-reverse gap-2 border-t border-fc-border pt-4 sm:flex-row sm:justify-end">
+    <div class="flex flex-col-reverse gap-2 pt-4 sm:flex-row sm:justify-end">
       <Button variant="ghost" onclick={handleCancel} disabled={creating}>Annuler</Button>
       <Button icon={icons.plus} onclick={handleSubmit} disabled={creating || !formData.name.trim()}>
         {creating ? 'Création...' : "Créer l'espace"}
