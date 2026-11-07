@@ -107,22 +107,6 @@ export const userRouter = router({
       return userService.updateProfile(ctx.user.id, input);
     }),
 
-  changePassword: humanProcedure
-    .input(
-      z.object({
-        currentPassword: z.string(),
-        newPassword: z.string().min(8),
-      })
-    )
-    .mutation(async ({ ctx, input }) => {
-      return userService.changePassword(
-        ctx.auth,
-        ctx.user.id,
-        input.currentPassword,
-        input.newPassword
-      );
-    }),
-
   deleteOwnAccount: humanProcedure.mutation(async ({ ctx }) => {
     return userService.deleteOwnAccount(ctx.user.id);
   }),

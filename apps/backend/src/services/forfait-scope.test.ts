@@ -11,6 +11,9 @@ const databaseUrl = process.env.TEST_DATABASE_URL;
 process.env.DATABASE_URL = databaseUrl ?? 'postgresql://unused@localhost/unused';
 process.env.DOMAIN ??= 'http://localhost:3000';
 process.env.ENCRYPTION_SECRET ??= 'test-encryption-secret-at-least-32-chars';
+process.env.OIDC_ISSUER = 'https://sso.test';
+process.env.OIDC_CLIENT_ID = 'glouton';
+process.env.OIDC_CLIENT_SECRET = 'secret';
 
 const { fetchRequestHandler } = await import('@trpc/server/adapters/fetch');
 const { appRouter, forfait, targetTeam } = await import('@repo/trpc');
@@ -149,7 +152,7 @@ describe('account procedures and shared templates', () => {
 
   test('a Solo person who pays through a team keeps their own account', async () => {
     const scopes = reader(false, { [teamId]: true });
-    for (const path of ['user.updateProfile', 'user.changePassword', 'user.updateSmtpConfig']) {
+    for (const path of ['user.updateProfile', 'user.updateSmtpConfig']) {
       expect(forfait.ACCOUNT.has(path)).toBe(true);
     }
     await expect(
@@ -206,30 +209,48 @@ describe('targetTeam', () => {
 });
 
 describe('account takeover through the SSO email fallback', () => {
-  const db = (user: { id: string; emailVerified: boolean } | null) => ({
-    account: { findUnique: async () => null },
-    user: { findUnique: async () => user },
+  const db = (user: { id: string; emailVerified: boolean } | null, other: { id: string } | null = null) => ({
+    account: { findUnique: async () => null, findFirst: async () => other },
+    user: { findFirst: async () => user },
   });
+  const verified = { email: 'victim@example.com', subject: 'sub-1', emailVerified: true };
 
   test('an unverified local account with the same email is refused, not linked', async () => {
-    await expect(findOidcUser({ email: 'victim@example.com' }, db({ id: 'attacker', emailVerified: false }) as never)).rejects.toBeInstanceOf(
+    await expect(findOidcUser(verified, db({ id: 'attacker', emailVerified: false }) as never)).rejects.toBeInstanceOf(
       UnverifiedAccountError
     );
   });
 
   test('a verified local account still links, and no account means a new user', async () => {
-    expect(await findOidcUser({ email: 'v@example.com' }, db({ id: 'legacy', emailVerified: true }) as never)).toEqual({ id: 'legacy' });
-    expect(await findOidcUser({ email: 'n@example.com' }, db(null) as never)).toBeNull();
+    expect(await findOidcUser(verified, db({ id: 'legacy', emailVerified: true }) as never)).toEqual({ id: 'legacy' });
+    expect(await findOidcUser({ ...verified, email: 'n@example.com' }, db(null) as never)).toBeNull();
   });
 
-  test('password sign-up and sign-in are refused once OIDC is configured', async () => {
+  test('an email Registre does not assert as verified links nothing and creates nothing', async () => {
+    for (const emailVerified of [false, undefined]) {
+      await expect(
+        findOidcUser({ ...verified, emailVerified }, db({ id: 'legacy', emailVerified: true }) as never)
+      ).rejects.toMatchObject({ code: 'email_unverified' });
+      await expect(findOidcUser({ ...verified, emailVerified }, db(null) as never)).rejects.toMatchObject({
+        code: 'email_unverified',
+      });
+    }
+  });
+
+  test('an account that already holds another subject of the issuer is refused', async () => {
+    await expect(
+      findOidcUser(verified, db({ id: 'legacy', emailVerified: true }, { id: 'other-identity' }) as never)
+    ).rejects.toMatchObject({ code: 'identity_conflict' });
+  });
+
+  test('password sign-up and sign-in no longer exist', async () => {
     const anonymous = null as unknown as { id: string; email: string; role: string };
     const input = { email: 'victim@example.com', password: 'Password123!', firstName: 'V', lastName: 'V' };
-    const register = await call('auth.register', anonymous, reader(true), input, { mutation: true });
-    expect(register.status).toBe(401);
-    const login = await call('auth.login', anonymous, reader(true), { email: input.email, password: input.password }, { mutation: true });
-    expect(login.status).toBe(403);
-    expect(forfait.EXEMPT.has('auth.register')).toBe(false);
+    for (const path of ['auth.register', 'auth.login', 'user.changePassword']) {
+      const response = await call(path, anonymous, reader(true), input, { mutation: true });
+      expect(response.status).toBe(404);
+      expect(forfait.EXEMPT.has(path)).toBe(false);
+    }
   });
 });
 

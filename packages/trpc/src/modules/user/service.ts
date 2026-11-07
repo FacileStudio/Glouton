@@ -1,5 +1,6 @@
 import { TRPCError } from '@trpc/server';
 import { prisma } from '@repo/database/prisma';
+import { eraseUser } from '@repo/database/erase';
 import { type AuthManager } from '@repo/auth';
 import type { UserRole } from '@repo/types';
 import { UserStatus } from '@prisma/client';
@@ -263,60 +264,16 @@ export const userService = {
     return updatedUser;
   },
 
-  changePassword: async (
-    auth: AuthManager,
-    userId: string,
-    currentPassword: string,
-    newPassword: string
-  ) => {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { id: true, password: true },
-    });
-
-    if (!user) {
+  deleteOwnAccount: async (userId: string) => {
+    const deleted = await eraseUser(prisma, userId);
+    if (!deleted) {
       throw new TRPCError({
         code: 'NOT_FOUND',
         message: 'User not found',
       });
     }
-
-    const isValid = await auth.verifyPassword(currentPassword, user.password);
-
-    if (!isValid) {
-      throw new TRPCError({
-        code: 'UNAUTHORIZED',
-        message: 'Current password is incorrect',
-      });
-    }
-
-    const hashedPassword = await auth.hashPassword(newPassword);
-
-    await prisma.user.update({
-      where: { id: userId },
-      data: { password: hashedPassword },
-    });
-
     return { success: true };
   },
-
-  deleteOwnAccount: async (userId: string) => {
-    const deletedUser = await prisma.user.delete({
-      where: { id: userId },
-      select: SAFE_USER_SELECT,
-    });
-
-    if (!deletedUser) {
-      throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: 'User not found',
-      });
-    }
-
-    return deletedUser;
-  },
-
-
 
   getSmtpConfig: async (userId: string, auth: AuthManager) => {
     const user = await prisma.user.findUnique({

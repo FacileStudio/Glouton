@@ -1,0 +1,9 @@
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "locale" TEXT;
+
+CREATE TABLE IF NOT EXISTS "DeletionState" (
+  "id" INTEGER NOT NULL DEFAULT 1,
+  "state" TEXT NOT NULL DEFAULT '',
+  "updatedAt" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "DeletionState_pkey" PRIMARY KEY ("id"),
+  CONSTRAINT "DeletionState_singleton" CHECK ("id" = 1)
+);

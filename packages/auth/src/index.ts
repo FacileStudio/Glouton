@@ -40,6 +40,7 @@ export class AuthManager {
       isPremium: user.isPremium,
       avatarUrl: user.avatarUrl,
       coverImageUrl: user.coverImageUrl,
+      locale: user.locale,
     })
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()
@@ -67,6 +68,7 @@ export class AuthManager {
         isPremium: payload.isPremium as boolean,
         avatarUrl: payload.avatarUrl as string | null | undefined,
         coverImageUrl: payload.coverImageUrl as string | null | undefined,
+        locale: payload.locale as string | null | undefined,
       };
     } catch (error) {
       return null;

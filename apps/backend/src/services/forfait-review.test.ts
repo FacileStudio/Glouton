@@ -46,10 +46,9 @@ describe('paywall routing', () => {
     expect(await throughLink('FORBIDDEN', undefined)).toBe(0);
   });
 
-  test('settings, password, SMTP, account deletion, leaving and deleting a team need no plan', async () => {
+  test('settings, SMTP, account deletion, leaving and deleting a team need no plan', async () => {
     for (const path of [
       'user.updateProfile',
-      'user.changePassword',
       'user.getSmtpConfig',
       'user.updateSmtpConfig',
       'user.testSmtpConfig',

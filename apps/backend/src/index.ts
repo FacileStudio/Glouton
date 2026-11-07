@@ -1,6 +1,5 @@
 import { Hono, type Context } from 'hono';
 import { loggerMiddleware } from './middleware/logger';
-import { loginLimiter, registerLimiter } from './middleware/rate-limit';
 import { prisma } from '@repo/database';
 import { validateRedisConfiguration } from '@repo/jobs';
 import { logger } from '@repo/logger';
@@ -21,6 +20,9 @@ import { events } from './services/events';
 import { checkOrphanedSessions, cleanupStalled } from './services/job-monitor';
 import { registerWorkers } from './services/register-workers';
 import { DirectoryClient } from './services/registre-directory';
+import { Deletions, DeletionsPath } from './services/registre-deletions';
+import { prismaStateStore } from './services/deletion-state';
+import { eraseIdentity } from '@repo/database/erase';
 import { createRegistreSyncRoutes } from './handlers/registre';
 import { applySnapshot, buildImport, startDirectorySync } from './services/registre-spaces';
 import { registreIssuer, registreKeys } from './services/oidc';
@@ -138,9 +140,10 @@ async function startup() {
 startup();
 
 const issuer = registreIssuer();
+const directoryClient = issuer ? new DirectoryClient(issuer, env.OIDC_CLIENT_ID!, env.OIDC_CLIENT_SECRET!) : null;
 const directory = issuer
   ? startDirectorySync({
-      remote: new DirectoryClient(issuer, env.OIDC_CLIENT_ID!, env.OIDC_CLIENT_SECRET!),
+      remote: directoryClient!,
       collect: () => buildImport(prisma, issuer),
       apply: (snapshot) =>
         applySnapshot(
@@ -150,6 +153,16 @@ const directory = issuer
       logger,
     }).syncer
   : null;
+
+const deletions = directoryClient
+  ? new Deletions({
+      client: directoryClient,
+      onPersonDeleted: (provider, subject) => eraseIdentity(prisma, provider, subject),
+      state: prismaStateStore(prisma),
+      logger,
+    })
+  : null;
+void deletions?.run();
 
 const verifyDelegated = delegatedVerifierFromEnv(env, registreKeys);
 const ardoiseSync = ardoise.ardoiseDeps(prisma, env, jobs, logger);
@@ -186,6 +199,7 @@ app.get('/health/ready', createReadinessHandler({ prisma }));
 app.get('/ws', wsHandler);
 
 if (directory) app.route('/', createRegistreSyncRoutes(directory));
+if (deletions) app.all(DeletionsPath, (c) => deletions.handler(c.req.raw));
 
 function requireInternalAuth(c: Context): boolean {
   const token = c.req.header('x-internal-secret');
@@ -242,9 +256,6 @@ app.route('/api/agent', createAgentRoutes({
   notify: (scope, type, data) => events.emitToScope(scope, type, data),
 }));
 
-app.use('/trpc/auth.login', loginLimiter);
-app.use('/trpc/auth.register', registerLimiter);
-
 app.all('/trpc/*', trpcHandler({
   authManager: config.authManager,
   env: config.env,
@@ -263,6 +274,7 @@ const port = Number(env.PORT);
 async function gracefulShutdown(signal: string) {
   logger.info(`[SHUTDOWN] Received ${signal}, closing...`);
   try {
+    deletions?.stop();
     await jobs.close();
     logger.info('[SHUTDOWN] Success');
     process.exit(0);
