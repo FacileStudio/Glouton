@@ -15,13 +15,22 @@ const READ_TIMEOUT_MS = 10_000;
 const CHAT_TIMEOUT_MS = 90_000;
 
 /** Why Bulle cannot answer: no Registre grant, no model key, Bulle down, or a backend Glouton cannot speak. */
-export type BulleFailure = 'not_linked' | 'no_key' | 'unreachable' | 'unsupported';
+export type BulleFailure = 'not_linked' | 'no_key' | 'unreachable' | 'unsupported' | 'plan_required';
+
+/** The 402 body Bulle sends when the plan has no ai.access: a message and where to upgrade. */
+export interface PlanLimit {
+  message?: string;
+  upgrade_url?: string;
+  key?: string;
+  limit?: number | string;
+}
 
 /** Thrown by BulleClient for every failure, tagged with the reason the UI shows. */
 export class BulleUnavailableError extends Error {
   constructor(
     readonly reason: BulleFailure,
-    message: string
+    message: string,
+    readonly planLimit: PlanLimit | null = null
   ) {
     super(message);
     this.name = 'BulleUnavailableError';
@@ -54,6 +63,24 @@ export interface BulleConfig {
 }
 
 type Json = Record<string, unknown>;
+
+/** Reads a 402 body, bare or wrapped in tronc's `{error}` envelope, into the fields the web app shows. */
+export function planLimitFrom(body: unknown): PlanLimit {
+  const outer = record(body);
+  const inner = typeof outer.error === 'object' && outer.error !== null ? record(outer.error) : outer;
+  const limit = inner.limit;
+  return {
+    message: text(inner.message) || undefined,
+    upgrade_url: text(inner.upgrade_url) || undefined,
+    key: text(inner.key) || undefined,
+    limit: typeof limit === 'number' || typeof limit === 'string' ? limit : undefined,
+  };
+}
+
+/** The plan limit a failed call carries, or undefined for any other error. */
+export function planLimitOf(error: { cause?: unknown }): PlanLimit | undefined {
+  return error.cause instanceof BulleUnavailableError ? (error.cause.planLimit ?? undefined) : undefined;
+}
 
 function chatRequest(offer: BulleOffer, model: string, prompt: ChatPrompt): { path: string; body: Json; headers: Json } {
   if (offer.backend === 'anthropic') {
@@ -204,6 +231,10 @@ export class BulleClient {
       throw new BulleUnavailableError('unreachable', 'Bulle is unreachable');
     }
     const body = await readJson(response);
+    if (response.status === 402) {
+      const limit = planLimitFrom(body);
+      throw new BulleUnavailableError('plan_required', limit.message || 'Bulle needs a plan with AI access', limit);
+    }
     if (response.status === 409) throw new BulleUnavailableError('no_key', text(record(body).error) || 'no key');
     if (keyOnly && response.status < 500) return body;
     if (!response.ok) {

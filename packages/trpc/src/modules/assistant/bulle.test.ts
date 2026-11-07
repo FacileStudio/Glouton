@@ -8,7 +8,7 @@ interface Seen {
   init: RequestInit;
 }
 
-function fakeSuite(options: { backend: string; noKey?: boolean; refreshToken?: string | null }) {
+function fakeSuite(options: { backend: string; noKey?: boolean; noPlan?: boolean; refreshToken?: string | null }) {
   const seen: Seen[] = [];
   let refreshes = 0;
   let current = options.refreshToken === undefined ? 'rt-1' : options.refreshToken;
@@ -33,6 +33,12 @@ function fakeSuite(options: { backend: string; noKey?: boolean; refreshToken?: s
       return Response.json({ backend: options.backend, model: 'm-1', models: ['m-1', 'm-2'], persona: 'You are Pip.' });
     }
     if (path === '/api/assistant') return Response.json({ name: 'Pip', avatar_url: 'https://bulle.test/pip.png' });
+    if (options.noPlan && path.startsWith('/api/llm/')) {
+      return Response.json(
+        { error: { message: 'AI features need a paid plan.', upgrade_url: 'https://sso.test/spaces' } },
+        { status: 402 }
+      );
+    }
     if (options.noKey) return Response.json({ error: `no key for ${options.backend}` }, { status: 409 });
     if (path === '/api/llm/anthropic/v1/messages') {
       return Response.json({ content: [{ type: 'text', text: '{"subject":"Hi","body":"Hello","note":null}' }] });
@@ -120,5 +126,27 @@ describe('BulleClient', () => {
       .map((s) => new URLSearchParams(String(s.init.body)))
       .find((form) => form.get('audience') === 'bulle');
     expect(exchange?.get('scope')).toBe('bulle.read bulle.write');
+  });
+});
+
+describe('a Bulle 402', () => {
+  test('complete fails with plan_required and the upgrade link', async () => {
+    const { bulle } = fakeSuite({ backend: 'anthropic', noPlan: true });
+    const offer = await bulle.offer('user-1');
+    const error = await bulle.complete('user-1', offer, prompt).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(BulleUnavailableError);
+    expect((error as BulleUnavailableError).reason).toBe('plan_required');
+    expect((error as BulleUnavailableError).planLimit).toEqual({
+      message: 'AI features need a paid plan.',
+      upgrade_url: 'https://sso.test/spaces',
+    });
+  });
+
+  test('status reports plan_required with the limit', async () => {
+    const { bulle } = fakeSuite({ backend: 'anthropic', noPlan: true });
+    const status = await assistantStatus(bulle, 'user-1');
+    expect(status.available).toBe(false);
+    expect(status.reason).toBe('plan_required');
+    expect(status.planLimit?.upgrade_url).toBe('https://sso.test/spaces');
   });
 });
