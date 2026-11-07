@@ -7,6 +7,7 @@ export interface AuthConfig {
   issuer?: string;
   audience?: string;
   tokenExpiration?: string;
+  userExists?: (userId: string) => Promise<boolean>;
 }
 
 export class AuthManager {
@@ -15,6 +16,7 @@ export class AuthManager {
   private readonly issuer: string;
   private readonly audience: string;
   private readonly tokenExpiration: string;
+  private readonly userExists?: (userId: string) => Promise<boolean>;
 
   
 
@@ -26,6 +28,7 @@ export class AuthManager {
     this.issuer = config.issuer ?? 'maxi-boilerplate-api';
     this.audience = config.audience ?? 'maxi-boilerplate-client';
     this.tokenExpiration = config.tokenExpiration ?? '7d';
+    this.userExists = config.userExists;
   }
 
   
@@ -58,6 +61,8 @@ export class AuthManager {
         issuer: this.issuer,
         audience: this.audience,
       });
+
+      if (this.userExists && !(await this.userExists(payload.id as string))) return null;
 
       return {
         id: payload.id as string,

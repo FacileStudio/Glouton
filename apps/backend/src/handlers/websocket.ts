@@ -1,7 +1,7 @@
 import { createBunWebSocket } from 'hono/bun';
 import type { ServerWebSocket } from 'bun';
 import { logger } from '@repo/logger';
-import { AuthManager } from '@repo/auth';
+import config from '../config';
 import type { EventMessage } from '../services/events';
 
 interface WebSocketData {
@@ -101,8 +101,7 @@ export const wsHandler = upgradeWebSocket(async (c) => {
 
   if (token) {
     try {
-      const authManager = new AuthManager({ encryptionSecret: process.env.ENCRYPTION_SECRET! });
-      const user = await authManager.verifyToken(token);
+      const user = await config.authManager.verifyToken(token);
       if (user) {
         userId = user.id;
       }
