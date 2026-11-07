@@ -1,8 +1,5 @@
 <script lang="ts" module>
   import type { trpc } from '$lib/trpc';
-  import { useT } from '$lib/i18n';
-
-  const t = useT();
   type LeadListInput = Exclude<Parameters<typeof trpc.lead.query.list.query>[0], void | undefined>;
 
   export interface Filters {
@@ -22,7 +19,10 @@
 </script>
 
 <script lang="ts">
+  import { useT } from '$lib/i18n';
   import { Button, Card, Input, Select } from '@facile/muse';
+
+  const t = useT();
 
   interface Lead {
     status: 'HOT' | 'WARM' | 'COLD';

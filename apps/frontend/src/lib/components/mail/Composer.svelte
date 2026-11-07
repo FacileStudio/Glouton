@@ -1,7 +1,4 @@
 <script module lang="ts">
-  import { useT } from '$lib/i18n';
-
-  const t = useT();
   export interface Recipient {
     id: string;
     firstName?: string | null;
@@ -18,6 +15,7 @@
 </script>
 
 <script lang="ts">
+  import { useT } from '$lib/i18n';
   import { tick, untrack } from 'svelte';
   import { resolve } from '$app/paths';
   import { MediaQuery } from 'svelte/reactivity';
@@ -28,6 +26,8 @@
   import { personName } from '$lib/components/contacts/labels';
   import BullePanel from '$lib/components/bulle/BullePanel.svelte';
   import type { ApplyMode, WriteResult } from '$lib/components/bulle/status';
+
+  const t = useT();
 
   type Template = Awaited<ReturnType<typeof trpc.email.getTemplates.query>>[number];
   type Transport = Awaited<ReturnType<typeof trpc.email.getSmtpStatus.query>>;
