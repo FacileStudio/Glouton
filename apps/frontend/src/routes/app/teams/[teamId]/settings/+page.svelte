@@ -276,7 +276,7 @@
             label={t('teams.settings.registreRow')}
             description={t('teams.settings.registreRowText')}
           >
-            <Button variant="outline" icon={icons.space} href={team.manageUrl}>{t('teams.manage')}</Button>
+            <Button variant="secondary" icon={icons.space} href={team.manageUrl}>{t('teams.manage')}</Button>
           </SettingsRow>
         </SettingsSection>
       {:else if isOwner}
@@ -285,7 +285,7 @@
             label={t('teams.settings.delete')}
             description={t('teams.settings.deleteText')}
           >
-            <Button variant="danger" icon={icons.remove} onclick={openDeleteModal}>
+            <Button variant="ghost-danger" icon={icons.remove} onclick={openDeleteModal}>
               {t('teams.settings.delete')}
             </Button>
           </SettingsRow>
@@ -300,7 +300,7 @@
       >
         {#snippet actions()}
           {#if canManage}
-            <Button variant="outline" onclick={handleTestSmtp} disabled={testingSmtp || saving}>
+            <Button variant="secondary" onclick={handleTestSmtp} disabled={testingSmtp || saving}>
               <iconify-icon icon="solar:test-tube-linear" width="16" height="16" class="block"></iconify-icon>
               {testingSmtp ? t('settings.smtp.testing') : t('settings.smtp.test')}
             </Button>
@@ -415,7 +415,7 @@
     <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
       <Button variant="ghost" onclick={() => (deleteModalOpen = false)}>{t('common.cancel')}</Button>
       <Button
-        variant="danger"
+        variant="ghost-danger"
         onclick={handleDeleteTeam}
         disabled={deleteConfirmationText !== 'DELETE' || deleting}
       >

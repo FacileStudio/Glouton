@@ -71,7 +71,7 @@
 <PageHeader title={t('teams.title')} description={t('teams.subtitle')}>
   {#snippet actions()}
     {#if spacesUrl}
-      <Button variant="outline" icon={icons.space} href={spacesUrl}>{t('teams.manage')}</Button>
+      <Button variant="secondary" icon={icons.space} href={spacesUrl}>{t('teams.manage')}</Button>
     {:else if !loading}
       <Button icon={icons.plus} onclick={handleCreateTeam}>{t('teams.create')}</Button>
     {/if}
@@ -107,7 +107,7 @@
         title={searchQuery ? t('teams.noneFound') : t('teams.none')}
       >
         {#if !searchQuery && spacesUrl}
-          <Button variant="outline" icon={icons.space} href={spacesUrl}>{t('teams.manage')}</Button>
+          <Button variant="secondary" icon={icons.space} href={spacesUrl}>{t('teams.manage')}</Button>
         {:else if !searchQuery}
           <Button icon={icons.plus} onclick={handleCreateTeam}>{t('teams.create')}</Button>
         {/if}

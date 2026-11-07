@@ -268,7 +268,7 @@
         </div>
         <div class="flex flex-wrap gap-2">
           {#if !onSend}
-            <Button variant="outline" onclick={save} disabled={!canSave}>
+            <Button variant="secondary" onclick={save} disabled={!canSave}>
               {#if busy === 'save'}<Spinner size="sm" />{/if}
               {t('composer.saveDraft')}
             </Button>

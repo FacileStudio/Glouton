@@ -408,9 +408,9 @@
   description={t('leads.results', { count: processedLeads.length })}
 >
   {#snippet actions()}
-    <Button variant="outline" href="/app/leads/favorites" icon="solar:heart-linear">{t('leads.favorites')}</Button>
+    <Button variant="secondary" href="/app/leads/favorites" icon="solar:heart-linear">{t('leads.favorites')}</Button>
 
-    <Button variant="outline" onclick={triggerFileUpload} disabled={importing} icon={importing ? undefined : 'solar:upload-linear'}>
+    <Button variant="secondary" onclick={triggerFileUpload} disabled={importing} icon={importing ? undefined : 'solar:upload-linear'}>
       {#if importing}
         <Spinner size="sm" />
         {t('leads.importing')}
@@ -419,7 +419,7 @@
       {/if}
     </Button>
 
-    <Button variant="outline" onclick={exportToCSV} disabled={exporting} icon={exporting ? undefined : 'solar:download-linear'}>
+    <Button variant="secondary" onclick={exportToCSV} disabled={exporting} icon={exporting ? undefined : 'solar:download-linear'}>
       {#if exporting}
         <Spinner size="sm" />
         {t('leads.exporting')}

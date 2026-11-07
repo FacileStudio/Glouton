@@ -130,7 +130,7 @@
   >
     {#if onRelaunch}
       <Button
-        variant="outline"
+        variant="secondary"
         size="sm"
         icon={relaunching ? undefined : 'solar:restart-linear'}
         onclick={() => onRelaunch!(session.id)}

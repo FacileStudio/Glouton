@@ -160,7 +160,7 @@
           <div class="flex flex-wrap justify-end gap-2">
             <Button variant="ghost-danger" onclick={() => discardDraft(d)} disabled={busy === d.id}>{t('hunts.deleteShort')}</Button>
             <Button variant="ghost" icon="solar:magic-stick-3-linear" onclick={() => openComposer(d)} disabled={busy === d.id || !d.person}>Modifier avec Bulle</Button>
-            <Button variant="outline" onclick={() => saveDraft(d)} disabled={busy === d.id || !dirty(d)}>{t('common.save')}</Button>
+            <Button variant="secondary" onclick={() => saveDraft(d)} disabled={busy === d.id || !dirty(d)}>{t('common.save')}</Button>
             <Button icon="solar:plain-linear" onclick={() => sendDraft(d)} disabled={busy === d.id || !d.person?.email}>
               {#if busy === d.id}<Spinner size="sm" />{/if}
               {t('common.send')}

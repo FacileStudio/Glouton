@@ -261,7 +261,7 @@
         {/if}
 
         <Button
-          variant="outline"
+          variant="secondary"
           onclick={toggleFavorite}
           disabled={togglingFavorite}
           icon={togglingFavorite ? undefined : isFavorite ? 'solar:heart-broken-linear' : 'solar:heart-linear'}
@@ -403,7 +403,7 @@
                 {t('leads.sort.location')}
               </h3>
               <Button
-                variant="outline"
+                variant="secondary"
                 size="sm"
                 icon="solar:map-arrow-right-linear"
                 href={getGoogleMapsCoordsUrl(lead.coordinates.lat, lead.coordinates.lng)}

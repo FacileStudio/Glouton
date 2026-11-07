@@ -273,7 +273,7 @@ All protected. Freelance missions scraped from public boards.
 | `GET` | `/auth/config` | none | yes | `{ oidc_enabled }` |
 | `GET` | `/auth/oidc` | none | yes | Starts the OIDC flow, setting an `oidc_state` cookie with a 10 minute TTL. Registered only when OIDC is enabled |
 | `GET` | `/auth/oidc/callback` | state cookie | yes | Verifies `state`, exchanges the code, verifies the id token against the cached JWKS, upserts the user, redirects to `OIDC_SUCCESS_URL#token=<jwt>` |
-| `GET` | `/version` | none | yes | `{ version }` from `APP_VERSION` |
+| `GET` | `/version` | none | yes | `{ version }` from the root `package.json` |
 | `POST` | `/api/registre/deletions` | signed secevent+jwt | yes | Registre's GDPR deletion push; verified RS256 against Registre's JWKS, erases the person, answers 202. Glouton also polls `GET /api/directory/deletions` every five minutes |
 | `GET` | `/docs` | none | yes | Scalar API reference UI |
 | `GET` | `/docs/openapi.json` | none | yes | Generated OpenAPI document |

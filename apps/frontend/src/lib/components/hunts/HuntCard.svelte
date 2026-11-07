@@ -128,7 +128,7 @@
 
       {#if session.status === 'FAILED' && onRelaunch}
         <Button
-          variant="outline"
+          variant="secondary"
           size="sm"
           icon={relaunching ? undefined : 'solar:restart-linear'}
           onclick={() => onRelaunch!(session.id)}
@@ -146,7 +146,7 @@
 
       {#if (session.status === 'COMPLETED' || session.status === 'FAILED') && onDelete}
         <IconButton
-          variant="danger"
+          variant="ghost-danger"
           onclick={() => onDelete!(session.id)}
           disabled={deleting}
           aria-label={t('hunts.delete')}

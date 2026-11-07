@@ -257,7 +257,7 @@
     description={t('missions.subtitle', { count: Object.keys(SOURCE_LABELS).length })}
   >
     {#snippet actions()}
-      <Button variant="outline" icon={scraping ? undefined : icons.refresh} onclick={triggerScrape} disabled={scraping}>
+      <Button variant="secondary" icon={scraping ? undefined : icons.refresh} onclick={triggerScrape} disabled={scraping}>
         {#if scraping}
           <Spinner size="sm" label={t('missions.refreshing')} />
         {/if}
@@ -375,7 +375,7 @@
     </div>
   {:else if opportunities.length === 0}
     <EmptyState icon="solar:ghost-linear" title={t('missions.none')}>
-      <Button variant="outline" onclick={triggerScrape}>{t('missions.runScrape')}</Button>
+      <Button variant="secondary" onclick={triggerScrape}>{t('missions.runScrape')}</Button>
     </EmptyState>
   {:else}
     <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -438,6 +438,7 @@
     {#if totalPages > 1}
       <div class="flex items-center justify-center gap-2 pt-2">
         <IconButton
+          variant="secondary"
           aria-label={t('leads.pagination.prev')}
           onclick={() => { currentPage = Math.max(1, currentPage - 1); loadData(); }}
           disabled={currentPage === 1}
@@ -446,6 +447,7 @@
         </IconButton>
         <span class="text-fc-sm text-fc-fg-muted">{t('leads.pagination.page', { page: currentPage, pages: totalPages })}</span>
         <IconButton
+          variant="secondary"
           aria-label={t('leads.pagination.next')}
           onclick={() => { currentPage = Math.min(totalPages, currentPage + 1); loadData(); }}
           disabled={currentPage === totalPages}

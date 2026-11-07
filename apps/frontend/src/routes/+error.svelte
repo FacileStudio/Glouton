@@ -44,7 +44,7 @@
 
     <div class="mt-8 flex flex-col items-center justify-center gap-2 sm:flex-row">
       <Button icon={icons.home} onclick={goHome} class="rounded-fc-md">{t('error.home')}</Button>
-      <Button variant="outline" icon="solar:arrow-left-linear" onclick={goBack} class="rounded-fc-md">
+      <Button variant="secondary" icon="solar:arrow-left-linear" onclick={goBack} class="rounded-fc-md">
         {t('error.back')}
       </Button>
     </div>

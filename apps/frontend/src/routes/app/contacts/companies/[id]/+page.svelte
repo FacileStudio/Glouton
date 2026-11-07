@@ -130,7 +130,7 @@
   {@const temp = temperatureOf(c.temperature)}
   <PageHeader title={c.name} description={[c.domain, c.city, c.country].filter(Boolean).join(' · ')}>
     {#snippet actions()}
-      <Button variant="outline" href="/app/contacts" icon="solar:arrow-left-linear">{t('contacts.title')}</Button>
+      <Button variant="secondary" href="/app/contacts" icon="solar:arrow-left-linear">{t('contacts.title')}</Button>
       <Button icon="solar:pen-new-square-linear" onclick={() => compose()}>{t('contacts.writeEmail')}</Button>
     {/snippet}
   </PageHeader>
@@ -156,7 +156,7 @@
         {#if c.ardoiseClientId}
           <div class="flex flex-wrap gap-2">
             {#if ardoiseLink(c.ardoiseClientId)}
-              <Button size="sm" variant="outline" href={ardoiseLink(c.ardoiseClientId) ?? undefined} target="_blank" rel="noopener noreferrer" icon="solar:square-top-down-linear">{t('contacts.openArdoise')}</Button>
+              <Button size="sm" variant="secondary" href={ardoiseLink(c.ardoiseClientId) ?? undefined} target="_blank" rel="noopener noreferrer" icon="solar:square-top-down-linear">{t('contacts.openArdoise')}</Button>
             {/if}
             <Button size="sm" variant="ghost" icon="solar:link-broken-linear" onclick={() => (unlinkOpen = true)}>{t('contacts.unlink')}</Button>
           </div>

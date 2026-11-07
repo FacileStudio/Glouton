@@ -59,9 +59,9 @@
   <PageHeader title={personName(p, t)} description={[p.role, p.company?.name].filter(Boolean).join(' · ')}>
     {#snippet actions()}
       {#if p.company}
-        <Button variant="outline" href="/app/contacts/companies/{p.company.id}" icon="solar:buildings-2-linear">{p.company.name}</Button>
+        <Button variant="secondary" href="/app/contacts/companies/{p.company.id}" icon="solar:buildings-2-linear">{p.company.name}</Button>
       {:else}
-        <Button variant="outline" href="/app/contacts" icon="solar:arrow-left-linear">{t('contacts.title')}</Button>
+        <Button variant="secondary" href="/app/contacts" icon="solar:arrow-left-linear">{t('contacts.title')}</Button>
       {/if}
       <Button icon="solar:pen-new-square-linear" onclick={() => (composerOpen = true)}>{t('contacts.writeEmail')}</Button>
     {/snippet}
