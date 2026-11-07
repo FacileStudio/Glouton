@@ -4,6 +4,7 @@ import { hasAccess } from '@repo/auth-shared';
 import { UserRole } from '@repo/types';
 import { type OpenApiMeta } from 'trpc-to-openapi';
 import { READ_SCOPE, WRITE_SCOPE, hasScope } from './delegation';
+import { planLimitOf } from './modules/assistant/bulle';
 import { authorize, upgradeUrlOf, type ForfaitMeta } from './modules/forfait/gate';
 import { idKeysOf, isReadable, parsedInput } from './modules/forfait/procedures';
 import { rowLoader } from './modules/forfait/store';
@@ -34,6 +35,7 @@ const t = initTRPC.context<Context>().meta<OpenApiMeta & ForfaitMeta>().create({
         ...shape.data,
         stack: isProduction ? undefined : shape.data.stack,
         upgrade_url: upgradeUrlOf(error),
+        plan_limit: planLimitOf(error),
       },
     };
   },

@@ -2,7 +2,7 @@ import type { PrismaClient } from '@prisma/client';
 import { TRPCError } from '@trpc/server';
 import { ownedWhere, type Access } from '../contact/access';
 import { findCompany, findPerson } from '../contact/service';
-import { BulleUnavailableError, type BulleClient, type BulleFailure } from './bulle';
+import { BulleUnavailableError, type BulleClient, type BulleFailure, type PlanLimit } from './bulle';
 import {
   nextActionPrompt,
   parseNextAction,
@@ -18,7 +18,8 @@ import {
 
 export interface AssistantStatus {
   available: boolean;
-  reason: 'not_linked' | 'no_key' | 'unreachable' | null;
+  reason: 'not_linked' | 'no_key' | 'unreachable' | 'plan_required' | null;
+  planLimit?: PlanLimit;
   name: string;
   avatarUrl: string | null;
   model: string | null;
@@ -36,6 +37,7 @@ const FAILURE_MESSAGES: Record<BulleFailure, string> = {
   no_key: 'Bulle n’a pas de clé de modèle. Ajoutez-en une dans les réglages de Bulle.',
   unreachable: 'Bulle est injoignable pour le moment. Réessayez dans un instant.',
   unsupported: 'Le modèle choisi dans Bulle (Google) n’est pas encore pris en charge par Glouton.',
+  plan_required: 'Les fonctions IA demandent une offre avec accès à l’IA.',
 };
 
 function statusReason(reason: BulleFailure): AssistantStatus['reason'] {
@@ -45,8 +47,9 @@ function statusReason(reason: BulleFailure): AssistantStatus['reason'] {
 /** Turns a Bulle failure into the TRPCError the web app shows; rethrows anything else. */
 export function assistantError(error: unknown): never {
   if (error instanceof BulleUnavailableError) {
-    const code = error.reason === 'unreachable' ? 'BAD_GATEWAY' : 'PRECONDITION_FAILED';
-    throw new TRPCError({ code, message: FAILURE_MESSAGES[error.reason], cause: error });
+    const code = error.reason === 'unreachable' ? 'BAD_GATEWAY' : error.reason === 'plan_required' ? 'FORBIDDEN' : 'PRECONDITION_FAILED';
+    const message = error.reason === 'plan_required' ? (error.planLimit?.message ?? FAILURE_MESSAGES.plan_required) : FAILURE_MESSAGES[error.reason];
+    throw new TRPCError({ code, message, cause: error });
   }
   throw error;
 }
@@ -58,9 +61,10 @@ function requireBulle(bulle: BulleClient | null): BulleClient {
 
 /** Whether Bulle can write for this user, and how it presents itself. */
 export async function assistantStatus(bulle: BulleClient | null, userId: string): Promise<AssistantStatus> {
-  const down = (reason: AssistantStatus['reason']): AssistantStatus => ({
+  const down = (reason: AssistantStatus['reason'], planLimit: PlanLimit | null = null): AssistantStatus => ({
     available: false,
     reason,
+    ...(planLimit ? { planLimit } : {}),
     name: 'Bulle',
     avatarUrl: null,
     model: null,
@@ -79,12 +83,13 @@ export async function assistantStatus(bulle: BulleClient | null, userId: string)
     return {
       available: reason === null,
       reason,
+      ...(probe instanceof BulleUnavailableError && probe.planLimit ? { planLimit: probe.planLimit } : {}),
       name: profile.name,
       avatarUrl: profile.avatarUrl,
       model: offer.model || offer.models[0] || null,
     };
   } catch (error) {
-    if (error instanceof BulleUnavailableError) return down(statusReason(error.reason));
+    if (error instanceof BulleUnavailableError) return down(statusReason(error.reason), error.planLimit);
     throw error;
   }
 }
