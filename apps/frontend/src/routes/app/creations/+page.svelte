@@ -18,7 +18,10 @@
     icons,
     toast,
   } from '@facile/muse';
+  import { useFormat, useT } from '$lib/i18n';
 
+  const t = useT();
+  const format = useFormat();
   interface CompanyCreation {
     id: string;
     country: string;
@@ -58,10 +61,10 @@
 
   type CountryFilter = 'ALL' | 'FR' | 'GB' | 'DE';
 
-  const COUNTRY_INFO: Record<string, { label: string; flag: string }> = {
-    FR: { label: 'France', flag: '🇫🇷' },
-    GB: { label: 'Royaume-Uni', flag: '🇬🇧' },
-    DE: { label: 'Allemagne', flag: '🇩🇪' },
+  const COUNTRY_INFO: Record<string, { flag: string }> = {
+    FR: { flag: '🇫🇷' },
+    GB: { flag: '🇬🇧' },
+    DE: { flag: '🇩🇪' },
   };
 
   let creations = $state<CompanyCreation[]>([]);
@@ -86,12 +89,9 @@
     if (!dateVal) return '';
     const d = new Date(dateVal);
     if (isNaN(d.getTime())) return '';
-    const diff = Date.now() - d.getTime();
-    const days = Math.floor(diff / 86400000);
-    if (days === 0) return "Aujourd'hui";
-    if (days === 1) return 'Hier';
-    if (days > 1 && days < 7) return `Il y a ${days}j`;
-    return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+    const days = Math.floor((Date.now() - d.getTime()) / 86400000);
+    if (days < 7) return format.days(days);
+    return format.date(d, { day: 'numeric', month: 'short', year: 'numeric' });
   }
 
   function formatDirectors(directors: unknown): string {
@@ -140,7 +140,7 @@
       total = result.total;
       totalPages = Math.max(1, result.totalPages);
     } catch {
-      toast.danger('Erreur lors du chargement des créations');
+      toast.danger(t('creations.loadFailed'));
     } finally {
       loading = false;
     }
@@ -158,10 +158,10 @@
     scraping = true;
     try {
       await trpc.companyCreation.triggerScrape.mutate();
-      toast.success('Actualisation du flux lancée');
+      toast.success(t('creations.refreshStarted'));
       await Promise.all([loadData(), loadStats()]);
     } catch (err) {
-      toast.danger(getErrorMessage(err, "Erreur lors de l'actualisation du flux"));
+      toast.danger(getErrorMessage(err, t('creations.refreshFailed')));
     } finally {
       scraping = false;
     }
@@ -175,11 +175,11 @@
         creationId: creation.id,
         teamId,
       });
-      toast.success('Entreprise convertie en lead');
+      toast.success(t('creations.converted'));
       creation.convertedLeadId = result.leadId;
       creation.convertedAt = new Date().toISOString();
     } catch (err) {
-      toast.danger(getErrorMessage(err, 'Erreur lors de la conversion'));
+      toast.danger(getErrorMessage(err, t('creations.convertFailed')));
     } finally {
       convertingId = null;
     }
@@ -224,8 +224,8 @@
 
 <div class="flex flex-col gap-6">
   <PageHeader
-    title="Nouvelles créations d'entreprises"
-    description="Flux en direct des nouvelles immatriculations en France, Royaume-Uni et Allemagne"
+    title={t('creations.title')}
+    description={t('creations.subtitle')}
   >
     {#snippet actions()}
       <Button
@@ -235,31 +235,31 @@
         disabled={scraping}
       >
         {#if scraping}
-          <Spinner size="sm" label="Actualisation" />
+          <Spinner size="sm" label={t('missions.refreshing')} />
         {/if}
-        Actualiser le flux
+        {t('creations.refresh')}
       </Button>
     {/snippet}
   </PageHeader>
 
   <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
     <StatCard
-      label="Total créations"
-      value={(stats?.total ?? 0).toLocaleString('fr-FR')}
-      delta={stats?.newToday ? `+${stats.newToday} aujourd'hui` : undefined}
+      label={t('creations.total')}
+      value={format.number(stats?.total ?? 0)}
+      delta={stats?.newToday ? t('creations.newToday', { count: stats.newToday }) : undefined}
     />
     <StatCard
-      label="Sans site web"
-      value={(stats?.withoutWebsite ?? 0).toLocaleString('fr-FR')}
-      delta="Opportunités chaudes"
+      label={t('creations.noWebsite')}
+      value={format.number(stats?.withoutWebsite ?? 0)}
+      delta={t('creations.hot')}
     />
     <StatCard
-      label="France (BODACC)"
-      value={franceCount.toLocaleString('fr-FR')}
+      label={t('creations.statFr')}
+      value={format.number(franceCount)}
     />
     <StatCard
-      label="Royaume-Uni (Companies House)"
-      value={ukCount.toLocaleString('fr-FR')}
+      label={t('creations.statGb')}
+      value={format.number(ukCount)}
     />
   </div>
 
@@ -270,71 +270,71 @@
         size="sm"
         onclick={() => { countryFilter = 'ALL'; }}
       >
-        Tous
+        {t('common.all')}
       </Button>
       <Button
         variant={countryFilter === 'FR' ? 'primary' : 'outline'}
         size="sm"
         onclick={() => { countryFilter = 'FR'; }}
       >
-        🇫🇷 France
+        {t('creations.filterFr')}
       </Button>
       <Button
         variant={countryFilter === 'GB' ? 'primary' : 'outline'}
         size="sm"
         onclick={() => { countryFilter = 'GB'; }}
       >
-        🇬🇧 Royaume-Uni
+        {t('creations.filterGb')}
       </Button>
       <Button
         variant={countryFilter === 'DE' ? 'primary' : 'outline'}
         size="sm"
         onclick={() => { countryFilter = 'DE'; }}
       >
-        🇩🇪 Allemagne
+        {t('creations.filterDe')}
       </Button>
     </div>
 
     <div class="w-full sm:w-72">
       <Input
         type="text"
-        placeholder="Rechercher par nom, SIREN, ville..."
+        placeholder={t('creations.searchPlaceholder')}
         bind:value={searchQuery}
-        aria-label="Rechercher par nom, SIREN, ville"
+        aria-label={t('creations.search')}
       />
     </div>
 
     <Checkbox
       bind:checked={withoutWebsiteOnly}
-      label="Sans site web uniquement"
+      label={t('creations.noWebsiteOnly')}
       class="min-h-11 px-1"
     />
 
     {#if countryFilter !== 'ALL' || searchQuery || withoutWebsiteOnly}
       <Button variant="ghost" size="sm" onclick={resetFilters}>
-        Réinitialiser
+        {t('leads.filter.reset')}
       </Button>
     {/if}
   </div>
 
   {#if !loading}
     <p class="text-fc-sm text-fc-fg-muted">
-      {total} création{total > 1 ? 's' : ''} trouvée{total > 1 ? 's' : ''}
+      {t('creations.found', { count: total })}
     </p>
   {/if}
 
   {#if loading}
     <div class="flex h-48 items-center justify-center">
-      <Spinner label="Chargement des créations" />
+      <Spinner label={t('creations.loading')} />
     </div>
   {:else if creations.length === 0}
     <EmptyState
       icon="solar:buildings-2-linear"
-      title="Aucune création d'entreprise trouvée"
-      description="Essayez d'ajuster vos filtres de recherche ou d'actualiser le flux des registres."
+      title={t('creations.none')}
+      description={t('creations.noneText')}
     >
       <Button variant="outline" onclick={triggerScrape} disabled={scraping}>
-        Actualiser le flux
+        {t('creations.refresh')}
       </Button>
     </EmptyState>
   {:else}
@@ -358,12 +358,12 @@
                 {#if !creation.hasWebsite}
                   <Badge tone="danger">
                     <Icon icon="solar:fire-linear" size={12} />
-                    Sans site web
+                    {t('creations.noWebsite')}
                   </Badge>
                 {:else}
                   <Badge tone="success">
                     <Icon icon="solar:globe-linear" size={12} />
-                    Site détecté
+                    {t('creations.websiteFound')}
                   </Badge>
                 {/if}
               </div>
@@ -388,7 +388,7 @@
                 {/if}
                 {#if creation.capital}
                   <span>·</span>
-                  <span>Capital : {creation.capital.toLocaleString('fr-FR')} {creation.currency ?? 'EUR'}</span>
+                  <span>{t('creations.capital', { amount: format.number(creation.capital, { style: 'currency', currency: creation.currency ?? 'EUR' }) })}</span>
                 {/if}
                 {#if creation.domain || creation.websiteUrl}
                   <span>·</span>
@@ -417,7 +417,7 @@
               {#if formatDirectors(creation.directors)}
                 <div class="flex items-center gap-1.5 text-fc-xs text-fc-fg-muted">
                   <Icon icon="solar:user-linear" size={12} />
-                  <span>Dirigeant : <strong class="font-medium text-fc-fg">{formatDirectors(creation.directors)}</strong></span>
+                  <span>{t('creations.director')} <strong class="font-medium text-fc-fg">{formatDirectors(creation.directors)}</strong></span>
                 </div>
               {/if}
             </div>
@@ -432,7 +432,7 @@
                   rel="noopener noreferrer"
                   iconRight="solar:arrow-right-up-linear"
                 >
-                  Lien registre
+                  {t('creations.registryLink')}
                 </Button>
               {/if}
               {#if creation.convertedLeadId}
@@ -442,7 +442,7 @@
                   href={`/app/leads/${creation.convertedLeadId}`}
                   icon="solar:check-circle-linear"
                 >
-                  Converti
+                  {t('creations.convertedBadge')}
                 </Button>
               {:else}
                 <Button
@@ -453,9 +453,9 @@
                   icon={convertingId === creation.id ? undefined : 'solar:magnet-linear'}
                 >
                   {#if convertingId === creation.id}
-                    <Spinner size="sm" label="Conversion" />
+                    <Spinner size="sm" label={t('creations.converting')} />
                   {/if}
-                  Ajouter aux Leads
+                  {t('creations.addToLeads')}
                 </Button>
               {/if}
             </div>
@@ -467,15 +467,15 @@
     {#if totalPages > 1}
       <div class="flex items-center justify-center gap-2 pt-4">
         <IconButton
-          aria-label="Page précédente"
+          aria-label={t('leads.pagination.prev')}
           onclick={() => { page = Math.max(1, page - 1); loadData(); }}
           disabled={page === 1}
         >
           <Icon icon={icons.chevronLeft} />
         </IconButton>
-        <span class="text-fc-sm text-fc-fg-muted">Page {page} sur {totalPages}</span>
+        <span class="text-fc-sm text-fc-fg-muted">{t('creations.pageOf', { page, pages: totalPages })}</span>
         <IconButton
-          aria-label="Page suivante"
+          aria-label={t('leads.pagination.next')}
           onclick={() => { page = Math.min(totalPages, page + 1); loadData(); }}
           disabled={page === totalPages}
         >

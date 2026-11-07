@@ -6,9 +6,12 @@
   import { ws } from '$lib/websocket';
   import { getTrpcErrorMessage } from '$lib/utils/trpc-error';
   import { inboxCount } from '$lib/stores/inbox-count.svelte';
-  import { SUGGESTION_KINDS, formatDate, personName } from '$lib/components/contacts/labels';
+  import { suggestionLabel, personName } from '$lib/components/contacts/labels';
   import Composer from '$lib/components/mail/Composer.svelte';
+  import { useFormat, useT } from '$lib/i18n';
 
+  const t = useT();
+  const format = useFormat();
   type Draft = Awaited<ReturnType<typeof trpc.inbox.drafts.query>>[number];
   type Suggestion = Awaited<ReturnType<typeof trpc.inbox.suggestions.query>>[number];
 
@@ -69,7 +72,7 @@
   }
 
   function saveDraft(d: Draft) {
-    return run(d.id, () => save(d), 'Brouillon enregistré');
+    return run(d.id, () => save(d), t('inbox.draftSaved'));
   }
 
   function sendDraft(d: Draft) {
@@ -79,24 +82,24 @@
         if (dirty(d)) await save(d);
         await trpc.email.sendDraft.mutate({ id: d.id });
       },
-      'E-mail envoyé'
+      t('inbox.sent')
     );
   }
 
   function discardDraft(d: Draft) {
-    return run(d.id, () => trpc.inbox.discardDraft.mutate({ id: d.id }), 'Brouillon supprimé');
+    return run(d.id, () => trpc.inbox.discardDraft.mutate({ id: d.id }), t('inbox.draftDeleted'));
   }
 
   function decide(s: Suggestion, decision: 'ACCEPT' | 'DISMISS') {
     return run(
       s.id,
       () => trpc.inbox.decideSuggestion.mutate({ id: s.id, decision }),
-      decision === 'ACCEPT' ? 'Suggestion appliquée' : 'Suggestion écartée'
+      decision === 'ACCEPT' ? t('contacts.suggestionApplied') : t('contacts.suggestionDismissed')
     );
   }
 
   function authorLabel(value: string): string {
-    if (value.startsWith('user:')) return 'Vous';
+    if (value.startsWith('user:')) return t('common.you');
     return value === 'bulle' ? 'Bulle' : value;
   }
 
@@ -110,16 +113,16 @@
   onDestroy(() => unsubscribers.forEach((u) => u()));
 </script>
 
-<PageHeader title="Boîte de l'agent" description="Brouillons et suggestions à valider. Rien ne part sans votre clic." />
+<PageHeader title={t('inbox.title')} description={t('inbox.subtitle')} />
 
 <div class="flex flex-col gap-4">
   <Tabs
-    label="Contenu de la boîte"
+    label={t('inbox.content')}
     value={tab}
     onChange={(id) => (tab = id === 'suggestions' ? 'suggestions' : 'drafts')}
     items={[
-      { id: 'drafts', label: 'Brouillons', icon: 'solar:letter-linear', badge: drafts.length || undefined },
-      { id: 'suggestions', label: 'Suggestions', icon: 'solar:lightbulb-linear', badge: suggestions.length || undefined },
+      { id: 'drafts', label: t('inbox.drafts'), icon: 'solar:letter-linear', badge: drafts.length || undefined },
+      { id: 'suggestions', label: t('inbox.suggestions'), icon: 'solar:lightbulb-linear', badge: suggestions.length || undefined },
     ]}
   />
 
@@ -127,64 +130,64 @@
     <Card class="flex items-center justify-center py-16"><Spinner size="lg" /></Card>
   {:else if tab === 'drafts'}
     {#if drafts.length === 0}
-      <EmptyState icon="solar:letter-linear" title="Aucun brouillon en attente" />
+      <EmptyState icon="solar:letter-linear" title={t('inbox.noDrafts')} />
     {:else}
       {#each drafts as d (d.id)}
         <Card class="flex flex-col gap-4 p-5">
           <div class="flex flex-wrap items-center justify-between gap-2">
             <div class="min-w-0">
               <p class="text-fc-sm text-fc-fg">
-                À
+                {t('composer.to')}
                 {#if d.person}
-                  <a class="font-semibold underline" href={resolve('/app/contacts/people/[id]', { id: d.person.id })}>{personName(d.person)}</a>
+                  <a class="font-semibold underline" href={resolve('/app/contacts/people/[id]', { id: d.person.id })}>{personName(d.person, t)}</a>
                   {#if d.person.email}<span class="text-fc-fg-muted">&lt;{d.person.email}&gt;</span>{/if}
                 {:else}
-                  <span class="text-fc-fg-muted">destinataire inconnu</span>
+                  <span class="text-fc-fg-muted">{t('inbox.unknownRecipient')}</span>
                 {/if}
                 {#if d.company}
                   · <a class="underline" href={resolve('/app/contacts/companies/[id]', { id: d.company.id })}>{d.company.name}</a>
                 {/if}
               </p>
-              <p class="text-fc-xs text-fc-fg-muted">{d.origin === 'AGENT' ? 'Proposé par Bulle' : 'Brouillon'} · {formatDate(d.createdAt)}</p>
+              <p class="text-fc-xs text-fc-fg-muted">{d.origin === 'AGENT' ? t('inbox.proposedByBulle') : t('kind.DRAFT')} · {format.date(d.createdAt)}</p>
             </div>
-            {#if d.person?.emailVerified === false}<Badge tone="danger">Adresse invalide</Badge>{/if}
+            {#if d.person?.emailVerified === false}<Badge tone="danger">{t('inbox.invalidAddress')}</Badge>{/if}
           </div>
           {#if d.rationale}<p class="text-fc-xs text-fc-fg-muted">{d.rationale}</p>{/if}
           {#if edits[d.id]}
-            <Field label="Objet"><Input bind:value={edits[d.id]!.subject} maxlength={300} /></Field>
-            <Field label="Message"><Textarea bind:value={edits[d.id]!.text} rows={8} /></Field>
+            <Field label={t('inbox.subject')}><Input bind:value={edits[d.id]!.subject} maxlength={300} /></Field>
+            <Field label={t('inbox.message')}><Textarea bind:value={edits[d.id]!.text} rows={8} /></Field>
           {/if}
           <div class="flex flex-wrap justify-end gap-2">
-            <Button variant="ghost-danger" onclick={() => discardDraft(d)} disabled={busy === d.id}>Supprimer</Button>
+            <Button variant="ghost-danger" onclick={() => discardDraft(d)} disabled={busy === d.id}>{t('hunts.deleteShort')}</Button>
             <Button variant="ghost" icon="solar:magic-stick-3-linear" onclick={() => openComposer(d)} disabled={busy === d.id || !d.person}>Modifier avec Bulle</Button>
-            <Button variant="outline" onclick={() => saveDraft(d)} disabled={busy === d.id || !dirty(d)}>Enregistrer</Button>
+            <Button variant="outline" onclick={() => saveDraft(d)} disabled={busy === d.id || !dirty(d)}>{t('common.save')}</Button>
             <Button icon="solar:plain-linear" onclick={() => sendDraft(d)} disabled={busy === d.id || !d.person?.email}>
               {#if busy === d.id}<Spinner size="sm" />{/if}
-              Envoyer
+              {t('common.send')}
             </Button>
           </div>
         </Card>
       {/each}
     {/if}
   {:else if suggestions.length === 0}
-    <EmptyState icon="solar:lightbulb-linear" title="Aucune suggestion ouverte" />
+    <EmptyState icon="solar:lightbulb-linear" title={t('inbox.noSuggestions')} />
   {:else}
     {#each suggestions as s (s.id)}
       <Card class="flex flex-col gap-3 p-5">
         <div class="flex flex-wrap items-center gap-2">
-          <Badge tone="accent">{SUGGESTION_KINDS[s.kind] ?? s.kind}</Badge>
+          <Badge tone="accent">{suggestionLabel(s.kind, t)}</Badge>
           <span class="text-fc-sm font-semibold text-fc-fg">{s.title}</span>
         </div>
         <p class="text-fc-xs text-fc-fg-muted">
-          {authorLabel(s.createdBy)} · {formatDate(s.createdAt)}
+          {authorLabel(s.createdBy)} · {format.date(s.createdAt)}
           {#if s.company} · <a class="underline" href={resolve('/app/contacts/companies/[id]', { id: s.company.id })}>{s.company.name}</a>{/if}
-          {#if s.person} · <a class="underline" href={resolve('/app/contacts/people/[id]', { id: s.person.id })}>{personName(s.person)}</a>{/if}
+          {#if s.person} · <a class="underline" href={resolve('/app/contacts/people/[id]', { id: s.person.id })}>{personName(s.person, t)}</a>{/if}
         </p>
         {#if s.body}<p class="whitespace-pre-line text-fc-sm text-fc-fg">{s.body}</p>{/if}
         {#if s.rationale}<p class="text-fc-xs text-fc-fg-muted">{s.rationale}</p>{/if}
         <div class="flex justify-end gap-2">
-          <Button variant="ghost" onclick={() => decide(s, 'DISMISS')} disabled={busy === s.id}>Écarter</Button>
-          <Button onclick={() => decide(s, 'ACCEPT')} disabled={busy === s.id}>Accepter</Button>
+          <Button variant="ghost" onclick={() => decide(s, 'DISMISS')} disabled={busy === s.id}>{t('contacts.dismiss')}</Button>
+          <Button onclick={() => decide(s, 'ACCEPT')} disabled={busy === s.id}>{t('contacts.accept')}</Button>
         </div>
       </Card>
     {/each}

@@ -3,7 +3,9 @@
   import 'leaflet/dist/leaflet.css';
   import type { LayerGroup, Map as LeafletMap } from 'leaflet';
   import { Card } from '@facile/muse';
+  import { useT } from '$lib/i18n';
 
+  const t = useT();
   interface Lead {
     id: string;
     businessName?: string | null;
@@ -29,7 +31,7 @@
   function getDisplayName(lead: Lead): string {
     if (lead.firstName || lead.lastName) return [lead.firstName, lead.lastName].filter(Boolean).join(' ');
     if (lead.businessName) return lead.businessName;
-    return lead.domain ?? 'Inconnu';
+    return lead.domain ?? t('common.unknown');
   }
 
   function getStatusColor(status?: string): string {
@@ -60,7 +62,7 @@
     const link = document.createElement('a');
     link.href = `/app/leads/${lead.id}`;
     link.className = 'inline-flex items-center gap-1 text-fc-xs font-medium no-underline';
-    link.textContent = 'Voir le lead →';
+    link.textContent = t('leads.map.view');
     root.append(link);
     return root;
   }
@@ -153,8 +155,8 @@
           <iconify-icon icon="solar:map-linear" width="18" height="18" class="block"></iconify-icon>
         </div>
         <div class="min-w-0 text-left">
-          <p class="text-fc-sm font-semibold text-fc-fg">Carte des leads</p>
-          <p class="text-fc-xs text-fc-fg-muted">{leadsWithCoords.length} lead{leadsWithCoords.length !== 1 ? 's' : ''} avec localisation</p>
+          <p class="text-fc-sm font-semibold text-fc-fg">{t('leads.map.title')}</p>
+          <p class="text-fc-xs text-fc-fg-muted">{t('leads.map.count', { count: leadsWithCoords.length })}</p>
         </div>
       </div>
       <div class="flex shrink-0 items-center gap-3">
@@ -165,7 +167,7 @@
           </span>
           <span class="inline-flex items-center gap-1.5">
             <span class="size-2 rounded-fc-pill bg-fc-fg-muted"></span>
-            Autres
+            {t('leads.map.others')}
           </span>
         </div>
         <iconify-icon

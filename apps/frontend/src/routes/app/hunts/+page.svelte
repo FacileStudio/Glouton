@@ -11,6 +11,9 @@
   import HuntCard from '$lib/components/hunts/HuntCard.svelte';
   import HuntListItem from '$lib/components/hunts/HuntListItem.svelte';
   import { teamContextStore } from '$lib/stores/team-context.svelte';
+  import { useT } from '$lib/i18n';
+
+  const t = useT();
 
   let teamId = $derived(teamContextStore.getTeamId());
 
@@ -74,7 +77,7 @@
       huntSessions = Array.isArray(sessionsData) ? sessionsData : [];
     } catch (error) {
       if (getErrorCode(error) === 'UNAUTHORIZED') return goto(resolve('/login'));
-      toast.danger('Échec du chargement des chasses');
+      toast.danger(t('hunts.loadFailed'));
     } finally {
       loading = false;
     }
@@ -104,7 +107,7 @@
     deletingHuntId = huntSessionId;
     try {
       await trpc.lead.hunt.delete.mutate({ huntSessionId });
-      toast.success('Chasse supprimée');
+      toast.success(t('hunts.deleted'));
       await loadData();
     } finally {
       deletingHuntId = null;
@@ -116,7 +119,7 @@
     try {
       const session = huntSessions.find(s => s.id === huntSessionId);
       if (!session || !session.filters) {
-        toast.danger('Impossible de relancer cette chasse');
+        toast.danger(t('hunts.relaunchImpossible'));
         return;
       }
 
@@ -124,7 +127,7 @@
 
       const { location, categories } = filters;
       if (!location || !categories) {
-        toast.danger('Type de chasse non reconnu');
+        toast.danger(t('hunts.unknownType'));
         return;
       }
 
@@ -136,11 +139,11 @@
         hasWebsite: filters.hasWebsite,
       });
 
-      toast.success('Nouvelle chasse lancée avec les mêmes paramètres !');
+      toast.success(t('hunts.relaunched'));
       await loadData();
       await loadStats();
     } catch (error) {
-      toast.danger(getErrorMessage(error, 'Échec de la relance'));
+      toast.danger(getErrorMessage(error, t('hunts.relaunchFailed')));
     } finally {
       relaunchingHuntId = null;
     }
@@ -152,18 +155,18 @@
 
 {#if loading}
   <div class="flex items-center justify-center py-24" in:fade>
-    <Spinner size="lg" label="Chargement" />
+    <Spinner size="lg" label={t('common.loading')} />
   </div>
 {:else}
   <div class="flex flex-col gap-6">
-    <PageHeader title="Chasses" description="Gestion des chasses aux leads">
+    <PageHeader title={t('hunts.title')} description={t('hunts.subtitle')}>
       {#snippet actions()}
-        <Button href="/app/hunts/new" icon={icons.plus}>Nouvelle chasse</Button>
+        <Button href="/app/hunts/new" icon={icons.plus}>{t('hunts.new')}</Button>
       {/snippet}
     </PageHeader>
 
     <section class="grid grid-cols-2 gap-4 lg:grid-cols-4">
-      {#each [{ label: 'En attente', val: stats?.pendingHunts?.toString() || '0' }, { label: 'En cours', val: stats?.processingHunts?.toString() || '0' }, { label: 'Terminées', val: stats?.completedHunts?.toString() || '0' }, { label: 'Échouées', val: stats?.failedHunts?.toString() || '0' }] as stat (stat.label)}
+      {#each [{ label: t('hunts.status.pending'), val: stats?.pendingHunts?.toString() || '0' }, { label: t('hunts.status.processing'), val: stats?.processingHunts?.toString() || '0' }, { label: t('hunts.status.completedPlural'), val: stats?.completedHunts?.toString() || '0' }, { label: t('hunts.status.failedPlural'), val: stats?.failedHunts?.toString() || '0' }] as stat (stat.label)}
         <StatCard label={stat.label} value={stat.val} />
       {/each}
     </section>
@@ -171,22 +174,22 @@
     {#if huntSessions.length === 0}
       <EmptyState
         icon="solar:bolt-linear"
-        title="Aucune chasse pour l'instant"
-        description="Lancez votre première chasse pour découvrir et collecter des leads selon des filtres comme la localisation, les postes et les départements"
+        title={t('hunts.empty.title')}
+        description={t('hunts.empty.text')}
       >
-        <Button href="/app/hunts/new" icon={icons.plus}>Lancer votre première chasse</Button>
+        <Button href="/app/hunts/new" icon={icons.plus}>{t('hunts.empty.cta')}</Button>
       </EmptyState>
     {:else if huntSessions.filter((s) => s.status === 'FAILED').length === 0 && huntSessions.filter((s) => s.status === 'PENDING' || s.status === 'PROCESSING').length === 0 && huntSessions.filter((s) => s.status === 'COMPLETED').length === 0}
       <EmptyState
         icon="solar:ghost-linear"
-        title="Tout est vide"
-        description="Aucune chasse active, échouée ou terminée à afficher"
+        title={t('hunts.allEmpty.title')}
+        description={t('hunts.allEmpty.text')}
       >
-        <Button href="/app/hunts/new" icon={icons.plus}>Nouvelle chasse</Button>
+        <Button href="/app/hunts/new" icon={icons.plus}>{t('hunts.new')}</Button>
       </EmptyState>
     {:else}
       {#if huntSessions.filter((s) => s.status === 'FAILED').length > 0}
-        <Section title="Chasses échouées">
+        <Section title={t('hunts.section.failed')}>
           <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {#each huntSessions.filter((s) => s.status === 'FAILED') as session (session.id)}
               <div in:fade>
@@ -204,7 +207,7 @@
       {/if}
 
       {#if huntSessions.filter((s) => s.status === 'PENDING' || s.status === 'PROCESSING').length > 0}
-        <Section title="Chasses actives">
+        <Section title={t('hunts.section.active')}>
           {#each huntSessions.filter((s) => s.status === 'PROCESSING') as session (session.id)}
             <div in:fade>
               <HuntBanner
@@ -228,7 +231,7 @@
       {/if}
 
       {#if huntSessions.filter((s) => s.status === 'COMPLETED').length > 0}
-        <Section title="Chasses terminées">
+        <Section title={t('hunts.section.completed')}>
           {#each huntSessions.filter((s) => s.status === 'COMPLETED') as session (session.id)}
             <div in:fade>
               <HuntListItem

@@ -1,6 +1,8 @@
 <script lang="ts" module>
   import type { trpc } from '$lib/trpc';
+  import { useT } from '$lib/i18n';
 
+  const t = useT();
   type LeadListInput = Exclude<Parameters<typeof trpc.lead.query.list.query>[0], void | undefined>;
 
   export interface Filters {
@@ -65,38 +67,38 @@
     },
   });
 
-  const statusOptions: { value: Filters['status']; label: string; icon: string }[] = [
-    { value: '', label: 'Tous', icon: 'solar:users-group-rounded-linear' },
-    { value: 'HOT', label: 'Chaud', icon: 'solar:fire-linear' },
-    { value: 'WARM', label: 'Tiède', icon: 'solar:sun-2-linear' },
-    { value: 'COLD', label: 'Froid', icon: 'solar:snowflake-linear' },
-  ];
+  const statusOptions = $derived<{ value: Filters['status']; label: string; icon: string }[]>([
+    { value: '', label: t('common.all'), icon: 'solar:users-group-rounded-linear' },
+    { value: 'HOT', label: t('temp.HOT'), icon: 'solar:fire-linear' },
+    { value: 'WARM', label: t('temp.WARM'), icon: 'solar:sun-2-linear' },
+    { value: 'COLD', label: t('temp.COLD'), icon: 'solar:snowflake-linear' },
+  ]);
 
-  const contactedOptions = [
-    { value: '', label: 'Tous', icon: 'solar:users-group-rounded-linear' },
-    { value: 'false', label: 'Nouveau', icon: 'solar:user-plus-linear' },
-    { value: 'true', label: 'Contacté', icon: 'solar:check-circle-linear' },
-  ];
+  const contactedOptions = $derived([
+    { value: '', label: t('common.all'), icon: 'solar:users-group-rounded-linear' },
+    { value: 'false', label: t('leads.filter.new'), icon: 'solar:user-plus-linear' },
+    { value: 'true', label: t('leads.contacted'), icon: 'solar:check-circle-linear' },
+  ]);
 
-  const typeOptions = [
-    { value: 'all', label: 'Tous types', icon: 'solar:widget-2-linear' },
-    { value: 'domain', label: 'Domaine', icon: 'solar:global-linear' },
-    { value: 'local', label: 'Local', icon: 'solar:map-point-linear' },
-  ];
+  const typeOptions = $derived([
+    { value: 'all', label: t('leads.filter.allTypes'), icon: 'solar:widget-2-linear' },
+    { value: 'domain', label: t('leads.sort.domain'), icon: 'solar:global-linear' },
+    { value: 'local', label: t('hunts.kind.local'), icon: 'solar:map-point-linear' },
+  ]);
 
-  const presenceGroups: { key: 'hasWebsite' | 'hasSocial' | 'hasPhone' | 'hasGps' | 'hasEmail'; label: string; icon: string }[] = [
-    { key: 'hasWebsite', label: 'Site web', icon: 'solar:global-linear' },
-    { key: 'hasSocial', label: 'Social', icon: 'solar:share-linear' },
-    { key: 'hasPhone', label: 'Téléphone', icon: 'solar:phone-linear' },
-    { key: 'hasGps', label: 'GPS', icon: 'solar:map-point-linear' },
-    { key: 'hasEmail', label: 'E-mail', icon: 'solar:letter-linear' },
-  ];
+  const presenceGroups = $derived<{ key: 'hasWebsite' | 'hasSocial' | 'hasPhone' | 'hasGps' | 'hasEmail'; label: string; icon: string }[]>([
+    { key: 'hasWebsite', label: t('leads.filter.website'), icon: 'solar:global-linear' },
+    { key: 'hasSocial', label: t('leads.filter.social'), icon: 'solar:share-linear' },
+    { key: 'hasPhone', label: t('leads.filter.phone'), icon: 'solar:phone-linear' },
+    { key: 'hasGps', label: t('leads.filter.gps'), icon: 'solar:map-point-linear' },
+    { key: 'hasEmail', label: t('leads.sort.email'), icon: 'solar:letter-linear' },
+  ]);
 
   function presenceOptions(icon: string) {
     return [
-      { value: '' as const, icon, label: 'Tous' },
-      { value: 'true' as const, icon: 'solar:check-circle-linear', label: 'Oui' },
-      { value: 'false' as const, icon: 'solar:close-circle-linear', label: 'Non' },
+      { value: '' as const, icon, label: t('common.all') },
+      { value: 'true' as const, icon: 'solar:check-circle-linear', label: t('common.yes') },
+      { value: 'false' as const, icon: 'solar:close-circle-linear', label: t('common.no') },
     ];
   }
 </script>
@@ -130,15 +132,15 @@
       <Input
         type="text"
         bind:value={filters.search}
-        placeholder="Rechercher par domaine, e-mail, nom, localisation..."
-        aria-label="Rechercher des leads"
+        placeholder={t('leads.filter.searchPlaceholder')}
+        aria-label={t('leads.filter.search')}
         class="pr-11 pl-9 text-fc-sm"
       />
       {#if filters.search}
         <button
           type="button"
           onclick={() => (filters.search = '')}
-          aria-label="Effacer la recherche"
+          aria-label={t('leads.filter.clearSearch')}
           class="absolute top-1/2 right-0 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-fc-md text-fc-fg-muted transition-colors hover:text-fc-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fc-ring"
         >
           <iconify-icon icon="mdi:close" width="16" height="16" class="block"></iconify-icon>
@@ -149,15 +151,15 @@
       variant="outline"
       icon={filtersExpanded ? 'mdi:chevron-up' : 'solar:filter-linear'}
       onclick={() => (filtersExpanded = !filtersExpanded)}
-      aria-label={filtersExpanded ? 'Masquer les filtres' : 'Afficher les filtres'}
+      aria-label={filtersExpanded ? t('leads.filter.hideFilters') : t('leads.filter.showFilters')}
       aria-expanded={filtersExpanded}
       class="h-11"
     >
-      {filtersExpanded ? 'Masquer' : 'Filtres'}
+      {filtersExpanded ? t('leads.filter.hide') : t('leads.filter.filters')}
     </Button>
     {#if hasActiveFilters}
       <Button variant="ghost" icon="solar:restart-linear" onclick={onReset} class="h-11">
-        Réinitialiser
+        {t('leads.filter.reset')}
       </Button>
     {/if}
   </div>
@@ -165,7 +167,7 @@
   {#if filtersExpanded}
     <div class="flex flex-wrap items-start gap-4 pt-4">
       <div class="flex flex-col gap-1.5">
-        <span class="text-fc-xs text-fc-fg-muted">Statut</span>
+        <span class="text-fc-xs text-fc-fg-muted">{t('leads.col.status')}</span>
         <div class="flex flex-wrap items-center gap-1">
           {#each statusOptions as opt (opt.value)}
             {@render chip(filters.status === opt.value, () => (filters.status = opt.value), opt.icon, opt.label, counts.status[opt.value as keyof typeof counts.status])}
@@ -174,7 +176,7 @@
       </div>
 
       <div class="flex flex-col gap-1.5">
-        <span class="text-fc-xs text-fc-fg-muted">Contacté</span>
+        <span class="text-fc-xs text-fc-fg-muted">{t('leads.contacted')}</span>
         <div class="flex flex-wrap items-center gap-1">
           {#each contactedOptions as opt (opt.value)}
             {@render chip(filters.contacted === opt.value, () => (filters.contacted = opt.value), opt.icon, opt.label, counts.contacted[opt.value as keyof typeof counts.contacted])}
@@ -183,7 +185,7 @@
       </div>
 
       <div class="flex flex-col gap-1.5">
-        <span class="text-fc-xs text-fc-fg-muted">Type</span>
+        <span class="text-fc-xs text-fc-fg-muted">{t('leads.filter.type')}</span>
         <div class="flex flex-wrap items-center gap-1">
           {#each typeOptions as opt (opt.value)}
             {@render chip(filters.businessType === opt.value, () => (filters.businessType = opt.value as Filters['businessType']), opt.icon, opt.label, counts.type[opt.value as keyof typeof counts.type])}
@@ -192,36 +194,36 @@
       </div>
 
       <label class="flex flex-col gap-1.5">
-        <span class="text-fc-xs text-fc-fg-muted">Catégorie</span>
+        <span class="text-fc-xs text-fc-fg-muted">{t('leads.filter.category')}</span>
         <Select bind:value={filters.category} class="w-full text-fc-sm sm:w-56 md:h-8 md:text-fc-xs">
-          <option value="">Toutes les catégories</option>
-          <option value="restaurant">Restaurant</option>
-          <option value="cafe">Café</option>
-          <option value="bar">Bar</option>
-          <option value="hotel">Hôtel</option>
-          <option value="retail">Commerce</option>
-          <option value="office">Bureau</option>
-          <option value="service">Service</option>
-          <option value="healthcare">Santé</option>
-          <option value="education">Éducation</option>
-          <option value="entertainment">Divertissement</option>
-          <option value="automotive">Automobile</option>
-          <option value="real-estate">Immobilier</option>
-          <option value="finance">Finance</option>
-          <option value="beauty">Beauté</option>
-          <option value="fitness">Fitness</option>
-          <option value="travel">Voyage</option>
-          <option value="food-delivery">Livraison repas</option>
-          <option value="grocery">Épicerie</option>
-          <option value="pharmacy">Pharmacie</option>
-          <option value="pet-services">Animalerie</option>
-          <option value="home-services">Services à domicile</option>
-          <option value="professional-services">Services professionnels</option>
-          <option value="seo-agency">Agence SEO</option>
-          <option value="design-agency">Agence design</option>
-          <option value="web-dev-agency">Agence web</option>
-          <option value="marketing-agency">Agence marketing</option>
-          <option value="other">Autre</option>
+          <option value="">{t('leads.filter.allCategories')}</option>
+          <option value="restaurant">{t('leads.cat.restaurant')}</option>
+          <option value="cafe">{t('leads.cat.cafe')}</option>
+          <option value="bar">{t('leads.cat.bar')}</option>
+          <option value="hotel">{t('leads.cat.hotel')}</option>
+          <option value="retail">{t('leads.cat.retail')}</option>
+          <option value="office">{t('leads.cat.office')}</option>
+          <option value="service">{t('leads.cat.service')}</option>
+          <option value="healthcare">{t('hunts.cat.healthcare')}</option>
+          <option value="education">{t('hunts.cat.education')}</option>
+          <option value="entertainment">{t('leads.cat.entertainment')}</option>
+          <option value="automotive">{t('hunts.cat.automotive')}</option>
+          <option value="real-estate">{t('leads.cat.realEstate')}</option>
+          <option value="finance">{t('leads.cat.finance')}</option>
+          <option value="beauty">{t('leads.cat.beauty')}</option>
+          <option value="fitness">{t('leads.cat.fitness')}</option>
+          <option value="travel">{t('leads.cat.travel')}</option>
+          <option value="food-delivery">{t('leads.cat.foodDelivery')}</option>
+          <option value="grocery">{t('leads.cat.grocery')}</option>
+          <option value="pharmacy">{t('leads.cat.pharmacy')}</option>
+          <option value="pet-services">{t('leads.cat.petServices')}</option>
+          <option value="home-services">{t('leads.cat.homeServices')}</option>
+          <option value="professional-services">{t('hunts.cat.professional')}</option>
+          <option value="seo-agency">{t('leads.cat.seo')}</option>
+          <option value="design-agency">{t('leads.cat.design')}</option>
+          <option value="web-dev-agency">{t('leads.cat.webDev')}</option>
+          <option value="marketing-agency">{t('leads.cat.marketing')}</option>
+          <option value="other">{t('leads.cat.other')}</option>
         </Select>
       </label>
     </div>
@@ -239,10 +241,10 @@
       {/each}
 
       <div class="flex flex-col gap-1.5">
-        <span class="text-fc-xs text-fc-fg-muted">Localisation</span>
+        <span class="text-fc-xs text-fc-fg-muted">{t('leads.sort.location')}</span>
         <div class="flex items-center gap-1.5">
-          <Input type="text" bind:value={filters.country} placeholder="Pays" aria-label="Pays" class="w-28 text-fc-sm md:h-8 md:text-fc-xs" />
-          <Input type="text" bind:value={filters.city} placeholder="Ville" aria-label="Ville" class="w-28 text-fc-sm md:h-8 md:text-fc-xs" />
+          <Input type="text" bind:value={filters.country} placeholder={t('hunts.new.country')} aria-label={t('hunts.new.country')} class="w-28 text-fc-sm md:h-8 md:text-fc-xs" />
+          <Input type="text" bind:value={filters.city} placeholder={t('hunts.new.city')} aria-label={t('hunts.new.city')} class="w-28 text-fc-sm md:h-8 md:text-fc-xs" />
         </div>
       </div>
     </div>

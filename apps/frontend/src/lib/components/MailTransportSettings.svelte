@@ -3,6 +3,9 @@
   import { trpc } from '$lib/trpc';
   import { QUIET } from '@repo/trpc-client';
   import { Alert, Button, Field, Select, SettingsRow, SettingsSection, Switch, icons, toast } from '@facile/muse';
+  import { useT } from '$lib/i18n';
+
+  const t = useT();
 
   interface Props {
     teamId?: string;
@@ -33,7 +36,7 @@
       }
     } catch (error) {
       accounts = [];
-      accountsError = error instanceof Error ? error.message : 'Impossible de charger les comptes Courrier';
+      accountsError = error instanceof Error ? error.message : t('mail.accountsFailed');
     }
   }
 
@@ -49,9 +52,9 @@
         useCourrier: result.transport === 'COURRIER',
         accountId: result.courrierAccountId ? String(result.courrierAccountId) : '',
       };
-      toast.success("Mode d'envoi enregistré");
+      toast.success(t('mail.saved'));
     } catch (error) {
-      toast.danger(error instanceof Error ? error.message : "Échec de l'enregistrement");
+      toast.danger(error instanceof Error ? error.message : t('mail.saveFailed'));
     } finally {
       saving = false;
     }
@@ -71,7 +74,7 @@
       saved = { useCourrier, accountId };
       if (enabled && useCourrier) await loadAccounts();
     } catch (error) {
-      accountsError = error instanceof Error ? error.message : 'Impossible de charger le mode d\'envoi';
+      accountsError = error instanceof Error ? error.message : t('mail.loadFailed');
     } finally {
       loading = false;
     }
@@ -80,26 +83,26 @@
 
 {#if !loading && enabled}
   <SettingsSection
-    title="Envoi via Courrier"
-    description="Envoyez la prospection depuis votre boîte Courrier. Le SMTP ci-dessous reste utilisé sinon."
+    title={t('mail.title')}
+    description={t('mail.description')}
   >
     {#snippet actions()}
       {#if canEdit}
         <Button icon={icons.check} onclick={save} disabled={saving || !dirty || (useCourrier && !accountId)}>
-          {saving ? 'Enregistrement...' : 'Enregistrer'}
+          {saving ? t('common.saving') : t('common.save')}
         </Button>
       {/if}
     {/snippet}
 
     <SettingsRow
-      label="Envoyer avec Courrier"
-      description="Les emails partent du compte choisi et apparaissent dans ses éléments envoyés. Les réponses sont détectées automatiquement."
+      label={t('mail.use')}
+      description={t('mail.useHint')}
     >
       <Switch
         checked={useCourrier}
         disabled={!canEdit}
         onchange={(e: Event) => toggle((e.currentTarget as HTMLInputElement).checked)}
-        aria-label="Envoyer avec Courrier"
+        aria-label={t('mail.use')}
       />
     </SettingsRow>
 
@@ -108,9 +111,9 @@
         {#if accountsError}
           <Alert tone="warning">{accountsError}</Alert>
         {:else}
-          <Field label="Compte Courrier" for="courrierAccount">
+          <Field label={t('mail.account')} for="courrierAccount">
             <Select id="courrierAccount" bind:value={accountId} disabled={!canEdit}>
-              <option value="" disabled>Choisir un compte</option>
+              <option value="" disabled>{t('mail.pick')}</option>
               {#each accounts as account (account.id)}
                 <option value={String(account.id)}>{account.name} ({account.email})</option>
               {/each}

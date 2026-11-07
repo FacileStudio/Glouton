@@ -24,7 +24,9 @@
     icons,
     toast,
   } from '@facile/muse';
+  import { useT } from '$lib/i18n';
 
+  const t = useT();
   let { params }: PageProps = $props();
   let teamId = $derived(params.teamId);
   let team = $state<RouterOutputs['team']['get'] | null>(null);
@@ -89,7 +91,7 @@
       }
     } catch (error) {
       console.error('Error loading team:', error);
-      toast.danger(getErrorMessage(error, 'Échec du chargement de l\'espace'));
+      toast.danger(getErrorMessage(error, t('teams.loadOneFailed')));
       goto(resolve('/app/teams'));
     } finally{
       loading = false;
@@ -123,10 +125,10 @@
       });
       originalGeneralForm.name = generalForm.name;
       originalGeneralForm.description = generalForm.description;
-      toast.success('Informations mises à jour avec succès');
+      toast.success(t('teams.settings.updated'));
       await loadTeam();
     } catch (error) {
-      toast.danger(getErrorMessage(error, 'Échec de la mise à jour'));
+      toast.danger(getErrorMessage(error, t('teams.settings.updateFailed')));
     } finally {
       saving = false;
     }
@@ -148,7 +150,7 @@
       });
       toast.success(result.message);
     } catch (error) {
-      toast.danger(getErrorMessage(error, 'Configuration SMTP invalide'));
+      toast.danger(getErrorMessage(error, t('settings.smtp.invalid')));
     } finally {
       testingSmtp = false;
     }
@@ -169,9 +171,9 @@
         smtpFromEmail: smtpForm.smtpFromEmail || undefined,
       });
       await loadSmtpConfig();
-      toast.success('Configuration SMTP mise à jour avec succès');
+      toast.success(t('teams.settings.smtpUpdated'));
     } catch (error) {
-      toast.danger(getErrorMessage(error, 'Échec de la mise à jour de la config SMTP'));
+      toast.danger(getErrorMessage(error, t('settings.smtp.saveFailed')));
     } finally {
       saving = false;
     }
@@ -182,10 +184,10 @@
     deleting = true;
     try {
       await trpc.team.delete.mutate({ teamId });
-      toast.success('Espace supprimé avec succès');
+      toast.success(t('teams.settings.deleted'));
       goto(resolve('/app/teams'));
     } catch (error) {
-      toast.danger(getErrorMessage(error, 'Échec de la suppression de l\'espace'));
+      toast.danger(getErrorMessage(error, t('teams.settings.deleteFailed')));
       deleteModalOpen = false;
     } finally {
       deleting = false;
@@ -197,10 +199,10 @@
     deleteConfirmationText = '';
   }
 
-  const tabs = [
-    { id: 'general', label: 'Général', icon: icons.settings },
-    { id: 'smtp', label: 'SMTP', icon: icons.mail },
-  ];
+  const tabs = $derived([
+    { id: 'general', label: t('teams.settings.general'), icon: icons.settings },
+    { id: 'smtp', label: t('teams.settings.smtp'), icon: icons.mail },
+  ]);
 
   const revealButtonClass =
     'absolute top-0 right-0 inline-flex size-11 items-center justify-center rounded-fc-md text-fc-fg-muted transition-colors hover:text-fc-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fc-ring';
@@ -208,60 +210,59 @@
 
 {#if loading}
   <div class="flex items-center justify-center py-16">
-    <Spinner size="lg" label="Chargement de l'espace" />
+    <Spinner size="lg" label={t('teams.loadingOne')} />
   </div>
 {:else if team}
   <div class="mx-auto flex w-full max-w-fc-lg flex-col gap-10">
     <PageHeader
-      title="Paramètres de {team.name}"
-      description="Gérez les paramètres de votre espace"
+      title={t('teams.settings.titleOf', { name: team.name })}
+      description={t('teams.settings.subtitle')}
       back={{ href: `/app/teams/${teamId}`, label: team.name }}
     />
 
     {#if !canManage}
       <Alert tone="warning">
-        Vous n'avez pas les permissions nécessaires pour modifier ces paramètres. Contactez un
-        administrateur.
+        {t('teams.settings.noPermission')}
       </Alert>
     {/if}
 
-    <Tabs items={tabs} value={activeTab} onChange={(id) => (activeTab = id)} label="Sections des paramètres" />
+    <Tabs items={tabs} value={activeTab} onChange={(id) => (activeTab = id)} label={t('teams.settings.sections')} />
 
     {#if activeTab === 'general'}
       <SettingsSection
-        title="Informations générales"
-        description="Modifiez les informations de base de votre espace"
+        title={t('teams.settings.generalTitle')}
+        description={t('teams.settings.generalText')}
       >
         {#snippet actions()}
           {#if canManage}
             <Button icon={icons.check} onclick={handleUpdateGeneral} disabled={saving || !hasGeneralChanges}>
-              {saving ? 'Enregistrement...' : 'Enregistrer'}
+              {saving ? t('common.saving') : t('common.save')}
             </Button>
           {/if}
         {/snippet}
 
         <SettingsRow stacked>
           <Field
-            label="Nom de l'espace"
-            helper={linked ? 'Le nom, les membres et les rôles se gèrent dans Registre.' : undefined}
+            label={t('teams.settings.name')}
+            helper={linked ? t('teams.settings.linkedHelper') : undefined}
             for="name"
           >
             <Input
               id="name"
               bind:value={generalForm.name}
               disabled={!canManage || linked}
-              placeholder="Espace Marketing"
+              placeholder={t('teams.new.namePlaceholder')}
             />
           </Field>
         </SettingsRow>
 
         <SettingsRow stacked>
-          <Field label="Description" for="description">
+          <Field label={t('missions.detail.description')} for="description">
             <Textarea
               id="description"
               bind:value={generalForm.description}
               disabled={!canManage}
-              placeholder="Décrivez l'objectif de cet espace..."
+              placeholder={t('teams.new.descriptionPlaceholder')}
               rows={4}
               class="min-h-24 resize-none disabled:cursor-not-allowed"
             />
@@ -270,22 +271,22 @@
       </SettingsSection>
 
       {#if linked && team.manageUrl}
-        <SettingsSection title="Registre" description="Cet espace est partagé avec toutes les apps Facile.">
+        <SettingsSection title={t('teams.settings.registre')} description={t('teams.settings.registreText')}>
           <SettingsRow
-            label="Membres, rôles et nom"
-            description="Ajoutez, retirez ou renommez dans Registre ; Glouton se met à jour en quelques secondes."
+            label={t('teams.settings.registreRow')}
+            description={t('teams.settings.registreRowText')}
           >
-            <Button variant="outline" icon={icons.space} href={team.manageUrl}>Gérer dans Registre</Button>
+            <Button variant="outline" icon={icons.space} href={team.manageUrl}>{t('teams.manage')}</Button>
           </SettingsRow>
         </SettingsSection>
       {:else if isOwner}
-        <SettingsSection title="Zone de danger" description="Ces actions sont irréversibles.">
+        <SettingsSection title={t('teams.settings.danger')} description={t('teams.settings.dangerText')}>
           <SettingsRow
-            label="Supprimer l'espace"
-            description="La suppression de cet espace est définitive. Toutes les données associées seront effacées immédiatement."
+            label={t('teams.settings.delete')}
+            description={t('teams.settings.deleteText')}
           >
             <Button variant="danger" icon={icons.remove} onclick={openDeleteModal}>
-              Supprimer l'espace
+              {t('teams.settings.delete')}
             </Button>
           </SettingsRow>
         </SettingsSection>
@@ -294,24 +295,24 @@
       <MailTransportSettings {teamId} canEdit={Boolean(canManage)} />
 
       <SettingsSection
-        title="Configuration SMTP"
-        description="Configurez le serveur SMTP pour l'envoi d'emails de l'espace"
+        title={t('teams.settings.smtpTitle')}
+        description={t('teams.settings.smtpText')}
       >
         {#snippet actions()}
           {#if canManage}
             <Button variant="outline" onclick={handleTestSmtp} disabled={testingSmtp || saving}>
               <iconify-icon icon="solar:test-tube-linear" width="16" height="16" class="block"></iconify-icon>
-              {testingSmtp ? 'Test en cours...' : 'Tester la configuration'}
+              {testingSmtp ? t('settings.smtp.testing') : t('settings.smtp.test')}
             </Button>
             <Button icon={icons.check} onclick={handleUpdateSmtp} disabled={saving || !hasSmtpChanges}>
-              {saving ? 'Enregistrement...' : 'Enregistrer'}
+              {saving ? t('common.saving') : t('common.save')}
             </Button>
           {/if}
         {/snippet}
 
         <SettingsRow stacked>
           <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Field label="Hôte SMTP" for="smtpHost">
+            <Field label={t('settings.smtp.host')} for="smtpHost">
               <Input
                 id="smtpHost"
                 bind:value={smtpForm.smtpHost}
@@ -319,7 +320,7 @@
                 placeholder="smtp.gmail.com"
               />
             </Field>
-            <Field label="Port SMTP" for="smtpPort">
+            <Field label={t('settings.smtp.port')} for="smtpPort">
               <Input
                 id="smtpPort"
                 type="number"
@@ -331,17 +332,17 @@
           </div>
         </SettingsRow>
 
-        <SettingsRow label="Utiliser SSL/TLS (port 465)">
+        <SettingsRow label={t('settings.smtp.secure')}>
           <Switch
             bind:checked={smtpForm.smtpSecure}
             disabled={!canManage}
-            aria-label="Utiliser SSL/TLS (port 465)"
+            aria-label={t('settings.smtp.secure')}
           />
         </SettingsRow>
 
         <SettingsRow stacked>
           <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Field label="Nom d'utilisateur" for="smtpUser">
+            <Field label={t('teams.settings.smtpUser')} for="smtpUser">
               <Input
                 id="smtpUser"
                 bind:value={smtpForm.smtpUser}
@@ -349,7 +350,7 @@
                 placeholder="votre@email.com"
               />
             </Field>
-            <Field label="Mot de passe" for="smtpPass">
+            <Field label={t('teams.settings.smtpPassword')} for="smtpPass">
               <div class="relative">
                 <Input
                   id="smtpPass"
@@ -362,7 +363,7 @@
                 {#if smtpForm.smtpPass}
                   <button
                     type="button"
-                    aria-label="Afficher ou masquer le mot de passe SMTP"
+                    aria-label={t('teams.settings.togglePassword')}
                     aria-pressed={showSmtpPass}
                     onclick={() => (showSmtpPass = !showSmtpPass)}
                     class={revealButtonClass}
@@ -377,21 +378,21 @@
 
         <SettingsRow stacked>
           <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Field label="Nom de l'expéditeur" for="smtpFromName">
+            <Field label={t('settings.smtp.fromName')} for="smtpFromName">
               <Input
                 id="smtpFromName"
                 bind:value={smtpForm.smtpFromName}
                 disabled={!canManage}
-                placeholder="Votre Espace"
+                placeholder={t('teams.settings.fromNamePlaceholder')}
               />
             </Field>
-            <Field label="Email de l'expéditeur" for="smtpFromEmail">
+            <Field label={t('settings.smtp.fromEmail')} for="smtpFromEmail">
               <Input
                 id="smtpFromEmail"
                 type="email"
                 bind:value={smtpForm.smtpFromEmail}
                 disabled={!canManage}
-                placeholder="espace@votredomain.com"
+                placeholder={t('teams.settings.fromEmailPlaceholder')}
               />
             </Field>
           </div>
@@ -401,24 +402,24 @@
   </div>
 {/if}
 
-<Modal bind:open={deleteModalOpen} title="Supprimer l'espace ?">
+<Modal bind:open={deleteModalOpen} title={t('teams.settings.deleteTitle')}>
   <p class="text-fc-sm text-fc-fg-muted">
-    Cette action est définitive. Toutes les données de l'espace seront supprimées.
+    {t('teams.settings.deleteBody')}
   </p>
 
-  <Field label='Tapez "DELETE" pour confirmer' for="deleteConfirm">
+  <Field label={t('settings.delete.typeToConfirm')} for="deleteConfirm">
     <Input id="deleteConfirm" type="text" bind:value={deleteConfirmationText} placeholder="DELETE" />
   </Field>
 
   {#snippet footer()}
     <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-      <Button variant="ghost" onclick={() => (deleteModalOpen = false)}>Annuler</Button>
+      <Button variant="ghost" onclick={() => (deleteModalOpen = false)}>{t('common.cancel')}</Button>
       <Button
         variant="danger"
         onclick={handleDeleteTeam}
         disabled={deleteConfirmationText !== 'DELETE' || deleting}
       >
-        {deleting ? 'Suppression...' : 'Confirmer'}
+        {deleting ? t('settings.delete.deleting') : t('common.confirm')}
       </Button>
     </div>
   {/snippet}

@@ -1,4 +1,20 @@
-export const rows = {
+import { teams2 } from './rows/teams2';
+import { teams } from './rows/teams';
+import { creations } from './rows/creations';
+import { missions } from './rows/missions';
+import { outreach } from './rows/outreach';
+import { composer } from './rows/composer';
+import { contacts } from './rows/contacts';
+import { leads2 } from './rows/leads2';
+import { leads } from './rows/leads';
+import type { Row } from './rows/types';
+import { hunts2 } from './rows/hunts2';
+import { hunts } from './rows/hunts';
+import { assistant } from './rows/assistant';
+import { common } from './rows/common';
+import { settings } from './rows/settings';
+
+const base = {
   'app.name': ['Glouton', 'Glouton', 'Glouton', 'Glouton'],
   'landing.tagline': ['Find. Qualify. Prospect.', 'Trouver. Qualifier. Prospecter.', 'Encontrar. Calificar. Prospectar.', 'Finden. Bewerten. Akquirieren.'],
   'landing.title': ['Glouton: Facile prospecting', 'Glouton : Prospection Facile', 'Glouton: prospección Facile', 'Glouton: Facile-Akquise'],
@@ -133,6 +149,8 @@ export const rows = {
   ],
   'paywall.seePlans': ['See plans', 'Voir les forfaits', 'Ver planes', 'Tarife ansehen'],
   'paywall.loadFailed': ['Could not load the link to the plans. Try again later.', 'Impossible de charger le lien vers les forfaits. Réessayez plus tard.', 'No se pudo cargar el enlace a los planes. Inténtalo más tarde.', 'Der Link zu den Tarifen konnte nicht geladen werden. Versuchen Sie es später erneut.']
-} as const satisfies Record<string, readonly [string, string, string, string]>;
+} as const satisfies Record<string, Row>;
+
+export const rows = { ...base, ...common, ...settings, ...assistant, ...hunts, ...hunts2, ...leads, ...leads2, ...contacts, ...composer, ...outreach, ...missions, ...creations, ...teams, ...teams2 };
 
 export type Key = keyof typeof rows;

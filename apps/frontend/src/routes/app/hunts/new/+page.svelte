@@ -9,6 +9,9 @@
   import { toast, PageHeader, Button, Card, Field, Input, Select, Spinner, Icon } from '@facile/muse';
   import LocationPickerMap from '$lib/components/LocationPickerMap.svelte';
   import { teamContextStore } from '$lib/stores/team-context.svelte';
+  import { useT } from '$lib/i18n';
+
+  const t = useT();
 
   let teamId = $derived(teamContextStore.getTeamId());
 
@@ -31,18 +34,18 @@
     },
   });
 
-  const businessCategories: { value: BusinessCategory; label: string; icon: string }[] = [
-    { value: 'restaurant', label: 'Restaurants & Cafés', icon: 'solar:chef-hat-linear' },
-    { value: 'retail', label: 'Commerces de détail', icon: 'solar:shop-linear' },
-    { value: 'service', label: 'Services', icon: 'solar:case-round-linear' },
-    { value: 'healthcare', label: 'Santé', icon: 'solar:heart-linear' },
-    { value: 'fitness', label: 'Fitness & Bien-être', icon: 'solar:dumbbell-linear' },
-    { value: 'beauty', label: 'Beauté & Spa', icon: 'solar:scissors-linear' },
-    { value: 'automotive', label: 'Automobile', icon: 'solar:wheel-linear' },
-    { value: 'professional-services', label: 'Services professionnels', icon: 'solar:user-id-linear' },
-    { value: 'hotel', label: 'Hôtels & Hébergement', icon: 'solar:bed-linear' },
-    { value: 'education', label: 'Éducation', icon: 'solar:book-linear' },
-  ];
+  const businessCategories = $derived<{ value: BusinessCategory; label: string; icon: string }[]>([
+    { value: 'restaurant', label: t('hunts.cat.restaurant'), icon: 'solar:chef-hat-linear' },
+    { value: 'retail', label: t('hunts.cat.retail'), icon: 'solar:shop-linear' },
+    { value: 'service', label: t('hunts.cat.service'), icon: 'solar:case-round-linear' },
+    { value: 'healthcare', label: t('hunts.cat.healthcare'), icon: 'solar:heart-linear' },
+    { value: 'fitness', label: t('hunts.cat.fitness'), icon: 'solar:dumbbell-linear' },
+    { value: 'beauty', label: t('hunts.cat.beauty'), icon: 'solar:scissors-linear' },
+    { value: 'automotive', label: t('hunts.cat.automotive'), icon: 'solar:wheel-linear' },
+    { value: 'professional-services', label: t('hunts.cat.professional'), icon: 'solar:user-id-linear' },
+    { value: 'hotel', label: t('hunts.cat.hotel'), icon: 'solar:bed-linear' },
+    { value: 'education', label: t('hunts.cat.education'), icon: 'solar:book-linear' },
+  ]);
 
   async function detectLocationFromGPS() {
     if (!navigator.geolocation) {
@@ -136,17 +139,17 @@
         localBusinessFilters.location.country = location.countryCode;
       }
 
-      const cityName = location.city || 'Unknown city';
-      const countryName = location.country || 'Unknown country';
+      const cityName = location.city || t('hunts.new.unknownCity');
+      const countryName = location.country || t('hunts.new.unknownCountry');
 
-      toast.success(`Localisation détectée : ${cityName}, ${countryName}`);
+      toast.success(t('hunts.new.detected', { city: cityName, country: countryName }));
     } catch (error) {
       console.error('Error detecting location:', error);
 
       const errorMessage =
         getErrorMessage(error, '') === 'User denied Geolocation'
-          ? 'Accès à la localisation refusé. Cliquez sur "Détecter la localisation" pour réessayer ou saisissez-la manuellement.'
-          : 'Impossible de détecter la localisation. Veuillez la saisir manuellement ou réessayer.';
+          ? t('hunts.new.denied')
+          : t('hunts.new.detectFailed');
 
       toast.info(errorMessage);
     } finally {
@@ -158,12 +161,12 @@
     if (loading) return;
 
     if (localBusinessFilters.categories.length === 0) {
-      toast.danger('Veuillez sélectionner au moins une catégorie d\'activité');
+      toast.danger(t('hunts.new.pickCategory'));
       return;
     }
 
     if (!localBusinessFilters.location.city && !localBusinessFilters.location.coordinates) {
-      toast.danger('Veuillez indiquer une localisation (ville ou GPS)');
+      toast.danger(t('hunts.new.pickLocation'));
       return;
     }
 
@@ -184,12 +187,10 @@
 
       const huntSessionId = result?.huntSessionId;
       const categoryCount = localBusinessFilters.categories.length;
-      toast.success(
-        `Chasse locale démarrée pour ${categoryCount} catégorie${categoryCount > 1 ? 's' : ''} !`,
-      );
+      toast.success(t(categoryCount > 1 ? 'hunts.new.startedMany' : 'hunts.new.startedOne', { count: categoryCount }));
       await goto(huntSessionId ? resolve('/app/hunts/[id]', { id: huntSessionId }) : resolve('/app/hunts'));
     } catch (error) {
-      const errorMessage = getErrorMessage(error, 'Échec du démarrage de la chasse locale');
+      const errorMessage = getErrorMessage(error, t('hunts.new.startFailed'));
       toast.danger(errorMessage);
       console.error('Error starting local business hunt:', error);
       loading = false;
@@ -198,23 +199,23 @@
 </script>
 
 <PageHeader
-  title="Nouvelle chasse"
-  description="Recherche locale par localisation (OpenStreetMap, 100% gratuit)"
-  back={{ href: '/app/hunts', label: 'Retour aux chasses' }}
+  title={t('hunts.new')}
+  description={t('hunts.new.subtitle')}
+  back={{ href: '/app/hunts', label: t('hunts.backToHunts') }}
 >
   {#snippet actions()}
-    <Button href="/app/hunts" variant="ghost">Annuler</Button>
+    <Button href="/app/hunts" variant="ghost">{t('common.cancel')}</Button>
   {/snippet}
 </PageHeader>
 
 <Card class="flex w-full max-w-fc-lg flex-col gap-6">
   <div class="flex flex-col gap-1">
-    <h2 class="text-fc-lg font-semibold text-fc-fg">Recherche locale d'entreprises</h2>
-    <p class="text-fc-sm text-fc-fg-muted">Trouvez des entreprises près d'une localisation via OpenStreetMap</p>
+    <h2 class="text-fc-lg font-semibold text-fc-fg">{t('hunts.new.localTitle')}</h2>
+    <p class="text-fc-sm text-fc-fg-muted">{t('hunts.new.localText')}</p>
   </div>
 
   <fieldset class="flex flex-col gap-3">
-    <legend class="mb-3 text-fc-sm font-medium text-fc-fg">Catégories d'activité (sélection multiple)</legend>
+    <legend class="mb-3 text-fc-sm font-medium text-fc-fg">{t('hunts.new.categories')}</legend>
     <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3">
       {#each businessCategories as category (category.value)}
         <label
@@ -237,7 +238,7 @@
 
   <div class="flex flex-col gap-3">
     <div class="flex items-center justify-between gap-2">
-      <span class="text-fc-sm font-medium text-fc-fg">Localisation</span>
+      <span class="text-fc-sm font-medium text-fc-fg">{t('hunts.new.location')}</span>
       <Button
         variant="ghost"
         size="sm"
@@ -246,10 +247,10 @@
         disabled={loadingLocation}
       >
         {#if loadingLocation}
-          <Spinner size="sm" label="Détection" />
-          Détection
+          <Spinner size="sm" label={t('hunts.new.detecting')} />
+          {t('hunts.new.detecting')}
         {:else}
-          {userLocation ? 'Re-détecter' : 'Utiliser le GPS'}
+          {userLocation ? t('hunts.new.redetect') : t('hunts.new.useGps')}
         {/if}
       </Button>
     </div>
@@ -258,14 +259,14 @@
       <Input
         bind:value={localBusinessFilters.location.city}
         type="text"
-        placeholder="Ville (ex. : Paris, Lyon)"
-        aria-label="Ville"
+        placeholder={t('hunts.new.cityPlaceholder')}
+        aria-label={t('hunts.new.city')}
       />
       <Input
         bind:value={localBusinessFilters.location.country}
         type="text"
-        placeholder="Pays (ex. : FR, BE)"
-        aria-label="Pays"
+        placeholder={t('hunts.new.countryPlaceholder')}
+        aria-label={t('hunts.new.country')}
       />
     </div>
 
@@ -277,7 +278,7 @@
         icon={showMap ? 'solar:map-arrow-down-linear' : 'solar:map-arrow-up-linear'}
         onclick={() => (showMap = !showMap)}
       >
-        {showMap ? 'Masquer la carte' : 'Choisir sur la carte'}
+        {showMap ? t('hunts.new.hideMap') : t('hunts.new.showMap')}
       </Button>
 
       {#if showMap}
@@ -297,25 +298,25 @@
           />
         </div>
         <p class="text-fc-xs text-fc-fg-muted">
-          Cliquez sur la carte ou déplacez le marqueur pour sélectionner une localisation. Le rayon de recherche est affiché en cercle.
+          {t('hunts.new.mapHint')}
         </p>
       {/if}
     </div>
   </div>
 
   <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-    <Field label="Filtre site web">
+    <Field label={t('hunts.new.websiteFilter')}>
       <Select
         value={localBusinessFilters.hasWebsite}
         onchange={(e) => (localBusinessFilters.hasWebsite = e.currentTarget.value as 'all' | 'with' | 'without')}
       >
-        <option value="all">Toutes les entreprises</option>
-        <option value="with">Avec site web uniquement</option>
-        <option value="without">Sans site web uniquement</option>
+        <option value="all">{t('hunts.new.allCompanies')}</option>
+        <option value="with">{t('hunts.new.withWebsite')}</option>
+        <option value="without">{t('hunts.new.withoutWebsite')}</option>
       </Select>
     </Field>
 
-    <Field label="Rayon de recherche">
+    <Field label={t('hunts.new.radius')}>
       <Select
         value={String(localBusinessFilters.radius)}
         onchange={(e) => {
@@ -341,10 +342,10 @@
       disabled={loading}
     >
       {#if loading}
-        <Spinner size="sm" label="Recherche" class="text-fc-accent-fg" />
-        Recherche
+        <Spinner size="sm" label={t('hunts.new.searching')} class="text-fc-accent-fg" />
+        {t('hunts.new.searching')}
       {:else}
-        Lancer la chasse locale
+        {t('hunts.new.start')}
       {/if}
     </Button>
   </div>

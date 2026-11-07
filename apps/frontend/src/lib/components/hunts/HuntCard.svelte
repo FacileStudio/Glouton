@@ -3,6 +3,10 @@
   import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
   import { Badge, Button, Icon, IconButton, Spinner, icons } from '@facile/muse';
+  import { useFormat, useT } from '$lib/i18n';
+
+  const t = useT();
+  const format = useFormat();
 
   interface HuntSession {
     id: string;
@@ -36,14 +40,6 @@
     relaunching?: boolean;
   } = $props();
 
-  function formatTimeAgo(date: string): string {
-    const mins = Math.floor((new Date().getTime() - new Date(date).getTime()) / 60000);
-    if (mins < 2) return "À l'instant";
-    if (mins < 60) return `Il y a ${mins}min`;
-    if (mins < 1440) return `Il y a ${Math.floor(mins / 60)}h`;
-    return `Il y a ${Math.floor(mins / 1440)}j`;
-  }
-
   const isCsvImport = $derived(
     session.sources?.includes('CSV_IMPORT') || false
   );
@@ -55,24 +51,24 @@
 
   const huntTitle = $derived.by(() => {
     if (isCsvImport) {
-      return 'Import CSV';
+      return t('hunts.csvImport');
     }
     if (isLocal) {
-      const cat = session.filters?.categories?.[0] || 'Commerce local';
+      const cat = session.filters?.categories?.[0] || t('hunts.localBusiness');
       const loc = session.filters?.location || '';
-      return loc ? `${cat} à ${loc}` : cat;
+      return loc ? t('hunts.catAt', { category: cat, location: loc }) : cat;
     }
     const domain = session.filters?.domain;
-    return domain || 'Recherche large';
+    return domain || t('hunts.broadSearch');
   });
 
   const displayLeads = $derived(Math.max(session.successfulLeads || 0, session.totalLeads || 0));
 
   const statusLabel = $derived.by(() => {
     switch (session.status) {
-      case 'COMPLETED': return 'Terminée';
-      case 'FAILED': return 'Échouée';
-      case 'PENDING': return 'En attente';
+      case 'COMPLETED': return t('hunts.status.completed');
+      case 'FAILED': return t('hunts.status.failed');
+      case 'PENDING': return t('hunts.status.pending');
       default: return session.status;
     }
   });
@@ -102,8 +98,8 @@
       </p>
       <div class="flex flex-wrap items-center gap-2 text-fc-xs text-fc-fg-muted">
         <Badge tone={statusTone}>{statusLabel}</Badge>
-        <span>{formatTimeAgo(referenceDate)}</span>
-        <span>{isCsvImport ? 'CSV' : isLocal ? 'Local' : 'Domaine'}</span>
+        <span>{format.ago(referenceDate)}</span>
+        <span>{isCsvImport ? t('hunts.kind.csv') : isLocal ? t('hunts.kind.local') : t('hunts.kind.domain')}</span>
       </div>
     </div>
 
@@ -122,10 +118,10 @@
           disabled={cancelling}
         >
           {#if cancelling}
-            <Spinner size="sm" label="Annulation" />
-            Annulation
+            <Spinner size="sm" label={t('hunts.cancelling')} />
+            {t('hunts.cancelling')}
           {:else}
-            Annuler
+            {t('common.cancel')}
           {/if}
         </Button>
       {/if}
@@ -137,13 +133,13 @@
           icon={relaunching ? undefined : 'solar:restart-linear'}
           onclick={() => onRelaunch!(session.id)}
           disabled={relaunching}
-          title="Relancer la chasse"
+          title={t('hunts.relaunch')}
         >
           {#if relaunching}
-            <Spinner size="sm" label="Relance" />
-            Relance
+            <Spinner size="sm" label={t('hunts.relaunching')} />
+            {t('hunts.relaunching')}
           {:else}
-            Relancer
+            {t('hunts.relaunchShort')}
           {/if}
         </Button>
       {/if}
@@ -153,11 +149,11 @@
           variant="danger"
           onclick={() => onDelete!(session.id)}
           disabled={deleting}
-          aria-label="Supprimer la chasse"
-          title="Supprimer la chasse"
+          aria-label={t('hunts.delete')}
+          title={t('hunts.delete')}
         >
           {#if deleting}
-            <Spinner size="sm" label="Suppression" />
+            <Spinner size="sm" label={t('hunts.deleting')} />
           {:else}
             <Icon icon="solar:trash-bin-trash-linear" />
           {/if}
@@ -176,14 +172,14 @@
     <div class="flex items-center gap-1.5">
       <Icon icon={icons.usersGroup} size={15} class="text-fc-fg-muted" />
       <span class="text-fc-sm font-medium text-fc-fg">{displayLeads}</span>
-      <span class="hidden text-fc-sm text-fc-fg-muted sm:inline">leads</span>
+      <span class="hidden text-fc-sm text-fc-fg-muted sm:inline">{t('hunts.leadsLower')}</span>
     </div>
 
     {#if session.status === 'COMPLETED' && displayLeads > 0}
       <div class="flex items-center gap-1.5">
         <Icon icon={icons.dashboard} size={15} class="text-fc-fg-muted" />
         <span class="text-fc-sm font-medium text-fc-fg">{successRate}%</span>
-        <span class="hidden text-fc-sm text-fc-fg-muted sm:inline">succès</span>
+        <span class="hidden text-fc-sm text-fc-fg-muted sm:inline">{t('hunts.successLower')}</span>
       </div>
     {/if}
   </div>

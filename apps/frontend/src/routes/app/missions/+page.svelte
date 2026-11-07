@@ -19,7 +19,10 @@
     icons,
   } from '@facile/muse';
   import type { BadgeProps } from '@facile/muse';
+  import { useFormat, useT } from '$lib/i18n';
 
+  const t = useT();
+  const format = useFormat();
   type Tier = 'HOT' | 'WARM' | 'COLD';
 
   interface Opportunity {
@@ -65,13 +68,13 @@
 
   type SortKey = 'relevance' | 'newest' | 'budget' | 'competition' | 'added';
 
-  const SORT_OPTIONS: Record<SortKey, { label: string; sortBy: 'relevanceScore' | 'postedAt' | 'createdAt' | 'budgetMax' | 'applicantCount'; sortOrder: 'asc' | 'desc' }> = {
-    relevance: { label: 'Pertinence', sortBy: 'relevanceScore', sortOrder: 'desc' },
-    newest: { label: 'Plus récentes', sortBy: 'postedAt', sortOrder: 'desc' },
-    budget: { label: 'Budget le plus élevé', sortBy: 'budgetMax', sortOrder: 'desc' },
-    competition: { label: 'Moins de concurrence', sortBy: 'applicantCount', sortOrder: 'asc' },
-    added: { label: 'Ajoutées récemment', sortBy: 'createdAt', sortOrder: 'desc' },
-  };
+  const SORT_OPTIONS = $derived<Record<SortKey, { label: string; sortBy: 'relevanceScore' | 'postedAt' | 'createdAt' | 'budgetMax' | 'applicantCount'; sortOrder: 'asc' | 'desc' }>>({
+    relevance: { label: t('missions.sort.relevance'), sortBy: 'relevanceScore', sortOrder: 'desc' },
+    newest: { label: t('missions.sort.newest'), sortBy: 'postedAt', sortOrder: 'desc' },
+    budget: { label: t('missions.sort.budget'), sortBy: 'budgetMax', sortOrder: 'desc' },
+    competition: { label: t('missions.sort.competition'), sortBy: 'applicantCount', sortOrder: 'asc' },
+    added: { label: t('missions.sort.added'), sortBy: 'createdAt', sortOrder: 'desc' },
+  });
 
   let sortKey = $state<SortKey>('relevance');
 
@@ -134,7 +137,7 @@
       total = result.total;
       stats = statsData;
     } catch {
-      toast.danger('Erreur lors du chargement des missions');
+      toast.danger(t('missions.loadFailed'));
     } finally {
       loading = false;
     }
@@ -148,14 +151,14 @@
         scrapeProgress = { percent: 0, source: '…', sourcesDone: 0, sourcesTotal: 8, totalInserted: 0, totalFound: 0 };
         armScrapeTimeout();
         if (result.queued) {
-          toast.success('Actualisation lancée');
+          toast.success(t('missions.refreshStarted'));
         }
       } else {
-        toast.info('Missions déjà actualisées il y a moins de 10 minutes');
+        toast.info(t('missions.refreshedRecently'));
         scraping = false;
       }
     } catch {
-      toast.danger("Erreur lors du lancement de l'actualisation");
+      toast.danger(t('missions.refreshFailedStart'));
       scraping = false;
     }
   }
@@ -177,21 +180,19 @@
 
   function formatBudget(opp: Opportunity): string {
     if (opp.budget) return opp.budget;
+    const currency = opp.currency ?? '€';
     if (opp.budgetMin && opp.budgetMax) {
-      return `${opp.budgetMin.toLocaleString()} – ${opp.budgetMax.toLocaleString()} ${opp.currency ?? '€'}`;
+      return `${format.number(opp.budgetMin)} – ${format.number(opp.budgetMax)} ${currency}`;
     }
-    if (opp.budgetMin) return `${opp.budgetMin.toLocaleString()}+ ${opp.currency ?? '€'}`;
+    if (opp.budgetMin) return `${format.number(opp.budgetMin)}+ ${currency}`;
     return '';
   }
 
   function formatDate(dateStr: string): string {
     const d = new Date(dateStr);
-    const diff = Date.now() - d.getTime();
-    const days = Math.floor(diff / 86400000);
-    if (days === 0) return "aujourd'hui";
-    if (days === 1) return 'hier';
-    if (days < 7) return `il y a ${days}j`;
-    return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+    const days = Math.floor((Date.now() - d.getTime()) / 86400000);
+    if (days < 7) return format.days(days);
+    return format.date(d, { day: 'numeric', month: 'short' });
   }
 
   function truncate(text: string, max: number): string {
@@ -230,8 +231,8 @@
         endScrape();
         toast.success(
           data.totalInserted > 0
-            ? `Actualisation terminée : ${data.totalInserted} nouvelle${data.totalInserted > 1 ? 's' : ''} mission${data.totalInserted > 1 ? 's' : ''}`
-            : 'Actualisation terminée : aucune nouvelle mission');
+            ? t('missions.refreshDone', { count: data.totalInserted })
+            : t('missions.refreshNone'));
         loadData();
       })
     );
@@ -239,7 +240,7 @@
     unsubscribers.push(
       ws.on('opportunity:scrape:failed', () => {
         endScrape();
-        toast.danger("L'actualisation des missions a échoué");
+        toast.danger(t('missions.refreshFailed'));
       })
     );
   });
@@ -252,15 +253,15 @@
 
 <div class="flex flex-col gap-6">
   <PageHeader
-    title="Missions Freelance"
-    description="Opportunités scrappées depuis {Object.keys(SOURCE_LABELS).length} sources, mises à jour toutes les 3h"
+    title={t('missions.title')}
+    description={t('missions.subtitle', { count: Object.keys(SOURCE_LABELS).length })}
   >
     {#snippet actions()}
       <Button variant="outline" icon={scraping ? undefined : icons.refresh} onclick={triggerScrape} disabled={scraping}>
         {#if scraping}
-          <Spinner size="sm" label="Actualisation" />
+          <Spinner size="sm" label={t('missions.refreshing')} />
         {/if}
-        Actualiser
+        {t('missions.refresh')}
       </Button>
     {/snippet}
   </PageHeader>
@@ -269,10 +270,10 @@
     <Card class="flex flex-col gap-2 p-4">
       <div class="flex items-center justify-between gap-3 text-fc-sm">
         <div class="flex min-w-0 items-center gap-2">
-          <Spinner size="sm" label="Actualisation" />
-          <span class="font-medium text-fc-fg">Actualisation des missions</span>
+          <Spinner size="sm" label={t('missions.refreshing')} />
+          <span class="font-medium text-fc-fg">{t('missions.refreshingMissions')}</span>
           <span class="truncate text-fc-fg-muted">
-            · {scrapeProgress.source} ({scrapeProgress.sourcesDone}/{scrapeProgress.sourcesTotal} sources)
+            {t('missions.progress', { source: scrapeProgress.source, done: scrapeProgress.sourcesDone, total: scrapeProgress.sourcesTotal })}
           </span>
         </div>
         <span class="shrink-0 font-fc-mono text-fc-xs text-fc-fg-muted">
@@ -287,7 +288,7 @@
       </div>
       {#if scrapeProgress.totalInserted > 0}
         <p class="text-fc-xs text-fc-fg-muted">
-          {scrapeProgress.totalInserted} nouvelle{scrapeProgress.totalInserted > 1 ? 's' : ''} mission{scrapeProgress.totalInserted > 1 ? 's' : ''} pour l'instant
+          {t('missions.newSoFar', { count: scrapeProgress.totalInserted })}
         </p>
       {/if}
     </Card>
@@ -295,7 +296,7 @@
 
   {#if stats}
     <div class="grid grid-cols-2 gap-4 sm:grid-cols-5">
-      <StatCard label="Total (30j)" value={stats.total} />
+      <StatCard label={t('missions.total30')} value={stats.total} />
       {#each TIER_STATS as item (item.tier)}
         <Card class="flex flex-col gap-1 {item.cls}">
           <span class="flex items-center gap-1.5 text-fc-xs uppercase tracking-wide">
@@ -306,7 +307,7 @@
         </Card>
       {/each}
       <Card class="flex flex-col gap-1">
-        <span class="text-fc-xs uppercase tracking-wide text-fc-fg-muted">Nouvelles 24h</span>
+        <span class="text-fc-xs uppercase tracking-wide text-fc-fg-muted">{t('missions.new24')}</span>
         <span class="text-fc-2xl font-semibold text-fc-success">+{stats.newToday}</span>
       </Card>
     </div>
@@ -315,37 +316,37 @@
   <div class="flex flex-wrap items-center gap-3">
     <Input
       type="text"
-      placeholder="Rechercher..."
-      aria-label="Rechercher une mission"
+      placeholder={t('missions.searchPlaceholder')}
+      aria-label={t('missions.search')}
       bind:value={filters.search}
       class="w-full sm:w-48"
     />
 
     <Select
       bind:value={() => filters.tier, (v) => (filters.tier = v as '' | Tier)}
-      aria-label="Filtrer par niveau"
+      aria-label={t('missions.filterTier')}
       class="w-auto"
     >
-      <option value="">Tous les niveaux</option>
+      <option value="">{t('missions.allTiers')}</option>
       <option value="HOT">HOT</option>
       <option value="WARM">WARM</option>
       <option value="COLD">COLD</option>
     </Select>
 
-    <Select bind:value={filters.source} aria-label="Filtrer par source" class="w-auto">
-      <option value="">Toutes les sources</option>
+    <Select bind:value={filters.source} aria-label={t('missions.filterSource')} class="w-auto">
+      <option value="">{t('missions.allSources')}</option>
       {#each Object.entries(SOURCE_LABELS) as [value, label] (value)}
         <option {value}>{label}</option>
       {/each}
     </Select>
 
-    <Checkbox bind:checked={filters.remoteOnly} label="Remote uniquement" class="min-h-11 px-1" />
+    <Checkbox bind:checked={filters.remoteOnly} label={t('missions.remoteOnly')} class="min-h-11 px-1" />
 
     <div class="flex items-center gap-1.5 sm:ml-auto">
       <Icon icon="solar:sort-vertical-linear" size={16} class="text-fc-fg-muted" />
       <Select
         bind:value={() => sortKey, (v) => (sortKey = v as SortKey)}
-        aria-label="Trier les missions"
+        aria-label={t('missions.sortLabel')}
         class="w-auto"
       >
         {#each Object.entries(SORT_OPTIONS) as [value, opt] (value)}
@@ -359,22 +360,22 @@
         variant="ghost"
         onclick={() => { filters.search = ''; filters.tier = ''; filters.source = ''; filters.remoteOnly = false; }}
       >
-        Réinitialiser
+        {t('leads.filter.reset')}
       </Button>
     {/if}
   </div>
 
   {#if !loading}
-    <p class="text-fc-sm text-fc-fg-muted">{total} mission{total > 1 ? 's' : ''} trouvée{total > 1 ? 's' : ''}</p>
+    <p class="text-fc-sm text-fc-fg-muted">{t('missions.found', { count: total })}</p>
   {/if}
 
   {#if loading}
     <div class="flex h-48 items-center justify-center">
-      <Spinner label="Chargement" />
+      <Spinner label={t('common.loading')} />
     </div>
   {:else if opportunities.length === 0}
-    <EmptyState icon="solar:ghost-linear" title="Aucune mission trouvée">
-      <Button variant="outline" onclick={triggerScrape}>Lancer un scraping</Button>
+    <EmptyState icon="solar:ghost-linear" title={t('missions.none')}>
+      <Button variant="outline" onclick={triggerScrape}>{t('missions.runScrape')}</Button>
     </EmptyState>
   {:else}
     <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -403,13 +404,13 @@
             <span class="shrink-0">{formatDate(opp.postedAt)}</span>
             {#if opp.isRemote}
               <span>·</span>
-              <span class="shrink-0 text-fc-success">Remote</span>
+              <span class="shrink-0 text-fc-success">{t('missions.remote')}</span>
             {/if}
             {#if opp.applicantCount !== null && opp.applicantCount !== undefined}
               <span>·</span>
               <span class="inline-flex shrink-0 items-center gap-1 {opp.applicantCount <= 3 ? 'text-fc-success' : opp.applicantCount <= 10 ? 'text-fc-warning' : 'text-fc-danger'}">
                 <Icon icon={icons.usersGroup} size={12} />
-                {opp.applicantCount} sur le coup
+                {t('missions.applicants', { count: opp.applicantCount })}
               </span>
             {/if}
           </div>
@@ -437,15 +438,15 @@
     {#if totalPages > 1}
       <div class="flex items-center justify-center gap-2 pt-2">
         <IconButton
-          aria-label="Page précédente"
+          aria-label={t('leads.pagination.prev')}
           onclick={() => { currentPage = Math.max(1, currentPage - 1); loadData(); }}
           disabled={currentPage === 1}
         >
           <Icon icon={icons.chevronLeft} />
         </IconButton>
-        <span class="text-fc-sm text-fc-fg-muted">Page {currentPage} / {totalPages}</span>
+        <span class="text-fc-sm text-fc-fg-muted">{t('leads.pagination.page', { page: currentPage, pages: totalPages })}</span>
         <IconButton
-          aria-label="Page suivante"
+          aria-label={t('leads.pagination.next')}
           onclick={() => { currentPage = Math.min(totalPages, currentPage + 1); loadData(); }}
           disabled={currentPage === totalPages}
         >

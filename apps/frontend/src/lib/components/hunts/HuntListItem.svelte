@@ -3,6 +3,10 @@
   import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
   import { Badge, Button, Icon, Spinner, icons } from '@facile/muse';
+  import { useFormat, useT } from '$lib/i18n';
+
+  const t = useT();
+  const format = useFormat();
 
   interface HuntSession {
     id: string;
@@ -29,22 +33,9 @@
     relaunching?: boolean;
   } = $props();
 
-  function formatTimeAgo(date: string): string {
-    const mins = Math.floor((new Date().getTime() - new Date(date).getTime()) / 60000);
-    if (mins < 2) return "À l'instant";
-    if (mins < 60) return `Il y a ${mins}min`;
-    if (mins < 1440) return `Il y a ${Math.floor(mins / 60)}h`;
-    return `Il y a ${Math.floor(mins / 1440)}j`;
-  }
-
   function formatDuration(start: string | null, end: string | null): string {
     if (!start || !end) return '—';
-    const duration = new Date(end).getTime() - new Date(start).getTime();
-    const seconds = Math.floor(duration / 1000);
-    if (seconds < 60) return `${seconds}s`;
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}min`;
-    return `${Math.floor(minutes / 60)}h ${minutes % 60}min`;
+    return format.duration(new Date(end).getTime() - new Date(start).getTime());
   }
 
   const isLocal = $derived(
@@ -54,12 +45,12 @@
 
   const huntTitle = $derived.by(() => {
     if (isLocal) {
-      const cat = session.filters?.categories?.[0] || 'Commerce local';
+      const cat = session.filters?.categories?.[0] || t('hunts.localBusiness');
       const loc = session.filters?.location || '';
-      return loc ? `${cat} à ${loc}` : cat;
+      return loc ? t('hunts.catAt', { category: cat, location: loc }) : cat;
     }
     const domain = session.filters?.domain;
-    return domain || 'Recherche large';
+    return domain || t('hunts.broadSearch');
   });
 
   const displayLeads = $derived(Math.max(session.successfulLeads || 0, session.totalLeads || 0));
@@ -88,16 +79,16 @@
         <div class="flex min-w-0 flex-1 flex-col gap-1">
           <div class="flex min-w-0 items-center gap-2">
             <h3 class="truncate text-fc-sm font-semibold text-fc-fg">{huntTitle}</h3>
-            <Badge class="shrink-0">Terminée</Badge>
+            <Badge class="shrink-0">{t('hunts.status.completed')}</Badge>
           </div>
           <div class="flex flex-wrap items-center gap-2 text-fc-xs text-fc-fg-muted">
-            <span>{formatTimeAgo(referenceDate)}</span>
+            <span>{format.ago(referenceDate)}</span>
             {#if session.startedAt && session.completedAt}
               <span>·</span>
-              <span>Durée : {formatDuration(session.startedAt, session.completedAt)}</span>
+              <span>{t('hunts.duration', { duration: formatDuration(session.startedAt, session.completedAt) })}</span>
             {/if}
             <span>·</span>
-            <span>{isLocal ? 'Local' : 'Domaine'}</span>
+            <span>{isLocal ? t('hunts.kind.local') : t('hunts.kind.domain')}</span>
           </div>
         </div>
       </div>
@@ -109,7 +100,7 @@
               <Icon icon={icons.usersGroup} size={14} class="text-fc-fg-muted" />
               <span class="text-fc-sm font-medium text-fc-fg">{displayLeads}</span>
             </div>
-            <p class="hidden text-fc-xs text-fc-fg-muted sm:block">Leads</p>
+            <p class="hidden text-fc-xs text-fc-fg-muted sm:block">{t('hunts.leadsUpper')}</p>
           </div>
 
           {#if displayLeads > 0}
@@ -118,7 +109,7 @@
                 <Icon icon={icons.dashboard} size={14} class="text-fc-fg-muted" />
                 <span class="text-fc-sm font-medium text-fc-fg">{successRate}%</span>
               </div>
-              <p class="hidden text-fc-xs text-fc-fg-muted sm:block">Succès</p>
+              <p class="hidden text-fc-xs text-fc-fg-muted sm:block">{t('hunts.successUpper')}</p>
             </div>
           {/if}
         </div>
@@ -146,10 +137,10 @@
         disabled={relaunching}
       >
         {#if relaunching}
-          <Spinner size="sm" label="Relance" />
-          Relance
+          <Spinner size="sm" label={t('hunts.relaunching')} />
+          {t('hunts.relaunching')}
         {:else}
-          Relancer
+          {t('hunts.relaunchShort')}
         {/if}
       </Button>
     {/if}
@@ -163,12 +154,12 @@
         icon={deleting ? undefined : 'solar:trash-bin-trash-linear'}
         onclick={() => onDelete!(session.id)}
         disabled={deleting}
-        title="Supprimer la chasse"
+        title={t('hunts.delete')}
       >
         {#if deleting}
-          <Spinner size="sm" label="Suppression" />
+          <Spinner size="sm" label={t('hunts.deleting')} />
         {:else}
-          Supprimer
+          {t('hunts.deleteShort')}
         {/if}
       </Button>
     {/if}

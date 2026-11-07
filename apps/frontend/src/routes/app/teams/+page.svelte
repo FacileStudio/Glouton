@@ -5,7 +5,9 @@
   import { resolve } from '$app/paths';
   import { trpc } from '$lib/trpc';
   import { Badge, Button, Card, EmptyState, Icon, Input, PageHeader, Spinner, icons, toast } from '@facile/muse';
+  import { useT } from '$lib/i18n';
 
+  const t = useT();
   let teams = $state<RouterOutputs['team']['list']>([]);
   let loading = $state(true);
   let spacesUrl = $state<string | null>(null);
@@ -33,7 +35,7 @@
       spacesUrl = directory.spacesUrl;
     } catch (error) {
       console.error('Error loading teams:', error);
-      toast.danger('Échec du chargement des espaces');
+      toast.danger(t('teams.loadFailed'));
       teams = [];
     } finally {
       loading = false;
@@ -49,11 +51,11 @@
   function getRoleLabel(role: string) {
     switch (role) {
       case 'OWNER':
-        return 'Propriétaire';
+        return t('teams.role.owner');
       case 'ADMIN':
-        return 'Admin';
+        return t('teams.role.admin');
       default:
-        return 'Membre';
+        return t('teams.role.member');
     }
   }
 
@@ -66,12 +68,12 @@
   }
 </script>
 
-<PageHeader title="Espaces" description="Gérez vos espaces et collaborez avec vos collègues">
+<PageHeader title={t('teams.title')} description={t('teams.subtitle')}>
   {#snippet actions()}
     {#if spacesUrl}
-      <Button variant="outline" icon={icons.space} href={spacesUrl}>Gérer dans Registre</Button>
+      <Button variant="outline" icon={icons.space} href={spacesUrl}>{t('teams.manage')}</Button>
     {:else if !loading}
-      <Button icon={icons.plus} onclick={handleCreateTeam}>Créer un espace</Button>
+      <Button icon={icons.plus} onclick={handleCreateTeam}>{t('teams.create')}</Button>
     {/if}
   {/snippet}
 </PageHeader>
@@ -87,8 +89,8 @@
       <Input
         type="search"
         bind:value={searchQuery}
-        placeholder="Rechercher un espace..."
-        aria-label="Rechercher un espace"
+        placeholder={t('teams.searchPlaceholder')}
+        aria-label={t('teams.search')}
         class="pl-9"
       />
     </div>
@@ -96,18 +98,18 @@
 
   {#if loading}
     <div class="flex items-center justify-center py-16">
-      <Spinner size="lg" label="Chargement des espaces" />
+      <Spinner size="lg" label={t('teams.loading')} />
     </div>
   {:else if filteredTeams.length === 0}
     <Card>
       <EmptyState
         icon={icons.space}
-        title={searchQuery ? 'Aucun espace trouvé' : 'Aucun espace'}
+        title={searchQuery ? t('teams.noneFound') : t('teams.none')}
       >
         {#if !searchQuery && spacesUrl}
-          <Button variant="outline" icon={icons.space} href={spacesUrl}>Gérer dans Registre</Button>
+          <Button variant="outline" icon={icons.space} href={spacesUrl}>{t('teams.manage')}</Button>
         {:else if !searchQuery}
-          <Button icon={icons.plus} onclick={handleCreateTeam}>Créer un espace</Button>
+          <Button icon={icons.plus} onclick={handleCreateTeam}>{t('teams.create')}</Button>
         {/if}
       </EmptyState>
     </Card>
@@ -136,11 +138,11 @@
                 <span class="flex items-center gap-4 text-fc-xs text-fc-fg-muted">
                   <span class="flex items-center gap-1">
                     <Icon icon={icons.usersGroup} size={14} />
-                    {team._count?.members || 0} membre{(team._count?.members || 0) !== 1 ? 's' : ''}
+                    {t('teams.memberCount', { count: team._count?.members || 0 })}
                   </span>
                   <span class="flex items-center gap-1">
                     <iconify-icon icon="solar:chart-square-linear" width="14" height="14" class="block"></iconify-icon>
-                    {team._count?.leads || 0} lead{(team._count?.leads || 0) !== 1 ? 's' : ''}
+                    {t('teams.leadCount', { count: team._count?.leads || 0 })}
                   </span>
                 </span>
               </span>
@@ -157,8 +159,7 @@
     </Card>
 
     <p class="text-center text-fc-xs text-fc-fg-muted">
-      {filteredTeams.length} espace{filteredTeams.length !== 1 ? 's' : ''}
-      {searchQuery ? ' trouvé' + (filteredTeams.length !== 1 ? 's' : '') : ''}
+      {t(searchQuery ? 'teams.foundCount' : 'teams.count', { count: filteredTeams.length })}
     </p>
   {/if}
 </div>

@@ -15,7 +15,9 @@
   import PaginationControls from '$lib/components/leads/PaginationControls.svelte';
   import { setupAuditListeners, setupHuntListeners, type AuditSession, type HuntSession } from '$lib/websocket-events';
   import { teamContextStore } from '$lib/stores/team-context.svelte';
+  import { useT } from '$lib/i18n';
 
+  const t = useT();
   let teamId = $derived(teamContextStore.getTeamId());
 
   
@@ -205,7 +207,7 @@
       }
     } catch (error) {
       console.error('Error loading data:', error);
-      toast.danger('Échec du chargement des leads');
+      toast.danger(t('leads.loadFailed'));
       leads = [];
       auditSessions = [];
     } finally {
@@ -240,7 +242,7 @@
     try {
       startingAudit = true;
       const result = await trpc.lead.audit.start.mutate({ teamId: teamId || undefined });
-      toast.success('Audit démarré ! Vérification des leads pour les données manquantes...');
+      toast.success(t('leads.auditStarted'));
 
       
       if (result?.auditSessionId) {
@@ -259,7 +261,7 @@
         });
       }
     } catch (error) {
-      toast.danger("Échec du démarrage de l'audit");
+      toast.danger(t('leads.auditStartFailed'));
       console.error('Audit error:', error);
     } finally {
       startingAudit = false;
@@ -273,7 +275,7 @@
       
       
     } catch (error) {
-      toast.danger("Échec de l'annulation de l'audit");
+      toast.danger(t('leads.auditCancelFailed'));
       console.error('Error cancelling audit:', error);
     } finally {
       cancellingAuditId = null;
@@ -334,9 +336,9 @@
       link.click();
       document.body.removeChild(link);
 
-      toast.success(`${result.count} lead(s) exporté(s) avec succès`);
+      toast.success(t('leads.exported', { count: result.count }));
     } catch (error) {
-      toast.danger("Échec de l'exportation des leads");
+      toast.danger(t('leads.exportFailed'));
       console.error('Export error:', error);
     } finally {
       exporting = false;
@@ -349,7 +351,7 @@
 
     if (!file) return;
     if (!file.name.endsWith('.csv')) {
-      toast.danger('Veuillez télécharger un fichier CSV');
+      toast.danger(t('leads.csvRequired'));
       return;
     }
 
@@ -361,10 +363,10 @@
         teamId: teamId || undefined,
       });
 
-      toast.success('Import CSV démarré ! Redirection...');
+      toast.success(t('leads.importStarted'));
       window.location.href = `/app/hunts/${result.huntSessionId}`;
     } catch (error) {
-      const errorMessage = getErrorMessage(error, "Échec de l'importation du CSV");
+      const errorMessage = getErrorMessage(error, t('leads.importFailed'));
       toast.danger(errorMessage);
       console.error('Import error:', error);
       importing = false;
@@ -383,14 +385,14 @@
 
   let processedLeads = $derived(leads);
 
-  const sortOptions = [
-    { label: 'Date', value: 'createdAt' },
-    { label: 'Score', value: 'score' },
-    { label: 'Domaine', value: 'domain' },
-    { label: 'E-mail', value: 'email' },
-    { label: 'Localisation', value: 'city' },
-    { label: 'Priorité', value: 'status' },
-  ];
+  const sortOptions = $derived([
+    { label: t('leads.sort.date'), value: 'createdAt' },
+    { label: t('leads.sort.score'), value: 'score' },
+    { label: t('leads.sort.domain'), value: 'domain' },
+    { label: t('leads.sort.email'), value: 'email' },
+    { label: t('leads.sort.location'), value: 'city' },
+    { label: t('leads.sort.priority'), value: 'status' },
+  ]);
 </script>
 
 <input
@@ -402,36 +404,36 @@
 />
 
 <PageHeader
-  title="Leads"
-  description="{processedLeads.length} résultat{processedLeads.length !== 1 ? 's' : ''}"
+  title={t('leads.title')}
+  description={t('leads.results', { count: processedLeads.length })}
 >
   {#snippet actions()}
-    <Button variant="outline" href="/app/leads/favorites" icon="solar:heart-linear">Favoris</Button>
+    <Button variant="outline" href="/app/leads/favorites" icon="solar:heart-linear">{t('leads.favorites')}</Button>
 
     <Button variant="outline" onclick={triggerFileUpload} disabled={importing} icon={importing ? undefined : 'solar:upload-linear'}>
       {#if importing}
         <Spinner size="sm" />
-        Importation...
+        {t('leads.importing')}
       {:else}
-        Importer CSV
+        {t('leads.import')}
       {/if}
     </Button>
 
     <Button variant="outline" onclick={exportToCSV} disabled={exporting} icon={exporting ? undefined : 'solar:download-linear'}>
       {#if exporting}
         <Spinner size="sm" />
-        Exportation...
+        {t('leads.exporting')}
       {:else}
-        Exporter CSV
+        {t('leads.export')}
       {/if}
     </Button>
 
     <Button onclick={startAudit} disabled={startingAudit || !!activeAudit} icon={startingAudit ? undefined : 'solar:shield-check-linear'}>
       {#if startingAudit}
         <Spinner size="sm" class="text-fc-accent-fg" />
-        Démarrage...
+        {t('leads.starting')}
       {:else}
-        Lancer l'audit
+        {t('leads.audit')}
       {/if}
     </Button>
   {/snippet}
@@ -452,7 +454,7 @@
 
   <FilterPanel bind:filters bind:filtersExpanded leads={leads} onReset={resetFilters} />
 
-  <div class="flex flex-wrap items-center gap-1.5" role="group" aria-label="Trier par">
+  <div class="flex flex-wrap items-center gap-1.5" role="group" aria-label={t('leads.sortBy')}>
     {#each sortOptions as opt (opt.value)}
       <button
         type="button"
@@ -480,8 +482,8 @@
     <EmptyState
       icon="solar:ghost-linear"
       title={filters.search || filters.status || filters.contacted || filters.country || filters.city
-        ? 'Aucun lead ne correspond à vos filtres'
-        : 'Aucun lead disponible'}
+        ? t('leads.noMatch')
+        : t('leads.none')}
     />
   {:else}
     <LeadsTable leads={processedLeads} bind:sortBy bind:sortOrder onSort={handleSort} />
