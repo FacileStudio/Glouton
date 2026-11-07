@@ -148,7 +148,7 @@
       {/if}
     </div>
     <Button
-      variant="outline"
+      variant="secondary"
       icon={filtersExpanded ? 'mdi:chevron-up' : 'solar:filter-linear'}
       onclick={() => (filtersExpanded = !filtersExpanded)}
       aria-label={filtersExpanded ? t('leads.filter.hideFilters') : t('leads.filter.showFilters')}

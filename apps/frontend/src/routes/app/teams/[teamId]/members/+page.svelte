@@ -207,7 +207,7 @@
     {#snippet actions()}
       {#if team}
         {#if linked && team.manageUrl}
-          <Button variant="outline" icon={icons.space} href={team.manageUrl}>{t('teams.manage')}</Button>
+          <Button variant="secondary" icon={icons.space} href={team.manageUrl}>{t('teams.manage')}</Button>
         {:else if team.userRole !== 'OWNER'}
           <Button variant="ghost-danger" icon={icons.logout} onclick={() => (leaveConfirmModalOpen = true)}>
             {t('teams.leave')}
@@ -284,7 +284,7 @@
 
               {#if canManage && member.role !== 'OWNER'}
                 <IconButton
-                  variant="danger"
+                  variant="ghost-danger"
                   onclick={() => openRemoveConfirm(member)}
                   disabled={removingMemberId === member.userId}
                   aria-label={t('teams.removeMember')}

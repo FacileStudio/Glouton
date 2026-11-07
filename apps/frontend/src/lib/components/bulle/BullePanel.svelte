@@ -189,14 +189,14 @@
         {/if}
         {#if advice.draft && onUseDraft}
           {@const draft = advice.draft}
-          <Button size="sm" variant="outline" icon="solar:pen-new-square-linear" onclick={() => onUseDraft(draft)}>{t('assistant.useDraft')}</Button>
+          <Button size="sm" variant="secondary" icon="solar:pen-new-square-linear" onclick={() => onUseDraft(draft)}>{t('assistant.useDraft')}</Button>
         {/if}
       </div>
     {/if}
   {:else}
     <div class="flex flex-wrap gap-2" role="group" aria-label={t('assistant.quick')}>
       {#each QUICK as q (q.action)}
-        <Button size="sm" variant="outline" disabled={busy || !ready || (q.needsBody && !hasBody)} onclick={() => write(q.action, q.language)}>{q.label}</Button>
+        <Button size="sm" variant="secondary" disabled={busy || !ready || (q.needsBody && !hasBody)} onclick={() => write(q.action, q.language)}>{q.label}</Button>
       {/each}
     </div>
     <form class="flex gap-2" onsubmit={submit}>
@@ -211,7 +211,7 @@
         {#if result.note}<p class="text-fc-xs text-fc-fg-muted">{result.note}</p>{/if}
         <div class="flex flex-wrap justify-end gap-2">
           <Button size="sm" variant="ghost" onclick={() => (result = null)}>{t('assistant.ignore')}</Button>
-          {#if result.body}<Button size="sm" variant="outline" onclick={() => apply('insert')}>{t('assistant.insert')}</Button>{/if}
+          {#if result.body}<Button size="sm" variant="secondary" onclick={() => apply('insert')}>{t('assistant.insert')}</Button>{/if}
           <Button size="sm" onclick={() => apply('replace')}>{t('assistant.replace')}</Button>
         </div>
       </div>

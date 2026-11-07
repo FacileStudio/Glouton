@@ -260,7 +260,7 @@
 
   {#if !loading && shown < total}
     <div class="flex justify-center">
-      <Button variant="outline" onclick={() => load(true)} disabled={loadingMore}>
+      <Button variant="secondary" onclick={() => load(true)} disabled={loadingMore}>
         {#if loadingMore}<Spinner size="sm" />{/if}
         {t('common.showMore')}
       </Button>

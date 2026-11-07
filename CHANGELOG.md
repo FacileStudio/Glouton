@@ -11,6 +11,11 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+### Changed
+
+- `@facile/muse` v0.14.4 to v0.16.1. Buttons use the `secondary` and `ghost-danger` variants in place of the deprecated `outline` and `danger`.
+- `GET /version` reads the version from the root `package.json` at runtime, so it matches the release tag without any deploy environment change. The `APP_VERSION` build argument and env are gone.
+
 ## [0.10.1] - 2026-11-07
 
 ### Changed

@@ -369,7 +369,7 @@
 
       {#if details?.status === 'COMPLETED' || details?.status === 'FAILED'}
         <Button
-          variant="outline"
+          variant="secondary"
           icon={relaunching ? undefined : 'solar:restart-linear'}
           onclick={relaunchHunt}
           disabled={relaunching}
@@ -503,7 +503,7 @@
         {#if isProcessing}
           <Badge tone="info"><StatusDot tone="info" pulse />{t('hunts.detail.liveBadge')}</Badge>
         {/if}
-        <Button variant="outline" size="sm" onclick={() => { autoScroll = !autoScroll; }}>
+        <Button variant="secondary" size="sm" onclick={() => { autoScroll = !autoScroll; }}>
           {autoScroll ? t('hunts.detail.autoScroll') : t('hunts.detail.paused')}
         </Button>
       {/snippet}

@@ -103,9 +103,9 @@
       {#if team}
         <Badge tone={getRoleTone(team.userRole)}>{getRoleLabel(team.userRole)}</Badge>
         {#if team.registreSpaceId && team.manageUrl}
-          <Button variant="outline" icon={icons.space} href={team.manageUrl}>{t('teams.manage')}</Button>
+          <Button variant="secondary" icon={icons.space} href={team.manageUrl}>{t('teams.manage')}</Button>
         {/if}
-        <Button variant="outline" icon={icons.settings} onclick={() => openSettings()}>
+        <Button variant="secondary" icon={icons.settings} onclick={() => openSettings()}>
           {t('teams.settings')}
         </Button>
       {/if}

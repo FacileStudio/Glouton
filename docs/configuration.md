@@ -42,7 +42,6 @@ All optional, but cross-validated by a `superRefine` on the schema:
 | `OIDC_CLIENT_SECRET` | with issuer | — | Authentik client secret |
 | `OIDC_REDIRECT_URL` | no | `${DOMAIN}/auth/oidc/callback` | Must match the callback registered in Authentik |
 | `OIDC_SUCCESS_URL` | no | `${DOMAIN}/auth/callback` | Where the backend redirects with `#token=…` |
-| `APP_VERSION` | no | `dev` | Served by `GET /version`. Set it at release time (compose build arg and env) |
 
 The same variables configure delegated access for agents. With `OIDC_ISSUER` and
 `OIDC_CLIENT_ID` set, the backend also accepts Registre token-exchange tokens whose `aud` is

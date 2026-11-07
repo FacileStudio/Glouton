@@ -219,7 +219,7 @@
 
       <SettingsSection title={t('settings.smtp.title')} description={t('settings.smtp.description')}>
         {#snippet actions()}
-          <Button variant="outline" onclick={handleTestSmtpConfig} disabled={testingSmtp || saving}>
+          <Button variant="secondary" onclick={handleTestSmtpConfig} disabled={testingSmtp || saving}>
             <iconify-icon icon="solar:test-tube-linear" width="16" height="16" class="block"></iconify-icon>
             {testingSmtp ? t('settings.smtp.testing') : t('settings.smtp.test')}
           </Button>
@@ -301,7 +301,7 @@
     {:else if id === 'advanced'}
       <DangerZone>
         <SettingsRow label={t('settings.delete.label')} description={t('settings.delete.description')}>
-          <Button variant="danger" icon={icons.remove} onclick={openDeleteModal} disabled={deleting}>
+          <Button variant="ghost-danger" icon={icons.remove} onclick={openDeleteModal} disabled={deleting}>
             {deleting ? t('settings.delete.deleting') : t('settings.delete.label')}
           </Button>
         </SettingsRow>
@@ -321,7 +321,7 @@
     <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
       <Button variant="ghost" onclick={() => (deleteModalOpen = false)}>{t('common.cancel')}</Button>
       <Button
-        variant="danger"
+        variant="ghost-danger"
         onclick={confirmDeleteAccount}
         disabled={deleteConfirmationText !== 'DELETE' || deleting}
       >

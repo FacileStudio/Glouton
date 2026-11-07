@@ -229,7 +229,7 @@
   >
     {#snippet actions()}
       <Button
-        variant="outline"
+        variant="secondary"
         icon={scraping ? undefined : icons.refresh}
         onclick={triggerScrape}
         disabled={scraping}
@@ -266,28 +266,28 @@
   <div class="flex flex-wrap items-center gap-3">
     <div class="flex flex-wrap items-center gap-1.5">
       <Button
-        variant={countryFilter === 'ALL' ? 'primary' : 'outline'}
+        variant={countryFilter === 'ALL' ? 'primary' : 'secondary'}
         size="sm"
         onclick={() => { countryFilter = 'ALL'; }}
       >
         {t('common.all')}
       </Button>
       <Button
-        variant={countryFilter === 'FR' ? 'primary' : 'outline'}
+        variant={countryFilter === 'FR' ? 'primary' : 'secondary'}
         size="sm"
         onclick={() => { countryFilter = 'FR'; }}
       >
         {t('creations.filterFr')}
       </Button>
       <Button
-        variant={countryFilter === 'GB' ? 'primary' : 'outline'}
+        variant={countryFilter === 'GB' ? 'primary' : 'secondary'}
         size="sm"
         onclick={() => { countryFilter = 'GB'; }}
       >
         {t('creations.filterGb')}
       </Button>
       <Button
-        variant={countryFilter === 'DE' ? 'primary' : 'outline'}
+        variant={countryFilter === 'DE' ? 'primary' : 'secondary'}
         size="sm"
         onclick={() => { countryFilter = 'DE'; }}
       >
@@ -333,7 +333,7 @@
       title={t('creations.none')}
       description={t('creations.noneText')}
     >
-      <Button variant="outline" onclick={triggerScrape} disabled={scraping}>
+      <Button variant="secondary" onclick={triggerScrape} disabled={scraping}>
         {t('creations.refresh')}
       </Button>
     </EmptyState>
@@ -437,7 +437,7 @@
               {/if}
               {#if creation.convertedLeadId}
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
                   href={`/app/leads/${creation.convertedLeadId}`}
                   icon="solar:check-circle-linear"
@@ -467,6 +467,7 @@
     {#if totalPages > 1}
       <div class="flex items-center justify-center gap-2 pt-4">
         <IconButton
+          variant="secondary"
           aria-label={t('leads.pagination.prev')}
           onclick={() => { page = Math.max(1, page - 1); loadData(); }}
           disabled={page === 1}
@@ -475,6 +476,7 @@
         </IconButton>
         <span class="text-fc-sm text-fc-fg-muted">{t('creations.pageOf', { page, pages: totalPages })}</span>
         <IconButton
+          variant="secondary"
           aria-label={t('leads.pagination.next')}
           onclick={() => { page = Math.min(totalPages, page + 1); loadData(); }}
           disabled={page === totalPages}

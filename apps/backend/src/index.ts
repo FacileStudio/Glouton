@@ -28,6 +28,7 @@ import { applySnapshot, buildImport, startDirectorySync } from './services/regis
 import { registreIssuer, registreKeys } from './services/oidc';
 import { delegatedVerifierFromEnv } from './services/delegated';
 import env from './env';
+import { readVersion } from './services/version';
 import config from './config';
 
 const { jobs } = config;
@@ -196,7 +197,7 @@ app.get('/docs', apiReference({ url: '/docs/openapi.json', pageTitle: 'Glouton A
 app.get('/health/live', createLivenessHandler());
 app.get('/health/ready', createReadinessHandler({ prisma }));
 
-app.get('/version', (c) => c.json({ version: process.env.APP_VERSION ?? 'dev' }));
+app.get('/version', (c) => c.json({ version: readVersion() }));
 
 app.get('/ws', wsHandler);
 

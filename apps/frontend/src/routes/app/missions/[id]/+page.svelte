@@ -159,7 +159,7 @@
       title={t('missions.detail.notFound')}
       description={t('missions.detail.notFoundText')}
     >
-      <Button href="/app/missions" variant="outline">{t('missions.detail.seeAll')}</Button>
+      <Button href="/app/missions" variant="secondary">{t('missions.detail.seeAll')}</Button>
     </EmptyState>
   {:else}
     <Card class="flex flex-col gap-4 p-6">
