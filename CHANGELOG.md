@@ -11,6 +11,7 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-11-07
 ### Added
 
 - GDPR erasure. Glouton polls Registre's `GET /api/directory/deletions` every five minutes (a TypeScript port of porte/directory v0.3.0: persisted cursor, one-minute overlap, 60-day record of handled subjects, paging by 1000) and accepts Registre's signed push at `POST /api/registre/deletions` (RS256 `secevent+jwt` verified against Registre's JWKS). A deleted person loses their account, identities, tokens, personal leads, contacts and hunts, and their plan entitlement. Rows they authored inside a team are handed to a banned "deleted user" row, so the team keeps its data. A second call is a no-op. Register `https://glouton.facile.studio/api/registre/deletions` as Glouton's `deletion_uri` in Registre.
@@ -19,6 +20,10 @@ in the root `package.json`.
 - The UI is available in French, English, Spanish and German for the landing page, sign-in, callback, error pages, navigation and the paywall. Spanish and German need native review.
 - `.github/workflows/ci.yml`: typecheck, lint, tests against Postgres, build, and filet.
 - Migration `023_registre_only_sign_in.sql`: `User.locale` and the `DeletionState` table.
+
+### Security
+
+- A session token stops verifying as soon as its user row is gone, so an erased person's JWT (7-day lifetime) no longer works on tRPC, the agent API or the WebSocket.
 
 ### Changed
 
