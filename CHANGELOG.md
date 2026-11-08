@@ -11,6 +11,8 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+## [0.14.2] - 2026-11-08
+
 ### Fixed
 
 - The frontend image installs `@repo/websearch` again, which `@repo/webhooks` now depends on. Without it the v0.14.1 image build failed at `bun install`, so v0.14.1 never deployed; this release ships its security fix.
