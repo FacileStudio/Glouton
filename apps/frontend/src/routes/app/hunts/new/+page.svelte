@@ -1,12 +1,11 @@
 <script lang="ts">
+  import { QUIET } from '@repo/trpc-client';
   import { getErrorMessage } from '$lib/utils/trpc-error';
   import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
   import { trpc } from '$lib/trpc';
-  import type { RouterInputs } from '@repo/trpc-client';
-
-  type BusinessCategory = RouterInputs['lead']['hunt']['startLocalBusiness']['categories'][number];
-  import { toast, PageHeader, Button, Card, Field, Input, Select, Spinner, Icon } from '@facile/muse';
+  import { CATEGORIES, FREQUENCIES, limitFrom, type BusinessCategory, type Frequency } from '$lib/components/schedules/labels';
+  import { toast, PageHeader, Button, Card, Field, Input, PlanLimit, Select, Spinner, Icon, type PlanLimitError } from '@facile/muse';
   import LocationPickerMap from '$lib/components/LocationPickerMap.svelte';
   import { teamContextStore } from '$lib/stores/team-context.svelte';
   import { useT } from '$lib/i18n';
@@ -19,6 +18,8 @@
   let showMap = $state(false);
 
   let loading = $state(false);
+  let repeat = $state<Frequency | 'none'>('none');
+  let limit = $state<PlanLimitError | null>(null);
   let loadingLocation = $state(false);
   let userLocation = $state<{ city?: string; country?: string; countryCode?: string; state?: string} | null>(null);
 
@@ -34,18 +35,7 @@
     },
   });
 
-  const businessCategories = $derived<{ value: BusinessCategory; label: string; icon: string }[]>([
-    { value: 'restaurant', label: t('hunts.cat.restaurant'), icon: 'solar:chef-hat-linear' },
-    { value: 'retail', label: t('hunts.cat.retail'), icon: 'solar:shop-linear' },
-    { value: 'service', label: t('hunts.cat.service'), icon: 'solar:case-round-linear' },
-    { value: 'healthcare', label: t('hunts.cat.healthcare'), icon: 'solar:heart-linear' },
-    { value: 'fitness', label: t('hunts.cat.fitness'), icon: 'solar:dumbbell-linear' },
-    { value: 'beauty', label: t('hunts.cat.beauty'), icon: 'solar:scissors-linear' },
-    { value: 'automotive', label: t('hunts.cat.automotive'), icon: 'solar:wheel-linear' },
-    { value: 'professional-services', label: t('hunts.cat.professional'), icon: 'solar:user-id-linear' },
-    { value: 'hotel', label: t('hunts.cat.hotel'), icon: 'solar:bed-linear' },
-    { value: 'education', label: t('hunts.cat.education'), icon: 'solar:book-linear' },
-  ]);
+  const businessCategories = $derived(CATEGORIES.map((category) => ({ ...category, label: t(category.label) })));
 
   async function detectLocationFromGPS() {
     if (!navigator.geolocation) {
@@ -176,20 +166,29 @@
         ? `${localBusinessFilters.location.city}${localBusinessFilters.location.country ? ', ' + localBusinessFilters.location.country : ''}`
         : `${localBusinessFilters.location.coordinates?.lat},${localBusinessFilters.location.coordinates?.lng}`;
 
-      const result = await trpc.lead.hunt.startLocalBusiness.mutate({
+      const filters = {
         teamId,
         location: locationString,
         categories: localBusinessFilters.categories,
         hasWebsite: localBusinessFilters.hasWebsite === 'with' ? true : localBusinessFilters.hasWebsite === 'without' ? false : undefined,
         radius: localBusinessFilters.radius * 1000,
         maxResults: localBusinessFilters.maxResults,
-      });
+      };
+      const result =
+        repeat === 'none'
+          ? await trpc.lead.hunt.startLocalBusiness.mutate(filters)
+          : await trpc.huntSchedule.create.mutate({ ...filters, frequency: repeat, runNow: true }, { context: QUIET });
 
       const huntSessionId = result?.huntSessionId;
       const categoryCount = localBusinessFilters.categories.length;
       toast.success(t(categoryCount > 1 ? 'hunts.new.startedMany' : 'hunts.new.startedOne', { count: categoryCount }));
       await goto(huntSessionId ? resolve('/app/hunts/[id]', { id: huntSessionId }) : resolve('/app/hunts'));
     } catch (error) {
+      limit = limitFrom(error);
+      if (limit) {
+        loading = false;
+        return;
+      }
       const errorMessage = getErrorMessage(error, t('hunts.new.startFailed'));
       toast.danger(errorMessage);
       console.error('Error starting local business hunt:', error);
@@ -331,6 +330,15 @@
         <option value="50">50 km</option>
       </Select>
     </Field>
+
+    <Field label={t('schedules.repeat')} helper={t('schedules.repeat.hint')}>
+      <Select value={repeat} onchange={(e) => (repeat = e.currentTarget.value as Frequency | 'none')}>
+        <option value="none">{t('schedules.repeat.none')}</option>
+        {#each FREQUENCIES as frequency (frequency)}
+          <option value={frequency}>{t(`schedules.freq.${frequency}`)}</option>
+        {/each}
+      </Select>
+    </Field>
   </div>
 
   <div class="pt-6">
@@ -350,3 +358,5 @@
     </Button>
   </div>
 </Card>
+
+<PlanLimit error={limit} variant="dialog" onClose={() => (limit = null)} />

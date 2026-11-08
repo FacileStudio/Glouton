@@ -180,7 +180,8 @@ export function nextActionPrompt(contact: ContactContext, sender: Sender): strin
   ].join('\n\n');
 }
 
-function jsonObject(raw: string): Record<string, unknown> | null {
+/** The first JSON object in a model answer, fenced or not, or null. */
+export function jsonObject(raw: string): Record<string, unknown> | null {
   const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/i)?.[1];
   const candidate = (fenced ?? raw).trim();
   const start = candidate.indexOf('{');

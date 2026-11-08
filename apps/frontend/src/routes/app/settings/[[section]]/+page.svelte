@@ -2,6 +2,7 @@
   import { getErrorMessage } from '$lib/utils/trpc-error';
   import authStore from '$lib/auth-store';
   import MailTransportSettings from '$lib/components/MailTransportSettings.svelte';
+  import ProspectProfileSettings from '$lib/components/schedules/ProspectProfileSettings.svelte';
   import { trpc } from '$lib/trpc';
   import { useT } from '$lib/i18n';
   import { QUIET } from '@repo/trpc-client';
@@ -86,6 +87,7 @@
     { id: 'profile', label: i18n.t('settings.profile.title'), icon: icons.userCircle, href: '/app/settings/profile' },
     { id: 'preferences', label: i18n.t('settings.preferences.title'), icon: icons.settings, href: '/app/settings/preferences' },
     { id: 'mail', label: t('settings.mail.nav'), icon: icons.mail, href: '/app/settings/mail' },
+    { id: 'prospecting', label: t('settings.prospecting.nav'), icon: 'solar:target-linear', href: '/app/settings/prospecting' },
     { id: 'subscription', label: i18n.t('settings.subscription.title'), icon: icons.card, href: '/app/settings/subscription' },
     { id: 'advanced', label: t('settings.advanced.nav'), icon: icons.shield, href: '/app/settings/advanced' },
   ]);
@@ -284,6 +286,8 @@
           </div>
         </SettingsRow>
       </SettingsSection>
+    {:else if id === 'prospecting'}
+      <ProspectProfileSettings />
     {:else if id === 'subscription'}
       <SubscriptionSection
         plan={plan?.allowed ? plan.plans.join(' / ') : t('settings.subscription.none')}

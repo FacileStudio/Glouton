@@ -8,6 +8,8 @@ export const WEBHOOK_EVENTS = {
   'opportunity.new': 'Nouvelles missions freelance',
   'hunt.completed': 'Chasse terminée',
   'hunt.failed': 'Chasse échouée',
+  'hunt.digest': 'Nouveaux prospects d\'une chasse automatique',
+  'hunt.schedule_paused': 'Chasse automatique mise en pause',
   'audit.completed': 'Audit de site terminé',
   'competitor.changes': 'Veille concurrents : changements du jour',
   'team.member_added': 'Membre ajouté à l\'équipe',

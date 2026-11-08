@@ -54,6 +54,8 @@ model User {
   activities                    Activity[]
   suggestions                   Suggestion[]
   competitors                   Competitor[]
+  prospectProfiles              TeamProspectProfile[]
+  huntSchedules                 HuntSchedule[]
 
   @@index([status])
   @@index([isBanned])
