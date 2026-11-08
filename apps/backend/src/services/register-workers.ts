@@ -1,6 +1,6 @@
 import type { JobDefinition, QueueManager, ScopeGate } from '@repo/jobs';
 import type { PrismaClient } from '@prisma/client';
-import { createWorkers } from '@repo/jobs/workers';
+import { createWorkers, redisWebSearch } from '@repo/jobs/workers';
 import { events } from './events';
 import { logger } from '@repo/logger';
 import type { CourrierClient } from '@repo/courrier';
@@ -64,7 +64,14 @@ export function registerWorkers(
   courrier: CourrierClient | null = null
 ) {
   const allowed = forfait.jobGate(forfait.dbForfait(prisma, env.OIDC_ISSUER));
-  const workers = createWorkers(events, { courrier, allowed });
+  const websearch = redisWebSearch({
+    host: env.REDIS_HOST,
+    port: env.REDIS_PORT,
+    password: env.REDIS_PASSWORD,
+    db: env.REDIS_DB,
+    maxRetriesPerRequest: null,
+  });
+  const workers = createWorkers(events, { courrier, allowed, websearch });
 
   const skipped = markSkipped(prisma);
   queueManager.registerWorker('local-business-hunt', scopeGuarded(workers['local-business-hunt'], allowed, skipped));
@@ -74,6 +81,7 @@ export function registerWorkers(
   queueManager.registerWorker('company-creation', workers['company-creation']);
   queueManager.registerWorker('courrier-reply-sync', workers['courrier-reply-sync']);
   queueManager.registerWorker('courrier-contacts-import', workers['courrier-contacts-import']);
+  queueManager.registerWorker('competitor-watch', workers['competitor-watch']);
   logger.info(`[WORKERS] Registered ${Object.keys(workers).join(', ')} workers`);
 
   const sync = ardoise.ardoiseDeps(prisma, env, queueManager, logger);

@@ -21,8 +21,11 @@ export const GLOUTON_ACCESS: Feature = { key: 'glouton.access', kind: 'bool', de
 /** The assistant: Bulle gates its model proxy on it. Glouton only reports it. */
 export const AI_ACCESS: Feature = { key: 'ai.access', kind: 'bool', default: false };
 
+/** Competitor pages a scope may watch for changes, across all its competitors. */
+export const WATCHED_PAGES: Feature = { key: 'glouton.watched_pages', kind: 'limit', default: 10 };
+
 /** Every feature Glouton enforces. */
-export const FEATURES: readonly Feature[] = [GLOUTON_ACCESS];
+export const FEATURES: readonly Feature[] = [GLOUTON_ACCESS, WATCHED_PAGES];
 
 /** The entitlement key format shared across the suite. */
 export const KEY_PATTERN = /^[a-z0-9_]+\.[a-z0-9_]+$/;

@@ -22,6 +22,8 @@
   import { useFormat, useT } from '$lib/i18n';
   import Battlecard from '$lib/components/competitors/Battlecard.svelte';
   import BattlecardForm from '$lib/components/competitors/BattlecardForm.svelte';
+  import WatchPanel from '$lib/components/competitors/WatchPanel.svelte';
+  import ChangeTimeline from '$lib/components/competitors/ChangeTimeline.svelte';
   import { SMALL_SAMPLE, leadName, ratePercent, type CompetitorCard } from '$lib/components/competitors/labels';
 
   const t = useT();
@@ -35,6 +37,7 @@
   let loading = $state(true);
   let editing = $state(false);
   let confirmDelete = $state(false);
+  let timelineKey = $state(0);
   async function load() {
     loading = true;
     try {
@@ -154,6 +157,11 @@
         </Card>
       {/if}
     {/if}
+
+    <div class="flex flex-col gap-4">
+      <WatchPanel {competitorId} {teamId} domain={card.domain} onChanged={() => timelineKey++} />
+      {#key timelineKey}<ChangeTimeline {competitorId} {teamId} />{/key}
+    </div>
 
     {#if card.lossReasons.length > 0}
       <Card class="flex flex-col gap-3">

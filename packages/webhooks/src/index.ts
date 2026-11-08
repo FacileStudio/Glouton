@@ -9,6 +9,7 @@ export const WEBHOOK_EVENTS = {
   'hunt.completed': 'Chasse terminée',
   'hunt.failed': 'Chasse échouée',
   'audit.completed': 'Audit de site terminé',
+  'competitor.changes': 'Veille concurrents : changements du jour',
   'team.member_added': 'Membre ajouté à l\'équipe',
   'team.member_removed': 'Membre retiré de l\'équipe',
 } as const;

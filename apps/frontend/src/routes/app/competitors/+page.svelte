@@ -4,6 +4,7 @@
   import { onMount } from 'svelte';
   import { SvelteSet } from 'svelte/reactivity';
   import { Badge, Button, Card, Checkbox, EmptyState, Field, Input, Modal, PageHeader, Select, Spinner, Textarea, toast } from '@facile/muse';
+  import { QUIET } from '@repo/trpc-client';
   import { trpc } from '$lib/trpc';
   import { teamContextStore } from '$lib/stores/team-context.svelte';
   import { getTrpcErrorMessage } from '$lib/utils/trpc-error';
@@ -19,6 +20,7 @@
   let q = $state('');
   let tag = $state('');
   let loading = $state(true);
+  let unseen = $state<Record<string, number>>({});
   const selected = new SvelteSet<string>();
 
   let addOpen = $state(false);
@@ -35,6 +37,7 @@
       const res = await trpc.competitor.list.query({ teamId, q: q.trim() || undefined, tag: tag || undefined });
       items = res.items;
       tags = res.tags;
+      unseen = await trpc.competitorWatch.unseenCounts.query({ teamId }, { context: QUIET }).catch(() => ({}));
     } catch (error) {
       toast.danger(getTrpcErrorMessage(error));
     } finally {
@@ -145,6 +148,9 @@
             <div class="flex flex-wrap items-center gap-1.5">
               {#if c.status === 'ARCHIVED'}<Badge class="shrink-0">{t('competitors.status.ARCHIVED')}</Badge>{/if}
               {#each c.tags as name (name)}<Badge tone="info" class="shrink-0">{name}</Badge>{/each}
+              {#if unseen[c.id]}
+                <Badge tone="warning" class="shrink-0" aria-label={t('watch.badgeLabel', { count: unseen[c.id] })}>{t('watch.badge', { count: unseen[c.id] })}</Badge>
+              {/if}
               <WinRateBadge rate={c.winRate} />
             </div>
           </a>
