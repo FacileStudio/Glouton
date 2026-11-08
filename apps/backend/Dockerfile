@@ -1,15 +1,10 @@
 FROM oven/bun:1.3.7-alpine AS base
 
-FROM alpine:3.21 AS sonar
+FROM golang:1.27.1-alpine3.23 AS sonar
 ARG SONAR_VERSION=0.14.1
-WORKDIR /tmp/sonar
-RUN set -eu; \
-    asset="sonar_${SONAR_VERSION}_linux_amd64.tar.gz"; \
-    base="https://github.com/FacileStudio/sonar/releases/download/v${SONAR_VERSION}"; \
-    wget -q "$base/$asset" "$base/checksums.txt"; \
-    grep " $asset\$" checksums.txt | sha256sum -c -; \
-    tar -xzf "$asset" sonar; \
-    install -m 0755 sonar /usr/local/bin/sonar
+RUN CGO_ENABLED=0 GOFLAGS=-trimpath go install \
+    -ldflags "-s -w -X github.com/FacileStudio/sonar/cmd.version=${SONAR_VERSION}" \
+    "github.com/FacileStudio/sonar@v${SONAR_VERSION}"
 
 FROM base AS deps
 WORKDIR /app
@@ -64,7 +59,7 @@ RUN apk add --no-cache chromium \
 ENV HOME=/home/backend
 ENV SONAR_CONFIG=/etc/sonar.yml
 ENV SONAR_FETCH_PUBLIC_ONLY=1
-COPY --from=sonar /usr/local/bin/sonar /usr/local/bin/sonar
+COPY --from=sonar /go/bin/sonar /usr/local/bin/sonar
 COPY apps/backend/sonar.yml /etc/sonar.yml
 
 COPY --from=builder --chown=backend:nodejs /app/apps/backend ./apps/backend
