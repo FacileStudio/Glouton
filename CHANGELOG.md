@@ -11,6 +11,8 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+## [0.14.1] - 2026-11-08
+
 ### Security
 
 - Team webhooks can no longer make the backend reach internal addresses (SSRF). Create, update, "Send a test" and every delivery now refuse URLs with credentials, `localhost`, single-label or internal names (`.local`, `.internal`, `.lan`, ...), and loopback, private, link-local, CGNAT, ULA, multicast and reserved IPv4/IPv6 addresses.
