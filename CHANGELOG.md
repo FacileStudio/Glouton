@@ -11,6 +11,8 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-11-08
+
 ### Added
 
 - Competitors (`/app/competitors`), per space with the same scoping and access checks as leads. Each competitor has a one-page battlecard: overview, why we win, why we lose, objection handling (objection, response, proof), landmines as questions to ask, pricing and proof points, plus website, area, NAF codes, tags, notes and an archived status. The list searches by name, domain, area or tag and filters by tag.
