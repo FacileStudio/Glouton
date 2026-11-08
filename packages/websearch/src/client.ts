@@ -13,6 +13,7 @@ import {
   type SearchResult,
   type Usage,
 } from './types';
+import { resolvePublicAddress, UnsafeUrlError, type Resolver } from './url-guard';
 
 export interface WebSearchConfig {
   store: KeyValueStore;
@@ -25,6 +26,7 @@ export interface WebSearchConfig {
   searchTtlSeconds?: number;
   fetchTtlSeconds?: number;
   now?: () => Date;
+  resolve?: Resolver;
 }
 
 export interface WebSearch {
@@ -38,6 +40,15 @@ const HOUR = 3600;
 function cacheKey(kind: string, parts: unknown): string {
   const digest = createHash('sha256').update(JSON.stringify(parts)).digest('hex');
   return `websearch:cache:${kind}:${digest}`;
+}
+
+async function requirePublicHosts(urls: string[], resolve: Resolver | undefined): Promise<void> {
+  try {
+    await Promise.all(urls.map((url) => resolvePublicAddress(new URL(url).hostname, resolve)));
+  } catch (error) {
+    if (error instanceof UnsafeUrlError) throw new WebSearchError('invalid_input', error.message);
+    throw error;
+  }
 }
 
 function requireTeam(teamId: string): void {
@@ -110,6 +121,7 @@ export function createWebSearch(config: WebSearchConfig): WebSearch {
       const cached = await readCache<FetchedPage[]>(key);
       if (cached) return cached;
 
+      await requirePublicHosts(urls, config.resolve);
       const release = await quota.reserve(teamId, 'fetches', urls.length);
       try {
         const timeoutMs = options.timeoutMs ?? fetchTimeout;

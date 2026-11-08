@@ -8,6 +8,7 @@ const { fetchRequestHandler } = await import('@trpc/server/adapters/fetch');
 const { appRouter, discovery, profileFor } = await import('@repo/trpc');
 const { WebSearchError } = await import('@repo/websearch');
 const { osmUrl } = await import('@repo/jobs/workers');
+const { dispatchWebhookEvent, webhookTransport } = await import('@repo/webhooks');
 
 const silent = { warn: () => {}, info: () => {}, error: () => {}, debug: () => {}, child: () => silent };
 
@@ -423,18 +424,21 @@ describe.skipIf(!databaseUrl)('team webhook settings', () => {
   const tag = crypto.randomUUID().slice(0, 8);
   const users: Record<string, User> = {};
   const ids: Record<string, string> = {};
-  let server: ReturnType<typeof Bun.serve>;
-  const received: Array<{ event: string | null; body: { event?: string } }> = [];
+  const original = { ...webhookTransport };
+  const received: Array<{ url: string; address: string; event: string | undefined; body: { event?: string } }> = [];
+  const dns: Record<string, string[]> = {
+    'antenne.facile.studio': ['2a06:98c1:3120::1', '188.114.96.1'],
+    'rebound.example.com': ['10.0.0.7'],
+  };
 
   beforeAll(async () => {
     prisma = (await import('@repo/database')).prisma;
-    server = Bun.serve({
-      port: 0,
-      fetch: async (req) => {
-        received.push({ event: req.headers.get('x-webhook-event'), body: (await req.json()) as { event?: string } });
-        return new Response('ok');
-      },
-    });
+    webhookTransport.resolve = async (host) =>
+      (dns[host] ?? []).map((address) => ({ address, family: address.includes(':') ? 6 : 4 }));
+    webhookTransport.post = async (target, address, body, headers) => {
+      received.push({ url: target.toString(), address: address.address, event: headers['X-Webhook-Event'], body: JSON.parse(body) });
+      return 200;
+    };
     for (const name of ['owner', 'admin', 'member', 'other']) {
       const row = await prisma.user.create({ data: { email: `w-${name}-${tag}@x.test`, firstName: name, lastName: 'T', password: 'x' } });
       users[name] = { id: row.id, email: row.email, role: 'USER' };
@@ -452,12 +456,12 @@ describe.skipIf(!databaseUrl)('team webhook settings', () => {
   }, 60_000);
 
   afterAll(async () => {
-    server?.stop(true);
+    Object.assign(webhookTransport, original);
     await prisma.team.deleteMany({ where: { id: { in: [ids.team!, ids.other!] } } });
     await prisma.user.deleteMany({ where: { id: { in: Object.values(users).map((u) => u.id) } } });
   }, 60_000);
 
-  const hook = () => ({ teamId: ids.team, name: 'Antenne', url: `http://127.0.0.1:${server.port}/hook`, events: ['competitor.new_registered', 'hunt.digest'] });
+  const hook = () => ({ teamId: ids.team, name: 'Antenne', url: 'https://antenne.facile.studio/webhook/glouton', events: ['competitor.new_registered', 'hunt.digest'] });
 
   test('only team admins list, add, test, change and delete webhooks', async () => {
     const gate = reader([ids.team!]);
@@ -492,7 +496,21 @@ describe.skipIf(!databaseUrl)('team webhook settings', () => {
 
     const tested = await call(prisma, 'team.testWebhook', users.admin!, gate, { teamId: ids.team, url: hook().url }, true);
     expect(tested.status).toBe(200);
-    expect(received).toEqual([{ event: 'webhook.test', body: expect.objectContaining({ event: 'webhook.test' }) }]);
+    expect(received).toEqual([
+      {
+        url: 'https://antenne.facile.studio/webhook/glouton',
+        address: '188.114.96.1',
+        event: 'webhook.test',
+        body: expect.objectContaining({ event: 'webhook.test' }),
+      },
+    ]);
+
+    received.length = 0;
+    await dispatchWebhookEvent({ event: 'hunt.digest', teamId: ids.team, data: { count: 3 } });
+    expect(received.map((row) => [row.url, row.address, row.event])).toEqual([
+      ['https://antenne.facile.studio/webhook/glouton', '188.114.96.1', 'hunt.digest'],
+    ]);
+    received.length = 0;
 
     const paused = await call(prisma, 'team.updateWebhook', users.admin!, gate, { teamId: ids.team, webhookId, enabled: false }, true);
     expect(paused.data.enabled).toBe(false);
@@ -505,5 +523,43 @@ describe.skipIf(!databaseUrl)('team webhook settings', () => {
     expect((await call(prisma, 'team.createWebhook', users.admin!, gate, { ...hook(), url: 'file:///etc/passwd' }, true)).status).toBe(400);
     expect((await call(prisma, 'team.createWebhook', users.admin!, gate, { ...hook(), events: ['nope'] }, true)).status).toBe(400);
     expect((await call(prisma, 'team.createWebhook', users.admin!, gate, { ...hook(), events: [] }, true)).status).toBe(400);
+  });
+
+  test('internal webhook addresses are refused at create, update and test send', async () => {
+    const gate = reader([ids.team!]);
+    const internal = [
+      'http://127.0.0.1:3001/hook',
+      'http://localhost/hook',
+      'http://10.0.0.5/hook',
+      'http://172.16.0.1/hook',
+      'http://192.168.1.1/hook',
+      'http://169.254.169.254/latest/meta-data',
+      'http://100.64.0.1/hook',
+      'http://[::1]/hook',
+      'http://[fd00::1]/hook',
+      'http://[fe80::1]/hook',
+      'http://glouton-redis:6379/',
+      'https://user:pw@antenne.facile.studio/webhook/glouton',
+      'https://rebound.example.com/hook',
+      'https://nowhere.example.com/hook',
+    ];
+    for (const url of internal) {
+      const created = await call(prisma, 'team.createWebhook', users.admin!, gate, { ...hook(), url }, true);
+      expect({ url, status: created.status }).toEqual({ url, status: 400 });
+      const tested = await call(prisma, 'team.testWebhook', users.admin!, gate, { teamId: ids.team, url }, true);
+      expect({ url, status: tested.status }).toEqual({ url, status: 400 });
+    }
+    expect(received).toHaveLength(0);
+
+    const created = await call(prisma, 'team.createWebhook', users.admin!, gate, hook(), true);
+    expect(created.status).toBe(200);
+    const moved = await call(prisma, 'team.updateWebhook', users.admin!, gate, { teamId: ids.team, webhookId: created.data.id, url: 'https://rebound.example.com/hook' }, true);
+    expect(moved.status).toBe(400);
+    expect((await prisma.teamWebhook.findUnique({ where: { id: created.data.id } }))?.url).toBe('https://antenne.facile.studio/webhook/glouton');
+
+    await prisma.teamWebhook.update({ where: { id: created.data.id }, data: { url: 'https://rebound.example.com/hook' } });
+    await dispatchWebhookEvent({ event: 'hunt.digest', teamId: ids.team, data: {} });
+    expect(received).toHaveLength(0);
+    await prisma.teamWebhook.delete({ where: { id: created.data.id } });
   });
 });

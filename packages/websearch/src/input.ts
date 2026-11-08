@@ -1,5 +1,5 @@
-import { isIP } from 'node:net';
 import { WebSearchError } from './types';
+import { checkPublicUrl, UnsafeUrlError } from './url-guard';
 
 const MAX_QUERY_LENGTH = 400;
 const MAX_URLS = 5;
@@ -37,58 +37,16 @@ export function cleanSelector(selector: string | undefined): string | undefined 
   return selector;
 }
 
-function isPrivateIPv4(host: string): boolean {
-  const [a, b] = host.split('.').map(Number);
-  return (
-    a === 0 ||
-    a === 10 ||
-    a === 127 ||
-    (a === 100 && b >= 64 && b <= 127) ||
-    (a === 169 && b === 254) ||
-    (a === 172 && b >= 16 && b <= 31) ||
-    (a === 192 && b === 168) ||
-    a >= 224
-  );
-}
-
-function isInternalHost(hostname: string): boolean {
-  const host = hostname.replace(/^\[|\]$/g, '').toLowerCase();
-  const family = isIP(host);
-  if (family === 4) return isPrivateIPv4(host);
-  if (family === 6) {
-    return (
-      host === '::1' ||
-      host === '::' ||
-      host.startsWith('fc') ||
-      host.startsWith('fd') ||
-      host.startsWith('fe80') ||
-      host.startsWith('::ffff:')
-    );
-  }
-  if (!host.includes('.')) return true;
-  return host.endsWith('.local') || host.endsWith('.internal') || host.endsWith('.localhost');
-}
-
 export function cleanUrls(urls: string[]): string[] {
   if (urls.length === 0 || urls.length > MAX_URLS) {
     throw new WebSearchError('invalid_input', `provide 1 to ${MAX_URLS} urls`);
   }
   return urls.map((raw) => {
-    let parsed: URL;
     try {
-      parsed = new URL(raw.trim());
-    } catch {
-      throw new WebSearchError('invalid_input', 'invalid url');
+      return checkPublicUrl(raw).toString();
+    } catch (error) {
+      if (error instanceof UnsafeUrlError) throw new WebSearchError('invalid_input', error.message);
+      throw error;
     }
-    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-      throw new WebSearchError('invalid_input', 'only http and https urls are allowed');
-    }
-    if (parsed.username || parsed.password) {
-      throw new WebSearchError('invalid_input', 'urls with credentials are not allowed');
-    }
-    if (isInternalHost(parsed.hostname)) {
-      throw new WebSearchError('invalid_input', 'internal hosts are not allowed');
-    }
-    return parsed.toString();
   });
 }

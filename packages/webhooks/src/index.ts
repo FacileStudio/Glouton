@@ -1,4 +1,14 @@
+import { request as httpRequest, type IncomingMessage, type RequestOptions } from 'node:http';
+import { request as httpsRequest } from 'node:https';
+import type { LookupFunction } from 'node:net';
 import { prisma } from '@repo/database';
+import {
+  checkPublicUrl,
+  resolvePublicAddress,
+  systemResolver,
+  type ResolvedAddress,
+  type Resolver,
+} from '@repo/websearch';
 
 /**
  * Catalog of events a team can subscribe to. Keys are stored in
@@ -61,7 +71,7 @@ export async function dispatchWebhookEvent(options: {
 
     if (webhooks.length === 0) return;
 
-    await Promise.allSettled(
+    const results = await Promise.allSettled(
       webhooks.map((webhook) =>
         sendWebhook(webhook.url, {
           app: APP_NAME,
@@ -72,35 +82,98 @@ export async function dispatchWebhookEvent(options: {
         })
       )
     );
+    results.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        console.error(`[Webhooks] ${event} to webhook ${webhooks[index].id} failed:`, result.reason?.message);
+      }
+    });
   } catch (err: any) {
     console.error(`[Webhooks] Dispatch failed for ${event}:`, err?.message);
   }
 }
 
 /**
+ * Network seam for webhook delivery. Production uses the system resolver and
+ * a pinned node:http(s) request; tests swap these to observe deliveries
+ * without opening the guard.
+ */
+export const webhookTransport: { resolve: Resolver; post: typeof postPinned } = {
+  resolve: systemResolver,
+  post: postPinned,
+};
+
+/**
+ * Checks a webhook URL the way a delivery will: the shared public-URL guard,
+ * then a DNS resolution where every address must be public. Returns the
+ * parsed URL and the checked address to connect to.
+ */
+export async function checkWebhookUrl(url: string): Promise<{ target: URL; address: ResolvedAddress }> {
+  const target = checkPublicUrl(url);
+  const address = await resolvePublicAddress(target.hostname, webhookTransport.resolve);
+  return { target, address };
+}
+
+/**
  * POST a payload to a webhook URL. Used by the dispatcher and by the
  * "send a test" action in team settings (which is allowed to throw so the
  * UI can show the failure).
+ *
+ * The URL is checked with `checkWebhookUrl` at every delivery and the
+ * connection is pinned to the checked address, so a DNS rebind cannot send
+ * it elsewhere. Redirects are never followed.
  */
 export async function sendWebhook(url: string, payload: WebhookPayload): Promise<void> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), SEND_TIMEOUT_MS);
+  const { target, address } = await checkWebhookUrl(url);
+  const status = await webhookTransport.post(target, address, JSON.stringify(payload), {
+    'Content-Type': 'application/json',
+    'User-Agent': `${APP_NAME}-webhooks/1.0`,
+    'X-Webhook-Event': payload.event,
+  });
+  if (status >= 300 && status < 400) throw new Error(`redirects are not followed (HTTP ${status})`);
+  if (status < 200 || status >= 300) throw new Error(`HTTP ${status}`);
+}
 
-  try {
-    const res = await fetch(url, {
-      method: 'POST',
-      signal: controller.signal,
-      headers: {
-        'Content-Type': 'application/json',
-        'User-Agent': `${APP_NAME}-webhooks/1.0`,
-        'X-Webhook-Event': payload.event,
-      },
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}`);
+/**
+ * POSTs a body to `target` over a socket opened to `address` only. The Host
+ * header and TLS server name stay the URL's hostname. Resolves with the
+ * response status; never follows redirects.
+ */
+export function postPinned(
+  target: URL,
+  address: ResolvedAddress,
+  body: string,
+  headers: Record<string, string>,
+  timeoutMs: number = SEND_TIMEOUT_MS
+): Promise<number> {
+  const lookup: LookupFunction = (_hostname, options, callback) => {
+    if (options?.all) {
+      (callback as unknown as (err: null, list: ResolvedAddress[]) => void)(null, [address]);
+    } else {
+      callback(null, address.address, address.family);
     }
-  } finally {
-    clearTimeout(timeout);
-  }
+  };
+  const requestOptions: RequestOptions = {
+    method: 'POST',
+    protocol: target.protocol,
+    hostname: target.hostname.replace(/^\[|\]$/g, ''),
+    port: target.port || (target.protocol === 'https:' ? 443 : 80),
+    path: `${target.pathname}${target.search}`,
+    headers: { ...headers, 'Content-Length': String(Buffer.byteLength(body)) },
+    lookup,
+  };
+  const send = target.protocol === 'https:' ? httpsRequest : httpRequest;
+
+  return new Promise((resolve, reject) => {
+    const req = send(requestOptions, (res: IncomingMessage) => {
+      clearTimeout(timer);
+      res.resume();
+      resolve(res.statusCode ?? 0);
+    });
+    const timer = setTimeout(() => req.destroy(new Error('timeout')), timeoutMs);
+    req.on('error', (error) => {
+      clearTimeout(timer);
+      reject(error);
+    });
+    req.end(body);
+  });
 }

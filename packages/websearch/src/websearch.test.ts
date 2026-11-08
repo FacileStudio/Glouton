@@ -54,6 +54,7 @@ function client(env: Record<string, string> = {}, extra: Record<string, unknown>
     bin: 'sonar',
     env: { PATH: `${dir}:${process.env.PATH}`, FAKE_LOG: log, ...env },
     limits: { searches: 2, fetches: 3 },
+    resolve: async () => [{ address: '93.184.215.14', family: 4 }],
     ...extra,
   });
   return { store, ws };
@@ -183,6 +184,14 @@ describe('fetch', () => {
     ]) {
       expect(await codeOf(ws.fetch('t', [url]))).toBe('invalid_input');
     }
+  });
+
+  it('refuses a public name that resolves to an internal address, before any quota or run', async () => {
+    const { ws } = client({}, { resolve: async () => [{ address: '127.0.0.1', family: 4 }] });
+    writeFileSync(log, '');
+    expect(await codeOf(ws.fetch('t', ['https://127.0.0.1.nip.io/']))).toBe('invalid_input');
+    expect((await ws.usage('t')).fetches).toBe(0);
+    expect(readFileSync(log, 'utf8')).toBe('');
   });
 });
 

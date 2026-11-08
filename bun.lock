@@ -321,6 +321,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@repo/database": "workspace:*",
+        "@repo/websearch": "workspace:*",
       },
       "devDependencies": {
         "@repo/tsconfig": "workspace:*",
