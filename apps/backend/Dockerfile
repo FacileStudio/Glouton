@@ -1,7 +1,7 @@
 FROM oven/bun:1.3.7-alpine AS base
 
 FROM alpine:3.21 AS sonar
-ARG SONAR_VERSION=0.14.0
+ARG SONAR_VERSION=0.14.1
 WORKDIR /tmp/sonar
 RUN set -eu; \
     asset="sonar_${SONAR_VERSION}_linux_amd64.tar.gz"; \
