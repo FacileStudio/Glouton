@@ -11,6 +11,8 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-11-08
+
 ### Added
 
 - "AI draft" on a competitor card: Glouton fetches the competitor's homepage and up to two pricing or offer pages (watched ones first, then links found on the homepage) through websearch, which counts against the daily fetch quota, and asks Bulle for a battlecard in the existing fields (overview, why we win, why we lose, objections, landmines, pricing, proof points) in the interface language. The proposal is shown field by field: Accept saves that field only (a list keeps your items and adds the new ones; a text field shows the current text next to the proposal first), Discard drops it. Nothing is saved without an Accept.
