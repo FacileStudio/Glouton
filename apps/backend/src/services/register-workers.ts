@@ -1,10 +1,10 @@
 import type { JobDefinition, QueueManager, ScopeGate } from '@repo/jobs';
 import type { PrismaClient } from '@prisma/client';
-import { createWorkers, redisWebSearch } from '@repo/jobs/workers';
+import { createWorkers, osmPlaces, redisWebSearch } from '@repo/jobs/workers';
 import { events } from './events';
 import { logger } from '@repo/logger';
 import type { CourrierClient } from '@repo/courrier';
-import { ardoise, forfait, schedules } from '@repo/trpc';
+import { ardoise, discovery, forfait, schedules } from '@repo/trpc';
 import env from '../env';
 
 type ScopedJob = { userId?: unknown; teamId?: unknown; huntSessionId?: unknown; auditSessionId?: unknown };
@@ -91,6 +91,40 @@ export function settledAfter<T extends ScopedJob, R>(
   };
 }
 
+/**
+ * Wraps a worker so `after` runs once its job succeeded. A failure in
+ * `after` is logged and never fails the job.
+ */
+export function thenRun<T, R>(definition: JobDefinition<T, R>, label: string, after: () => Promise<unknown>): JobDefinition<T, R> {
+  return {
+    ...definition,
+    processor: async (job) => {
+      const result = await definition.processor(job);
+      await after().catch((error: unknown) => logger.error({ err: error }, `[${label}] Follow-up failed`));
+      return result;
+    },
+  };
+}
+
+/** The discovery worker: one run for the job's scope, recorded as failed when it throws. */
+export function discoveryWorker(deps: discovery.DiscoveryDeps): JobDefinition<discovery.DiscoveryJob, discovery.DiscoveryResult> {
+  return {
+    name: discovery.DISCOVERY_QUEUE,
+    processor: async (job) => {
+      const scope = discovery.scopeOfRow({ userId: job.data.userId, teamId: job.data.teamId ?? null });
+      try {
+        const result = await discovery.runDiscovery(deps, scope);
+        logger.info({ ...result, userId: job.data.userId, teamId: job.data.teamId, trigger: job.data.trigger }, '[DISCOVERY] Run finished');
+        return result;
+      } catch (error) {
+        await discovery.failDiscovery(deps.prisma, scope, error).catch(() => {});
+        throw error;
+      }
+    },
+    options: { concurrency: 1 },
+  };
+}
+
 export function registerWorkers(
   queueManager: QueueManager,
   prisma: PrismaClient,
@@ -107,11 +141,13 @@ export function registerWorkers(
   const workers = createWorkers(events, { courrier, allowed, websearch });
 
   const skipped = markSkipped(prisma);
+  const notify = (scope: { type: 'personal' | 'team'; userId: string; teamId?: string | null }, type: string, data: Record<string, unknown>) =>
+    events.emitToScope(scope, type, data);
   const runner: schedules.RunnerDeps = {
     prisma,
     jobs: queueManager,
     allowed,
-    notify: (scope, type, data) => events.emitToScope(scope, type, data),
+    notify,
   };
   queueManager.registerWorker(
     'local-business-hunt',
@@ -120,7 +156,24 @@ export function registerWorkers(
   queueManager.registerWorker('lead-audit', scopeGuarded(workers['lead-audit'], allowed, skipped));
   queueManager.registerWorker('csv-import', scopeGuarded(workers['csv-import'], allowed, skipped));
   queueManager.registerWorker('opportunity-scraper', workers['opportunity-scraper']);
-  queueManager.registerWorker('company-creation', workers['company-creation']);
+  const discoveryDeps: discovery.DiscoveryDeps = { prisma, web: websearch, places: osmPlaces(), notify, allowed };
+  queueManager.registerWorker(
+    'company-creation',
+    thenRun(workers['company-creation'], 'BODACC', async () => {
+      const result = await discovery.watchRegistrations(discoveryDeps);
+      if (result.created > 0) logger.info(result, '[BODACC] New registered competitors');
+    })
+  );
+  queueManager.registerWorker(discovery.DISCOVERY_QUEUE, scopeGuarded(discoveryWorker(discoveryDeps), allowed));
+  queueManager.registerWorker(discovery.DISCOVERY_TICK_QUEUE, {
+    name: discovery.DISCOVERY_TICK_QUEUE,
+    processor: async () => {
+      const result = await discovery.tick({ prisma, jobs: queueManager, allowed });
+      if (result.queued > 0) logger.info(result, '[DISCOVERY] Weekly runs queued');
+      return result;
+    },
+    options: { concurrency: 1 },
+  });
   queueManager.registerWorker('courrier-reply-sync', workers['courrier-reply-sync']);
   queueManager.registerWorker('courrier-contacts-import', workers['courrier-contacts-import']);
   queueManager.registerWorker('competitor-watch', workers['competitor-watch']);

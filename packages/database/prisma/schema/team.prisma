@@ -29,6 +29,8 @@ model Team {
   competitors        Competitor[]
   prospectProfiles   TeamProspectProfile[]
   huntSchedules      HuntSchedule[]
+  competitorSuggestions     CompetitorSuggestion[]
+  competitorDiscoveryStates CompetitorDiscoveryState[]
 }
 
 // Outgoing webhooks configured per workspace (e.g. towards Nook): the team

@@ -107,6 +107,7 @@
     if (path === '/app/contacts') return title('nav.contacts');
     if (path === '/app/inbox') return title('nav.inbox');
     if (path === '/app/competitors/compare') return title('title.compareCompetitors');
+    if (path === '/app/competitors/suggestions') return title('discovery.title');
     if (path.startsWith('/app/competitors/')) return title('title.competitor');
     if (path === '/app/competitors') return title('nav.competitors');
     if (path === '/app/creations') return title('nav.creations');
@@ -143,6 +144,18 @@
       if (!data.count) return;
       toast.info(t('watch.digestToast', { count: data.count }), {
         action: { label: t('watch.digestOpen'), onClick: () => void goto(resolve('/app/competitors')) },
+      });
+    }),
+    ws.on<{ created?: number }>('competitor-discovery:done', (data) => {
+      if (!data?.created) return;
+      toast.info(t('discovery.doneToast', { count: data.created }), {
+        action: { label: t('discovery.openSuggestions'), onClick: () => void goto(resolve('/app/competitors/suggestions')) },
+      });
+    }),
+    ws.on<{ count?: number }>('competitor:new-registered', (data) => {
+      if (!data?.count) return;
+      toast.info(t('discovery.registeredToast', { count: data.count }), {
+        action: { label: t('discovery.openSuggestions'), onClick: () => void goto(resolve('/app/competitors/suggestions')) },
       });
     }),
     ws.on<{ name?: string; newLeads?: number }>('hunt-digest', (data) =>

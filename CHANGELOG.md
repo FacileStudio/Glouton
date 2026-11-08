@@ -11,6 +11,18 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+### Added
+
+- Competitor discovery (`/app/competitors/suggestions`, also "Find competitors" on `/app/competitors`): Glouton searches from the space's prospecting profile and fills a suggestion queue. Sources: web searches through sonar (keywords and the offer with the area, plus "similar to our site" searches when the profile has a website), OpenStreetMap places of the space's own category around its area, and recent BODACC creations matching its NAF codes and area. Web searches count against the daily websearch quota; when it runs out, the run stops searching the web and goes on with the map and BODACC, and the queue says so.
+- Each suggestion shows its score and why: 15 points per agreeing source (up to 45), up to 35 for the share of profile keywords its evidence mentions (a NAF match counts as full), and 20/12/6 points within 5/15/30 km or 15 when it is in the area. The evidence lines link to their source.
+- Accept creates a competitor prefilled with the name, website, area and evidence (or links the competitor that already has that domain); "Accept all at N or more" does it in bulk; Reject keeps the row so that domain or SIREN never comes back. Suggestions are deduplicated against the space's competitors and every earlier suggestion. A "N new" badge on the Suggestions tab counts the ones nobody opened yet.
+- Weekly discovery per profile: an hourly scan (`competitor-discovery-tick`, through `QueueManager.upsertScheduler`) queues one run a week for every profile that can search, at most 6 per scan and 3 minutes apart.
+- BODACC watch: after each company creation scrape, new companies matching a profile's NAF codes and area become suggestions, with a notice in the app and a `competitor.new_registered` team webhook (Antenne). A profile's first pass only sets the cursor.
+- Settings > Prospecting gains "Your website" and "Your own category", which discovery uses for similar-site and map searches. An empty profile shows a link to that page in the queue.
+- Team settings gain a Webhooks tab for owners and admins: list, add with event checkboxes (including `competitor.changes`, `hunt.digest`, `hunt.schedule_paused` and `competitor.new_registered`), send a test, pause and delete. It uses the existing `team.*Webhook` procedures and their checks.
+- tRPC `competitorDiscovery.*` (`list`, `counts`, `run`, `markSeen`, `accept`, `reject`, `restore`, `acceptAbove`). Every call works inside the declared scope; a suggestion id from another space reads as not found.
+- Migration `026_competitor_discovery.sql` (additive): tables `CompetitorSuggestion` (unique per space and domain, and per space and SIREN) and `CompetitorDiscoveryState`, enums `CompetitorSuggestionSource` and `CompetitorSuggestionStatus`, and `TeamProspectProfile.website` and `ownCategory`.
+
 ## [0.13.0] - 2026-11-08
 
 ### Added

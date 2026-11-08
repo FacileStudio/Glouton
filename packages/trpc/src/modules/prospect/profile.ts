@@ -2,14 +2,18 @@ import type { PrismaClient, TeamProspectProfile } from '@prisma/client';
 import { z } from 'zod';
 import { businessCategoryEnum } from '../lead/schemas';
 import type { Scope } from '../../utils/scope';
+import { domainOf } from '../competitor/rules';
 
 /**
  * A space's prospecting profile: what it sells (`offerDescription`), where
  * (`area`, a place name hunts can search around), and to whom
  * (`targetCategories` from the hunt category list, `nafCodes`, `keywords`).
- * There is one per team and one per person for the personal space. Automatic
- * hunts turn the categories into schedules; competitor discovery reads the
- * whole profile through `profileFor`.
+ * `website` is the space's own site (a bare domain) and `ownCategory` the
+ * map category the space itself belongs to: competitor discovery searches
+ * sites like the first and places of the second. There is one per team and
+ * one per person for the personal space. Automatic hunts turn the categories
+ * into schedules; competitor discovery reads the whole profile through
+ * `profileFor`.
  */
 export interface ProspectProfile {
   offerDescription: string | null;
@@ -17,6 +21,8 @@ export interface ProspectProfile {
   targetCategories: z.infer<typeof businessCategoryEnum>[];
   nafCodes: string[];
   keywords: string[];
+  website: string | null;
+  ownCategory: z.infer<typeof businessCategoryEnum> | null;
   updatedAt: Date | null;
 }
 
@@ -32,6 +38,13 @@ export const profileFieldsSchema = z.object({
     .max(30)
     .optional(),
   keywords: z.array(z.string().trim().min(1).max(60)).max(30).optional(),
+  website: z
+    .string()
+    .trim()
+    .max(500)
+    .nullish()
+    .refine((value) => !value || domainOf(value) !== null, 'Use a web address such as monsite.fr'),
+  ownCategory: businessCategoryEnum.nullish(),
 });
 
 export type ProfileFields = z.infer<typeof profileFieldsSchema>;
@@ -56,6 +69,8 @@ function present(row: TeamProspectProfile | null): ProspectProfile {
     targetCategories: categories,
     nafCodes: row?.nafCodes ?? [],
     keywords: row?.keywords ?? [],
+    website: row?.website ?? null,
+    ownCategory: businessCategoryEnum.safeParse(row?.ownCategory).data ?? null,
     updatedAt: row?.updatedAt ?? null,
   };
 }
@@ -73,6 +88,8 @@ export async function saveProfile(prisma: PrismaClient, scope: Scope, fields: Pr
     ...(fields.targetCategories ? { targetCategories: unique(fields.targetCategories) } : {}),
     ...(fields.nafCodes ? { nafCodes: unique(fields.nafCodes) } : {}),
     ...(fields.keywords ? { keywords: unique(fields.keywords.map((k) => k.toLowerCase())) } : {}),
+    ...(fields.website !== undefined ? { website: domainOf(fields.website) } : {}),
+    ...(fields.ownCategory !== undefined ? { ownCategory: fields.ownCategory || null } : {}),
   };
   const key = scopeKey(scope);
   const row = await prisma.teamProspectProfile.upsert({

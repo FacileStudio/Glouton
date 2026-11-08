@@ -52,3 +52,4 @@ export { syncReplies, suggestImports, importContacts } from './courrier-sync';
 
 export { redisWebSearch, COMPETITOR_WATCH } from './competitor-watch';
 export * as competitorWatch from './competitor-watch';
+export { osmPlaces, osmUrl, type NearbyPlace } from './competitor-discovery';

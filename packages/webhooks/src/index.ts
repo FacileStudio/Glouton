@@ -12,6 +12,7 @@ export const WEBHOOK_EVENTS = {
   'hunt.schedule_paused': 'Chasse automatique mise en pause',
   'audit.completed': 'Audit de site terminé',
   'competitor.changes': 'Veille concurrents : changements du jour',
+  'competitor.new_registered': 'Nouvelle entreprise concurrente immatriculée (BODACC)',
   'team.member_added': 'Membre ajouté à l\'équipe',
   'team.member_removed': 'Membre retiré de l\'équipe',
 } as const;
