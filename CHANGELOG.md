@@ -11,6 +11,8 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-11-08
+
 ### Added
 
 - Competitor website monitoring. On a competitor card, the "Pages suivies" panel adds, edits, pauses and removes watched pages (URL, optional CSS selector, kind pricing/offer/blog/jobs/other, alert threshold, default 5 %), and suggests the usual `/tarifs`, `/pricing`, `/offres`, `/blog` and `/recrutement` paths of the competitor's domain. A change history shows each recorded change with a readable line diff and a "mark as seen" action. The competitors list shows a "Veille" badge with the count of unseen changes.
