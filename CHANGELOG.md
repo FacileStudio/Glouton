@@ -13,7 +13,11 @@ in the root `package.json`.
 
 ### Security
 
-- Competitor and web page fetches no longer follow redirects into the server's own network. The backend image ships sonar 0.14.0, and every `sonar fetch` runs with `--public-only` (also set as `SONAR_FETCH_PUBLIC_ONLY=1` in the image). A public URL whose 3xx, JavaScript or meta-refresh redirect, iframe, subresource or websocket points at a loopback, private, link-local or metadata address, or at a container name, now fails with no content. Before, the internal page could reach the user.
+- Competitor and web page fetches no longer follow redirects into the server's own network. The backend image ships sonar 0.14.1, and every `sonar fetch` runs with `--public-only` (also set as `SONAR_FETCH_PUBLIC_ONLY=1` in the image). A public URL whose 3xx, JavaScript or meta-refresh redirect, iframe, subresource or websocket points at a loopback, private, link-local or metadata address, or at a container name, now fails with no content. Before, the internal page could reach the user.
+
+### Fixed
+
+- Browser rendering of fetched pages works in the backend image: sonar 0.14.1 uses the installed Alpine Chromium. Before, it downloaded a glibc build that could not run, so every page that needed the browser failed.
 
 ## [0.15.0] - 2026-11-08
 
