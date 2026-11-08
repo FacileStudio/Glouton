@@ -11,6 +11,8 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+## [0.10.3] - 2026-11-08
+
 ### Added
 
 - `@repo/websearch`: a typed sonar client with a Redis result cache and a per-team daily quota (`WEBSEARCH_DAILY_QUOTA`, default 50 searches; `WEBSEARCH_DAILY_FETCH_QUOTA`, default 200 fetches).
