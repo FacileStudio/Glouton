@@ -154,8 +154,17 @@ describe('fetch', () => {
     const { ws } = client();
     const pages = await ws.fetch('team', ['https://a.example/'], { selector: 'main' });
     expect(pages).toEqual([{ url: 'https://a.example/', markdown: 'page body' }]);
-    expect(calls().at(-1)).toMatch(/^fetch --timeout 85s --selector main -- https:\/\/a\.example\/$/);
+    expect(calls().at(-1)).toMatch(/^fetch --public-only --timeout 85s --selector main -- https:\/\/a\.example\/$/);
     expect((await ws.usage('team')).fetches).toBe(1);
+  });
+
+  it('always asks sonar to stay on public addresses, so redirects to internal hosts are refused', async () => {
+    const { ws } = client();
+    await ws.fetch('team', ['https://a.example/'], { browser: true });
+    await ws.fetch('team', ['https://a.example', 'https://b.example']);
+    const runs = calls().slice(-2);
+    expect(runs).toHaveLength(2);
+    for (const run of runs) expect(run.split(' ').slice(0, 2)).toEqual(['fetch', '--public-only']);
   });
 
   it('splits several pages and charges one fetch per url', async () => {
