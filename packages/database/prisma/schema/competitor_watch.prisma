@@ -1,0 +1,58 @@
+enum WatchedPageKind {
+  PRICING
+  OFFER
+  BLOG
+  JOBS
+  OTHER
+}
+
+model WatchedPage {
+  id            String          @id @default(dbgenerated("gen_random_uuid()")) @db.Text
+  competitorId  String          @db.Text
+  url           String          @db.Text
+  selector      String?         @db.Text
+  kind          WatchedPageKind @default(OTHER)
+  enabled       Boolean         @default(true)
+  thresholdPct  Int             @default(5)
+  lastCheckedAt DateTime?       @db.Timestamptz(3)
+  lastStatus    String?         @db.Text
+  createdAt     DateTime        @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime        @default(now()) @updatedAt @db.Timestamptz(3)
+
+  competitor Competitor     @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+  snapshots  PageSnapshot[]
+  changes    PageChange[]
+
+  @@index([competitorId])
+  @@index([enabled, lastCheckedAt])
+}
+
+model PageSnapshot {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Text
+  watchedPageId String   @db.Text
+  text          String   @db.Text
+  hash          String   @db.Text
+  fetchedAt     DateTime @default(now()) @db.Timestamptz(3)
+
+  page WatchedPage @relation(fields: [watchedPageId], references: [id], onDelete: Cascade)
+
+  @@index([watchedPageId, fetchedAt])
+}
+
+model PageChange {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Text
+  watchedPageId String    @db.Text
+  diff          Json      @default("[]")
+  changeRatio   Float
+  addedLines    Int       @default(0)
+  removedLines  Int       @default(0)
+  seen          Boolean   @default(false)
+  notifiedAt    DateTime? @db.Timestamptz(3)
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+
+  page WatchedPage @relation(fields: [watchedPageId], references: [id], onDelete: Cascade)
+
+  @@index([watchedPageId, createdAt])
+  @@index([watchedPageId, seen])
+  @@index([notifiedAt])
+}

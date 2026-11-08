@@ -11,6 +11,14 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+### Added
+
+- Competitor website monitoring. On a competitor card, the "Pages suivies" panel adds, edits, pauses and removes watched pages (URL, optional CSS selector, kind pricing/offer/blog/jobs/other, alert threshold, default 5 %), and suggests the usual `/tarifs`, `/pricing`, `/offres`, `/blog` and `/recrutement` paths of the competitor's domain. A change history shows each recorded change with a readable line diff and a "mark as seen" action. The competitors list shows a "Veille" badge with the count of unseen changes.
+- A daily `competitor-watch` job fetches each due page through `@repo/websearch` (it counts against the scope's daily fetch quota; once the quota is spent the remaining pages are skipped and the digest says how many), respects robots.txt (longest-match rules, crawl delay; a server error on robots.txt skips the site) and waits at least 10 s between two fetches on one host. It normalizes the text (dates, times, relative ages, tokens, tracking parameters, short cookie banner lines and whitespace), hashes it, diffs it against the last snapshot and records a change only above the page's threshold. It keeps the last 5 snapshots and 100 changes per page, and sends one digest per space: an in-app toast and, for teams, the `competitor.changes` webhook event (Antenne). Digests carry counts and URLs, never page text.
+- Plan limit `glouton.watched_pages` (default 10 per space, -1 unlimited). Adding a page past it answers 402 with `plan_limit`, shown with muse's PlanLimit banner.
+- tRPC `competitorWatch.*` (`pages`, `addPage`, `updatePage`, `deletePage`, `changes`, `markSeen`, `unseenCounts`), scoped through the competitor row like `competitor.*`.
+- Migration `027_competitor_watch.sql` (additive): enum `WatchedPageKind`, tables `WatchedPage`, `PageSnapshot` and `PageChange`, deleted with their competitor.
+
 ## [0.11.0] - 2026-11-08
 
 ### Added

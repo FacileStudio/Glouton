@@ -1,4 +1,5 @@
 export { createWebSearch, type WebSearch, type WebSearchConfig } from './client';
+export { cleanUrls } from './input';
 export { DEFAULT_LIMITS, limitsFromEnv } from './quota';
 export { runSonar } from './runner';
 export {

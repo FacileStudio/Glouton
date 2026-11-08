@@ -101,6 +101,20 @@ async function startup() {
     logger.error({ error: err }, '[COMPANIES] Failed to schedule creation scraper');
   }
 
+  try {
+    await jobs.upsertScheduler(
+      'competitor-watch',
+      'competitor-watch-daily',
+      24 * 60 * 60 * 1000,
+      'competitor-watch',
+      {},
+      { removeOnComplete: 5, removeOnFail: 3 }
+    );
+    logger.info('[WATCH] Competitor page monitoring scheduled daily');
+  } catch (err) {
+    logger.error({ err }, '[WATCH] Failed to schedule competitor page monitoring');
+  }
+
   if (config.courrier) {
     try {
       await jobs.upsertScheduler(

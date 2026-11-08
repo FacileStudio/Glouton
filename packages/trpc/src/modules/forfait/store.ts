@@ -129,25 +129,55 @@ export async function applyEntitlements(
   return reset ? 'reset' : 'applied';
 }
 
+/** The raw entitlements of a person's personal plan: the most recent identity listed in the last snapshot. */
+async function personalEntitlements(prisma: PrismaClient, issuer: string, userId: string): Promise<unknown> {
+  const accounts = await prisma.account.findMany({
+    where: { userId, providerId: issuer },
+    orderBy: [{ createdAt: 'desc' }, { accountId: 'asc' }],
+    select: { accountId: true },
+  });
+  if (accounts.length === 0) return null;
+  const rows = await prisma.personEntitlement.findMany({
+    where: { sub: { in: accounts.map((account) => account.accountId) } },
+    select: { sub: true, entitlements: true },
+  });
+  const bySub = new Map(rows.map((row) => [row.sub, row.entitlements]));
+  const chosen = accounts.find((account) => bySub.has(account.accountId));
+  return chosen ? bySub.get(chosen.accountId)! : null;
+}
+
+/** A scope's raw entitlements for limit checks. `enforced` is false while Glouton fails open. */
+export interface ScopeValues {
+  values: unknown;
+  enforced: boolean;
+  upgradeUrl: string;
+}
+
+/**
+ * Reads the raw entitlements of a team or personal scope, for counted
+ * limits. The caller has already checked membership; a team that is gone
+ * reads as no values.
+ */
+export async function scopeValues(
+  prisma: PrismaClient,
+  scope: { userId: string; teamId: string | null },
+  fallbackIssuer = process.env.OIDC_ISSUER ?? ''
+): Promise<ScopeValues> {
+  const current = await prisma.forfaitState.findUnique({ where: { id: 1 }, select: { issuer: true } });
+  const issuer = current?.issuer ?? fallbackIssuer;
+  if (scope.teamId) {
+    const team = await prisma.team.findUnique({ where: { id: scope.teamId }, select: { registreSpaceId: true, entitlements: true } });
+    return { values: team?.entitlements ?? null, enforced: Boolean(current), upgradeUrl: upgradeUrl(issuer, team?.registreSpaceId ?? null) };
+  }
+  const values = current ? await personalEntitlements(prisma, current.issuer, scope.userId) : null;
+  return { values, enforced: Boolean(current), upgradeUrl: upgradeUrl(issuer, null) };
+}
+
 /** The database-backed reader every request and job uses. */
 export function dbForfait(prisma: PrismaClient, fallbackIssuer = process.env.OIDC_ISSUER ?? ''): ForfaitReader {
   const state = () => prisma.forfaitState.findUnique({ where: { id: 1 }, select: { issuer: true } });
 
-  const personalValues = async (issuer: string, userId: string) => {
-    const accounts = await prisma.account.findMany({
-      where: { userId, providerId: issuer },
-      orderBy: [{ createdAt: 'desc' }, { accountId: 'asc' }],
-      select: { accountId: true },
-    });
-    if (accounts.length === 0) return null;
-    const rows = await prisma.personEntitlement.findMany({
-      where: { sub: { in: accounts.map((account) => account.accountId) } },
-      select: { sub: true, entitlements: true },
-    });
-    const bySub = new Map(rows.map((row) => [row.sub, row.entitlements]));
-    const chosen = accounts.find((account) => bySub.has(account.accountId));
-    return chosen ? bySub.get(chosen.accountId)! : null;
-  };
+  const personalValues = (issuer: string, userId: string) => personalEntitlements(prisma, issuer, userId);
 
   return {
     async team(userId, teamId) {

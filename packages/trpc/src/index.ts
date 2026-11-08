@@ -12,6 +12,7 @@ import { ardoiseRouter } from './modules/ardoise/router';
 import { assistantRouter } from './modules/assistant/router';
 import { forfaitRouter } from './modules/forfait/router';
 import { competitorRouter } from './modules/competitor/router';
+import { competitorWatchRouter } from './modules/competitor-watch/router';
 import { createOpenApiDocument } from './openapi';
 import { bindProcedures } from './modules/forfait/procedures';
 import { isIdKey } from './modules/forfait/gate';
@@ -30,6 +31,7 @@ export const appRouter = router({
   assistant: assistantRouter,
   forfait: forfaitRouter,
   competitor: competitorRouter,
+  competitorWatch: competitorWatchRouter,
 });
 
 bindProcedures(appRouter._def.procedures, isIdKey);

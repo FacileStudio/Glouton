@@ -1,4 +1,5 @@
 import { TRPCError } from '@trpc/server';
+import { LimitError } from './features';
 import type { ForfaitReader, ScopeVerdict } from './store';
 
 /**
@@ -124,9 +125,22 @@ export function planRequired(upgradeUrl: string): TRPCError {
   return new TRPCError({ code: 'PAYMENT_REQUIRED', message: PAYWALL_MESSAGE, cause: new PlanRequiredError(upgradeUrl) });
 }
 
+/** The typed refusal of an addition past a plan limit: HTTP 402, with `data.plan_limit` added by the error formatter. */
+export function limitReached(error: LimitError): TRPCError {
+  return new TRPCError({ code: 'PAYMENT_REQUIRED', message: 'Plan limit reached.', cause: error });
+}
+
 /** The upgrade URL of a refusal, or undefined for any other error. */
 export function upgradeUrlOf(error: { cause?: unknown }): string | undefined {
+  if (error.cause instanceof LimitError) return error.cause.upgradeUrl;
   return error.cause instanceof PlanRequiredError ? error.cause.upgradeUrl : undefined;
+}
+
+/** The plan limit a refused addition carries, in the shape muse's PlanLimit reads, or undefined. */
+export function limitOf(error: { cause?: unknown }): { message: string; upgrade_url: string; key: string; limit: number } | undefined {
+  const cause = error.cause;
+  if (!(cause instanceof LimitError)) return undefined;
+  return { message: 'Plan limit reached.', upgrade_url: cause.upgradeUrl, key: cause.key, limit: cause.limit };
 }
 
 /** True when the path is one of the cross-scope procedures. */

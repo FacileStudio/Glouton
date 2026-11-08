@@ -24,7 +24,7 @@ export function cleanCount(count: number | undefined): number | undefined {
 
 export function cleanEngines(engines: string[] | undefined): string[] | undefined {
   if (!engines || engines.length === 0) return undefined;
-  const names = [...new Set(engines.map((name) => name.trim().toLowerCase()))].sort();
+  const names = Array.from(new Set(engines.map((name) => name.trim().toLowerCase()))).sort();
   for (const name of names) {
     if (!ENGINE_NAME.test(name)) throw new WebSearchError('invalid_input', 'invalid engine name');
   }

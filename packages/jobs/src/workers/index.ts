@@ -4,6 +4,8 @@ import { createCsvImportWorker } from './csv-import';
 import { createOpportunityScraperWorker } from './opportunity-scraper';
 import { createCompanyCreationWorker } from './company-creation';
 import type { CourrierClient } from '@repo/courrier';
+import type { WebSearch } from '@repo/websearch';
+import { createCompetitorWatchWorker } from './competitor-watch';
 import type { ScopeGate } from '../types';
 import {
   createCourrierContactsImportWorker,
@@ -13,6 +15,7 @@ import {
 export interface WorkerDependencies {
   courrier?: CourrierClient | null;
   allowed?: ScopeGate;
+  websearch?: WebSearch | null;
 }
 
 export interface EventEmitter {
@@ -30,6 +33,7 @@ export function createWorkers(events: EventEmitter, deps: WorkerDependencies = {
     'company-creation': createCompanyCreationWorker(events),
     'courrier-reply-sync': createCourrierReplySyncWorker(deps.courrier ?? null, deps.allowed),
     'courrier-contacts-import': createCourrierContactsImportWorker(deps.courrier ?? null, events, deps.allowed),
+    'competitor-watch': createCompetitorWatchWorker(deps.websearch ?? null, events, deps.allowed),
   };
 }
 
@@ -41,6 +45,10 @@ export const workers = {
   'company-creation': createCompanyCreationWorker,
   'courrier-reply-sync': createCourrierReplySyncWorker,
   'courrier-contacts-import': createCourrierContactsImportWorker,
+  'competitor-watch': createCompetitorWatchWorker,
 };
 
 export { syncReplies, suggestImports, importContacts } from './courrier-sync';
+
+export { redisWebSearch, COMPETITOR_WATCH } from './competitor-watch';
+export * as competitorWatch from './competitor-watch';

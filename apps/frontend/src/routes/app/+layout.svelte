@@ -2,6 +2,8 @@
   import { onMount, onDestroy } from 'svelte';
   import { browser } from '$app/environment';
   import { page } from '$app/state';
+  import { goto } from '$app/navigation';
+  import { resolve } from '$app/paths';
   import {
     SideBar,
     MobileNav,
@@ -136,6 +138,12 @@
   const offInbox = [
     ws.on('draft:new', () => inboxCount.refresh()),
     ws.on('suggestion:new', () => inboxCount.refresh()),
+    ws.on<{ count?: number }>('competitor-watch:digest', (data) => {
+      if (!data.count) return;
+      toast.info(t('watch.digestToast', { count: data.count }), {
+        action: { label: t('watch.digestOpen'), onClick: () => void goto(resolve('/app/competitors')) },
+      });
+    }),
   ];
 
   onMount(async () => {
