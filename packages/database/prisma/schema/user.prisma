@@ -53,6 +53,7 @@ model User {
   people                        Person[]
   activities                    Activity[]
   suggestions                   Suggestion[]
+  competitors                   Competitor[]
 
   @@index([status])
   @@index([isBanned])

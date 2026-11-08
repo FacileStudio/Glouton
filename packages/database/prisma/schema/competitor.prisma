@@ -1,0 +1,32 @@
+model Competitor {
+  id          String           @id @default(dbgenerated("gen_random_uuid()")) @db.Text
+  userId      String           @db.Text
+  teamId      String?          @db.Text
+  name        String           @db.Text
+  website     String?          @db.Text
+  domain      String?          @db.Text
+  area        String?          @db.Text
+  nafCodes    String[]         @default([])
+  tags        String[]         @default([])
+  notes       String?          @db.Text
+  status      CompetitorStatus @default(ACTIVE)
+  overview    String?          @db.Text
+  whyWeWin    String[]         @default([])
+  whyWeLose   String[]         @default([])
+  objections  Json             @default("[]")
+  landmines   String[]         @default([])
+  pricing     String?          @db.Text
+  proofPoints String[]         @default([])
+  createdAt   DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime         @default(now()) @updatedAt @db.Timestamptz(3)
+
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team      Team?  @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  lostLeads Lead[] @relation("LeadLostToCompetitor")
+  wonLeads  Lead[] @relation("LeadWonAgainstCompetitor")
+
+  @@index([userId])
+  @@index([teamId])
+  @@index([teamId, domain])
+  @@index([userId, domain])
+}

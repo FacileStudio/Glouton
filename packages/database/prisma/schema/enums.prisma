@@ -133,3 +133,32 @@ enum OpportunityCategory {
   CONSULTING
   OTHER
 }
+
+enum CompetitorStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum LeadOutcome {
+  WON
+  LOST
+}
+
+enum LeadLossReason {
+  LOST_TO_COMPETITOR
+  PRICE
+  NO_DECISION
+  NO_BUDGET
+  TIMING
+  FEATURES
+  OTHER
+}
+
+enum CompetitorLossReason {
+  PRICE
+  FEATURES
+  RELATIONSHIP
+  BRAND
+  TIMING
+  OTHER
+}

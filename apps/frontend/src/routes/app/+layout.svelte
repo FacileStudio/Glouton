@@ -46,6 +46,7 @@
       active: isActive('/app/inbox'),
     },
     { label: t('nav.leads'), icon: 'solar:magnet-linear', href: '/app/leads', active: isActive('/app/leads') },
+    { label: t('nav.competitors'), icon: 'solar:ranking-linear', href: '/app/competitors', active: isActive('/app/competitors') },
     { label: t('nav.creations'), icon: 'solar:buildings-2-linear', href: '/app/creations', active: isActive('/app/creations') },
     { label: t('nav.missions'), icon: 'solar:case-round-linear', href: '/app/missions', active: isActive('/app/missions') },
     { label: t('nav.outreach'), icon: 'solar:letter-linear', href: '/app/outreach', active: isActive('/app/outreach') },
@@ -102,6 +103,9 @@
     if (path.startsWith('/app/contacts/people/')) return title('title.person');
     if (path === '/app/contacts') return title('nav.contacts');
     if (path === '/app/inbox') return title('nav.inbox');
+    if (path === '/app/competitors/compare') return title('title.compareCompetitors');
+    if (path.startsWith('/app/competitors/')) return title('title.competitor');
+    if (path === '/app/competitors') return title('nav.competitors');
     if (path === '/app/creations') return title('nav.creations');
     if (path.startsWith('/app/missions')) return title('nav.missions');
     if (path === '/app/outreach') return title('nav.outreach');

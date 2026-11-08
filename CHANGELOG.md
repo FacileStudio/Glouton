@@ -11,6 +11,15 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+### Added
+
+- Competitors (`/app/competitors`), per space with the same scoping and access checks as leads. Each competitor has a one-page battlecard: overview, why we win, why we lose, objection handling (objection, response, proof), landmines as questions to ask, pricing and proof points, plus website, area, NAF codes, tags, notes and an archived status. The list searches by name, domain, area or tag and filters by tag.
+- `/app/competitors/[id]` shows the battlecard, the win rate with its won and lost counts (a caution under 5 closed deals), why the competitor won, and the leads won against it and lost to it.
+- `/app/competitors/compare?ids=` puts 2 to 4 battlecards side by side.
+- Lead win/loss: "Close the deal" on a lead records won or lost. A loss needs a reason (`LOST_TO_COMPETITOR`, price, no decision, no budget, timing, missing features, other); a loss to a competitor also needs the competitor and why it won. A win can name the competitor it beat. "Reopen" clears the outcome.
+- tRPC `competitor.*` (`list`, `get`, `compare`, `create`, `update`, `delete`, `closeLead`, `reopenLead`). The plan gate scopes `competitor` rows like leads.
+- Migration `024_competitors.sql` (additive): table `Competitor`, enums `CompetitorStatus`, `LeadOutcome`, `LeadLossReason` and `CompetitorLossReason`, and on `Lead` the columns `outcome`, `closedAt`, `lossReason`, `lostToCompetitorId`, `competitorLossReason` and `wonAgainstCompetitorId` (set to null when the competitor is deleted).
+
 ## [0.10.3] - 2026-11-08
 
 ### Added

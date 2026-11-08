@@ -1,6 +1,7 @@
 import type { Prisma, PrismaClient } from '@prisma/client';
 import { logger } from '@repo/logger';
 import { AI_ACCESS, GLOUTON_ACCESS, enabled, sanitize, upgradeUrl } from './features';
+import type { RowModel } from './gate';
 
 /**
  * Glouton keeps the entitlements of every scope in its own database: on the
@@ -209,9 +210,10 @@ export function jobGate(reader: ForfaitReader) {
 /** Loads the owner and team of the row a by-id procedure acts on. */
 export function rowLoader(prisma: PrismaClient) {
   const select = { userId: true, teamId: true } as const;
-  return (model: 'lead' | 'huntSession' | 'auditSession', id: string) => {
+  return (model: RowModel, id: string) => {
     if (model === 'lead') return prisma.lead.findUnique({ where: { id }, select });
     if (model === 'huntSession') return prisma.huntSession.findUnique({ where: { id }, select });
+    if (model === 'competitor') return prisma.competitor.findUnique({ where: { id }, select });
     return prisma.auditSession.findUnique({ where: { id }, select });
   };
 }

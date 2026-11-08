@@ -26,6 +26,7 @@ model Team {
   people             Person[]
   activities         Activity[]
   suggestions        Suggestion[]
+  competitors        Competitor[]
 }
 
 // Outgoing webhooks configured per workspace (e.g. towards Nook): the team

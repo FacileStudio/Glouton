@@ -10,6 +10,7 @@
   import Composer, { type ComposerMessage } from '$lib/components/mail/Composer.svelte';
   import { teamContextStore } from '$lib/stores/team-context.svelte';
   import { useFormat, useT } from '$lib/i18n';
+  import CloseLeadModal from '$lib/components/competitors/CloseLeadModal.svelte';
 
   const t = useT();
   const format = useFormat();
@@ -58,6 +59,10 @@
     emailVerificationMethod: string | null;
     coordinates: { lat: number; lng: number } | null;
     createdAt: string;
+    outcome: 'WON' | 'LOST' | null;
+    lossReason: string | null;
+    lostToCompetitorId: string | null;
+    wonAgainstCompetitorId: string | null;
   }
 
   interface EmailOutreach {
@@ -85,6 +90,8 @@
   let composerOpen = $state(false);
   let isFavorite = $state(false);
   let togglingFavorite = $state(false);
+  let closeOpen = $state(false);
+  let competitors = $state<{ id: string; name: string; active: boolean }[]>([]);
 
   let { params }: PageProps = $props();
   let leadId = $derived(params.id);
@@ -95,11 +102,13 @@
     loading = true;
     try {
       const currentTeamId = teamId;
-      const [leadData, historyData, favoriteStatus] = await Promise.all([
+      const [leadData, historyData, favoriteStatus, competitorList] = await Promise.all([
         trpc.lead.query.getById.query({ leadId }),
         trpc.email.getLeadOutreach.query({ leadId, teamId: currentTeamId }),
         trpc.lead.favorite.isFavorite.query({ leadId, teamId: currentTeamId }),
+        trpc.competitor.list.query({ teamId: currentTeamId }).catch(() => ({ items: [] })),
       ]);
+      competitors = competitorList.items.map((c) => ({ id: c.id, name: c.name, active: c.status === 'ACTIVE' }));
 
       lead = leadData;
       outreachHistory = [...historyData];
@@ -109,6 +118,19 @@
       console.error(error);
     } finally {
       loading = false;
+    }
+  }
+
+  const competitorName = (id: string | null) => competitors.find((c) => c.id === id)?.name ?? '?';
+
+  async function reopen() {
+    try {
+      await trpc.competitor.reopenLead.mutate({ leadId, teamId });
+      toast.success(t('close.reopened'));
+      await loadData();
+    } catch (error) {
+      toast.danger(t('leads.detail.loadFailed'));
+      console.error(error);
     }
   }
 
@@ -248,6 +270,16 @@
       {#snippet actions()}
         <Badge tone={getPriorityTone(lead!.status)}>{lead!.status}</Badge>
 
+        {#if lead!.outcome === 'WON'}
+          <Badge tone="success" class="shrink-0">
+            {lead!.wonAgainstCompetitorId ? t('close.wonAgainstBadge', { name: competitorName(lead!.wonAgainstCompetitorId) }) : t('close.wonBadge')}
+          </Badge>
+        {:else if lead!.outcome === 'LOST'}
+          <Badge tone="danger" class="shrink-0">
+            {lead!.lostToCompetitorId ? t('close.lostToBadge', { name: competitorName(lead!.lostToCompetitorId) }) : t('close.lostBadge')}
+          </Badge>
+        {/if}
+
         {#if lead!.contacted}
           <Badge>
             <iconify-icon icon="solar:check-circle-linear" width="12" height="12" class="block"></iconify-icon>
@@ -271,6 +303,12 @@
           {/if}
           {isFavorite ? t('leads.detail.removeFav') : t('leads.detail.addFav')}
         </Button>
+
+        {#if lead!.outcome}
+          <Button variant="secondary" icon="solar:restart-linear" onclick={reopen}>{t('close.reopen')}</Button>
+        {:else}
+          <Button variant="secondary" icon="solar:flag-linear" onclick={() => (closeOpen = true)}>{t('close.action')}</Button>
+        {/if}
 
         {#if lead!.email}
           <Button onclick={() => (composerOpen = true)} icon="solar:letter-linear">Envoyer un e-mail</Button>
@@ -632,6 +670,13 @@
 {/if}
 
 {#if lead}
+  <CloseLeadModal
+    bind:open={closeOpen}
+    {leadId}
+    {teamId}
+    competitors={competitors.filter((c) => c.active)}
+    onClosed={loadData}
+  />
   <Composer
     bind:open={composerOpen}
     person={{ ...lead, companyName: lead.businessName || lead.companyInfo?.name || lead.domain }}
