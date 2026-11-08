@@ -7,10 +7,11 @@
   import { QUIET } from '@repo/trpc-client';
   import { trpc } from '$lib/trpc';
   import { teamContextStore } from '$lib/stores/team-context.svelte';
-  import { getTrpcErrorMessage } from '$lib/utils/trpc-error';
+  import { getErrorCode, getTrpcErrorMessage } from '$lib/utils/trpc-error';
   import { useT } from '$lib/i18n';
   import WinRateBadge from '$lib/components/competitors/WinRateBadge.svelte';
   import { splitList, type CompetitorItem } from '$lib/components/competitors/labels';
+  import CompetitorTabs from '$lib/components/competitors/CompetitorTabs.svelte';
 
   const t = useT();
   const teamId = $derived(teamContextStore.getTeamId());
@@ -24,6 +25,7 @@
   const selected = new SvelteSet<string>();
 
   let addOpen = $state(false);
+  let finding = $state(false);
   let saving = $state(false);
   let form = $state(emptyForm());
 
@@ -85,6 +87,20 @@
     }
   }
 
+  async function findCompetitors() {
+    finding = true;
+    try {
+      const res = await trpc.competitorDiscovery.run.mutate({ teamId });
+      toast.success(res.queued ? t('discovery.queued') : t('discovery.alreadyRunning'));
+      await goto(resolve('/app/competitors/suggestions'));
+    } catch (error) {
+      if (getErrorCode(error) === 'PRECONDITION_FAILED') await goto(resolve('/app/competitors/suggestions'));
+      else toast.danger(getTrpcErrorMessage(error));
+    } finally {
+      finding = false;
+    }
+  }
+
   onMount(load);
 </script>
 
@@ -96,11 +112,13 @@
         {selected.size > 0 ? t('competitors.compareSelected', { count: selected.size }) : t('competitors.compare')}
       </Button>
     </form>
+    <Button variant="secondary" icon="solar:magnifer-linear" onclick={findCompetitors} disabled={finding}>{t('discovery.find')}</Button>
     <Button icon="mdi:plus" onclick={() => (addOpen = true)}>{t('competitors.add')}</Button>
   {/snippet}
 </PageHeader>
 
 <div class="flex flex-col gap-4">
+  <CompetitorTabs active="list" {teamId} />
   <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
     <Input
       type="search"

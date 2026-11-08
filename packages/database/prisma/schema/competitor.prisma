@@ -25,6 +25,7 @@ model Competitor {
   lostLeads Lead[] @relation("LeadLostToCompetitor")
   wonLeads  Lead[] @relation("LeadWonAgainstCompetitor")
   watchedPages WatchedPage[]
+  suggestions  CompetitorSuggestion[]
 
   @@index([userId])
   @@index([teamId])

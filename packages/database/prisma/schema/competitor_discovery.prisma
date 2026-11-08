@@ -1,0 +1,74 @@
+enum CompetitorSuggestionSource {
+  SONAR_WEB
+  SONAR_SIMILAR
+  OSM
+  BODACC
+}
+
+enum CompetitorSuggestionStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+/// A company competitor discovery found for a space, waiting for a person to
+/// accept or reject it. scopeKey is "team:<teamId>" or "user:<userId>", like
+/// TeamProspectProfile. A rejected row stays, so the same domain or SIREN
+/// never comes back.
+model CompetitorSuggestion {
+  id           String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Text
+  scopeKey     String                       @db.Text
+  userId       String                       @db.Text
+  teamId       String?                      @db.Text
+  name         String                       @db.Text
+  domain       String?                      @db.Text
+  website      String?                      @db.Text
+  area         String?                      @db.Text
+  siren        String?                      @db.Text
+  source       CompetitorSuggestionSource
+  sources      CompetitorSuggestionSource[]
+  evidence     Json                         @default("[]")
+  score        Int                          @default(0)
+  scoreParts   Json                         @default("{}")
+  distanceKm   Float?
+  status       CompetitorSuggestionStatus   @default(PENDING)
+  competitorId String?                      @db.Text
+  seenAt       DateTime?                    @db.Timestamptz(3)
+  decidedAt    DateTime?                    @db.Timestamptz(3)
+  createdAt    DateTime                     @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime                     @default(now()) @updatedAt @db.Timestamptz(3)
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team       Team?       @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  competitor Competitor? @relation(fields: [competitorId], references: [id], onDelete: SetNull)
+
+  @@unique([scopeKey, domain])
+  @@unique([scopeKey, siren])
+  @@index([userId])
+  @@index([teamId])
+  @@index([scopeKey, status, score])
+}
+
+/// Discovery bookkeeping for one space: the last run, the next weekly slot,
+/// and how far the BODACC watch has read the company creation feed.
+model CompetitorDiscoveryState {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Text
+  scopeKey     String    @unique @db.Text
+  userId       String    @db.Text
+  teamId       String?   @db.Text
+  status       String?   @db.Text
+  queuedAt     DateTime? @db.Timestamptz(3)
+  lastRunAt    DateTime? @db.Timestamptz(3)
+  lastResult   Json?
+  nextRunAt    DateTime? @db.Timestamptz(3)
+  bodaccCursor DateTime? @db.Timestamptz(3)
+  createdAt    DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime  @default(now()) @updatedAt @db.Timestamptz(3)
+
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team Team? @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([teamId])
+  @@index([nextRunAt])
+}

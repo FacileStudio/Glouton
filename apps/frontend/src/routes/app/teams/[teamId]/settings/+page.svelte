@@ -7,6 +7,7 @@
   import { resolve } from '$app/paths';
   import { trpc } from '$lib/trpc';
   import MailTransportSettings from '$lib/components/MailTransportSettings.svelte';
+  import TeamWebhooks from '$lib/components/TeamWebhooks.svelte';
   import {
     Alert,
     Button,
@@ -202,6 +203,7 @@
   const tabs = $derived([
     { id: 'general', label: t('teams.settings.general'), icon: icons.settings },
     { id: 'smtp', label: t('teams.settings.smtp'), icon: icons.mail },
+    { id: 'webhooks', label: t('webhooks.tab'), icon: 'solar:link-round-angle-linear' },
   ]);
 
   const revealButtonClass =
@@ -291,6 +293,8 @@
           </SettingsRow>
         </SettingsSection>
       {/if}
+    {:else if activeTab === 'webhooks'}
+      <TeamWebhooks {teamId} canManage={Boolean(canManage)} />
     {:else if activeTab === 'smtp'}
       <MailTransportSettings {teamId} canEdit={Boolean(canManage)} />
 

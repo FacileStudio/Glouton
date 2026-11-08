@@ -18,6 +18,8 @@
   let categories = $state<BusinessCategory[]>([]);
   let naf = $state('');
   let keywords = $state('');
+  let website = $state('');
+  let ownCategory = $state<BusinessCategory | ''>('');
   let saving = $state(false);
   let creating = $state(false);
   let frequency = $state<Frequency>('WEEKLY');
@@ -31,6 +33,8 @@
     categories = [...profile.targetCategories];
     naf = profile.nafCodes.join(', ');
     keywords = profile.keywords.join(', ');
+    website = profile.website ?? '';
+    ownCategory = profile.ownCategory ?? '';
     savedArea = area;
     savedCategories = categories.length;
   }
@@ -54,6 +58,8 @@
           targetCategories: categories,
           nafCodes: splitList(naf),
           keywords: splitList(keywords),
+          website: website.trim() || null,
+          ownCategory: ownCategory || null,
         })
       );
       toast.success(t('prospect.saved'));
@@ -100,6 +106,22 @@
     <Field label={t('prospect.area')} for="prospect-area">
       <Input id="prospect-area" type="text" maxlength={200} bind:value={area} placeholder={t('prospect.areaPlaceholder')} />
     </Field>
+  </SettingsRow>
+
+  <SettingsRow stacked>
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <Field label={t('prospect.website')} helper={t('prospect.websiteHint')} for="prospect-website">
+        <Input id="prospect-website" type="text" inputmode="url" maxlength={500} bind:value={website} placeholder="monsite.fr" />
+      </Field>
+      <Field label={t('prospect.ownCategory')} helper={t('prospect.ownCategoryHint')} for="prospect-own-category">
+        <Select id="prospect-own-category" value={ownCategory} onchange={(e) => (ownCategory = e.currentTarget.value as BusinessCategory | '')}>
+          <option value="">{t('prospect.ownCategoryNone')}</option>
+          {#each CATEGORIES as category (category.value)}
+            <option value={category.value}>{t(category.label)}</option>
+          {/each}
+        </Select>
+      </Field>
+    </div>
   </SettingsRow>
 
   <SettingsRow stacked>
