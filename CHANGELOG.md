@@ -11,6 +11,8 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-11-08
+
 ### Added
 
 - Competitor discovery (`/app/competitors/suggestions`, also "Find competitors" on `/app/competitors`): Glouton searches from the space's prospecting profile and fills a suggestion queue. Sources: web searches through sonar (keywords and the offer with the area, plus "similar to our site" searches when the profile has a website), OpenStreetMap places of the space's own category around its area, and recent BODACC creations matching its NAF codes and area. Web searches count against the daily websearch quota; when it runs out, the run stops searching the web and goes on with the map and BODACC, and the queue says so.
