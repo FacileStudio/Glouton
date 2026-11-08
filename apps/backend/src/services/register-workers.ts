@@ -4,7 +4,7 @@ import { createWorkers, osmPlaces, redisWebSearch } from '@repo/jobs/workers';
 import { events } from './events';
 import { logger } from '@repo/logger';
 import type { CourrierClient } from '@repo/courrier';
-import { ardoise, discovery, forfait, schedules } from '@repo/trpc';
+import { ardoise, competitorAi, discovery, forfait, schedules, type BulleClient } from '@repo/trpc';
 import env from '../env';
 
 type ScopedJob = { userId?: unknown; teamId?: unknown; huntSessionId?: unknown; auditSessionId?: unknown };
@@ -128,9 +128,11 @@ export function discoveryWorker(deps: discovery.DiscoveryDeps): JobDefinition<di
 export function registerWorkers(
   queueManager: QueueManager,
   prisma: PrismaClient,
-  courrier: CourrierClient | null = null
+  courrier: CourrierClient | null = null,
+  bulle: BulleClient | null = null
 ) {
-  const allowed = forfait.jobGate(forfait.dbForfait(prisma, env.OIDC_ISSUER));
+  const reader = forfait.dbForfait(prisma, env.OIDC_ISSUER);
+  const allowed = forfait.jobGate(reader);
   const websearch = redisWebSearch({
     host: env.REDIS_HOST,
     port: env.REDIS_PORT,
@@ -138,7 +140,8 @@ export function registerWorkers(
     db: env.REDIS_DB,
     maxRetriesPerRequest: null,
   });
-  const workers = createWorkers(events, { courrier, allowed, websearch });
+  const summarize = competitorAi.digestSummarizer({ prisma, bulle, forfait: reader });
+  const workers = createWorkers(events, { courrier, allowed, websearch, summarize });
 
   const skipped = markSkipped(prisma);
   const notify = (scope: { type: 'personal' | 'team'; userId: string; teamId?: string | null }, type: string, data: Record<string, unknown>) =>

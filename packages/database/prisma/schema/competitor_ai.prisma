@@ -1,0 +1,35 @@
+enum CompetitorPricePeriod {
+  ONE_TIME
+  HOUR
+  DAY
+  WEEK
+  MONTH
+  YEAR
+}
+
+/// One price Bulle read on a competitor's pricing page. A new extraction
+/// replaces every row of the competitor. snapshotId points at the stored page
+/// text it came from and is cleared when that snapshot is pruned; sourceUrl
+/// stays.
+model CompetitorPrice {
+  id            String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Text
+  competitorId  String                 @db.Text
+  watchedPageId String?                @db.Text
+  snapshotId    String?                @db.Text
+  name          String                 @db.Text
+  price         Float?
+  currency      String?                @db.Text
+  unit          String?                @db.Text
+  period        CompetitorPricePeriod?
+  sourceUrl     String                 @db.Text
+  position      Int                    @default(0)
+  extractedAt   DateTime               @default(now()) @db.Timestamptz(3)
+
+  competitor Competitor    @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+  page       WatchedPage?  @relation(fields: [watchedPageId], references: [id], onDelete: SetNull)
+  snapshot   PageSnapshot? @relation(fields: [snapshotId], references: [id], onDelete: SetNull)
+
+  @@index([competitorId, position])
+  @@index([snapshotId])
+  @@index([watchedPageId])
+}

@@ -1,6 +1,7 @@
 import { AuthManager } from '@repo/auth';
 import { prisma } from '@repo/database';
 import { QueueManager, createJobConfig } from '@repo/jobs';
+import { redisWebSearch } from '@repo/jobs/workers';
 import env from './env';
 import { userExists } from './services/session';
 import { bulleFromEnv } from '@repo/trpc';
@@ -23,6 +24,12 @@ const jobs = new QueueManager(
 const registre = registreFromEnv(env, prisma, authManager);
 const courrier = courrierFromEnv(env, registre);
 const bulle = bulleFromEnv(env, registre);
+const web = redisWebSearch({
+  host: env.REDIS_HOST,
+  port: env.REDIS_PORT,
+  password: env.REDIS_PASSWORD,
+  db: env.REDIS_DB,
+});
 
 export default {
   authManager,
@@ -31,4 +38,5 @@ export default {
   env,
   jobs,
   prisma,
+  web,
 };

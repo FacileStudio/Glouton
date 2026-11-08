@@ -169,6 +169,7 @@ export async function listChanges(prisma: PrismaClient, competitorId: string, op
       addedLines: true,
       removedLines: true,
       seen: true,
+      aiSummary: true,
       createdAt: true,
       page: { select: { id: true, url: true, kind: true, selector: true } },
     },

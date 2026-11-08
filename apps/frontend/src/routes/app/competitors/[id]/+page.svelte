@@ -24,6 +24,8 @@
   import BattlecardForm from '$lib/components/competitors/BattlecardForm.svelte';
   import WatchPanel from '$lib/components/competitors/WatchPanel.svelte';
   import ChangeTimeline from '$lib/components/competitors/ChangeTimeline.svelte';
+  import BattlecardDraft from '$lib/components/competitors/BattlecardDraft.svelte';
+  import PricesPanel from '$lib/components/competitors/PricesPanel.svelte';
   import { SMALL_SAMPLE, leadName, ratePercent, type CompetitorCard } from '$lib/components/competitors/labels';
 
   const t = useT();
@@ -47,6 +49,14 @@
       toast.danger(getTrpcErrorMessage(error) || t('competitors.loadFailed'));
     } finally {
       loading = false;
+    }
+  }
+
+  async function refresh() {
+    try {
+      card = await trpc.competitor.get.query({ competitorId });
+    } catch (error) {
+      toast.danger(getTrpcErrorMessage(error));
     }
   }
 
@@ -141,6 +151,20 @@
     {#if editing}
       <BattlecardForm {card} onCancel={() => (editing = false)} onSaved={saved} />
     {:else}
+      <BattlecardDraft
+        {competitorId}
+        {teamId}
+        current={{
+          overview: card.overview,
+          whyWeWin: card.whyWeWin,
+          whyWeLose: card.whyWeLose,
+          objections: card.objections,
+          landmines: card.landmines,
+          pricing: card.pricing,
+          proofPoints: card.proofPoints,
+        }}
+        onSaved={refresh}
+      />
       <Battlecard
         overview={card.overview}
         whyWeWin={card.whyWeWin}
@@ -157,6 +181,8 @@
         </Card>
       {/if}
     {/if}
+
+    <PricesPanel {competitorId} {teamId} />
 
     <div class="flex flex-col gap-4">
       <WatchPanel {competitorId} {teamId} domain={card.domain} onChanged={() => timelineKey++} />

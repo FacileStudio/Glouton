@@ -42,6 +42,7 @@ export interface DigestItem {
   changePercent: number;
   added: number;
   removed: number;
+  summary?: string | null;
 }
 
 /** The single daily message a scope receives. */

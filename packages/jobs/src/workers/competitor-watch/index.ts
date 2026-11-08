@@ -5,7 +5,7 @@ import { createWebSearch, type KeyValueStore, type WebSearch } from '@repo/webse
 import Redis from 'ioredis';
 import { allowEveryScope, type JobConfig, type JobDefinition, type ScopeGate } from '../../types';
 import type { EventEmitter } from '../index';
-import { runWatch, type Digest } from './run';
+import { runWatch, type Digest, type WatchScope } from './run';
 
 export { normalizeText, hashText, stripTracking, MAX_TEXT_LENGTH } from './normalize';
 export { diffText, type DiffLine, type TextDiff } from './diff';
@@ -38,10 +38,19 @@ export function redisWebSearch(connection: JobConfig['connection']): WebSearch {
 /** The in-app event a scope receives with its daily digest. */
 export const DIGEST_EVENT = 'competitor-watch:digest';
 
-/** Sends one digest in the app and, for a team, to its webhooks (Antenne) subscribed to `competitor.changes`. */
-export function digestSender(events?: EventEmitter) {
+/** Writes or reads the AI summary of each change of a scope's digest, keyed by change id; an empty map leaves the digest as is. */
+export type DigestSummarizer = (scope: WatchScope, changeIds: string[]) => Promise<Map<string, string>>;
+
+/**
+ * Sends one digest in the app and, for a team, to its webhooks (Antenne)
+ * subscribed to `competitor.changes`. With a summarizer, each item carries
+ * its AI summary when one exists.
+ */
+export function digestSender(events?: EventEmitter, summarize?: DigestSummarizer) {
   return async (digest: Digest): Promise<void> => {
-    const { scope, items, quotaSkipped } = digest;
+    const { scope, quotaSkipped } = digest;
+    const summaries = summarize ? await summarize(scope, digest.items.map((item) => item.changeId)) : new Map<string, string>();
+    const items = digest.items.map((item) => ({ ...item, summary: summaries.get(item.changeId) ?? null }));
     const data = { count: items.length, quotaSkipped, items };
     const target = scope.teamId
       ? { type: 'team' as const, userId: scope.userId, teamId: scope.teamId }
@@ -57,14 +66,15 @@ export function digestSender(events?: EventEmitter) {
 export function createCompetitorWatchWorker(
   web: WebSearch | null,
   events?: EventEmitter,
-  allowed: ScopeGate = allowEveryScope
+  allowed: ScopeGate = allowEveryScope,
+  summarize?: DigestSummarizer
 ): JobDefinition<object, void> {
   return {
     name: COMPETITOR_WATCH,
     processor: async () => {
       if (!web) return;
       try {
-        const result = await runWatch({ prisma, web, allowed, sendDigest: digestSender(events) });
+        const result = await runWatch({ prisma, web, allowed, sendDigest: digestSender(events, summarize) });
         logger.info(result, '[WATCH] Competitor pages checked');
       } catch (error) {
         logger.error({ err: error }, '[WATCH] Competitor page check failed');
