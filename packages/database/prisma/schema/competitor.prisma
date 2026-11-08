@@ -26,6 +26,7 @@ model Competitor {
   wonLeads  Lead[] @relation("LeadWonAgainstCompetitor")
   watchedPages WatchedPage[]
   suggestions  CompetitorSuggestion[]
+  prices       CompetitorPrice[]
 
   @@index([userId])
   @@index([teamId])

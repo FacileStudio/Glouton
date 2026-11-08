@@ -7,6 +7,7 @@ import type { Logger } from '@repo/logger';
 import type { DelegatedVerifier } from './delegation';
 import type { CourrierClient } from '@repo/courrier';
 import type { BulleClient } from './modules/assistant/bulle';
+import type { WebSearch } from '@repo/websearch';
 import { dbForfait, type ForfaitReader } from './modules/forfait/store';
 import type { PlanMode } from './modules/forfait/gate';
 
@@ -19,6 +20,7 @@ export interface CreateContextOptions extends FetchCreateContextFnOptions {
   verifyDelegated?: DelegatedVerifier | null;
   courrier?: CourrierClient | null;
   bulle?: BulleClient | null;
+  web?: Pick<WebSearch, 'fetch'> | null;
   forfait?: ForfaitReader;
   events?: {
     emit: (userId: string, type: string, data?: any) => void;
@@ -63,6 +65,7 @@ export const createContext = async (options: CreateContextOptions) => {
     events: options.events,
     courrier: options.courrier ?? null,
     bulle: options.bulle ?? null,
+    web: options.web ?? null,
     forfait: options.forfait ?? dbForfait(options.prisma, options.env.OIDC_ISSUER),
     planMode: 'paid' as PlanMode,
   };

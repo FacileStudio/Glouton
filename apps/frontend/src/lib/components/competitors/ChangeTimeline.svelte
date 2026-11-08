@@ -2,9 +2,11 @@
   import { onMount } from 'svelte';
   import { SvelteSet } from 'svelte/reactivity';
   import { Badge, Button, Card, Spinner, toast } from '@facile/muse';
+  import { QUIET } from '@repo/trpc-client';
   import { trpc } from '$lib/trpc';
   import { getTrpcErrorMessage } from '$lib/utils/trpc-error';
-  import { useFormat, useT } from '$lib/i18n';
+  import { useFormat, useLocale, useT } from '$lib/i18n';
+  import { aiLanguage } from './ai';
   import { percentOf, shortUrl, type PageChange } from './watch';
 
   interface Props {
@@ -17,6 +19,7 @@
 
   const t = useT();
   const format = useFormat();
+  const locale = useLocale();
 
   let changes = $state<PageChange[]>([]);
   let loading = $state(true);
@@ -29,10 +32,26 @@
       changes = await trpc.competitorWatch.changes.query({ competitorId, teamId });
       const first = changes[0];
       if (first && open.size === 0) open.add(first.id);
+      void summarize();
     } catch (error) {
       toast.danger(getTrpcErrorMessage(error));
     } finally {
       loading = false;
+    }
+  }
+
+  async function summarize() {
+    const missing = changes.filter((change) => !change.aiSummary).map((change) => change.id);
+    if (missing.length === 0) return;
+    try {
+      const result = await trpc.competitorAi.summarize.mutate(
+        { competitorId, teamId, changeIds: missing.slice(0, 30), language: aiLanguage(locale()) },
+        { context: QUIET }
+      );
+      if (!result.available) return;
+      changes = changes.map((change) => ({ ...change, aiSummary: change.aiSummary ?? result.summaries[change.id] ?? null }));
+    } catch {
+      return;
     }
   }
 
@@ -82,6 +101,12 @@
                 · {t('watch.changedShare', { percent: percentOf(change.changeRatio) })}
                 · {t('watch.lines', { added: change.addedLines, removed: change.removedLines })}
               </p>
+              {#if change.aiSummary}
+                <p class="flex items-start gap-1.5 text-fc-sm text-fc-fg">
+                  <Badge tone="info" class="shrink-0">{t('competitorAi.summaryBadge')}</Badge>
+                  <span class="min-w-0">{change.aiSummary}</span>
+                </p>
+              {/if}
             </div>
             <div class="flex shrink-0 items-center gap-1">
               <Button variant="ghost" size="sm" aria-expanded={open.has(change.id)} onclick={() => toggle(change.id)}>

@@ -33,7 +33,7 @@ import config from './config';
 
 const { jobs } = config;
 
-registerWorkers(jobs, prisma, config.courrier);
+registerWorkers(jobs, prisma, config.courrier, config.bulle);
 
 events.init({ broadcastToUser, broadcastToAll }, prisma);
 
@@ -310,6 +310,7 @@ app.all('/trpc/*', trpcHandler({
   verifyDelegated,
   courrier: config.courrier,
   bulle: config.bulle,
+  web: config.web,
 }));
 
 app.get('/', (c) => c.json({ message: "Welcome to the Glouton's API !" }));

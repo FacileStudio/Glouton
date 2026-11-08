@@ -27,8 +27,11 @@ export const WATCHED_PAGES: Feature = { key: 'glouton.watched_pages', kind: 'lim
 /** How many automatic hunt schedules a space may keep enabled at once; -1 is unlimited. */
 export const HUNT_SCHEDULES: Feature = { key: 'glouton.hunt_schedules', kind: 'limit', default: 10 };
 
+/** New AI summaries of competitor page changes a scope may request per UTC day; -1 is unlimited. */
+export const AI_SUMMARIES_DAILY: Feature = { key: 'glouton.ai_summaries_daily', kind: 'limit', default: 40 };
+
 /** Every feature Glouton enforces. */
-export const FEATURES: readonly Feature[] = [GLOUTON_ACCESS, WATCHED_PAGES, HUNT_SCHEDULES];
+export const FEATURES: readonly Feature[] = [GLOUTON_ACCESS, WATCHED_PAGES, HUNT_SCHEDULES, AI_SUMMARIES_DAILY];
 
 /** The entitlement key format shared across the suite. */
 export const KEY_PATTERN = /^[a-z0-9_]+\.[a-z0-9_]+$/;

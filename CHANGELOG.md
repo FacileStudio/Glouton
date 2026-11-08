@@ -11,6 +11,18 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+### Added
+
+- "AI draft" on a competitor card: Glouton fetches the competitor's homepage and up to two pricing or offer pages (watched ones first, then links found on the homepage) through websearch, which counts against the daily fetch quota, and asks Bulle for a battlecard in the existing fields (overview, why we win, why we lose, objections, landmines, pricing, proof points) in the interface language. The proposal is shown field by field: Accept saves that field only (a list keeps your items and adds the new ones; a text field shows the current text next to the proposal first), Discard drops it. Nothing is saved without an Accept.
+- AI summaries of competitor page changes: one or two sentences on what changed and why it matters, shown on the change timeline and carried by each item of the daily digest (in the app and in the `competitor.changes` webhook, so Antenne gets it). Summaries are written lazily, cached on the change, only for spaces with `ai.access`, and capped per space and UTC day by the new plan limit `glouton.ai_summaries_daily` (default 40, attempts count, so a failing model is not retried all day).
+- Price extraction: "Extract prices" reads the latest stored copy of the competitor's watched pricing pages (or fetches the pricing page found on its homepage) and lists each price with name, amount, currency, unit and period, on the card and in the compare view, with a link to the source page and to the stored copy it was read from.
+- tRPC `competitorAi.*` (`draft`, `summarize`, `extractPrices`, `prices`, `snapshot`). Every call works inside the competitor's scope, and every model call goes through Bulle; a space without `ai.access` gets the plan upsell with its upgrade link before any web fetch.
+- Migration `028_competitor_ai.sql` (additive): `PageChange.aiSummary` and `aiSummaryAt`, table `CompetitorPrice`, enum `CompetitorPricePeriod`.
+
+### Security
+
+- Competitor page text sent to Bulle is untrusted data: it sits in delimited data blocks that page text cannot close, the prompt tells Bulle to ignore instructions inside them, and Bulle's JSON is validated strictly (unknown keys, wrong types or ids reject the whole answer with a clear error, never a partial result). Model output only fills a proposal or the price list; it never triggers any other action.
+
 ## [0.14.2] - 2026-11-08
 
 ### Fixed

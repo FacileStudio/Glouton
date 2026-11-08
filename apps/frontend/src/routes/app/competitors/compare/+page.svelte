@@ -9,6 +9,7 @@
   import { useT } from '$lib/i18n';
   import Battlecard from '$lib/components/competitors/Battlecard.svelte';
   import WinRateBadge from '$lib/components/competitors/WinRateBadge.svelte';
+  import PricesPanel from '$lib/components/competitors/PricesPanel.svelte';
   import type { CompetitorItem } from '$lib/components/competitors/labels';
 
   const t = useT();
@@ -60,6 +61,7 @@
               {#each c.tags as name (name)}<Badge tone="info" class="shrink-0">{name}</Badge>{/each}
             </div>
           </Card>
+          <PricesPanel compact competitorId={c.id} {teamId} />
           <Battlecard
             compact
             overview={c.overview}
