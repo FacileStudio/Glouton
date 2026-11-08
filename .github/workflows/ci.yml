@@ -61,6 +61,10 @@ jobs:
         working-directory: packages/websearch
         run: bun test
 
+      - name: webhooks tests
+        working-directory: packages/webhooks
+        run: bun test
+
       - name: i18n catalog
         working-directory: apps/frontend
         run: bun test

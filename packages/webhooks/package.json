@@ -7,10 +7,12 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "bun test"
   },
   "dependencies": {
-    "@repo/database": "workspace:*"
+    "@repo/database": "workspace:*",
+    "@repo/websearch": "workspace:*"
   },
   "devDependencies": {
     "@repo/tsconfig": "workspace:*",

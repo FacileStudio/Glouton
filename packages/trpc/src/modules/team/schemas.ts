@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { WEBHOOK_EVENT_KEYS, type WebhookEvent } from '@repo/webhooks';
+import { checkPublicUrl } from '@repo/websearch';
 import { TeamRole } from './permissions';
 
 export const teamRoleSchema = z.enum(['OWNER', 'ADMIN', 'MEMBER']);
@@ -44,12 +45,24 @@ export const teamIdSchema = z.object({
 const webhookEventSchema = z
   .enum(WEBHOOK_EVENT_KEYS as [WebhookEvent, ...WebhookEvent[]]);
 
+function isPublicUrl(url: string): boolean {
+  try {
+    checkPublicUrl(url);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 const webhookUrlSchema = z
   .string()
   .url('URL invalide')
   .max(2000, 'URL trop longue')
   .refine((url) => url.startsWith('http://') || url.startsWith('https://'), {
     message: 'Seuls les schémas http(s) sont acceptés',
+  })
+  .refine(isPublicUrl, {
+    message: 'Adresse refusée : utilisez une URL publique, sans identifiants ni adresse interne',
   });
 
 export const createWebhookSchema = z.object({

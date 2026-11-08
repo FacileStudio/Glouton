@@ -1,8 +1,18 @@
 import { TRPCError } from '@trpc/server';
 import { prisma } from '@repo/database/prisma';
-import { dispatchWebhookEvent, sendWebhook, type WebhookEvent } from '@repo/webhooks';
+import { checkWebhookUrl, dispatchWebhookEvent, sendWebhook, type WebhookEvent } from '@repo/webhooks';
 import { TeamRole, checkTeamPermission, checkTeamMembership, isTeamOwner } from './permissions';
 import type { AuthManager } from '@repo/auth';
+
+/** Refuses a webhook URL that fails the public-URL guard or resolves to an internal address. */
+async function requireDeliverableUrl(url: string): Promise<void> {
+  try {
+    await checkWebhookUrl(url);
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : 'invalid url';
+    throw new TRPCError({ code: 'BAD_REQUEST', message: `Adresse de webhook refusée : ${reason}` });
+  }
+}
 
 export const teamService = {
   listUserTeams: async (userId: string) => {
@@ -599,6 +609,7 @@ export const teamService = {
     data: { name: string; url: string; events: WebhookEvent[]; enabled?: boolean }
   ) => {
     await checkTeamPermission(userId, teamId, TeamRole.ADMIN);
+    await requireDeliverableUrl(data.url);
 
     return prisma.teamWebhook.create({
       data: {
@@ -640,6 +651,7 @@ export const teamService = {
         message: 'Webhook introuvable',
       });
     }
+    if (data.url !== undefined) await requireDeliverableUrl(data.url);
 
     return prisma.teamWebhook.update({
       where: { id: webhookId },

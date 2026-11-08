@@ -11,6 +11,13 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+### Security
+
+- Team webhooks can no longer make the backend reach internal addresses (SSRF). Create, update, "Send a test" and every delivery now refuse URLs with credentials, `localhost`, single-label or internal names (`.local`, `.internal`, `.lan`, ...), and loopback, private, link-local, CGNAT, ULA, multicast and reserved IPv4/IPv6 addresses.
+- Every delivery resolves the webhook host first and refuses it when any address is internal, then connects to that checked address only, so DNS rebinding cannot redirect it. Redirects are never followed: a 3xx answer counts as a failed delivery.
+- The URL guard now lives in one helper (`checkPublicUrl`, `resolvePublicAddress` in `@repo/websearch`) shared by websearch fetches and webhooks. Websearch fetches also refuse hosts that resolve to internal addresses before sonar runs, and the guard gained the ranges it missed (192.0.0.0/24, documentation and benchmark ranges, 6to4, NAT64, the whole fe80::/10 and fec0::/10).
+- A failed webhook delivery is now logged with the webhook id (never the URL).
+
 ## [0.14.0] - 2026-11-08
 
 ### Added
