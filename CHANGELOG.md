@@ -11,6 +11,8 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-11-08
+
 ### Added
 
 - Automatic hunts (`/app/hunts/schedules`): a local business hunt can repeat every day, week or month. Pick "Repeat" when you start a hunt, or press "Repeat" on a finished hunt. The list shows each schedule's last run, its new leads and its next run, with pause, resume, run now, frequency and delete.
