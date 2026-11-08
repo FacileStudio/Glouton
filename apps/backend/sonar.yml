@@ -1,0 +1,32 @@
+count: 10
+timeout: 20
+minInterval: 500ms
+jitter: 150ms
+breakerCooldown: 2m
+cacheDir: /home/backend/.cache/sonar
+cacheTTL: 15m
+engines:
+  parallel:
+    enabled: true
+    priority: 1
+  brave:
+    enabled: true
+    priority: 2
+  tavily:
+    enabled: true
+    priority: 3
+  exa:
+    enabled: true
+    priority: 4
+  firecrawl:
+    enabled: true
+    priority: 5
+  browserbase:
+    enabled: true
+    priority: 6
+  brightdata:
+    enabled: true
+    priority: 7
+  linkup:
+    enabled: true
+    priority: 8

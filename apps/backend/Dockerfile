@@ -1,5 +1,16 @@
 FROM oven/bun:1.3.7-alpine AS base
 
+FROM alpine:3.21 AS sonar
+ARG SONAR_VERSION=0.13.0
+WORKDIR /tmp/sonar
+RUN set -eu; \
+    asset="sonar_${SONAR_VERSION}_linux_amd64.tar.gz"; \
+    base="https://github.com/FacileStudio/sonar/releases/download/v${SONAR_VERSION}"; \
+    wget -q "$base/$asset" "$base/checksums.txt"; \
+    grep " $asset\$" checksums.txt | sha256sum -c -; \
+    tar -xzf "$asset" sonar; \
+    install -m 0755 sonar /usr/local/bin/sonar
+
 FROM base AS deps
 WORKDIR /app
 
@@ -22,6 +33,7 @@ COPY packages/tsconfig/package.json ./packages/tsconfig/
 COPY packages/types/package.json ./packages/types/
 COPY packages/utils/package.json ./packages/utils/
 COPY packages/webhooks/package.json ./packages/webhooks/
+COPY packages/websearch/package.json ./packages/websearch/
 
 RUN bun install --no-save
 
@@ -45,6 +57,14 @@ ENV NODE_ENV=production
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 backend
+RUN apk add --no-cache chromium \
+    && mkdir -p /home/backend/.cache/sonar \
+    && chown -R backend:nodejs /home/backend
+
+ENV HOME=/home/backend
+ENV SONAR_CONFIG=/etc/sonar.yml
+COPY --from=sonar /usr/local/bin/sonar /usr/local/bin/sonar
+COPY apps/backend/sonar.yml /etc/sonar.yml
 
 COPY --from=builder --chown=backend:nodejs /app/apps/backend ./apps/backend
 COPY --from=builder --chown=backend:nodejs /app/packages ./packages
