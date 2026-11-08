@@ -11,6 +11,11 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+### Added
+
+- `@repo/websearch`: a typed sonar client with a Redis result cache and a per-team daily quota (`WEBSEARCH_DAILY_QUOTA`, default 50 searches; `WEBSEARCH_DAILY_FETCH_QUOTA`, default 200 fetches).
+- The backend image ships sonar v0.13.0 (checksum verified) and chromium, with the sonar engine keys passed through the compose environment.
+
 ## [0.10.2] - 2026-11-07
 
 ### Changed
