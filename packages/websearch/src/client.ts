@@ -125,7 +125,7 @@ export function createWebSearch(config: WebSearchConfig): WebSearch {
       const release = await quota.reserve(teamId, 'fetches', urls.length);
       try {
         const timeoutMs = options.timeoutMs ?? fetchTimeout;
-        const args = ['fetch', '--timeout', `${Math.max(1, Math.floor(timeoutMs / 1000) - 5)}s`];
+        const args = ['fetch', '--public-only', '--timeout', `${Math.max(1, Math.floor(timeoutMs / 1000) - 5)}s`];
         if (selector) args.push('--selector', selector);
         if (browser) args.push('--browser');
         args.push('--', ...urls);

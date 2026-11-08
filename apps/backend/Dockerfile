@@ -1,7 +1,7 @@
 FROM oven/bun:1.3.7-alpine AS base
 
 FROM alpine:3.21 AS sonar
-ARG SONAR_VERSION=0.13.0
+ARG SONAR_VERSION=0.14.0
 WORKDIR /tmp/sonar
 RUN set -eu; \
     asset="sonar_${SONAR_VERSION}_linux_amd64.tar.gz"; \
@@ -63,6 +63,7 @@ RUN apk add --no-cache chromium \
 
 ENV HOME=/home/backend
 ENV SONAR_CONFIG=/etc/sonar.yml
+ENV SONAR_FETCH_PUBLIC_ONLY=1
 COPY --from=sonar /usr/local/bin/sonar /usr/local/bin/sonar
 COPY apps/backend/sonar.yml /etc/sonar.yml
 
