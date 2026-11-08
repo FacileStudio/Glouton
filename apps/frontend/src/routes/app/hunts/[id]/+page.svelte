@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { QUIET } from '@repo/trpc-client';
   import { getErrorMessage } from '$lib/utils/trpc-error';
   import { fade, fly } from 'svelte/transition';
   import { onMount, onDestroy } from 'svelte';
@@ -7,7 +8,8 @@
   import { resolve } from '$app/paths';
   import { trpc } from '$lib/trpc';
   import type { RouterOutputs } from '@repo/trpc-client';
-  import { toast, Spinner, PageHeader, Button, Badge, Section, StatCard, EmptyState, Alert, Icon, StatusDot, icons } from '@facile/muse';
+  import { toast, Spinner, PageHeader, Button, Badge, Section, StatCard, EmptyState, Alert, Icon, StatusDot, Modal, Field, Select, PlanLimit, icons, type PlanLimitError } from '@facile/muse';
+  import { FREQUENCIES, limitFrom, type Frequency } from '$lib/components/schedules/labels';
   import { ws } from '$lib/websocket';
   import HuntBanner from '$lib/components/leads/HuntBanner.svelte';
   import { useFormat, useT } from '$lib/i18n';
@@ -39,6 +41,10 @@
   let loading = $state(true);
   let cancelling = $state(false);
   let relaunching = $state(false);
+  let repeatOpen = $state(false);
+  let repeatFrequency = $state<Frequency>('WEEKLY');
+  let repeating = $state(false);
+  let limit = $state<PlanLimitError | null>(null);
   let liveEvents = $state<LiveEvent[]>([]);
   let discoveredItems = $state<DiscoveredItem[]>([]);
   let eventsContainer = $state<HTMLDivElement | undefined>(undefined);
@@ -284,6 +290,24 @@
   }
 
   const isCsvImport = $derived(details?.sources?.includes('CSV_IMPORT') ?? false);
+  const canRepeat = $derived(details?.huntType === 'LOCAL_BUSINESS' && !isCsvImport && !details?.scheduleId);
+
+  async function repeatHunt() {
+    if (!details || repeating) return;
+    repeating = true;
+    try {
+      await trpc.huntSchedule.createFromSession.mutate({ huntSessionId: details.id, frequency: repeatFrequency }, { context: QUIET });
+      repeatOpen = false;
+      toast.success(t('schedules.created'));
+      await goto(resolve('/app/hunts/schedules'));
+    } catch (error) {
+      limit = limitFrom(error);
+      if (limit) repeatOpen = false;
+      else toast.danger(getErrorMessage(error, t('schedules.actionFailed')));
+    } finally {
+      repeating = false;
+    }
+  }
 
   const headerTitle = $derived.by(() => {
     if (!details) return '';
@@ -366,6 +390,12 @@
           <StatusDot tone="info" pulse />
         {/if}
       </Badge>
+
+      {#if details?.scheduleId}
+        <Button variant="ghost" icon="solar:refresh-circle-linear" href="/app/hunts/schedules">{t('schedules.automatic')}</Button>
+      {:else if canRepeat}
+        <Button variant="secondary" icon="solar:refresh-circle-linear" onclick={() => (repeatOpen = true)}>{t('schedules.repeat')}</Button>
+      {/if}
 
       {#if details?.status === 'COMPLETED' || details?.status === 'FAILED'}
         <Button
@@ -598,3 +628,24 @@
     </EmptyState>
   {/if}
 {/if}
+
+<Modal bind:open={repeatOpen} title={t('schedules.fromHunt.title')} size="sm">
+  <div class="flex flex-col gap-3">
+    <p class="text-fc-sm text-fc-fg-muted">{t('schedules.repeat.hint')}</p>
+    <Field label={t('schedules.frequency')} for="repeat-frequency">
+      <Select id="repeat-frequency" value={repeatFrequency} onchange={(e) => (repeatFrequency = e.currentTarget.value as Frequency)}>
+        {#each FREQUENCIES as frequency (frequency)}
+          <option value={frequency}>{t(`schedules.freq.${frequency}`)}</option>
+        {/each}
+      </Select>
+    </Field>
+  </div>
+  {#snippet footer()}
+    <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+      <Button variant="ghost" onclick={() => (repeatOpen = false)}>{t('common.cancel')}</Button>
+      <Button icon="solar:refresh-circle-linear" onclick={repeatHunt} disabled={repeating}>{t('schedules.fromHunt.confirm')}</Button>
+    </div>
+  {/snippet}
+</Modal>
+
+<PlanLimit error={limit} variant="dialog" onClose={() => (limit = null)} />

@@ -21,9 +21,11 @@ model HuntSession {
   completedAt         DateTime?    @db.Timestamptz(3)
   createdAt           DateTime     @default(now()) @db.Timestamptz(3)
   updatedAt           DateTime     @default(now()) @updatedAt @db.Timestamptz(3)
+  scheduleId          String?      @db.Text
 
   user                User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   team                Team?        @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  schedule            HuntSchedule? @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
   events              HuntSessionEvent[]
 
   @@index([userId])
@@ -31,6 +33,7 @@ model HuntSession {
   @@index([status])
   @@index([huntType])
   @@index([jobId])
+  @@index([scheduleId])
 }
 
 model HuntSessionEvent {

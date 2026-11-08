@@ -1,0 +1,60 @@
+enum HuntFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+/// What a space sells and to whom. One row per team, or per person for the
+/// personal space (scopeKey is "team:<teamId>" or "user:<userId>"). Automatic
+/// hunts create schedules from targetCategories; competitor discovery reads
+/// the whole profile. Read it with profileFor() in packages/trpc.
+model TeamProspectProfile {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Text
+  scopeKey         String   @unique @db.Text
+  userId           String   @db.Text
+  teamId           String?  @db.Text
+  offerDescription String?  @db.Text
+  area             String?  @db.Text
+  targetCategories String[] @default([])
+  nafCodes         String[] @default([])
+  keywords         String[] @default([])
+  createdAt        DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime @default(now()) @updatedAt @db.Timestamptz(3)
+
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team Team? @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([teamId])
+}
+
+/// A hunt that repeats. Every 15 minutes the hunt-schedules job starts a
+/// normal HuntSession (scheduleId set) for each enabled row whose nextRunAt
+/// is due, unless the previous run is still going.
+model HuntSchedule {
+  id                   String        @id @default(dbgenerated("gen_random_uuid()")) @db.Text
+  userId               String        @db.Text
+  teamId               String?       @db.Text
+  name                 String        @db.Text
+  huntType             HuntType      @default(LOCAL_BUSINESS)
+  filters              Json
+  frequency            HuntFrequency
+  enabled              Boolean       @default(true)
+  nextRunAt            DateTime      @db.Timestamptz(3)
+  lastRunAt            DateTime?     @db.Timestamptz(3)
+  consecutiveFailures  Int           @default(0)
+  pausedReason         String?       @db.Text
+  lastSessionId        String?       @db.Text
+  lastSettledSessionId String?       @db.Text
+  lastNewLeads         Int?
+  createdAt            DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt            DateTime      @default(now()) @updatedAt @db.Timestamptz(3)
+
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team     Team?         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  sessions HuntSession[]
+
+  @@index([userId])
+  @@index([teamId])
+  @@index([enabled, nextRunAt])
+}

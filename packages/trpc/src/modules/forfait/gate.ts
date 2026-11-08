@@ -85,7 +85,7 @@ export const CROSS_SCOPE: readonly string[] = [
 ];
 
 /** The tables a by-id procedure can name as its row. Each has `userId` and `teamId`. */
-export type RowModel = 'lead' | 'huntSession' | 'auditSession' | 'competitor';
+export type RowModel = 'lead' | 'huntSession' | 'auditSession' | 'competitor' | 'huntSchedule';
 
 /** How a procedure tells the gate where its scope comes from. */
 export interface ForfaitMeta {

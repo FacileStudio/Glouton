@@ -13,6 +13,8 @@ import { assistantRouter } from './modules/assistant/router';
 import { forfaitRouter } from './modules/forfait/router';
 import { competitorRouter } from './modules/competitor/router';
 import { competitorWatchRouter } from './modules/competitor-watch/router';
+import { huntScheduleRouter } from './modules/schedule/router';
+import { prospectRouter } from './modules/prospect/router';
 import { createOpenApiDocument } from './openapi';
 import { bindProcedures } from './modules/forfait/procedures';
 import { isIdKey } from './modules/forfait/gate';
@@ -32,6 +34,8 @@ export const appRouter = router({
   forfait: forfaitRouter,
   competitor: competitorRouter,
   competitorWatch: competitorWatchRouter,
+  huntSchedule: huntScheduleRouter,
+  prospect: prospectRouter,
 });
 
 bindProcedures(appRouter._def.procedures, isIdKey);
@@ -58,5 +62,7 @@ export {
 } from './modules/inbox/router';
 export * as forfait from './modules/forfait';
 export * as competitorRules from './modules/competitor/rules';
+export * as schedules from './modules/schedule';
+export { profileFor, type ProspectProfile } from './modules/prospect/profile';
 export * as mailTransport from './modules/email/transport';
 export { BulleClient, bulleFromEnv } from './modules/assistant/bulle';

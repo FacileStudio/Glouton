@@ -8,7 +8,7 @@ import trpcHandler from './handlers/trpc';
 import { createAuthRoutes } from './handlers/auth';
 import { createAgentRoutes } from './handlers/agent';
 import { ARDOISE_ROUTES_PREFIX, createArdoiseRoutes } from './handlers/ardoise';
-import { ardoise, forfait } from '@repo/trpc';
+import { ardoise, forfait, schedules } from '@repo/trpc';
 import { openApiHandler } from './handlers/openapi';
 import { apiReference } from '@scalar/hono-api-reference';
 import {
@@ -113,6 +113,20 @@ async function startup() {
     logger.info('[WATCH] Competitor page monitoring scheduled daily');
   } catch (err) {
     logger.error({ err }, '[WATCH] Failed to schedule competitor page monitoring');
+  }
+
+  try {
+    await jobs.upsertScheduler(
+      schedules.SCHEDULE_QUEUE,
+      'hunt-schedules-every-15m',
+      schedules.TICK_MS,
+      schedules.SCHEDULE_QUEUE,
+      {},
+      { removeOnComplete: 5, removeOnFail: 3 }
+    );
+    logger.info('[SCHEDULES] Automatic hunts checked every 15 min');
+  } catch (err) {
+    logger.error({ err }, '[SCHEDULES] Failed to schedule automatic hunts');
   }
 
   if (config.courrier) {

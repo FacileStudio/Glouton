@@ -54,7 +54,8 @@ export function assistantError(error: unknown): never {
   throw error;
 }
 
-function requireBulle(bulle: BulleClient | null): BulleClient {
+/** The Bulle client, or BAD_GATEWAY when this server has none. */
+export function requireBulle(bulle: BulleClient | null): BulleClient {
   if (!bulle) throw new TRPCError({ code: 'BAD_GATEWAY', message: 'Bulle n’est pas configuré sur ce serveur.' });
   return bulle;
 }

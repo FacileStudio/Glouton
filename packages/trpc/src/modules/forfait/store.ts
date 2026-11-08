@@ -244,6 +244,7 @@ export function rowLoader(prisma: PrismaClient) {
     if (model === 'lead') return prisma.lead.findUnique({ where: { id }, select });
     if (model === 'huntSession') return prisma.huntSession.findUnique({ where: { id }, select });
     if (model === 'competitor') return prisma.competitor.findUnique({ where: { id }, select });
+    if (model === 'huntSchedule') return prisma.huntSchedule.findUnique({ where: { id }, select });
     return prisma.auditSession.findUnique({ where: { id }, select });
   };
 }

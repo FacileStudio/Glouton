@@ -4,7 +4,7 @@ import { createWorkers, redisWebSearch } from '@repo/jobs/workers';
 import { events } from './events';
 import { logger } from '@repo/logger';
 import type { CourrierClient } from '@repo/courrier';
-import { ardoise, forfait } from '@repo/trpc';
+import { ardoise, forfait, schedules } from '@repo/trpc';
 import env from '../env';
 
 type ScopedJob = { userId?: unknown; teamId?: unknown; huntSessionId?: unknown; auditSessionId?: unknown };
@@ -58,6 +58,39 @@ export function scopeGuarded<T extends ScopedJob, R>(
   };
 }
 
+/**
+ * Wraps the hunt worker so a scheduled run is settled on its schedule as
+ * soon as its job ends: succeeded, skipped, or failed on its last attempt
+ * (an attempt BullMQ will retry leaves the run open).
+ * Settling is idempotent and a no-op while the session is still pending or
+ * processing; the 15-minute tick catches any run this misses.
+ */
+export function settledAfter<T extends ScopedJob, R>(
+  definition: JobDefinition<T, R>,
+  settle: (huntSessionId: string) => Promise<unknown>
+): JobDefinition<T, R> {
+  const after = async (data: T) => {
+    if (typeof data.huntSessionId !== 'string') return;
+    await settle(data.huntSessionId).catch((error: unknown) =>
+      logger.error({ err: error, huntSessionId: data.huntSessionId }, '[SCHEDULES] Could not settle a scheduled run')
+    );
+  };
+  return {
+    ...definition,
+    processor: async (job) => {
+      let final = true;
+      try {
+        return await definition.processor(job);
+      } catch (error) {
+        final = job.attemptsMade + 1 >= (job.opts.attempts ?? 1);
+        throw error;
+      } finally {
+        if (final) await after(job.data);
+      }
+    },
+  };
+}
+
 export function registerWorkers(
   queueManager: QueueManager,
   prisma: PrismaClient,
@@ -74,7 +107,16 @@ export function registerWorkers(
   const workers = createWorkers(events, { courrier, allowed, websearch });
 
   const skipped = markSkipped(prisma);
-  queueManager.registerWorker('local-business-hunt', scopeGuarded(workers['local-business-hunt'], allowed, skipped));
+  const runner: schedules.RunnerDeps = {
+    prisma,
+    jobs: queueManager,
+    allowed,
+    notify: (scope, type, data) => events.emitToScope(scope, type, data),
+  };
+  queueManager.registerWorker(
+    'local-business-hunt',
+    settledAfter(scopeGuarded(workers['local-business-hunt'], allowed, skipped), (id) => schedules.settleSession(runner, id))
+  );
   queueManager.registerWorker('lead-audit', scopeGuarded(workers['lead-audit'], allowed, skipped));
   queueManager.registerWorker('csv-import', scopeGuarded(workers['csv-import'], allowed, skipped));
   queueManager.registerWorker('opportunity-scraper', workers['opportunity-scraper']);
@@ -82,6 +124,15 @@ export function registerWorkers(
   queueManager.registerWorker('courrier-reply-sync', workers['courrier-reply-sync']);
   queueManager.registerWorker('courrier-contacts-import', workers['courrier-contacts-import']);
   queueManager.registerWorker('competitor-watch', workers['competitor-watch']);
+  queueManager.registerWorker(schedules.SCHEDULE_QUEUE, {
+    name: schedules.SCHEDULE_QUEUE,
+    processor: async () => {
+      const result = await schedules.tick(runner);
+      if (result.started + result.settled + result.failed > 0) logger.info(result, '[SCHEDULES] Tick');
+      return result;
+    },
+    options: { concurrency: 1 },
+  });
   logger.info(`[WORKERS] Registered ${Object.keys(workers).join(', ')} workers`);
 
   const sync = ardoise.ardoiseDeps(prisma, env, queueManager, logger);

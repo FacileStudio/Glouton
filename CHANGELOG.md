@@ -11,6 +11,17 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+### Added
+
+- Automatic hunts (`/app/hunts/schedules`): a local business hunt can repeat every day, week or month. Pick "Repeat" when you start a hunt, or press "Repeat" on a finished hunt. The list shows each schedule's last run, its new leads and its next run, with pause, resume, run now, frequency and delete.
+- A scan every 15 minutes starts the due schedules as normal hunts linked to their schedule, at most 6 per scan and 2 minutes apart, so OpenStreetMap sees a slow trickle. A schedule whose previous run is still going is not started again. The existing deduplication keeps only new leads.
+- After each run with new leads, a digest ("N new leads") appears in the app and goes to the team's webhooks as `hunt.digest`. After 3 failed runs in a row, the schedule pauses itself with a notice in the app and a `hunt.schedule_paused` webhook.
+- Prospecting profile in Settings > Prospecting, one per space: offer, area, target categories, NAF codes and keywords. "Create the suggested hunts" adds one automatic hunt per target category around the area. Competitor discovery will read the same profile (`profileFor` in `@repo/trpc`).
+- "Suggest segments" on the automatic hunts page: Bulle reads the profile and proposes segments, each one a weekly hunt in one click. It needs `ai.access`; without it, the page shows the plan limit with the upgrade link.
+- Plan limit `glouton.hunt_schedules` (default 10, `-1` for unlimited) caps the enabled schedules of a space. Past it, the call answers 402 with `data.plan_limit`, like `glouton.watched_pages`.
+- tRPC `huntSchedule.*` (`list`, `create`, `createFromSession`, `createFromProfile`, `update`, `pause`, `resume`, `runNow`, `delete`, `suggestSegments`) and `prospect.*` (`get`, `save`). The plan gate scopes `huntSchedule` rows like leads.
+- Migration `025_automatic_hunts.sql` (additive): tables `TeamProspectProfile` and `HuntSchedule`, enum `HuntFrequency`, and `HuntSession.scheduleId` (set to null when the schedule is deleted).
+
 ## [0.12.0] - 2026-11-08
 
 ### Added

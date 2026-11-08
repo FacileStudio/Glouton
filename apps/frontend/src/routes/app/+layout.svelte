@@ -97,6 +97,7 @@
     const name = t('app.name');
     const title = (key: Parameters<typeof t>[0]) => `${t(key)} · ${name}`;
     if (path.startsWith('/app/hunts/new')) return title('title.newHunt');
+    if (path === '/app/hunts/schedules') return title('title.schedules');
     if (path.match(/^\/app\/hunts\/.+/)) return title('title.hunt');
     if (path === '/app/hunts') return title('nav.hunts');
     if (path.match(/^\/app\/leads\/.+/)) return title('title.lead');
@@ -144,6 +145,10 @@
         action: { label: t('watch.digestOpen'), onClick: () => void goto(resolve('/app/competitors')) },
       });
     }),
+    ws.on<{ name?: string; newLeads?: number }>('hunt-digest', (data) =>
+      toast.success(t('schedules.digest', { name: data?.name ?? '', count: data?.newLeads ?? 0 }))
+    ),
+    ws.on<{ name?: string }>('hunt-schedule-paused', (data) => toast.danger(t('schedules.pausedNotice', { name: data?.name ?? '' }))),
   ];
 
   onMount(async () => {

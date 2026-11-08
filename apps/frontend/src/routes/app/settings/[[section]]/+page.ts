@@ -1,7 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import type { PageLoad } from './$types';
 
-const SECTIONS = ['profile', 'preferences', 'mail', 'subscription', 'advanced'];
+const SECTIONS = ['profile', 'preferences', 'mail', 'prospecting', 'subscription', 'advanced'];
 const LEGACY: Record<string, string> = { appearance: 'preferences', account: 'mail' };
 
 export const load: PageLoad = ({ params }) => {

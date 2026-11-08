@@ -7,7 +7,8 @@ export type KnownQueueName =
   | 'lead-audit'
   | 'csv-import'
   | 'opportunity-scraper'
-  | 'company-creation';
+  | 'company-creation'
+  | 'hunt-schedules';
 
 export class QueueManager {
   private static instance?: QueueManager;

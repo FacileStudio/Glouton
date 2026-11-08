@@ -16,6 +16,8 @@ export interface StartLocalBusinessHuntParams {
   maxResults?: number;
   jobs: QueueManager;
   prisma: PrismaClient;
+  scheduleId?: string;
+  delayMs?: number;
 }
 
 export interface RunDetails {
@@ -27,6 +29,7 @@ export interface RunDetails {
   sources: string[];
   domain: string | null;
   filters: HuntFilters | null;
+  scheduleId: string | null;
   totalLeads: number;
   successfulLeads: number;
   failedLeads: number;
@@ -80,6 +83,8 @@ export default {
     maxResults,
     jobs,
     prisma,
+    scheduleId,
+    delayMs,
   }: StartLocalBusinessHuntParams) {
     const huntData: any = {
       userId: scope.userId,
@@ -95,6 +100,7 @@ export default {
       },
       status: 'PENDING',
       progress: 0,
+      scheduleId: scheduleId ?? null,
     };
 
     if (scope.type === 'team') {
@@ -127,7 +133,8 @@ export default {
           hasWebsite,
           radius,
           maxResults: Math.floor((maxResults || 100) / categories.length),
-        }
+        },
+        delayMs ? { delay: delayMs } : undefined
       );
     }
 
@@ -367,6 +374,7 @@ export default {
       sources: session.sources,
       domain: session.domain,
       filters: readHuntFilters(session.filters),
+      scheduleId: session.scheduleId,
       totalLeads: session.totalLeads,
       successfulLeads: session.successfulLeads,
       failedLeads: session.failedLeads,

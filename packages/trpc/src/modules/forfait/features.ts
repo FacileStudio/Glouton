@@ -24,8 +24,11 @@ export const AI_ACCESS: Feature = { key: 'ai.access', kind: 'bool', default: fal
 /** Competitor pages a scope may watch for changes, across all its competitors. */
 export const WATCHED_PAGES: Feature = { key: 'glouton.watched_pages', kind: 'limit', default: 10 };
 
+/** How many automatic hunt schedules a space may keep enabled at once; -1 is unlimited. */
+export const HUNT_SCHEDULES: Feature = { key: 'glouton.hunt_schedules', kind: 'limit', default: 10 };
+
 /** Every feature Glouton enforces. */
-export const FEATURES: readonly Feature[] = [GLOUTON_ACCESS, WATCHED_PAGES];
+export const FEATURES: readonly Feature[] = [GLOUTON_ACCESS, WATCHED_PAGES, HUNT_SCHEDULES];
 
 /** The entitlement key format shared across the suite. */
 export const KEY_PATTERN = /^[a-z0-9_]+\.[a-z0-9_]+$/;

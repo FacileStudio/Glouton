@@ -161,6 +161,7 @@
   <div class="flex flex-col gap-6">
     <PageHeader title={t('hunts.title')} description={t('hunts.subtitle')}>
       {#snippet actions()}
+        <Button href="/app/hunts/schedules" variant="secondary" icon="solar:refresh-circle-linear">{t('schedules.open')}</Button>
         <Button href="/app/hunts/new" icon={icons.plus}>{t('hunts.new')}</Button>
       {/snippet}
     </PageHeader>
