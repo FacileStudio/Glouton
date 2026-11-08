@@ -37,6 +37,12 @@ model Lead {
   contacted          Boolean       @default(false)
   lastContactedAt    DateTime?     @db.Timestamptz(3)
   emailsSentCount    Int           @default(0)
+  outcome            LeadOutcome?
+  closedAt           DateTime?     @db.Timestamptz(3)
+  lossReason         LeadLossReason?
+  lostToCompetitorId String?       @db.Text
+  competitorLossReason CompetitorLossReason?
+  wonAgainstCompetitorId String?   @db.Text
   createdAt          DateTime      @default(now()) @db.Timestamptz(3)
   updatedAt          DateTime      @default(now()) @updatedAt @db.Timestamptz(3)
 
@@ -46,6 +52,8 @@ model Lead {
   auditSessions      AuditSession[]
   favoritedBy        UserFavoriteLead[]
   companyCreations   CompanyCreation[]
+  lostToCompetitor   Competitor?         @relation("LeadLostToCompetitor", fields: [lostToCompetitorId], references: [id], onDelete: SetNull)
+  wonAgainstCompetitor Competitor?       @relation("LeadWonAgainstCompetitor", fields: [wonAgainstCompetitorId], references: [id], onDelete: SetNull)
 
   @@unique([userId, email])
   @@unique([userId, domain, firstName, lastName])
@@ -71,6 +79,8 @@ model Lead {
   @@index([userId, businessName])
   @@index([domain])
   @@index([emailVerified])
+  @@index([lostToCompetitorId])
+  @@index([wonAgainstCompetitorId])
 }
 
 model UserFavoriteLead {

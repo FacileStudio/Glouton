@@ -13,6 +13,7 @@ import { hunts } from './rows/hunts';
 import { assistant } from './rows/assistant';
 import { common } from './rows/common';
 import { settings } from './rows/settings';
+import { competitors } from './rows/competitors';
 
 const base = {
   'app.name': ['Glouton', 'Glouton', 'Glouton', 'Glouton'],
@@ -151,6 +152,6 @@ const base = {
   'paywall.loadFailed': ['Could not load the link to the plans. Try again later.', 'Impossible de charger le lien vers les forfaits. Réessayez plus tard.', 'No se pudo cargar el enlace a los planes. Inténtalo más tarde.', 'Der Link zu den Tarifen konnte nicht geladen werden. Versuchen Sie es später erneut.']
 } as const satisfies Record<string, Row>;
 
-export const rows = { ...base, ...common, ...settings, ...assistant, ...hunts, ...hunts2, ...leads, ...leads2, ...contacts, ...composer, ...outreach, ...missions, ...creations, ...teams, ...teams2 };
+export const rows = { ...base, ...common, ...settings, ...assistant, ...hunts, ...hunts2, ...leads, ...leads2, ...contacts, ...composer, ...outreach, ...missions, ...creations, ...teams, ...teams2, ...competitors };
 
 export type Key = keyof typeof rows;

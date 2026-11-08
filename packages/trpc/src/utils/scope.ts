@@ -88,3 +88,16 @@ export function buildEmailFilter(scope: Scope): Prisma.EmailOutreachWhereInput {
     teamId: scope.teamId,
   };
 }
+
+export function buildCompetitorFilter(scope: Scope): Prisma.CompetitorWhereInput {
+  if (scope.type === 'personal') {
+    return {
+      userId: scope.userId,
+      teamId: null,
+    };
+  }
+
+  return {
+    teamId: scope.teamId,
+  };
+}
