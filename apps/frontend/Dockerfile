@@ -16,6 +16,7 @@ COPY packages/trpc-client/package.json ./packages/trpc-client/
 COPY packages/types/package.json ./packages/types/
 COPY packages/utils/package.json ./packages/utils/
 COPY packages/webhooks/package.json ./packages/webhooks/
+COPY packages/websearch/package.json ./packages/websearch/
 COPY packages/tsconfig/package.json ./packages/tsconfig/
 
 RUN bun install --no-save
@@ -37,6 +38,7 @@ COPY packages/trpc-client/package.json ./packages/trpc-client/
 COPY packages/types/package.json ./packages/types/
 COPY packages/utils/package.json ./packages/utils/
 COPY packages/webhooks/package.json ./packages/webhooks/
+COPY packages/websearch/package.json ./packages/websearch/
 COPY packages/tsconfig/package.json ./packages/tsconfig/
 
 # Install bun for the build
