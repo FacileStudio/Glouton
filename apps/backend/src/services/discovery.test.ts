@@ -5,7 +5,7 @@ const databaseUrl = process.env.TEST_DATABASE_URL;
 process.env.DATABASE_URL = databaseUrl ?? 'postgresql://unused@localhost/unused';
 
 const { fetchRequestHandler } = await import('@trpc/server/adapters/fetch');
-const { appRouter, discovery, profileFor } = await import('@repo/trpc');
+const { appRouter, discovery, profileFor, prospectProfile } = await import('@repo/trpc');
 const { WebSearchError } = await import('@repo/websearch');
 const { osmUrl } = await import('@repo/jobs/workers');
 const { dispatchWebhookEvent, webhookTransport } = await import('@repo/webhooks');
@@ -62,14 +62,13 @@ async function call(prisma: PrismaClient, path: string, user: User, gate: Return
 }
 
 const emptyProfile = {
-  offerDescription: null,
-  area: 'Lyon, FR',
-  targetCategories: [],
+  offerDescription: null as string | null,
+  area: 'Lyon, FR' as string | null,
+  description: null as string | null,
   nafCodes: [] as string[],
+  osmTags: [] as string[],
   keywords: [] as string[],
   website: null as string | null,
-  ownCategory: null,
-  updatedAt: null,
 };
 
 const result = (url: string, title = 'Agence', snippet = 'Création de site web à Lyon') => ({ url, title, snippet, engine: 'test' });
@@ -251,7 +250,7 @@ describe.skipIf(!databaseUrl)('discovery on the database', () => {
     await company(sirens[0]!, { name: 'Code Lyonnais', activityCode: '62.01Z', city, postalCode: '69002' });
     await company(sirens[1]!, { name: 'Boulangerie', activityCode: '10.71C', city, postalCode: '69002' });
     await company(sirens[2]!, { name: 'Code Parisien', activityCode: '62.01Z', city: 'Paris', postalCode: '75011' });
-    const profile = await profileFor(prisma, team());
+    const profile = prospectProfile.searchProfile(await profileFor(prisma, team()), 'competitors');
     const found = await discovery.bodaccCandidates(prisma, profile, { now: new Date() });
     const mine = found.filter((c) => sirens.includes(c.siren ?? ''));
     expect(mine.map((c) => c.name)).toEqual(['Code Lyonnais']);

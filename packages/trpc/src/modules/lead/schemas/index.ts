@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isHuntCategory } from '../../../taxonomy';
 
 export const businessCategoryEnum = z.enum([
   'restaurant',
@@ -30,10 +31,13 @@ export const businessCategoryEnum = z.enum([
   'other',
 ]);
 
+/** What a local business hunt searches for: an old category or a curated OpenStreetMap tag such as `craft=plumber`. */
+export const huntCategorySchema = z.string().trim().refine(isHuntCategory, 'Unknown category');
+
 export const startLocalBusinessHuntSchema = z.object({
   teamId: z.string().uuid().optional(),
   location: z.string().min(1, 'Location is required'),
-  categories: z.array(businessCategoryEnum).min(1, 'At least one category is required'),
+  categories: z.array(huntCategorySchema).min(1, 'At least one category is required').max(30),
   hasWebsite: z.boolean().optional(),
   radius: z.number().int().min(100).max(50000).optional(),
   maxResults: z.number().int().min(1).max(500).optional(),

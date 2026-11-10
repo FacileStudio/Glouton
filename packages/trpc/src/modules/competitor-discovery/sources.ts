@@ -1,6 +1,6 @@
 import type { Prisma, PrismaClient } from '@prisma/client';
 import { WebSearchError, type WebSearch } from '@repo/websearch';
-import type { ProspectProfile } from '../prospect/profile';
+import type { SearchProfile } from '../prospect/profile';
 import { domainOf } from '../competitor/rules';
 import type { Scope } from '../../utils/scope';
 import { candidateDomain, clip, inArea, matchesNaf, mentionsArea, nameFromTitle, type Candidate } from './rules';
@@ -16,7 +16,7 @@ export interface Place {
   distanceKm: number | null;
 }
 
-/** Map search by category around a place name (packages/maps OpenStreetMap in production). */
+/** Map search by category or OpenStreetMap tag around a place name (packages/maps OpenStreetMap in production). */
 export type PlacesSearch = (area: string, category: string) => Promise<Place[]>;
 
 /** One web search a run makes, and the source its results count as. */
@@ -26,6 +26,8 @@ export interface DiscoveryQuery {
 }
 
 
+/** Map tags one run searches at most. */
+export const MAX_PLACE_TAGS = 3;
 /** Web searches one run makes at most. */
 export const MAX_QUERIES = 6;
 /** Results asked per web search. */
@@ -43,12 +45,13 @@ export function quotaKey(scope: Scope): string {
 }
 
 /** True when the profile gives discovery something to search with. */
-export function searchable(profile: ProspectProfile): boolean {
+export function searchable(profile: SearchProfile): boolean {
   return Boolean(
     profile.keywords.length > 0 ||
       profile.offerDescription ||
+      profile.description ||
       profile.website ||
-      (profile.ownCategory && profile.area) ||
+      (profile.osmTags.length > 0 && profile.area) ||
       (profile.nafCodes.length > 0 && profile.area)
   );
 }
@@ -58,14 +61,16 @@ function firstWords(text: string, count: number): string {
 }
 
 /**
- * The web searches a run makes, at most MAX_QUERIES: each keyword (up to
- * three) with the area, the start of the offer with the area, then "similar
- * to our site" searches when the profile has a website.
+ * The web searches a run makes, at most MAX_QUERIES: the free-text
+ * description of who to look for, each keyword (up to three) with the area,
+ * the start of the offer with the area, then "similar to our site" searches
+ * when the profile has a website.
  */
-export function discoveryQueries(profile: ProspectProfile): DiscoveryQuery[] {
+export function discoveryQueries(profile: SearchProfile): DiscoveryQuery[] {
   const place = profile.area?.split(/[,;/]/)[0]?.trim() ?? '';
   const withPlace = (text: string) => (place ? `${text} ${place}` : text);
-  const queries: DiscoveryQuery[] = profile.keywords.slice(0, 3).map((keyword) => ({ query: withPlace(keyword), source: 'SONAR_WEB' }));
+  const queries: DiscoveryQuery[] = profile.description ? [{ query: firstWords(profile.description, 12), source: 'SONAR_WEB' }] : [];
+  queries.push(...profile.keywords.slice(0, 3).map((keyword) => ({ query: withPlace(keyword), source: 'SONAR_WEB' as const })));
   if (profile.offerDescription) queries.push({ query: withPlace(firstWords(profile.offerDescription, 8)), source: 'SONAR_WEB' });
   const own = domainOf(profile.website);
   if (own) {
@@ -84,7 +89,7 @@ export function discoveryQueries(profile: ProspectProfile): DiscoveryQuery[] {
 export async function webCandidates(
   web: Pick<WebSearch, 'search'>,
   scope: Scope,
-  profile: ProspectProfile
+  profile: SearchProfile
 ): Promise<{ candidates: Candidate[]; queries: number; quotaExhausted: boolean; errors: string[] }> {
   const own = domainOf(profile.website);
   const candidates: Candidate[] = [];
@@ -120,11 +125,12 @@ export async function webCandidates(
   return { candidates, queries, quotaExhausted: false, errors };
 }
 
-/** Places of the space's own category around its area that have a website. */
-export async function osmCandidates(places: PlacesSearch, profile: ProspectProfile): Promise<Candidate[]> {
-  if (!profile.ownCategory || !profile.area) return [];
+/** Places with the profile's map tags (up to MAX_PLACE_TAGS) around its area that have a website. */
+export async function osmCandidates(places: PlacesSearch, profile: SearchProfile): Promise<Candidate[]> {
+  const area = profile.area;
+  if (profile.osmTags.length === 0 || !area) return [];
   const own = domainOf(profile.website);
-  const found = await places(profile.area, profile.ownCategory);
+  const found = (await Promise.all(profile.osmTags.slice(0, MAX_PLACE_TAGS).map((tag) => places(area, tag)))).flat();
   return found.flatMap((place) => {
     const domain = candidateDomain(place.website, own);
     if (!domain) return [];
@@ -153,7 +159,7 @@ export async function osmCandidates(places: PlacesSearch, profile: ProspectProfi
  */
 export async function bodaccCandidates(
   prisma: PrismaClient,
-  profile: ProspectProfile,
+  profile: SearchProfile,
   options: { now: Date; since?: Date | null }
 ): Promise<Candidate[]> {
   if (profile.nafCodes.length === 0 || !profile.area) return [];

@@ -1,19 +1,16 @@
 import type { PrismaClient } from '@prisma/client';
 import { TRPCError } from '@trpc/server';
-import type { z } from 'zod';
 import type { BulleClient } from '../assistant/bulle';
 import { jsonObject } from '../assistant/prompt';
 import { assistantError, requireBulle } from '../assistant/service';
-import { businessCategoryEnum } from '../lead/schemas';
+import { isHuntCategory } from '../../taxonomy';
 import { profileFor, type ProspectProfile } from '../prospect/profile';
 import type { Scope } from '../../utils/scope';
-
-type Category = z.infer<typeof businessCategoryEnum>;
 
 /** One target segment Bulle proposes: a ready schedule once the user picks a frequency. */
 export interface Segment {
   name: string;
-  categories: Category[];
+  categories: string[];
   location: string;
   rationale: string | null;
 }
@@ -23,7 +20,7 @@ const MAX_SEGMENTS = 5;
 const RULES = [
   'In Glouton you help a business choose which local businesses to prospect.',
   'Each segment becomes an automatic OpenStreetMap search for businesses of the given categories around a place.',
-  `Use only these category ids: ${businessCategoryEnum.options.join(', ')}.`,
+  'Categories are OpenStreetMap tags written key=value, such as amenity=restaurant, craft=plumber or office=lawyer. Use only common tags under office, shop, craft, amenity, healthcare, tourism and leisure.',
   'Base the segments on the offer and targets given. Never invent facts about the user.',
   'Answer with strict JSON only, no prose around it:',
   '{"segments": [{"name": string, "categories": string[], "location": string, "rationale": string}]}.',
@@ -37,12 +34,14 @@ function languageRule(language: 'fr' | 'en'): string {
 
 /** The user message: the profile as plain lines. */
 export function segmentsPrompt(profile: ProspectProfile): string {
+  const clients = profile.targets.clients;
   const lines = [
     profile.offerDescription ? `Offer: ${profile.offerDescription}` : null,
     profile.area ? `Area: ${profile.area}` : null,
-    profile.targetCategories.length ? `Current target categories: ${profile.targetCategories.join(', ')}` : null,
-    profile.nafCodes.length ? `NAF codes: ${profile.nafCodes.join(', ')}` : null,
-    profile.keywords.length ? `Keywords: ${profile.keywords.join(', ')}` : null,
+    clients.description ? `Customers: ${clients.description}` : null,
+    clients.osmTags.length ? `Current target tags: ${clients.osmTags.join(', ')}` : null,
+    clients.nafCodes.length ? `NAF codes: ${clients.nafCodes.join(', ')}` : null,
+    clients.keywords.length ? `Keywords: ${clients.keywords.join(', ')}` : null,
   ];
   return `# Prospecting profile\n${lines.filter(Boolean).join('\n')}\n\nPropose target segments.`;
 }
@@ -51,7 +50,7 @@ function text(value: unknown, max: number): string | null {
   return typeof value === 'string' && value.trim() ? value.trim().slice(0, max) : null;
 }
 
-/** Reads Bulle's JSON answer, keeping only segments with known categories and a place; the area fills a missing place. */
+/** Reads Bulle's JSON answer, keeping only segments with known map tags and a place; the area fills a missing place. */
 export function parseSegments(raw: string, area: string | null): Segment[] {
   const list = jsonObject(raw)?.segments;
   if (!Array.isArray(list)) return [];
@@ -59,7 +58,7 @@ export function parseSegments(raw: string, area: string | null): Segment[] {
     .flatMap((item: unknown) => {
       const entry = item && typeof item === 'object' ? (item as Record<string, unknown>) : {};
       const categories = Array.isArray(entry.categories)
-        ? Array.from(new Set(entry.categories.flatMap((c) => (businessCategoryEnum.safeParse(c).success ? [c as Category] : []))))
+        ? Array.from(new Set(entry.categories.filter((c): c is string => typeof c === 'string' && isHuntCategory(c))))
         : [];
       const location = text(entry.location, 200) ?? area;
       const name = text(entry.name, 120);
@@ -78,7 +77,8 @@ export async function suggestSegments(
 ): Promise<Segment[]> {
   const client = requireBulle(bulle);
   const profile = await profileFor(prisma, scope);
-  if (!profile.offerDescription && profile.targetCategories.length === 0 && profile.keywords.length === 0) {
+  const clients = profile.targets.clients;
+  if (!profile.offerDescription && !clients.description && clients.osmTags.length === 0 && clients.keywords.length === 0) {
     throw new TRPCError({ code: 'BAD_REQUEST', message: 'Describe your offer in the prospecting profile first' });
   }
   try {

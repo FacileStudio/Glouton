@@ -48,7 +48,7 @@ export async function aiAccess(forfait: ForfaitReader, scope: Scope): Promise<{ 
 }
 
 /** Refuses with the same plan_required shape Bulle's 402 has, before any quota is spent. */
-async function requireAiAccess(forfait: ForfaitReader, scope: Scope): Promise<void> {
+export async function requireAiAccess(forfait: ForfaitReader, scope: Scope): Promise<void> {
   const access = await aiAccess(forfait, scope);
   if (access.allowed) return;
   assistantError(
@@ -60,7 +60,7 @@ async function requireAiAccess(forfait: ForfaitReader, scope: Scope): Promise<vo
 }
 
 /** Maps a model or web failure to the error the web app shows; plan and Bulle failures keep their cause. */
-function aiError(error: unknown): never {
+export function aiError(error: unknown): never {
   if (error instanceof AiOutputError) {
     throw new TRPCError({ code: 'UNPROCESSABLE_CONTENT', message: 'Bulle returned an unreadable answer. Try again.', cause: error });
   }
