@@ -11,6 +11,20 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+### Added
+
+- Find a job: the job usage is live, for any trade. It gets its own sidebar entry, after Ideas, with three tabs: Offers, Applications and CV. The start wizard asks for the job title and skills, the place (or remote) and the contracts, and Settings > Prospecting edits the same job block (`targets.job`: role, skills, location, remote, contracts, minimum salary).
+- Job searches (`job.*`): the eight boards the missions scraper reads (Free-Work, Codeur, Remotive, RemoteOK, We Work Remotely, Hacker News, Jobicy, Himalayas) now take search terms, so a search can cover any job, plus career pages and listings found through `@repo/websearch` (quota-aware). Offers are filtered by role, skills, location or remote, contract and salary floor, ranked, and stored once per address; a hidden offer never returns. A search can repeat daily, weekly or monthly from the hunt-schedules tick, capped by the new plan limit `glouton.job_searches` (default 10). New offers from a team's repeated search fire the `job.offers_found` webhook.
+- Application tracking: to apply, applied, interview, offer, rejected, with a date per step, notes, a contact person, links and a reminder that shows once in the app. Moves follow the pipeline; skipping steps is refused.
+- CVs: upload a PDF or DOCX (4 MB at most, stored in the database) or write the CV as text; Glouton reads the text of a DOCX. A CV is private to its owner, readable by the members of its space only once the owner shares it, never readable through a delegated Bulle token, and deleted for good on request. Its contents are never logged.
+- With `ai.access`, Bulle drafts a cover letter or a CV tailored to an application, from the user's own CV. Drafts are private, editable and never sent. A plan without AI shows the muse upsell.
+- Migration `030_job_search.sql` (additive): `JobSearch`, `JobOffer`, `JobApplication`, `JobCv`, `JobDraft`.
+
+### Changed
+
+- Saving a profile with no usage at all is refused.
+- muse 0.17.1.
+
 ## [0.17.0] - 2026-11-10
 
 ### Added
