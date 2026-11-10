@@ -11,6 +11,8 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-11-10
+
 ### Added
 
 - Idées, first in the sidebar for every usage, with the suite's lightbulb icon. Bulle suggests what to do next from the space's leads, competitors and hunts: follow up a lead, react to a competitor change, look at a newly registered competitor, add a hunt segment. The entry shows the number of new ideas and a pulsing dot while a batch is generated or a run is in progress.
