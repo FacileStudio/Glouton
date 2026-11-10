@@ -17,6 +17,7 @@ import { huntScheduleRouter } from './modules/schedule/router';
 import { prospectRouter } from './modules/prospect/router';
 import { competitorDiscoveryRouter } from './modules/competitor-discovery/router';
 import { competitorAiRouter } from './modules/competitor-ai/router';
+import { ideasRouter } from './modules/ideas/router';
 import { createOpenApiDocument } from './openapi';
 import { bindProcedures } from './modules/forfait/procedures';
 import { isIdKey } from './modules/forfait/gate';
@@ -40,6 +41,7 @@ export const appRouter = router({
   prospect: prospectRouter,
   competitorDiscovery: competitorDiscoveryRouter,
   competitorAi: competitorAiRouter,
+  ideas: ideasRouter,
 });
 
 bindProcedures(appRouter._def.procedures, isIdKey);
@@ -69,6 +71,7 @@ export * as competitorRules from './modules/competitor/rules';
 export * as schedules from './modules/schedule';
 export * as discovery from './modules/competitor-discovery';
 export * as competitorAi from './modules/competitor-ai';
+export * as ideas from './modules/ideas';
 export { profileFor, type ProspectProfile } from './modules/prospect/profile';
 export * as prospectProfile from './modules/prospect/profile';
 export * as prospectSuggest from './modules/prospect/suggest';

@@ -37,6 +37,20 @@ export class BulleUnavailableError extends Error {
   }
 }
 
+/** A refusal from one of Bulle's own routes (not a plan refusal), with its HTTP status and message. */
+export class BulleRefusal extends Error {
+  constructor(
+    readonly status: number,
+    message: string
+  ) {
+    super(message);
+    this.name = 'BulleRefusal';
+  }
+}
+
+/** How a request reads Bulle's answer: the LLM proxy, a key probe, or one of Bulle's JSON routes. */
+type Mode = 'llm' | 'probe' | 'api';
+
 /** The model setup Bulle offers this user, persona included. */
 export interface BulleOffer {
   backend: string;
@@ -75,6 +89,12 @@ export function planLimitFrom(body: unknown): PlanLimit {
     key: text(inner.key) || undefined,
     limit: typeof limit === 'number' || typeof limit === 'string' ? limit : undefined,
   };
+}
+
+/** The message of an error body, bare (`{error: "..."}`) or in tronc's `{error: {message}}` envelope. */
+function refusalMessage(body: unknown): string {
+  const error = record(body).error;
+  return typeof error === 'string' ? error : text(record(error).message);
 }
 
 /** The plan limit a failed call carries, or undefined for any other error. */
@@ -164,7 +184,16 @@ export class BulleClient {
   async probe(userId: string, backend: string): Promise<void> {
     const path = PROBE_PATHS[backend];
     if (!path) throw new BulleUnavailableError('unsupported', `Bulle backend ${backend || 'unknown'} is not supported`);
-    await this.request(userId, 'GET', `/api/llm/${backend}/${path}`, READ_TIMEOUT_MS, undefined, {}, true);
+    await this.request(userId, 'GET', `/api/llm/${backend}/${path}`, READ_TIMEOUT_MS, undefined, {}, 'probe');
+  }
+
+  /**
+   * One of Bulle's JSON routes (the Ideas API, say) as this user, returning
+   * the body. A 402 is plan_required; any other 4xx is a BulleRefusal with its
+   * status, and a 5xx or a network failure is unreachable.
+   */
+  async call(userId: string, method: string, path: string, payload?: unknown): Promise<unknown> {
+    return this.request(userId, method, path, READ_TIMEOUT_MS, payload, {}, 'api');
   }
 
   /** One chat completion, returned as the model's text. */
@@ -216,12 +245,12 @@ export class BulleClient {
     timeoutMs: number,
     payload?: unknown,
     headers: Json = {},
-    keyOnly = false
+    mode: Mode = 'llm'
   ): Promise<unknown> {
     let response: Response;
     try {
       response = await this.send(await this.token(userId), method, path, timeoutMs, payload, headers);
-      if (response.status === 401 && !keyOnly) {
+      if (response.status === 401 && mode !== 'probe') {
         this.config.tokens.forget(userId, BULLE_TARGET);
         response = await this.send(await this.token(userId), method, path, timeoutMs, payload, headers);
       }
@@ -235,8 +264,11 @@ export class BulleClient {
       const limit = planLimitFrom(body);
       throw new BulleUnavailableError('plan_required', limit.message || 'Bulle needs a plan with AI access', limit);
     }
+    if (mode === 'api' && response.status >= 400 && response.status < 500) {
+      throw new BulleRefusal(response.status, refusalMessage(body) || `Bulle answered ${response.status}`);
+    }
     if (response.status === 409) throw new BulleUnavailableError('no_key', text(record(body).error) || 'no key');
-    if (keyOnly && response.status < 500) return body;
+    if (mode === 'probe' && response.status < 500) return body;
     if (!response.ok) {
       logger.warn({ status: response.status, path, error: record(body).error ?? body }, '[BULLE] Bulle answered with an error');
       throw new BulleUnavailableError('unreachable', `Bulle answered ${response.status}`);
