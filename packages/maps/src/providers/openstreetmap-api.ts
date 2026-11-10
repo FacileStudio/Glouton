@@ -259,6 +259,9 @@ export class OpenStreetMapService {
   }
 
   private getCategoryFilters(category: string): Array<{ key: string; value?: string }> {
+    const tag = /^([a-z_]+)=([a-z0-9_]+|\*)$/.exec(category);
+    if (tag) return [tag[2] === '*' ? { key: tag[1]! } : { key: tag[1]!, value: tag[2] }];
+
     const categoryMap: Record<string, Array<{ key: string; value?: string }>> = {
       restaurant: [{ key: 'amenity', value: 'restaurant' }],
       cafe: [{ key: 'amenity', value: 'cafe' }],

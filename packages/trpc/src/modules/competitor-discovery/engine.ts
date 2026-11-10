@@ -1,7 +1,7 @@
 import type { CompetitorSuggestion, Prisma, PrismaClient } from '@prisma/client';
 import type { WebSearch } from '@repo/websearch';
 import { dispatchWebhookEvent, type WebhookEvent } from '@repo/webhooks';
-import { profileFor, scopeKey } from '../prospect/profile';
+import { present, profileFor, scopeKey, searchProfile } from '../prospect/profile';
 import type { Scope } from '../../utils/scope';
 import { MAX_EVIDENCE, evidenceOf, mergeCandidates, nameKey, partsOf, sameEvidence, scoreOf, type Candidate, type Merged } from './rules';
 import { bodaccCandidates, osmCandidates, searchable, webCandidates, type PlacesSearch } from './sources';
@@ -158,9 +158,10 @@ async function writeState(prisma: PrismaClient, scope: Scope, data: Prisma.Compe
 }
 
 /**
- * One discovery run for a scope: web searches (keywords, offer, similar
- * sites) through the websearch quota, map places of the space's own
- * category, and recent BODACC creations matching its NAF codes and area.
+ * One discovery run for a scope, from the profile's competitors target:
+ * web searches (description, keywords, offer, similar sites) through the
+ * websearch quota, map places with its tags, and recent BODACC creations
+ * matching its NAF codes and area.
  * Results are merged per company, deduplicated against the scope's
  * competitors and every earlier suggestion, scored, and stored as pending
  * suggestions. A failing source is reported and the others still count.
@@ -168,7 +169,7 @@ async function writeState(prisma: PrismaClient, scope: Scope, data: Prisma.Compe
 export async function runDiscovery(deps: DiscoveryDeps, scope: Scope): Promise<DiscoveryResult> {
   const { prisma } = deps;
   const now = deps.now?.() ?? new Date();
-  const profile = await profileFor(prisma, scope);
+  const profile = searchProfile(await profileFor(prisma, scope), 'competitors');
   const result: DiscoveryResult = {
     status: 'done',
     created: 0,
@@ -238,7 +239,7 @@ export interface WatchResult {
 
 /**
  * The BODACC watch, run after each company creation scrape: for every
- * profile with NAF codes and an area, the companies the feed added since the
+ * profile watching competitors with NAF codes and an area, the companies the feed added since the
  * last pass that match both become suggestions, and new ones trigger an
  * in-app notice plus, for a team, the `competitor.new_registered` webhook
  * (Antenne). A profile's first pass only sets the cursor, so existing
@@ -248,12 +249,11 @@ export async function watchRegistrations(deps: DiscoveryDeps): Promise<WatchResu
   const { prisma } = deps;
   const now = deps.now?.() ?? new Date();
   const result: WatchResult = { scopes: 0, baselined: 0, created: 0, alerts: 0 };
-  const profiles = await prisma.teamProspectProfile.findMany({
-    where: { area: { not: null }, NOT: { nafCodes: { isEmpty: true } } },
-    select: { userId: true, teamId: true, scopeKey: true },
-  });
+  const profiles = await prisma.teamProspectProfile.findMany({ where: { area: { not: null } } });
   for (const row of profiles) {
     const scope = scopeOfRow(row);
+    const full = present(row);
+    if (!full.usages.includes('competitors') || full.targets.competitors.nafCodes.length === 0) continue;
     if (deps.allowed && !(await deps.allowed({ userId: row.userId, teamId: row.teamId }))) continue;
     result.scopes++;
     const state = await prisma.competitorDiscoveryState.findUnique({ where: { scopeKey: row.scopeKey }, select: { bodaccCursor: true } });
@@ -262,7 +262,7 @@ export async function watchRegistrations(deps: DiscoveryDeps): Promise<WatchResu
       result.baselined++;
       continue;
     }
-    const profile = await profileFor(prisma, scope);
+    const profile = searchProfile(full, 'competitors');
     const found = await bodaccCandidates(prisma, profile, { now, since: state.bodaccCursor });
     const saved = await saveSuggestions(prisma, scope, mergeCandidates(found), profile.keywords);
     await writeState(prisma, scope, { bodaccCursor: now });

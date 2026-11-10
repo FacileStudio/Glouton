@@ -285,24 +285,33 @@ describe.skipIf(!databaseUrl)('schedules on the database', () => {
     expect((await call(prisma, 'huntSchedule.resume', alice, aliceGate(), { scheduleId: ids.weekly }, true)).status).toBe(200);
   });
 
-  test('the profile is per space and creates one schedule per missing category', async () => {
+  test('the profile is per space and creates one schedule per missing map tag', async () => {
     const saved = await call(prisma, 'prospect.save', alice, aliceGate(), {
       teamId: ids.teamA,
+      usages: ['clients'],
       offerDescription: 'Sites web pour commerces',
       area: 'Lyon, FR',
-      targetCategories: ['cafe', 'bar', 'cafe'],
-      nafCodes: ['56.10a'],
-      keywords: ['Site', 'site'],
+      targets: { clients: { description: 'Cafés et bars du centre', osmTags: ['amenity=cafe', 'amenity=bar', 'amenity=cafe'], nafCodes: ['56.10a'], keywords: ['Site', 'site'] } },
     }, true);
     expect(saved.status).toBe(200);
-    expect(saved.data).toMatchObject({ targetCategories: ['cafe', 'bar'], nafCodes: ['56.10A'], keywords: ['site'] });
+    expect(saved.data).toMatchObject({
+      usages: ['clients'],
+      targets: { clients: { description: 'Cafés et bars du centre', osmTags: ['amenity=cafe', 'amenity=bar'], nafCodes: ['56.10A'], keywords: ['site'] } },
+    });
     const personal = await call(prisma, 'prospect.get', alice, aliceGate(), {});
-    expect(personal.data).toMatchObject({ area: null, targetCategories: [] });
-    expect((await call(prisma, 'prospect.save', alice, aliceGate(), { nafCodes: ['nope'] }, true)).status).toBe(400);
+    expect(personal.data).toMatchObject({ area: null, onboarded: false, usages: [], targets: { clients: { osmTags: [] } } });
+    expect((await call(prisma, 'prospect.save', alice, aliceGate(), { targets: { clients: { nafCodes: ['nope'] } } }, true)).status).toBe(400);
+    expect((await call(prisma, 'prospect.save', alice, aliceGate(), { targets: { clients: { osmTags: ['shop=nope'] } } }, true)).status).toBe(400);
+    expect((await call(prisma, 'prospect.save', alice, aliceGate(), { usages: [] }, true)).status).toBe(400);
     const made = await call(prisma, 'huntSchedule.createFromProfile', alice, aliceGate(), { teamId: ids.teamA, frequency: 'WEEKLY' }, true);
     expect(made.data).toMatchObject({ created: 1, skipped: 1 });
     const twice = await call(prisma, 'huntSchedule.createFromProfile', alice, aliceGate(), { teamId: ids.teamA, frequency: 'WEEKLY' }, true);
     expect(twice.data).toMatchObject({ created: 0, skipped: 2 });
+    const hunt = await call(prisma, 'huntSchedule.create', alice, aliceGate(), { teamId: ids.teamA, frequency: 'WEEKLY', location: 'Lyon, FR', categories: ['craft=plumber'] }, true);
+    expect(hunt.status).toBe(200);
+    expect(hunt.data).toMatchObject({ filters: { categories: ['craft=plumber'] } });
+    await prisma.huntSchedule.delete({ where: { id: hunt.data.id } });
+    expect((await call(prisma, 'huntSchedule.create', alice, aliceGate(), { teamId: ids.teamA, frequency: 'WEEKLY', location: 'Lyon', categories: ['craft=nope'] }, true)).status).toBe(400);
   });
 
   test('a finished hunt repeats from its detail with the same filters', async () => {

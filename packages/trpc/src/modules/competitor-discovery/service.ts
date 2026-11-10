@@ -3,7 +3,7 @@ import type { QueueManager } from '@repo/jobs';
 import { TRPCError } from '@trpc/server';
 import type { Scope } from '../../utils/scope';
 import { domainOf } from '../competitor/rules';
-import { profileFor, scopeKey } from '../prospect/profile';
+import { present as presentProfile, profileFor, scopeKey, searchProfile } from '../prospect/profile';
 import { WEEK_MS, scopeOfRow, scopeWhere } from './engine';
 import { searchable } from './sources';
 import { evidenceOf, type ScoreParts } from './rules';
@@ -75,7 +75,7 @@ export async function listSuggestions(prisma: PrismaClient, scope: Scope, status
   return {
     items: rows.map(present),
     run: state ? { status: runStatus(state, new Date()), lastRunAt: state.lastRunAt, nextRunAt: state.nextRunAt, lastResult: lastResultOf(state.lastResult) } : null,
-    profileReady: searchable(profile),
+    profileReady: searchable(searchProfile(profile, 'competitors')),
   };
 }
 
@@ -100,7 +100,7 @@ export async function markSeen(prisma: PrismaClient, scope: Scope, now = new Dat
  * nothing to search with; a no-op while a run is already queued or running.
  */
 export async function requestRun(prisma: PrismaClient, jobs: Jobs, scope: Scope, now = new Date()) {
-  if (!searchable(await profileFor(prisma, scope))) {
+  if (!searchable(searchProfile(await profileFor(prisma, scope), 'competitors'))) {
     throw new TRPCError({ code: 'PRECONDITION_FAILED', message: 'profile_empty' });
   }
   const key = scopeKey(scope);
@@ -220,7 +220,8 @@ export async function tick(deps: TickDeps): Promise<{ queued: number; skipped: n
     if (state?.nextRunAt && state.nextRunAt > now) continue;
     if (busy(state, now)) continue;
     const scope = scopeOfRow(row);
-    if (!searchable(await profileFor(prisma, scope))) continue;
+    const profile = presentProfile(row);
+    if (!profile.usages.includes('competitors') || !searchable(searchProfile(profile, 'competitors'))) continue;
     if (!(await deps.allowed({ userId: row.userId, teamId: row.teamId }))) {
       result.skipped++;
       await prisma.competitorDiscoveryState.upsert({

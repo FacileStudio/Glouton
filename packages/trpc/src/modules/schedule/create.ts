@@ -1,6 +1,7 @@
 import type { HuntFrequency, Prisma } from '@prisma/client';
 import { TRPCError } from '@trpc/server';
 import type { z } from 'zod';
+import { tagsForCategory } from '../../taxonomy';
 import { readHuntFilters, type HuntFilters } from '../../utils/json';
 import { resolveScope, type Scope } from '../../utils/scope';
 import type { PlanMode } from '../forfait/gate';
@@ -77,28 +78,29 @@ export async function createFromSession(
   return reload(deps.prisma, row.id);
 }
 
-function sameTarget(filters: HuntFilters | null, location: string, category: string): boolean {
-  return (
-    filters?.location?.trim().toLowerCase() === location.trim().toLowerCase() &&
-    filters.categories?.length === 1 &&
-    filters.categories[0] === category
-  );
+/** True when a schedule already searches this one tag there; an old category counts when it maps to just that tag. */
+function sameTarget(filters: HuntFilters | null, location: string, tag: string): boolean {
+  const category = filters?.categories?.length === 1 ? filters.categories[0]! : null;
+  if (!category || filters?.location?.trim().toLowerCase() !== location.trim().toLowerCase()) return false;
+  const tags = tagsForCategory(category);
+  return category === tag || (tags.length === 1 && tags[0] === tag);
 }
 
 /**
- * Creates one schedule per target category of the scope's profile, around
- * the profile's area, skipping categories that already have one there. The
- * new schedules are due at once; the tick paces their first runs.
+ * Creates one schedule per map tag of the profile's clients target, around
+ * the profile's area, skipping tags that already have one there. The new
+ * schedules are due at once; the tick paces their first runs.
  */
 export async function createFromProfile(deps: ScheduleDeps, scope: Scope, frequency: HuntFrequency, now = new Date()) {
   const profile = await profileFor(deps.prisma, scope);
   if (!profile.area) throw new TRPCError({ code: 'BAD_REQUEST', message: 'Add an area to the prospecting profile first' });
-  if (profile.targetCategories.length === 0) {
-    throw new TRPCError({ code: 'BAD_REQUEST', message: 'Add target categories to the prospecting profile first' });
+  const tags = profile.targets.clients.osmTags;
+  if (tags.length === 0) {
+    throw new TRPCError({ code: 'BAD_REQUEST', message: 'Add map tags to the clients target first' });
   }
   const area = profile.area;
   const existing = await deps.prisma.huntSchedule.findMany({ where: scheduleFilter(scope), select: { filters: true } });
-  const missing = profile.targetCategories.filter(
+  const missing = tags.filter(
     (category) => !existing.some((row) => sameTarget(readHuntFilters(row.filters), area, category))
   );
   if (missing.length > 0) await ensureRoom(deps.prisma, scope, missing.length);
@@ -115,6 +117,6 @@ export async function createFromProfile(deps: ScheduleDeps, scope: Scope, freque
       },
     });
   }
-  return { created: missing.length, skipped: profile.targetCategories.length - missing.length };
+  return { created: missing.length, skipped: tags.length - missing.length };
 }
 

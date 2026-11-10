@@ -4,10 +4,12 @@ enum HuntFrequency {
   MONTHLY
 }
 
-/// What a space sells and to whom. One row per team, or per person for the
-/// personal space (scopeKey is "team:<teamId>" or "user:<userId>"). Automatic
-/// hunts create schedules from targetCategories; competitor discovery reads
-/// the whole profile. Read it with profileFor() in packages/trpc.
+/// What a space does, what it uses Glouton for (usages) and, per usage, who
+/// it looks for (targets: free text, NAF codes, OSM tags, keywords). One row
+/// per team, or per person for the personal space (scopeKey is
+/// "team:<teamId>" or "user:<userId>"). targetCategories, nafCodes, keywords
+/// and ownCategory are the pre-usage columns, still read when targets is
+/// empty. Read it with profileFor() in packages/trpc.
 model TeamProspectProfile {
   id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Text
   scopeKey         String   @unique @db.Text
@@ -20,6 +22,9 @@ model TeamProspectProfile {
   keywords         String[] @default([])
   website          String?  @db.Text
   ownCategory      String?  @db.Text
+  usages           String[] @default([])
+  remote           Boolean  @default(false)
+  targets          Json     @default("{}")
   createdAt        DateTime @default(now()) @db.Timestamptz(3)
   updatedAt        DateTime @default(now()) @updatedAt @db.Timestamptz(3)
 

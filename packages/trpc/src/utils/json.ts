@@ -1,6 +1,5 @@
 import type { Prisma } from '@prisma/client';
-import type { z } from 'zod';
-import { businessCategoryEnum } from '../modules/lead/schemas';
+import { isHuntCategory } from '../taxonomy';
 
 type JsonRecord = Record<string, Prisma.JsonValue>;
 
@@ -74,7 +73,7 @@ export interface HuntFilters {
   radius?: number;
   maxResults?: number;
   hasWebsite?: boolean;
-  categories?: z.infer<typeof businessCategoryEnum>[];
+  categories?: string[];
 }
 
 export interface SourceStat {
@@ -88,10 +87,7 @@ const HUNT_FILTER_NUMBERS = ['radius', 'maxResults'] as const;
 
 function readCategories(value: JsonRecord): HuntFilters['categories'] {
   const raw = Array.isArray(value.categories) ? value.categories : [value.category];
-  const categories = raw.flatMap((item) => {
-    const parsed = businessCategoryEnum.safeParse(item);
-    return parsed.success ? [parsed.data] : [];
-  });
+  const categories = raw.filter((item): item is string => typeof item === 'string' && isHuntCategory(item));
   return categories.length > 0 ? categories : undefined;
 }
 
