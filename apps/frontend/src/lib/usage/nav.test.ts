@@ -1,7 +1,10 @@
 import { describe, expect, test } from 'bun:test';
 import { NAV, REDIRECTS, homeFor, inSection, navFor, redirectFor } from './nav';
 
-const ids = (usages: Parameters<typeof navFor>[0]) => navFor(usages).map((section) => [section.id, section.tabs.map((tab) => tab.id)]);
+const ids = (usages: Parameters<typeof navFor>[0]) =>
+  navFor(usages)
+    .filter((section) => section.id !== 'ideas')
+    .map((section) => [section.id, section.tabs.map((tab) => tab.id)]);
 
 describe('usage-driven navigation', () => {
   test('competitors alone shows only the competitor section, with its three tabs', () => {
@@ -23,18 +26,20 @@ describe('usage-driven navigation', () => {
       ['prospects', ['contacts', 'missions']],
       ['messages', ['inbox', 'outreach']],
     ]);
-    expect(navFor(['missions'])[0]?.href).toBe('/app/prospects/contacts');
+    expect(navFor(['missions'])[1]?.href).toBe('/app/prospects/contacts');
   });
 
   test('no usage yet shows everything; job alone shows nothing and sends to the settings', () => {
-    expect(navFor([]).map((section) => section.id)).toEqual(['prospects', 'searches', 'competitors', 'messages']);
-    expect(navFor(['job'])).toEqual([]);
+    expect(navFor([]).map((section) => section.id)).toEqual(['ideas', 'prospects', 'searches', 'competitors', 'messages']);
+    expect(navFor(['job']).map((section) => section.id)).toEqual(['ideas']);
     expect(homeFor(['job'])).toBe('/app/settings/prospecting');
   });
 
-  test('the Ideas slot is held at the top but hidden', () => {
-    expect(NAV[0]).toMatchObject({ id: 'ideas', icon: 'solar:lightbulb-linear', available: false });
-    expect(navFor([]).some((section) => section.id === 'ideas')).toBe(false);
+  test('Ideas is first for every usage and never the home page', () => {
+    expect(NAV[0]).toMatchObject({ id: 'ideas', icon: 'solar:lightbulb-linear', href: '/app/ideas' });
+    for (const usages of [[], ['competitors'], ['missions'], ['job']] as const) expect(navFor([...usages])[0]?.id).toBe('ideas');
+    expect(homeFor(['competitors'])).toBe('/app/competitors');
+    expect(inSection(NAV[0]!, '/app/ideas')).toBe(true);
   });
 
   test('old list addresses redirect with their query; detail pages light their section', () => {

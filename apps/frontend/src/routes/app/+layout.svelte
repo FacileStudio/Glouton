@@ -11,7 +11,8 @@
     toast,
     icons,
     getI18n,
-      readTheme,
+    ideasNavItem,
+    readTheme,
     type Theme,
     type UserMenuOptions,
   } from '@facile/muse';
@@ -24,6 +25,7 @@
   import { useT } from '$lib/i18n';
   import { inboxCount } from '$lib/stores/inbox-count.svelte';
   import { profileStore } from '$lib/stores/profile.svelte';
+  import { ideasStore } from '$lib/stores/ideas.svelte';
   import { inSection, navFor } from '$lib/usage/nav';
 
   const t = useT();
@@ -41,13 +43,15 @@
   }
 
   const navPages = $derived(
-    navFor(profileStore.usages()).map((section) => ({
-      label:
-        section.id === 'messages' && inboxCount.value > 0 ? `${t(section.label)} (${inboxCount.value})` : t(section.label),
-      icon: section.icon,
-      href: section.href,
-      active: inSection(section, page.url.pathname),
-    })),
+    navFor(profileStore.usages()).map((section) => {
+      const active = inSection(section, page.url.pathname);
+      if (section.id === 'ideas') {
+        return ideasNavItem({ href: section.href, active, count: ideasStore.count, running: ideasStore.running, i18n });
+      }
+      const label =
+        section.id === 'messages' && inboxCount.value > 0 ? `${t(section.label)} (${inboxCount.value})` : t(section.label);
+      return { label, icon: section.icon, href: section.href, active };
+    }),
   );
 
   const OPEN_BEFORE_START = ['/app/start', '/app/settings', '/app/paywall', '/app/teams'];
@@ -101,6 +105,7 @@
     const name = t('app.name');
     const title = (key: Parameters<typeof t>[0]) => `${t(key)} · ${name}`;
     if (path === '/app/start') return title('start.title');
+    if (path === '/app/ideas') return title('title.ideas');
     if (path.startsWith('/app/hunts/new')) return title('title.newHunt');
     if (path === '/app/searches/schedules') return title('title.schedules');
     if (path.match(/^\/app\/hunts\/.+/)) return title('title.hunt');
@@ -175,6 +180,7 @@
     if (token) ws.connect(token);
     inboxCount.refresh();
     void profileStore.load(activeSpaceId ?? undefined);
+    void ideasStore.load(activeSpaceId ?? undefined);
     try {
       const teamId = activeSpaceId ?? undefined;
       plan = await trpc.forfait.status.query(teamId ? { teamId } : undefined, { context: QUIET });
