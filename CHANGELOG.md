@@ -11,6 +11,17 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+### Added
+
+- Idées, first in the sidebar for every usage, with the suite's lightbulb icon. Bulle suggests what to do next from the space's leads, competitors and hunts: follow up a lead, react to a competitor change, look at a newly registered competitor, add a hunt segment. The entry shows the number of new ideas and a pulsing dot while a batch is generated or a run is in progress.
+- `/app/ideas` on muse's Ideas kit: Generate (Bulle allows three batches per app and day), run an idea in place, approve or decline each action Bulle wants to take, then read the result with links to what it created and a link to continue the conversation in Bulle. Dismiss hides an idea for good.
+- A space without `ai.access` sees what Ideas would do, with Glouton examples and a link to the plans. A Bulle 402 shows the same page.
+- `ideas.*` tRPC procedures proxy to Bulle's per-app Ideas API (`app=glouton`) with the user's token exchanged for Bulle, passing the active space's Registre id. Glouton builds every Bulle path itself, so a client never chooses one.
+
+### Changed
+
+- muse v0.17.0.
+
 ## [0.16.0] - 2026-11-10
 
 ### Added
