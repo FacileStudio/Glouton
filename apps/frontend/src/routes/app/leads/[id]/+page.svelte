@@ -255,7 +255,7 @@
 {:else if !lead}
   <div in:fade>
     <EmptyState icon="solar:close-circle-linear" title={t('leads.detail.notFound')}>
-      <Button href="/app/leads">{t('leads.detail.back')}</Button>
+      <Button href="/app/prospects/leads">{t('leads.detail.back')}</Button>
     </EmptyState>
   </div>
 {:else}
@@ -265,7 +265,7 @@
       description={(lead.firstName || lead.lastName) && lead.domain
         ? `${lead.domain}${lead.position ? ` · ${lead.position}` : ''}`
         : (lead.position ?? undefined)}
-      back={{ href: '/app/leads', label: t('leads.title') }}
+      back={{ href: '/app/prospects/leads', label: t('leads.title') }}
     >
       {#snippet actions()}
         <Badge tone={getPriorityTone(lead!.status)}>{lead!.status}</Badge>

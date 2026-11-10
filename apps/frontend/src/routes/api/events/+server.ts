@@ -20,10 +20,11 @@ export const GET: RequestHandler = async ({ url, request }) => {
 	const cleanup = () => {
 		if (pingInterval) clearInterval(pingInterval);
 		if (keepaliveInterval) clearInterval(keepaliveInterval);
-		if (backendWs && backendWs.readyState <= WebSocket.OPEN) {
-			backendWs.close();
-		}
+		const socket = backendWs;
 		backendWs = null;
+		if (socket && socket.readyState <= WebSocket.OPEN) {
+			socket.close();
+		}
 	};
 
 	const stream = new ReadableStream({

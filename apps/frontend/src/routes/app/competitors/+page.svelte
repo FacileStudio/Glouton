@@ -118,7 +118,7 @@
 </PageHeader>
 
 <div class="flex flex-col gap-4">
-  <CompetitorTabs active="list" {teamId} />
+  <CompetitorTabs {teamId} />
   <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
     <Input
       type="search"

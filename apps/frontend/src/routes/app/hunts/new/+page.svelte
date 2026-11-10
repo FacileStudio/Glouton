@@ -5,12 +5,16 @@
   import { resolve } from '$app/paths';
   import { trpc } from '$lib/trpc';
   import { CATEGORIES, FREQUENCIES, limitFrom, type BusinessCategory, type Frequency } from '$lib/components/schedules/labels';
-  import { toast, PageHeader, Button, Card, Field, Input, PlanLimit, Select, Spinner, Icon, type PlanLimitError } from '@facile/muse';
+  import { toast, PageHeader, Button, Card, Combobox, Field, IconButton, Input, PlanLimit, Select, Spinner, Icon, icons, type PlanLimitError } from '@facile/muse';
+  import { searchTaxonomy } from '@repo/trpc/taxonomy';
+  import { tagLabel } from '$lib/components/profile/targets';
   import LocationPickerMap from '$lib/components/LocationPickerMap.svelte';
   import { teamContextStore } from '$lib/stores/team-context.svelte';
-  import { useT } from '$lib/i18n';
+  import { useLocale, useT } from '$lib/i18n';
+  import { onMount } from 'svelte';
 
   const t = useT();
+  const locale = useLocale();
 
   let teamId = $derived(teamContextStore.getTeamId());
 
@@ -36,6 +40,31 @@
   });
 
   const businessCategories = $derived(CATEGORIES.map((category) => ({ ...category, label: t(category.label) })));
+
+  let tagQuery = $state('');
+  const tagOptions = $derived(
+    searchTaxonomy(tagQuery, locale(), { kinds: ['osm'], limit: 30 }).map((item) => ({ value: item.value, label: `${item.label} · ${item.value}` })),
+  );
+  const extraTags = $derived(localBusinessFilters.categories.filter((category) => category.includes('=')));
+
+  function addTag(option: { value: string }) {
+    if (!localBusinessFilters.categories.includes(option.value)) localBusinessFilters.categories = [...localBusinessFilters.categories, option.value];
+    tagQuery = '';
+  }
+
+  function removeTag(tag: string) {
+    localBusinessFilters.categories = localBusinessFilters.categories.filter((category) => category !== tag);
+  }
+
+  onMount(async () => {
+    try {
+      const profile = await trpc.prospect.get.query({ teamId }, { context: QUIET });
+      const tags = profile.targets.clients.osmTags.slice(0, 10);
+      if (localBusinessFilters.categories.length === 0 && tags.length > 0) localBusinessFilters.categories = [...tags];
+    } catch {
+      return;
+    }
+  });
 
   async function detectLocationFromGPS() {
     if (!navigator.geolocation) {
@@ -182,7 +211,7 @@
       const huntSessionId = result?.huntSessionId;
       const categoryCount = localBusinessFilters.categories.length;
       toast.success(t(categoryCount > 1 ? 'hunts.new.startedMany' : 'hunts.new.startedOne', { count: categoryCount }));
-      await goto(huntSessionId ? resolve('/app/hunts/[id]', { id: huntSessionId }) : resolve('/app/hunts'));
+      await goto(huntSessionId ? resolve('/app/hunts/[id]', { id: huntSessionId }) : resolve('/app/searches/hunts'));
     } catch (error) {
       limit = limitFrom(error);
       if (limit) {
@@ -200,10 +229,10 @@
 <PageHeader
   title={t('hunts.new')}
   description={t('hunts.new.subtitle')}
-  back={{ href: '/app/hunts', label: t('hunts.backToHunts') }}
+  back={{ href: '/app/searches/hunts', label: t('hunts.backToHunts') }}
 >
   {#snippet actions()}
-    <Button href="/app/hunts" variant="ghost">{t('common.cancel')}</Button>
+    <Button href="/app/searches/hunts" variant="ghost">{t('common.cancel')}</Button>
   {/snippet}
 </PageHeader>
 
@@ -233,6 +262,21 @@
         </label>
       {/each}
     </div>
+    <Field label={t('hunts.new.moreTypes')} helper={t('hunts.new.moreTypesHint')} for="hunt-tags" class="w-full">
+      <Combobox id="hunt-tags" bind:value={tagQuery} options={tagOptions} onSelect={addTag} placeholder={t('hunts.new.moreTypesPlaceholder')} wrapperClass="w-full" />
+    </Field>
+    {#if extraTags.length > 0}
+      <ul class="flex flex-wrap gap-2" aria-label={t('profile.selected')}>
+        {#each extraTags as tag (tag)}
+          <li class="inline-flex max-w-full items-center gap-1 rounded-fc-pill bg-fc-component py-0.5 pr-0.5 pl-3 text-fc-xs whitespace-nowrap text-fc-fg">
+            <span class="truncate">{tagLabel(tag, locale()) ?? tag}</span>
+            <IconButton variant="ghost" class="size-8" aria-label={t('profile.remove', { name: tagLabel(tag, locale()) ?? tag })} onclick={() => removeTag(tag)}>
+              <Icon icon={icons.close} />
+            </IconButton>
+          </li>
+        {/each}
+      </ul>
+    {/if}
   </fieldset>
 
   <div class="flex flex-col gap-3">

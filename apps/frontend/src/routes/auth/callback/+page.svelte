@@ -47,7 +47,7 @@
       }
     );
 
-    await goto(resolve('/app/leads'));
+    await goto(resolve('/app'));
   });
 </script>
 

@@ -75,7 +75,7 @@
 <PageHeader
   title={t('leads.favorites')}
   description={t('leads.favoriteCount', { count: processedLeads.length })}
-  back={{ href: '/app/leads', label: t('leads.title') }}
+  back={{ href: '/app/prospects/leads', label: t('leads.title') }}
 />
 
 <div class="flex flex-col gap-4">
@@ -109,7 +109,7 @@
       title={t('leads.noFavorites')}
       description={t('leads.noFavoritesText')}
     >
-      <Button href="/app/leads">{t('leads.seeAll')}</Button>
+      <Button href="/app/prospects/leads">{t('leads.seeAll')}</Button>
     </EmptyState>
   {:else}
     <LeadsTable leads={processedLeads} bind:sortBy bind:sortOrder onSort={handleSort} />

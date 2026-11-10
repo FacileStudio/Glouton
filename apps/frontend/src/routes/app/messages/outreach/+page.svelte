@@ -84,7 +84,7 @@
     if (search) params.set('search', search);
     if (activeTab !== 'all') params.set('tab', activeTab);
     const qs = params.toString();
-    replaceState(qs ? resolve(`/app/outreach?${qs}`) : resolve('/app/outreach'), {});
+    replaceState(qs ? resolve(`/app/messages/outreach?${qs}`) : resolve('/app/messages/outreach'), {});
   }
 
   $effect(() => {
@@ -350,7 +350,7 @@
             : t('outreach.noReplies')}
     >
       {#if activeTab === 'all'}
-        <Button href="/app/leads">{t('outreach.goToLeads')}</Button>
+        <Button href="/app/prospects/leads">{t('outreach.goToLeads')}</Button>
       {/if}
     </EmptyState>
   {:else}

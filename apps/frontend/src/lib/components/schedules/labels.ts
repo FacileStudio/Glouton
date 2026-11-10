@@ -22,7 +22,7 @@ export const CATEGORIES: readonly { value: BusinessCategory; label: Key; icon: s
   { value: 'education', label: 'hunts.cat.education', icon: 'solar:book-linear' },
 ];
 
-/** The label key of a category, or null for one the picker does not offer. */
+/** The label key of an old category, or null for one the picker does not offer; map tags are labelled with `tagLabel`. */
 export function categoryLabel(value: string): Key | null {
   return CATEGORIES.find((category) => category.value === value)?.label ?? null;
 }

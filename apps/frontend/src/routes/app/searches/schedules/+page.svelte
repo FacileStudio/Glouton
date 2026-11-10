@@ -24,13 +24,15 @@
   import { ws } from '$lib/websocket';
   import { getErrorMessage } from '$lib/utils/trpc-error';
   import { teamContextStore } from '$lib/stores/team-context.svelte';
-  import { useFormat, useT } from '$lib/i18n';
+  import { useFormat, useLocale, useT } from '$lib/i18n';
   import { categoryLabel, limitFrom, type Frequency } from '$lib/components/schedules/labels';
+  import { tagLabel } from '$lib/components/profile/targets';
   import SegmentSuggestions from '$lib/components/schedules/SegmentSuggestions.svelte';
 
   type Schedule = RouterOutputs['huntSchedule']['list'][number];
 
   const t = useT();
+  const locale = useLocale();
   const format = useFormat();
   const teamId = $derived(teamContextStore.getTeamId());
 
@@ -63,7 +65,7 @@
   function categories(schedule: Schedule): string {
     return (schedule.filters?.categories ?? []).map((c) => {
       const key = categoryLabel(c);
-      return key ? t(key) : c;
+      return key ? t(key) : (tagLabel(c, locale()) ?? c);
     }).join(', ');
   }
 
@@ -120,7 +122,7 @@
 </script>
 
 <div class="flex flex-col gap-6">
-  <PageHeader title={t('schedules.title')} description={t('schedules.subtitle')} back={{ href: '/app/hunts', label: t('hunts.backToHunts') }}>
+  <PageHeader title={t('schedules.title')} description={t('schedules.subtitle')} back={{ href: '/app/searches/hunts', label: t('hunts.backToHunts') }}>
     {#snippet actions()}
       <Button variant="ghost" icon="solar:user-id-linear" href="/app/settings/prospecting">{t('schedules.profileLink')}</Button>
       <Button icon="solar:map-point-linear" href="/app/hunts/new">{t('hunts.new')}</Button>

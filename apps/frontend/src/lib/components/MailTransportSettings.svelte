@@ -109,9 +109,9 @@
     {#if useCourrier}
       <SettingsRow stacked>
         {#if accountsError}
-          <Alert tone="warning">{accountsError}</Alert>
+          <Alert tone="warning" class="w-full">{accountsError}</Alert>
         {:else}
-          <Field label={t('mail.account')} for="courrierAccount">
+          <Field label={t('mail.account')} for="courrierAccount" class="w-full">
             <Select id="courrierAccount" bind:value={accountId} disabled={!canEdit}>
               <option value="" disabled>{t('mail.pick')}</option>
               {#each accounts as account (account.id)}

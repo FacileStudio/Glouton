@@ -13,6 +13,6 @@
 <PageHeader title={t('nav.competitors')} />
 
 <div class="flex flex-col gap-4">
-  <CompetitorTabs active="suggestions" {teamId} {refresh} />
+  <CompetitorTabs {teamId} {refresh} />
   <SuggestionQueue {teamId} onChange={() => (refresh += 1)} />
 </div>

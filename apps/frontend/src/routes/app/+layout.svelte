@@ -23,6 +23,8 @@
   import trpc from '$lib/trpc';
   import { useT } from '$lib/i18n';
   import { inboxCount } from '$lib/stores/inbox-count.svelte';
+  import { profileStore } from '$lib/stores/profile.svelte';
+  import { inSection, navFor } from '$lib/usage/nav';
 
   const t = useT();
   const i18n = getI18n();
@@ -38,22 +40,23 @@
     return page.url.pathname === href || page.url.pathname.startsWith(href + '/');
   }
 
-  const navPages = $derived([
-    { label: t('nav.hunts'), icon: 'solar:radar-2-linear', href: '/app/hunts', active: isActive('/app/hunts') },
-    { label: t('nav.contacts'), icon: 'solar:users-group-two-rounded-linear', href: '/app/contacts', active: isActive('/app/contacts') },
-    {
-      label: inboxCount.value > 0 ? `${t('nav.inbox')} (${inboxCount.value})` : t('nav.inbox'),
-      icon: 'solar:inbox-linear',
-      href: '/app/inbox',
-      active: isActive('/app/inbox'),
-    },
-    { label: t('nav.leads'), icon: 'solar:magnet-linear', href: '/app/leads', active: isActive('/app/leads') },
-    { label: t('nav.competitors'), icon: 'solar:ranking-linear', href: '/app/competitors', active: isActive('/app/competitors') },
-    { label: t('nav.creations'), icon: 'solar:buildings-2-linear', href: '/app/creations', active: isActive('/app/creations') },
-    { label: t('nav.missions'), icon: 'solar:case-round-linear', href: '/app/missions', active: isActive('/app/missions') },
-    { label: t('nav.outreach'), icon: 'solar:letter-linear', href: '/app/outreach', active: isActive('/app/outreach') },
-    { label: t('nav.spaces'), icon: icons.space, href: '/app/teams', active: isActive('/app/teams') },
-  ]);
+  const navPages = $derived(
+    navFor(profileStore.usages()).map((section) => ({
+      label:
+        section.id === 'messages' && inboxCount.value > 0 ? `${t(section.label)} (${inboxCount.value})` : t(section.label),
+      icon: section.icon,
+      href: section.href,
+      active: inSection(section, page.url.pathname),
+    })),
+  );
+
+  const OPEN_BEFORE_START = ['/app/start', '/app/settings', '/app/paywall', '/app/teams'];
+
+  $effect(() => {
+    if (!profileStore.loaded || !profileStore.value || profileStore.value.onboarded) return;
+    if (OPEN_BEFORE_START.some((path) => isActive(path))) return;
+    void goto(resolve('/app/start'), { replaceState: true });
+  });
 
   const activeSpaceName = $derived(
     teamContextStore.context.type === 'team' ? teamContextStore.context.name : t('nav.personal'),
@@ -83,6 +86,7 @@
   }
 
   const userMenu = $derived<UserMenuOptions>({
+    items: [{ label: t('nav.spaces'), icon: icons.space, href: '/app/teams' }],
     settingsHref: '/app/settings',
     subscription: { plan: plan?.allowed ? plan.plans.join(' / ') : t('settings.subscription.none'), href: SPACES_URL },
     helpHref: 'https://github.com/FacileStudio/Glouton/tree/main/docs',
@@ -96,29 +100,31 @@
   function getPageTitle(path: string): string {
     const name = t('app.name');
     const title = (key: Parameters<typeof t>[0]) => `${t(key)} · ${name}`;
+    if (path === '/app/start') return title('start.title');
     if (path.startsWith('/app/hunts/new')) return title('title.newHunt');
-    if (path === '/app/hunts/schedules') return title('title.schedules');
+    if (path === '/app/searches/schedules') return title('title.schedules');
     if (path.match(/^\/app\/hunts\/.+/)) return title('title.hunt');
-    if (path === '/app/hunts') return title('nav.hunts');
+    if (path === '/app/searches/hunts') return title('nav.hunts');
     if (path.match(/^\/app\/leads\/.+/)) return title('title.lead');
-    if (path === '/app/leads') return title('nav.leads');
+    if (path === '/app/prospects/leads') return title('nav.leads');
     if (path.startsWith('/app/contacts/companies/')) return title('title.company');
     if (path.startsWith('/app/contacts/people/')) return title('title.person');
-    if (path === '/app/contacts') return title('nav.contacts');
-    if (path === '/app/inbox') return title('nav.inbox');
+    if (path === '/app/prospects/contacts') return title('nav.contacts');
+    if (path === '/app/messages/inbox') return title('nav.inbox');
     if (path === '/app/competitors/compare') return title('title.compareCompetitors');
     if (path === '/app/competitors/suggestions') return title('discovery.title');
+    if (path === '/app/competitors/monitoring') return title('nav.tab.monitoring');
     if (path.startsWith('/app/competitors/')) return title('title.competitor');
     if (path === '/app/competitors') return title('nav.competitors');
-    if (path === '/app/creations') return title('nav.creations');
-    if (path.startsWith('/app/missions')) return title('nav.missions');
-    if (path === '/app/outreach') return title('nav.outreach');
+    if (path === '/app/prospects/creations') return title('nav.creations');
+    if (path.startsWith('/app/missions') || path === '/app/prospects/missions') return title('nav.missions');
+    if (path === '/app/messages/outreach') return title('nav.outreach');
     if (path === '/app/teams/new') return title('title.newSpace');
     if (path.match(/^\/app\/teams\/.+\/settings/)) return title('title.spaceSettings');
     if (path.match(/^\/app\/teams\/.+\/members/)) return title('title.members');
     if (path.match(/^\/app\/teams\/.+/)) return title('title.space');
     if (path === '/app/teams') return title('nav.spaces');
-    if (path === '/app/settings') return title('title.settings');
+    if (path.startsWith('/app/settings')) return title('title.settings');
     if (path === '/app/paywall') return title('title.plan');
     return name;
   }
@@ -168,6 +174,7 @@
     const token = $authStore.session?.token;
     if (token) ws.connect(token);
     inboxCount.refresh();
+    void profileStore.load(activeSpaceId ?? undefined);
     try {
       const teamId = activeSpaceId ?? undefined;
       plan = await trpc.forfait.status.query(teamId ? { teamId } : undefined, { context: QUIET });
@@ -213,7 +220,7 @@
       icon="solar:magnet-wave-bold-duotone"
       title="Glouton"
       bind:collapsed
-      pages={navPages.filter((p) => p.href !== '/app/teams')}
+      pages={navPages}
       user={navUser}
       userHref="/app/settings"
       userActive={settingsActive}

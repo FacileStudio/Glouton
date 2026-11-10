@@ -125,17 +125,17 @@
   {/snippet}
 
   {#if !canManage}
-    <SettingsRow stacked><Alert tone="info">{t('webhooks.adminOnly')}</Alert></SettingsRow>
+    <SettingsRow stacked><Alert tone="info" class="w-full">{t('webhooks.adminOnly')}</Alert></SettingsRow>
   {:else if loading}
     <SettingsRow stacked><div class="flex justify-center py-8"><Spinner size="lg" /></div></SettingsRow>
   {:else if hooks.length === 0}
     <SettingsRow stacked>
-      <EmptyState bare icon="solar:link-round-angle-linear" title={t('webhooks.none')} description={t('webhooks.noneText')} />
+      <EmptyState bare class="w-full" icon="solar:link-round-angle-linear" title={t('webhooks.none')} description={t('webhooks.noneText')} />
     </SettingsRow>
   {:else}
     {#each hooks as hook (hook.id)}
       <SettingsRow stacked>
-        <div class="flex flex-col gap-3">
+        <div class="flex w-full flex-col gap-3">
           <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div class="min-w-0">
               <p class="truncate text-fc-sm font-semibold text-fc-fg">{hook.name}</p>

@@ -28,7 +28,7 @@
   >
     {#snippet actions()}
       {#if $authStore.session}
-        <Button href={resolve('/app/leads')}>{t('landing.openApp')}</Button>
+        <Button href={resolve('/app')}>{t('landing.openApp')}</Button>
       {:else}
         <SignInWithFacile />
       {/if}
@@ -42,7 +42,7 @@
 
       <div class="mt-10 flex justify-center">
         {#if $authStore.session}
-          <Button size="lg" href={resolve('/app/leads')} iconRight={icons.arrow}>{t('landing.openApp')}</Button>
+          <Button size="lg" href={resolve('/app')} iconRight={icons.arrow}>{t('landing.openApp')}</Button>
         {:else}
           <SignInWithFacile />
         {/if}
