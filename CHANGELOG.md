@@ -11,6 +11,27 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+### Added
+
+- Usages per space: find clients, watch competitors, freelance missions, and partners and suppliers. Several can be on at once. Find a job is reserved and shows as coming soon. The sidebar, the empty states and the settings follow the active usages.
+- A start wizard on first use (`/app/start`): what you want to do, then what you offer, your website, your area (or remote) and, per usage, who you look for. It can be run again from the settings.
+- Targets described with free text plus a searchable list: all 732 INSEE NAF rév. 2 subclasses (French labels from INSEE, English labels from the NACE Rev. 2 classes) and 369 common OpenStreetMap tags with French and English labels, vendored in `packages/trpc/src/taxonomy` with their source URL and licence. One combobox searches both by code, tag or label, and picks show as chips. Free text drives web search, NAF codes drive BODACC, map tags drive map searches.
+- "Suggest from my description" (plans with `ai.access`, through Bulle only): Bulle turns the offer and target text into NAF codes, map tags and keywords, shown as chips to accept or discard. Nothing is applied on its own; unknown codes and tags are dropped.
+- Local hunts and recurring hunts accept any listed OpenStreetMap tag, such as `craft=plumber`, besides the old categories. The new hunt form starts from the clients target's map tags.
+- A Monitoring tab under Competitors lists competitors by unseen page changes.
+- Migration `029_general_profile.sql` (additive): `TeamProspectProfile.usages`, `remote` and `targets`.
+
+### Changed
+
+- The sidebar has four entries with tabs: Prospects (prospects, contacts, company creations, missions), Searches (hunts, recurring hunts), Competitors (cards, suggestions, monitoring) and Messages (inbox, outreach). Spaces moved to the user menu. Old list addresses (`/app/leads`, `/app/contacts`, `/app/creations`, `/app/missions`, `/app/hunts`, `/app/hunts/schedules`, `/app/inbox`, `/app/outreach`) redirect to their new tab, query string kept.
+- Settings > Prospecting is grouped by usage, with an example under every field. Existing profiles read as find clients plus watch competitors: their old categories map to OpenStreetMap tags, and their NAF codes and keywords stay on both usages, so competitor discovery and automatic hunts behave as before until the profile is saved again.
+- Competitor discovery reads the competitors target and runs only for spaces watching competitors.
+
+### Fixed
+
+- The offer textarea and the other fields in stacked settings rows (space description, mail account, webhooks) take the full width instead of shrinking to their content. Long text areas grow with their text.
+- The frontend server no longer crashes with "Maximum call stack size exceeded" when the backend websocket behind the live events stream fails to connect.
+
 ## [0.15.1] - 2026-11-08
 
 ### Security
