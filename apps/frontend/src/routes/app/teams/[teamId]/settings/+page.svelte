@@ -248,6 +248,7 @@
             label={t('teams.settings.name')}
             helper={linked ? t('teams.settings.linkedHelper') : undefined}
             for="name"
+            class="w-full"
           >
             <Input
               id="name"
@@ -259,14 +260,14 @@
         </SettingsRow>
 
         <SettingsRow stacked>
-          <Field label={t('missions.detail.description')} for="description">
+          <Field label={t('missions.detail.description')} for="description" class="w-full">
             <Textarea
               id="description"
               bind:value={generalForm.description}
               disabled={!canManage}
               placeholder={t('teams.new.descriptionPlaceholder')}
               rows={4}
-              class="min-h-24 resize-none disabled:cursor-not-allowed"
+              class="field-sizing-content min-h-24 max-h-[60vh] w-full disabled:cursor-not-allowed"
             />
           </Field>
         </SettingsRow>
@@ -315,7 +316,7 @@
         {/snippet}
 
         <SettingsRow stacked>
-          <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div class="grid w-full grid-cols-1 gap-4 md:grid-cols-2">
             <Field label={t('settings.smtp.host')} for="smtpHost">
               <Input
                 id="smtpHost"
@@ -345,7 +346,7 @@
         </SettingsRow>
 
         <SettingsRow stacked>
-          <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div class="grid w-full grid-cols-1 gap-4 md:grid-cols-2">
             <Field label={t('teams.settings.smtpUser')} for="smtpUser">
               <Input
                 id="smtpUser"
@@ -381,7 +382,7 @@
         </SettingsRow>
 
         <SettingsRow stacked>
-          <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div class="grid w-full grid-cols-1 gap-4 md:grid-cols-2">
             <Field label={t('settings.smtp.fromName')} for="smtpFromName">
               <Input
                 id="smtpFromName"

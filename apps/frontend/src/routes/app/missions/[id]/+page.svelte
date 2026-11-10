@@ -145,7 +145,7 @@
 </script>
 
 <div class="flex w-full flex-col gap-6">
-  <Button href="/app/missions" variant="ghost" size="sm" icon={icons.chevronLeft} class="-ml-3 w-fit">
+  <Button href="/app/prospects/missions" variant="ghost" size="sm" icon={icons.chevronLeft} class="-ml-3 w-fit">
     {t('missions.detail.back')}
   </Button>
 
@@ -159,7 +159,7 @@
       title={t('missions.detail.notFound')}
       description={t('missions.detail.notFoundText')}
     >
-      <Button href="/app/missions" variant="secondary">{t('missions.detail.seeAll')}</Button>
+      <Button href="/app/prospects/missions" variant="secondary">{t('missions.detail.seeAll')}</Button>
     </EmptyState>
   {:else}
     <Card class="flex flex-col gap-4 p-6">

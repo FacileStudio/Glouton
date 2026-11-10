@@ -73,7 +73,7 @@
         bind:value={formData.description}
         placeholder={t('teams.new.descriptionPlaceholder')}
         rows={4}
-        class="min-h-24 resize-none"
+        class="field-sizing-content min-h-24 max-h-[60vh]"
       />
     </Field>
 

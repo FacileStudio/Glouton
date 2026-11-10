@@ -57,7 +57,7 @@
   <Card class="flex flex-col items-center gap-4 py-12 text-center">
     <Icon icon={icons.check} size={32} />
     <p class="text-fc-fg">{t('paywall.included', { scope: scopeName })}</p>
-    <Button iconRight={icons.arrow} onclick={() => goto(resolve('/app/hunts'))}>{t('paywall.backToApp')}</Button>
+    <Button iconRight={icons.arrow} onclick={() => goto(resolve('/app'))}>{t('paywall.backToApp')}</Button>
   </Card>
 {:else}
   <Card class="flex flex-col items-center gap-6 py-12 text-center">

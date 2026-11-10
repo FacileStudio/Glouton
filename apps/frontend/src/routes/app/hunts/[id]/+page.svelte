@@ -215,7 +215,7 @@
       details = detailsData;
     } catch (error) {
       toast.danger(t('hunts.detail.loadFailed'));
-      if (getErrorMessage(error, '').includes('not found')) goto(resolve('/app/hunts'));
+      if (getErrorMessage(error, '').includes('not found')) goto(resolve('/app/searches/hunts'));
     } finally {
       loading = false;
     }
@@ -258,7 +258,7 @@
       });
 
       toast.success(t('hunts.relaunched'));
-      goto(resolve('/app/hunts'));
+      goto(resolve('/app/searches/hunts'));
     } catch (error) {
       toast.danger(getErrorMessage(error, t('hunts.relaunchFailed')));
     } finally {
@@ -299,7 +299,7 @@
       await trpc.huntSchedule.createFromSession.mutate({ huntSessionId: details.id, frequency: repeatFrequency }, { context: QUIET });
       repeatOpen = false;
       toast.success(t('schedules.created'));
-      await goto(resolve('/app/hunts/schedules'));
+      await goto(resolve('/app/searches/schedules'));
     } catch (error) {
       limit = limitFrom(error);
       if (limit) repeatOpen = false;
@@ -375,13 +375,13 @@
   </div>
 {:else if !details}
   <EmptyState title={t('hunts.detail.notFound')}>
-    <Button href="/app/hunts">{t('hunts.backToHunts')}</Button>
+    <Button href="/app/searches/hunts">{t('hunts.backToHunts')}</Button>
   </EmptyState>
 {:else}
   <PageHeader
     title={headerTitle}
     description={headerDescription}
-    back={{ href: '/app/hunts', label: t('hunts.backToHunts') }}
+    back={{ href: '/app/searches/hunts', label: t('hunts.backToHunts') }}
   >
     {#snippet actions()}
       <Badge tone={details?.status === 'FAILED' ? 'danger' : 'neutral'}>
@@ -392,7 +392,7 @@
       </Badge>
 
       {#if details?.scheduleId}
-        <Button variant="ghost" icon="solar:refresh-circle-linear" href="/app/hunts/schedules">{t('schedules.automatic')}</Button>
+        <Button variant="ghost" icon="solar:refresh-circle-linear" href="/app/searches/schedules">{t('schedules.automatic')}</Button>
       {:else if canRepeat}
         <Button variant="secondary" icon="solar:refresh-circle-linear" onclick={() => (repeatOpen = true)}>{t('schedules.repeat')}</Button>
       {/if}

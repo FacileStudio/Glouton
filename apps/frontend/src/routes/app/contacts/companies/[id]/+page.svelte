@@ -130,7 +130,7 @@
   {@const temp = temperatureOf(c.temperature)}
   <PageHeader title={c.name} description={[c.domain, c.city, c.country].filter(Boolean).join(' · ')}>
     {#snippet actions()}
-      <Button variant="secondary" href="/app/contacts" icon="solar:arrow-left-linear">{t('contacts.title')}</Button>
+      <Button variant="secondary" href="/app/prospects/contacts" icon="solar:arrow-left-linear">{t('contacts.title')}</Button>
       <Button icon="solar:pen-new-square-linear" onclick={() => compose()}>{t('contacts.writeEmail')}</Button>
     {/snippet}
   </PageHeader>

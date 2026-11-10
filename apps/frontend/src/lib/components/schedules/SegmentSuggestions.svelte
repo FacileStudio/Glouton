@@ -6,6 +6,7 @@
   import { getErrorMessage } from '$lib/utils/trpc-error';
   import { useLocale, useT } from '$lib/i18n';
   import { categoryLabel, limitFrom } from './labels';
+  import { tagLabel } from '$lib/components/profile/targets';
 
   type Segment = RouterOutputs['huntSchedule']['suggestSegments'][number];
 
@@ -75,7 +76,7 @@
             <div class="flex min-w-0 flex-col gap-1">
               <p class="font-medium text-fc-fg">{segment.name}</p>
               <p class="text-fc-sm text-fc-fg-muted">
-                {segment.categories.map((c) => { const key = categoryLabel(c); return key ? t(key) : c; }).join(', ')} · {segment.location}
+                {segment.categories.map((c) => { const key = categoryLabel(c); return key ? t(key) : (tagLabel(c, locale()) ?? c); }).join(', ')} · {segment.location}
               </p>
               {#if segment.rationale}<p class="text-fc-xs text-fc-fg-muted">{segment.rationale}</p>{/if}
             </div>

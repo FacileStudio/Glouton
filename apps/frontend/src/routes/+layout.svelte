@@ -30,7 +30,7 @@
 
       if (path.startsWith('/app') && !user) goto(resolve('/login'));
 
-      if (path === '/login' && user) goto(resolve('/app/leads'));
+      if (path === '/login' && user) goto(resolve('/app'));
     }
   });
 </script>

@@ -122,7 +122,7 @@
       <span class="text-fc-2xl font-semibold text-fc-fg">{statValue(stats?.memberCount)}</span>
     </Card>
 
-    <Card href="/app/leads" class="flex flex-col gap-1">
+    <Card href="/app/prospects/leads" class="flex flex-col gap-1">
       <span class="flex items-center justify-between text-fc-fg-muted">
         <iconify-icon icon="solar:chart-square-linear" width="20" height="20" class="block"></iconify-icon>
         <Icon icon={icons.arrow} size={16} class="transition-transform group-hover:translate-x-0.5" />

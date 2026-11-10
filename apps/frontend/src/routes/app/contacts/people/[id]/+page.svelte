@@ -61,7 +61,7 @@
       {#if p.company}
         <Button variant="secondary" href="/app/contacts/companies/{p.company.id}" icon="solar:buildings-2-linear">{p.company.name}</Button>
       {:else}
-        <Button variant="secondary" href="/app/contacts" icon="solar:arrow-left-linear">{t('contacts.title')}</Button>
+        <Button variant="secondary" href="/app/prospects/contacts" icon="solar:arrow-left-linear">{t('contacts.title')}</Button>
       {/if}
       <Button icon="solar:pen-new-square-linear" onclick={() => (composerOpen = true)}>{t('contacts.writeEmail')}</Button>
     {/snippet}

@@ -2,7 +2,7 @@
   import { getErrorMessage } from '$lib/utils/trpc-error';
   import authStore from '$lib/auth-store';
   import MailTransportSettings from '$lib/components/MailTransportSettings.svelte';
-  import ProspectProfileSettings from '$lib/components/schedules/ProspectProfileSettings.svelte';
+  import ProfileSettings from '$lib/components/profile/ProfileSettings.svelte';
   import { trpc } from '$lib/trpc';
   import { useT } from '$lib/i18n';
   import { QUIET } from '@repo/trpc-client';
@@ -231,7 +231,7 @@
         {/snippet}
 
         <SettingsRow stacked>
-          <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div class="grid w-full grid-cols-1 gap-4 md:grid-cols-2">
             <Field label={t('settings.smtp.host')} for="smtpHost">
               <Input id="smtpHost" type="text" bind:value={form.smtpHost} placeholder="smtp.gmail.com" />
             </Field>
@@ -246,7 +246,7 @@
         </SettingsRow>
 
         <SettingsRow stacked>
-          <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div class="grid w-full grid-cols-1 gap-4 md:grid-cols-2">
             <Field label={t('settings.smtp.user')} for="smtpUser">
               <Input id="smtpUser" type="text" bind:value={form.smtpUser} placeholder={t('settings.smtp.userPlaceholder')} />
             </Field>
@@ -276,7 +276,7 @@
         </SettingsRow>
 
         <SettingsRow stacked>
-          <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div class="grid w-full grid-cols-1 gap-4 md:grid-cols-2">
             <Field label={t('settings.smtp.fromName')} for="smtpFromName">
               <Input id="smtpFromName" type="text" bind:value={form.smtpFromName} placeholder={t('settings.smtp.fromNamePlaceholder')} />
             </Field>
@@ -287,7 +287,7 @@
         </SettingsRow>
       </SettingsSection>
     {:else if id === 'prospecting'}
-      <ProspectProfileSettings />
+      <ProfileSettings />
     {:else if id === 'subscription'}
       <SubscriptionSection
         plan={plan?.allowed ? plan.plans.join(' / ') : t('settings.subscription.none')}

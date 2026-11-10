@@ -66,7 +66,7 @@
     if (sortBy !== 'createdAt') params.set('sortBy', sortBy);
     if (sortOrder !== 'desc') params.set('sortOrder', sortOrder);
     const qs = params.toString();
-    replaceState(qs ? resolve(`/app/leads?${qs}`) : resolve('/app/leads'), {});
+    replaceState(qs ? resolve(`/app/prospects/leads?${qs}`) : resolve('/app/prospects/leads'), {});
   }
 
   $effect(() => {
