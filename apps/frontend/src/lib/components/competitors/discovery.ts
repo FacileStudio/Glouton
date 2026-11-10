@@ -31,6 +31,7 @@ export type WebhookEvent = RouterInputs['team']['createWebhook']['events'][numbe
 export const WEBHOOK_EVENTS = {
   'competitor.new_registered': 'webhooks.event.competitor.new_registered',
   'competitor.changes': 'webhooks.event.competitor.changes',
+  'job.offers_found': 'webhooks.event.job.offers_found',
   'hunt.digest': 'webhooks.event.hunt.digest',
   'hunt.schedule_paused': 'webhooks.event.hunt.schedule_paused',
   'hunt.completed': 'webhooks.event.hunt.completed',

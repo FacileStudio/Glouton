@@ -15,7 +15,6 @@ export const profile = {
   'nav.tab.inbox': ['Inbox', 'Boîte de réception', 'Bandeja de entrada', 'Posteingang'],
   'nav.tab.outreach': ['Outreach', 'Prospection', 'Contacto', 'Ansprache'],
 
-  'usage.soon': ['Coming soon', 'Bientôt', 'Próximamente', 'Demnächst'],
   'usage.clients.title': ['Find clients', 'Trouver des clients', 'Encontrar clientes', 'Kunden finden'],
   'usage.clients.text': [
     'Prospect the businesses that need what you sell.',
@@ -50,12 +49,6 @@ export const profile = {
     'Recherche d’emploi avec votre CV et le suivi des candidatures.',
     'Búsqueda de empleo con tu CV y el seguimiento de candidaturas.',
     'Jobsuche mit Lebenslauf und Bewerbungsverfolgung.',
-  ],
-  'usage.job.soonText': [
-    'Job search is on its way. Nothing to set up yet.',
-    'La recherche d’emploi arrive bientôt. Rien à configurer pour l’instant.',
-    'La búsqueda de empleo llegará pronto. Aún no hay nada que configurar.',
-    'Die Jobsuche kommt bald. Noch nichts einzurichten.',
   ],
 
   'usage.clients.target': ['Who buys from you.', 'Qui vous achète.', 'Quién te compra.', 'Wer bei Ihnen kauft.'],

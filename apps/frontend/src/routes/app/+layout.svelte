@@ -124,6 +124,10 @@
     if (path === '/app/prospects/creations') return title('nav.creations');
     if (path.startsWith('/app/missions') || path === '/app/prospects/missions') return title('nav.missions');
     if (path === '/app/messages/outreach') return title('nav.outreach');
+    if (path === '/app/job/offers') return title('job.offers.title');
+    if (path.startsWith('/app/job/applications/')) return title('title.application');
+    if (path === '/app/job/applications') return title('job.applications.title');
+    if (path === '/app/job/cv') return title('job.cv.title');
     if (path === '/app/teams/new') return title('title.newSpace');
     if (path.match(/^\/app\/teams\/.+\/settings/)) return title('title.spaceSettings');
     if (path.match(/^\/app\/teams\/.+\/members/)) return title('title.members');
@@ -172,6 +176,19 @@
     ws.on<{ name?: string; newLeads?: number }>('hunt-digest', (data) =>
       toast.success(t('schedules.digest', { name: data?.name ?? '', count: data?.newLeads ?? 0 }))
     ),
+    ws.on<{ created?: number }>('job-search:done', (data) => {
+      if (!data?.created) return;
+      toast.info(t('job.search.doneToast', { count: data.created }), {
+        action: { label: t('job.offers.open'), onClick: () => void goto(resolve('/app/job/offers')) },
+      });
+    }),
+    ws.on<{ applicationId?: string; title?: string }>('job:reminder', (data) => {
+      if (!data?.applicationId) return;
+      const id = data.applicationId;
+      toast.info(t('job.applications.reminderToast', { title: data.title ?? '' }), {
+        action: { label: t('job.applications.open'), onClick: () => void goto(resolve('/app/job/applications/[id]', { id })) },
+      });
+    }),
     ws.on<{ name?: string }>('hunt-schedule-paused', (data) => toast.danger(t('schedules.pausedNotice', { name: data?.name ?? '' }))),
   ];
 

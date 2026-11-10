@@ -3,7 +3,7 @@
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
-  import { Button, EmptyState, Field, PlanLimit, Select, SettingsRow, SettingsSection, icons, toast, type PlanLimitError } from '@facile/muse';
+  import { Button, Field, PlanLimit, Select, SettingsRow, SettingsSection, icons, toast, type PlanLimitError } from '@facile/muse';
   import { trpc } from '$lib/trpc';
   import { useT } from '$lib/i18n';
   import { getErrorMessage } from '$lib/utils/trpc-error';
@@ -11,6 +11,7 @@
   import { profileStore } from '$lib/stores/profile.svelte';
   import { FREQUENCIES, limitFrom, type Frequency } from '$lib/components/schedules/labels';
   import AboutFields from './AboutFields.svelte';
+  import JobPicker from './JobPicker.svelte';
   import TargetPicker from './TargetPicker.svelte';
   import UsagePicker from './UsagePicker.svelte';
   import { activeTargets, formFrom, savePayload, type ProfileForm } from './form';
@@ -139,9 +140,12 @@
 {/each}
 
 {#if form.usages.includes('job')}
-  <SettingsSection title={t('usage.job.title')}>
+  <SettingsSection title={t('usage.job.title')} description={t('job.profile.target')}>
     <SettingsRow stacked>
-      <EmptyState bare class="w-full" icon="solar:user-id-linear" title={t('usage.soon')} description={t('usage.job.soonText')} />
+      <JobPicker id="target-job" bind:job={form.job} {teamId} />
+    </SettingsRow>
+    <SettingsRow label={t('job.profile.findTitle')} description={t('job.profile.findText')}>
+      <Button variant="secondary" icon="solar:magnifer-linear" href="/app/job/offers">{t('job.offers.open')}</Button>
     </SettingsRow>
   </SettingsSection>
 {/if}

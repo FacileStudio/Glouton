@@ -29,10 +29,11 @@ describe('usage-driven navigation', () => {
     expect(navFor(['missions'])[1]?.href).toBe('/app/prospects/contacts');
   });
 
-  test('no usage yet shows everything; job alone shows nothing and sends to the settings', () => {
-    expect(navFor([]).map((section) => section.id)).toEqual(['ideas', 'prospects', 'searches', 'competitors', 'messages']);
-    expect(navFor(['job']).map((section) => section.id)).toEqual(['ideas']);
-    expect(homeFor(['job'])).toBe('/app/settings/prospecting');
+  test('no usage yet shows everything; job alone shows Ideas and its own section with offers, applications and CV', () => {
+    expect(navFor([]).map((section) => section.id)).toEqual(['ideas', 'prospects', 'searches', 'competitors', 'job', 'messages']);
+    expect(ids(['job'])).toEqual([['job', ['offers', 'applications', 'cv']]]);
+    expect(homeFor(['job'])).toBe('/app/job/offers');
+    expect(ids(['competitors', 'job']).map(([id]) => id)).toEqual(['competitors', 'job']);
   });
 
   test('Ideas is first for every usage and never the home page', () => {
