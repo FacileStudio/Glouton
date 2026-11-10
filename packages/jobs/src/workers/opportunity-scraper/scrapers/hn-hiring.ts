@@ -1,4 +1,4 @@
-import { type ScrapedOpportunity, safeFetch } from './types';
+import { type BoardQuery, type ScrapedOpportunity, kept, safeFetch } from './types';
 import { scoreOpportunity, detectCategory } from './scoring';
 
 interface AlgoliaHit {
@@ -20,11 +20,11 @@ const QUERIES = [
   'seeking freelancer web',
 ];
 
-export async function scrapeHNHiring(): Promise<ScrapedOpportunity[]> {
+export async function scrapeHNHiring(search?: BoardQuery): Promise<ScrapedOpportunity[]> {
   const seen = new Set<string>();
   const results: ScrapedOpportunity[] = [];
 
-  for (const query of QUERIES) {
+  for (const query of search?.terms ?? QUERIES) {
     try {
       const url = `https://hn.algolia.com/api/v1/search?query=${encodeURIComponent(query)}&tags=comment,ask_hn&hitsPerPage=30`;
       const res = await safeFetch(url);
@@ -41,7 +41,7 @@ export async function scrapeHNHiring(): Promise<ScrapedOpportunity[]> {
 
         const firstLine = text.split('\n')[0].slice(0, 120);
         const score = scoreOpportunity(firstLine, text, true);
-        if (score < 20) continue;
+        if (!kept(score, 20, search)) continue;
 
         const storyId = hit.story_id ?? hit.objectID;
         results.push({

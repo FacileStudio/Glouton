@@ -23,6 +23,7 @@ export const WEBHOOK_EVENTS = {
   'audit.completed': 'Audit de site terminé',
   'competitor.changes': 'Veille concurrents : changements du jour',
   'competitor.new_registered': 'Nouvelle entreprise concurrente immatriculée (BODACC)',
+  'job.offers_found': 'Nouvelles offres d\'emploi d\'une recherche récurrente',
   'team.member_added': 'Membre ajouté à l\'équipe',
   'team.member_removed': 'Membre retiré de l\'équipe',
 } as const;

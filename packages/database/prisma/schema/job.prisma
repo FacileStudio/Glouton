@@ -1,0 +1,179 @@
+enum JobOfferStatus {
+  NEW
+  SAVED
+  DISMISSED
+}
+
+enum JobApplicationStatus {
+  TO_APPLY
+  APPLIED
+  INTERVIEW
+  OFFER
+  REJECTED
+}
+
+enum JobDraftKind {
+  CV
+  LETTER
+}
+
+/// A job search a space keeps: the filters, and an optional cadence. The
+/// hunt-schedules tick starts due searches (frequency set, enabled,
+/// nextRunAt passed). Scoped like Lead: userId plus a nullable teamId.
+model JobSearch {
+  id         String         @id @default(dbgenerated("gen_random_uuid()")) @db.Text
+  userId     String         @db.Text
+  teamId     String?        @db.Text
+  name       String         @db.Text
+  role       String         @db.Text
+  skills     String[]       @default([])
+  location   String?        @db.Text
+  remote     Boolean        @default(false)
+  contracts  String[]       @default([])
+  salaryMin  Int?
+  frequency  HuntFrequency?
+  enabled    Boolean        @default(true)
+  nextRunAt  DateTime?      @db.Timestamptz(3)
+  status     String?        @db.Text
+  queuedAt   DateTime?      @db.Timestamptz(3)
+  lastRunAt  DateTime?      @db.Timestamptz(3)
+  lastResult Json?
+  createdAt  DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime       @default(now()) @updatedAt @db.Timestamptz(3)
+
+  user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team   Team?      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  offers JobOffer[]
+
+  @@index([userId])
+  @@index([teamId])
+  @@index([nextRunAt])
+}
+
+/// A job offer a search found for a space, from a job board or the web.
+/// scopeKey is "team:<teamId>" or "user:<userId>". A dismissed offer stays,
+/// so the same address never comes back.
+model JobOffer {
+  id          String         @id @default(dbgenerated("gen_random_uuid()")) @db.Text
+  scopeKey    String         @db.Text
+  userId      String         @db.Text
+  teamId      String?        @db.Text
+  searchId    String?        @db.Text
+  source      String         @db.Text
+  url         String         @db.Text
+  title       String         @db.Text
+  company     String?        @db.Text
+  location    String?        @db.Text
+  remote      Boolean        @default(false)
+  contract    String?        @db.Text
+  salaryMin   Float?
+  salaryMax   Float?
+  currency    String?        @db.Text
+  salaryText  String?        @db.Text
+  description String         @default("") @db.Text
+  skills      String[]       @default([])
+  postedAt    DateTime?      @db.Timestamptz(3)
+  score       Int            @default(0)
+  status      JobOfferStatus @default(NEW)
+  seenAt      DateTime?      @db.Timestamptz(3)
+  decidedAt   DateTime?      @db.Timestamptz(3)
+  createdAt   DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime       @default(now()) @updatedAt @db.Timestamptz(3)
+
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team         Team?            @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  search       JobSearch?       @relation(fields: [searchId], references: [id], onDelete: SetNull)
+  applications JobApplication[]
+
+  @@unique([scopeKey, url])
+  @@index([userId])
+  @@index([teamId])
+  @@index([searchId])
+  @@index([scopeKey, status, score])
+}
+
+/// One application a person tracks, from a saved offer or typed by hand.
+/// Each status date is set when the application first reaches it and can be
+/// edited. remindAt fires one in-app reminder (remindedAt marks it sent).
+model JobApplication {
+  id           String               @id @default(dbgenerated("gen_random_uuid()")) @db.Text
+  userId       String               @db.Text
+  teamId       String?              @db.Text
+  offerId      String?              @db.Text
+  title        String               @db.Text
+  company      String?              @db.Text
+  url          String?              @db.Text
+  location     String?              @db.Text
+  description  String?              @db.Text
+  status       JobApplicationStatus @default(TO_APPLY)
+  appliedAt    DateTime?            @db.Timestamptz(3)
+  interviewAt  DateTime?            @db.Timestamptz(3)
+  offerAt      DateTime?            @db.Timestamptz(3)
+  rejectedAt   DateTime?            @db.Timestamptz(3)
+  notes        String?              @db.Text
+  contactName  String?              @db.Text
+  contactEmail String?              @db.Text
+  contactPhone String?              @db.Text
+  links        String[]             @default([])
+  remindAt     DateTime?            @db.Timestamptz(3)
+  remindedAt   DateTime?            @db.Timestamptz(3)
+  createdAt    DateTime             @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime             @default(now()) @updatedAt @db.Timestamptz(3)
+
+  user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team   Team?      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  offer  JobOffer?  @relation(fields: [offerId], references: [id], onDelete: SetNull)
+  drafts JobDraft[]
+
+  @@index([userId])
+  @@index([teamId])
+  @@index([offerId])
+  @@index([remindAt])
+}
+
+/// A CV. It is personal data: only its owner reads it, unless shared is on,
+/// and then only members of its team. The file (PDF or DOCX) is stored as
+/// bytes; text is the version Bulle tailors, typed or read from a DOCX.
+model JobCv {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Text
+  userId    String    @db.Text
+  teamId    String?   @db.Text
+  name      String    @db.Text
+  fileName  String?   @db.Text
+  mimeType  String?   @db.Text
+  size      Int?
+  file      Bytes?
+  text      String?   @db.Text
+  shared    Boolean   @default(false)
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime  @default(now()) @updatedAt @db.Timestamptz(3)
+
+  user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team   Team?      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  drafts JobDraft[]
+
+  @@index([userId])
+  @@index([teamId])
+}
+
+/// A tailored CV or cover letter Bulle drafted for one application. Private
+/// to its author like the CV, editable, and never sent by Glouton.
+model JobDraft {
+  id            String       @id @default(dbgenerated("gen_random_uuid()")) @db.Text
+  userId        String       @db.Text
+  applicationId String       @db.Text
+  cvId          String?      @db.Text
+  kind          JobDraftKind
+  language      String       @db.Text
+  content       String       @db.Text
+  createdAt     DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime     @default(now()) @updatedAt @db.Timestamptz(3)
+
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  application JobApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  cv          JobCv?         @relation(fields: [cvId], references: [id], onDelete: SetNull)
+
+  @@unique([applicationId, userId, kind])
+  @@index([userId])
+  @@index([cvId])
+}

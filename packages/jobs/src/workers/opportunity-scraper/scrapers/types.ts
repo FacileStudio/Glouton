@@ -27,6 +27,20 @@ export interface ScrapedOpportunity {
   duration?: string;
 }
 
+/**
+ * A search for any trade. Given terms, a board searches with them instead
+ * of its built-in tech list, and keeps every posting rather than only the
+ * ones the tech score likes; the caller filters.
+ */
+export interface BoardQuery {
+  terms: string[];
+}
+
+/** Whether a scraped posting stays: always for a query, else when the tech score reaches `min`. */
+export function kept(score: number, min: number, query?: BoardQuery): boolean {
+  return query ? true : score >= min;
+}
+
 export async function safeFetch(url: string, options?: RequestInit): Promise<Response> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15000);

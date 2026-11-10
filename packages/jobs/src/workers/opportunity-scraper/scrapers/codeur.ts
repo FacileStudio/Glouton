@@ -1,4 +1,4 @@
-import { type ScrapedOpportunity, safeFetch, parseRssItems, stripHtml, parseRssDate } from './types';
+import { type BoardQuery, type ScrapedOpportunity, kept, safeFetch, parseRssItems, stripHtml, parseRssDate } from './types';
 import { scoreOpportunity, detectCategory } from './scoring';
 
 // Codeur.com is the main French freelance platform for small/medium web projects
@@ -8,11 +8,11 @@ const FEEDS = [
   'https://www.codeur.com/projects/design.rss',
 ];
 
-export async function scrapeCodeur(): Promise<ScrapedOpportunity[]> {
+export async function scrapeCodeur(query?: BoardQuery): Promise<ScrapedOpportunity[]> {
   const seen = new Set<string>();
   const results: ScrapedOpportunity[] = [];
 
-  for (const feedUrl of FEEDS) {
+  for (const feedUrl of query ? FEEDS.slice(0, 1) : FEEDS) {
     try {
       const res = await safeFetch(feedUrl, {
         headers: {
@@ -34,7 +34,7 @@ export async function scrapeCodeur(): Promise<ScrapedOpportunity[]> {
         const meta = parseMeta(item.description ?? '');
         const desc = stripHtml(stripMetaAndFooter(item.description ?? ''));
         const score = scoreOpportunity(item.title ?? '', desc, false);
-        if (score < 10) continue;
+        if (!kept(score, 10, query)) continue;
 
         results.push({
           title: item.title ?? '',
@@ -60,7 +60,7 @@ export async function scrapeCodeur(): Promise<ScrapedOpportunity[]> {
     }
   }
 
-  await enrichWithOfferCounts(results);
+  if (!query) await enrichWithOfferCounts(results);
 
   return results;
 }

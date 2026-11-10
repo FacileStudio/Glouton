@@ -1,4 +1,4 @@
-import { type ScrapedOpportunity, safeFetch, stripHtml } from './types';
+import { type BoardQuery, type ScrapedOpportunity, kept, safeFetch, stripHtml } from './types';
 import { scoreOpportunity, detectCategory } from './scoring';
 
 interface FreeWorkJobPosting {
@@ -45,11 +45,11 @@ const SEARCH_KEYWORDS = [
   'frontend typescript',
 ];
 
-export async function scrapeFreeWork(): Promise<ScrapedOpportunity[]> {
+export async function scrapeFreeWork(query?: BoardQuery): Promise<ScrapedOpportunity[]> {
   const seen = new Set<number>();
   const results: ScrapedOpportunity[] = [];
 
-  for (const keywords of SEARCH_KEYWORDS) {
+  for (const keywords of query?.terms ?? SEARCH_KEYWORDS) {
     try {
       const url = `https://www.free-work.com/api/job_postings?itemsPerPage=30&searchKeywords=${encodeURIComponent(keywords)}`;
       const res = await safeFetch(url);
@@ -64,7 +64,7 @@ export async function scrapeFreeWork(): Promise<ScrapedOpportunity[]> {
         const desc = stripHtml(`${job.description ?? ''} ${job.candidateProfile ?? ''}`);
         const isRemote = !!job.remoteMode && job.remoteMode !== 'none';
         const score = scoreOpportunity(job.title, desc, isRemote, job.minDailySalary ?? undefined);
-        if (score < 15) continue;
+        if (!kept(score, 15, query)) continue;
 
         const isFreelanceContract = (job.contracts ?? []).some((c) => c.includes('contractor') || c.includes('freelance'));
         const budget = formatBudget(job);

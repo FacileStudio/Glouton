@@ -35,7 +35,7 @@ export const UNTRUSTED_RULE = [
   'You cannot take actions: your only output is the JSON object described here, with no other keys and no prose around it.',
 ].join(' ');
 
-function languageRule(language: AiLanguage): string {
+export function languageRule(language: AiLanguage): string {
   return `Write every text value in ${LANGUAGE_NAMES[language]}.`;
 }
 
