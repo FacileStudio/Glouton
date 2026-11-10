@@ -1,4 +1,4 @@
-import { type ScrapedOpportunity, safeFetch, stripHtml } from './types';
+import { type BoardQuery, type ScrapedOpportunity, kept, safeFetch, stripHtml } from './types';
 import { scoreOpportunity, detectCategory } from './scoring';
 
 interface RemotiveJob {
@@ -32,19 +32,22 @@ const CATEGORIES = [
   'devops',
 ];
 
-export async function scrapeRemotive(): Promise<ScrapedOpportunity[]> {
+export async function scrapeRemotive(query?: BoardQuery): Promise<ScrapedOpportunity[]> {
   const results: ScrapedOpportunity[] = [];
+  const urls = query
+    ? query.terms.map((term) => `https://remotive.com/api/remote-jobs?search=${encodeURIComponent(term)}&limit=50`)
+    : CATEGORIES.map((cat) => `https://remotive.com/api/remote-jobs?category=${cat}&limit=50`);
 
-  for (const cat of CATEGORIES) {
+  for (const url of urls) {
     try {
-      const res = await safeFetch(`https://remotive.com/api/remote-jobs?category=${cat}&limit=50`);
+      const res = await safeFetch(url);
       if (!res.ok) continue;
       const data = await res.json() as { jobs: RemotiveJob[] };
 
       for (const job of data.jobs ?? []) {
         const desc = stripHtml(job.description ?? '');
         const score = scoreOpportunity(job.title, desc, true);
-        if (score < 15) continue;
+        if (!kept(score, 15, query)) continue;
 
         const salary = parseSalary(job.salary);
 
@@ -70,7 +73,7 @@ export async function scrapeRemotive(): Promise<ScrapedOpportunity[]> {
         });
       }
     } catch (err) {
-      console.error(`[Remotive] Failed for category ${cat}:`, err);
+      console.error(`[Remotive] Failed for ${url}:`, err);
     }
   }
 

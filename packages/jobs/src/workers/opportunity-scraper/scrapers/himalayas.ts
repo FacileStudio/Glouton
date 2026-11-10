@@ -1,4 +1,4 @@
-import { type ScrapedOpportunity, safeFetch, stripHtml } from './types';
+import { type BoardQuery, type ScrapedOpportunity, kept, safeFetch, stripHtml } from './types';
 import { scoreOpportunity, detectCategory } from './scoring';
 
 interface HimalayasJob {
@@ -27,20 +27,31 @@ interface HimalayasResponse {
   jobs: HimalayasJob[];
 }
 
-export async function scrapeHimalayas(): Promise<ScrapedOpportunity[]> {
+async function himalayasJobs(query?: BoardQuery): Promise<HimalayasJob[]> {
+  if (!query) {
+    const res = await safeFetch('https://himalayas.app/jobs/api?limit=100');
+    return res.ok ? ((await res.json()) as HimalayasResponse).jobs ?? [] : [];
+  }
+  const jobs: HimalayasJob[] = [];
+  for (const term of query.terms) {
+    const res = await safeFetch(`https://himalayas.app/jobs/api/search?q=${encodeURIComponent(term)}`);
+    if (res.ok) jobs.push(...(((await res.json()) as HimalayasResponse).jobs ?? []));
+  }
+  return jobs;
+}
+
+export async function scrapeHimalayas(query?: BoardQuery): Promise<ScrapedOpportunity[]> {
   const results: ScrapedOpportunity[] = [];
+  const seen = new Set<string>();
 
   try {
-    const res = await safeFetch('https://himalayas.app/jobs/api?limit=100');
-    if (!res.ok) return results;
-    const data = await res.json() as HimalayasResponse;
-
-    for (const job of data.jobs ?? []) {
-      if (!job.title || !job.guid) continue;
+    for (const job of await himalayasJobs(query)) {
+      if (!job.title || !job.guid || seen.has(job.guid)) continue;
+      seen.add(job.guid);
 
       const desc = stripHtml(job.description || job.excerpt || '');
       const score = scoreOpportunity(job.title, desc, true, job.minSalary ?? undefined);
-      if (score < 15) continue;
+      if (!kept(score, 15, query)) continue;
 
       const budget = job.minSalary
         ? `${job.minSalary}${job.maxSalary ? `-${job.maxSalary}` : ''} ${job.currency ?? 'USD'}${job.salaryPeriod ? `/${job.salaryPeriod}` : ''}`

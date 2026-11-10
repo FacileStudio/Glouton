@@ -34,6 +34,11 @@ const GOALS: Record<TargetUsage, string> = {
   competitors: 'The filters must find businesses that offer the same thing as the user: its competitors.',
   missions: 'The filters must find businesses that hire freelancers for work like what the user does.',
   partners: 'The filters must find suppliers and partners the user could work with.',
+  job: [
+    'The user looks for a job, in any trade, not only in tech.',
+    '"keywords" must be the skills and job titles employers write in offers for that job.',
+    '"nafCodes" are the sectors that hire for that job. Leave "osmTags" empty.',
+  ].join(' '),
 };
 
 const RULES = [

@@ -1,4 +1,4 @@
-import { type ScrapedOpportunity, safeFetch, stripHtml } from './types';
+import { type BoardQuery, type ScrapedOpportunity, kept, safeFetch, stripHtml } from './types';
 import { scoreOpportunity, detectCategory } from './scoring';
 
 interface RemoteOkJob {
@@ -18,13 +18,18 @@ interface RemoteOkJob {
 
 const SEARCH_TAGS = ['svelte', 'typescript', 'javascript', 'design', 'frontend', 'golang'];
 
-export async function scrapeRemoteOK(): Promise<ScrapedOpportunity[]> {
+function tagOf(term: string): string {
+  return term.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
+export async function scrapeRemoteOK(query?: BoardQuery): Promise<ScrapedOpportunity[]> {
   const seen = new Set<string>();
   const results: ScrapedOpportunity[] = [];
+  const tags = query ? query.terms.map(tagOf).filter(Boolean) : SEARCH_TAGS;
 
-  for (const tag of SEARCH_TAGS) {
+  for (const tag of tags) {
     try {
-      const res = await safeFetch(`https://remoteok.com/api?tag=${tag}`, {
+      const res = await safeFetch(`https://remoteok.com/api?tag=${encodeURIComponent(tag)}`, {
         headers: { 'User-Agent': 'Mozilla/5.0 (compatible; GloutonBot/1.0)' },
       });
       if (!res.ok) continue;
@@ -38,7 +43,7 @@ export async function scrapeRemoteOK(): Promise<ScrapedOpportunity[]> {
 
         const desc = stripHtml(job.description ?? '');
         const score = scoreOpportunity(job.position, desc, true, job.salary_min);
-        if (score < 15) continue;
+        if (!kept(score, 15, query)) continue;
 
         results.push({
           title: job.position,

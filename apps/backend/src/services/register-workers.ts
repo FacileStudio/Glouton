@@ -1,10 +1,10 @@
 import type { JobDefinition, QueueManager, ScopeGate } from '@repo/jobs';
 import type { PrismaClient } from '@prisma/client';
-import { createWorkers, osmPlaces, redisWebSearch } from '@repo/jobs/workers';
+import { JOB_BOARDS, createWorkers, osmPlaces, redisWebSearch } from '@repo/jobs/workers';
 import { events } from './events';
 import { logger } from '@repo/logger';
 import type { CourrierClient } from '@repo/courrier';
-import { ardoise, competitorAi, discovery, forfait, schedules, type BulleClient } from '@repo/trpc';
+import { ardoise, competitorAi, discovery, forfait, jobSearch, schedules, type BulleClient } from '@repo/trpc';
 import env from '../env';
 
 type ScopedJob = { userId?: unknown; teamId?: unknown; huntSessionId?: unknown; auditSessionId?: unknown };
@@ -125,6 +125,36 @@ export function discoveryWorker(deps: discovery.DiscoveryDeps): JobDefinition<di
   };
 }
 
+/** The job search worker: one run of one search, recorded as failed when it throws. */
+export function jobSearchWorker(deps: jobSearch.JobSearchDeps): JobDefinition<jobSearch.JobSearchJob, jobSearch.JobSearchResult> {
+  return {
+    name: jobSearch.JOB_SEARCH_QUEUE,
+    processor: async (job) => {
+      try {
+        const result = await jobSearch.runSearch(deps, { ...job.data, teamId: job.data.teamId ?? null });
+        logger.info({ ...result, searchId: job.data.searchId, trigger: job.data.trigger }, '[JOB_SEARCH] Run finished');
+        return result;
+      } catch (error) {
+        await jobSearch.failSearch(deps.prisma, job.data.searchId, error).catch(() => {});
+        throw error;
+      }
+    },
+    options: { concurrency: 1 },
+  };
+}
+
+/**
+ * The job search part of the hunt-schedules tick: recurring searches whose
+ * slot came, then application reminders that came due, each sent once to
+ * the application's owner.
+ */
+export async function jobTick(deps: jobSearch.TickDeps, notify: (userId: string, data: Record<string, unknown>) => void) {
+  const searches = await jobSearch.tick(deps);
+  const reminders = await jobSearch.claimReminders(deps.prisma, deps.now?.() ?? new Date());
+  for (const reminder of reminders) notify(reminder.userId, { ...reminder });
+  return { ...searches, reminders: reminders.length };
+}
+
 export function registerWorkers(
   queueManager: QueueManager,
   prisma: PrismaClient,
@@ -180,11 +210,20 @@ export function registerWorkers(
   queueManager.registerWorker('courrier-reply-sync', workers['courrier-reply-sync']);
   queueManager.registerWorker('courrier-contacts-import', workers['courrier-contacts-import']);
   queueManager.registerWorker('competitor-watch', workers['competitor-watch']);
+  const jobDeps: jobSearch.JobSearchDeps = { prisma, boards: JOB_BOARDS, web: websearch, notify };
+  queueManager.registerWorker(jobSearch.JOB_SEARCH_QUEUE, scopeGuarded(jobSearchWorker(jobDeps), allowed));
   queueManager.registerWorker(schedules.SCHEDULE_QUEUE, {
     name: schedules.SCHEDULE_QUEUE,
     processor: async () => {
       const result = await schedules.tick(runner);
       if (result.started + result.settled + result.failed > 0) logger.info(result, '[SCHEDULES] Tick');
+      const jobs = await jobTick({ prisma, jobs: queueManager, allowed }, (userId, data) => events.emit(userId, jobSearch.REMINDER_EVENT, data)).catch(
+        (error: unknown) => {
+          logger.error({ err: error }, '[JOB_SEARCH] Tick failed');
+          return null;
+        }
+      );
+      if (jobs && jobs.queued + jobs.skipped + jobs.reminders > 0) logger.info(jobs, '[JOB_SEARCH] Tick');
       return result;
     },
     options: { concurrency: 1 },

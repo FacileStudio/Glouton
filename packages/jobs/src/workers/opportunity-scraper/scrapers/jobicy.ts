@@ -1,6 +1,6 @@
 // Jobicy free API — per their notice: credit Jobicy, link users to their site,
 // and fetch only a few times per day (our scraper runs every 3h, within limits).
-import { type ScrapedOpportunity, safeFetch, stripHtml } from './types';
+import { type BoardQuery, type ScrapedOpportunity, kept, safeFetch, stripHtml } from './types';
 import { scoreOpportunity, detectCategory } from './scoring';
 
 interface JobicyJob {
@@ -25,13 +25,13 @@ interface JobicyResponse {
 
 const TAGS = ['web', 'design'];
 
-export async function scrapeJobicy(): Promise<ScrapedOpportunity[]> {
+export async function scrapeJobicy(query?: BoardQuery): Promise<ScrapedOpportunity[]> {
   const seen = new Set<number>();
   const results: ScrapedOpportunity[] = [];
 
-  for (const tag of TAGS) {
+  for (const tag of query?.terms ?? TAGS) {
     try {
-      const res = await safeFetch(`https://jobicy.com/api/v2/remote-jobs?count=50&tag=${tag}`);
+      const res = await safeFetch(`https://jobicy.com/api/v2/remote-jobs?count=50&tag=${encodeURIComponent(tag)}`);
       if (!res.ok) continue;
       const data = await res.json() as JobicyResponse;
 
@@ -42,7 +42,7 @@ export async function scrapeJobicy(): Promise<ScrapedOpportunity[]> {
 
         const desc = stripHtml(job.jobDescription || job.jobExcerpt || '');
         const score = scoreOpportunity(job.jobTitle, desc, true);
-        if (score < 15) continue;
+        if (!kept(score, 15, query)) continue;
 
         results.push({
           title: job.jobTitle,

@@ -1,4 +1,4 @@
-import { type ScrapedOpportunity, safeFetch, parseRssItems, stripHtml, parseRssDate } from './types';
+import { type BoardQuery, type ScrapedOpportunity, kept, safeFetch, parseRssItems, stripHtml, parseRssDate } from './types';
 import { scoreOpportunity, detectCategory } from './scoring';
 
 const FEEDS = [
@@ -8,11 +8,14 @@ const FEEDS = [
   'https://weworkremotely.com/categories/remote-design-jobs.rss',
 ];
 
-export async function scrapeWeWorkRemotely(): Promise<ScrapedOpportunity[]> {
+/** Every category at once: a query filters the postings itself. */
+const ALL_JOBS = 'https://weworkremotely.com/remote-jobs.rss';
+
+export async function scrapeWeWorkRemotely(query?: BoardQuery): Promise<ScrapedOpportunity[]> {
   const seen = new Set<string>();
   const results: ScrapedOpportunity[] = [];
 
-  for (const feedUrl of FEEDS) {
+  for (const feedUrl of query ? [ALL_JOBS] : FEEDS) {
     try {
       const res = await safeFetch(feedUrl, { headers: { Accept: 'application/rss+xml, application/xml, text/xml' } });
       if (!res.ok) continue;
@@ -26,7 +29,7 @@ export async function scrapeWeWorkRemotely(): Promise<ScrapedOpportunity[]> {
 
         const desc = stripHtml(item.description ?? '');
         const score = scoreOpportunity(item.title ?? '', desc, true);
-        if (score < 15) continue;
+        if (!kept(score, 15, query)) continue;
 
         results.push({
           title: item.title ?? '',

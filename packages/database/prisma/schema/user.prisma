@@ -58,6 +58,11 @@ model User {
   huntSchedules                 HuntSchedule[]
   competitorSuggestions         CompetitorSuggestion[]
   competitorDiscoveryStates     CompetitorDiscoveryState[]
+  jobSearches                   JobSearch[]
+  jobOffers                     JobOffer[]
+  jobApplications               JobApplication[]
+  jobCvs                        JobCv[]
+  jobDrafts                     JobDraft[]
 
   @@index([status])
   @@index([isBanned])
