@@ -11,6 +11,8 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-11-10
+
 ### Added
 
 - Usages per space: find clients, watch competitors, freelance missions, and partners and suppliers. Several can be on at once. Find a job is reserved and shows as coming soon. The sidebar, the empty states and the settings follow the active usages.
