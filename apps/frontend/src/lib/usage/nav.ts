@@ -1,13 +1,10 @@
 import type { Key } from '$lib/i18n/rows';
 
-/** What a space uses Glouton for. `job` is reserved: it shows a coming-soon state and opens nothing. */
+/** What a space uses Glouton for. */
 export type Usage = 'clients' | 'competitors' | 'missions' | 'partners' | 'job';
 
-/** The usages a person can turn on today, in wizard order, then the reserved one. */
+/** The usages, in wizard order. */
 export const USAGE_ORDER: readonly Usage[] = ['clients', 'competitors', 'missions', 'partners', 'job'];
-
-/** Usages that are not built yet. */
-export const COMING_SOON: ReadonlySet<Usage> = new Set(['job']);
 
 export const USAGE_ICONS: Record<Usage, string> = {
   clients: 'solar:magnet-linear',
@@ -26,7 +23,7 @@ export interface NavTab {
 }
 
 export interface NavSection {
-  id: 'ideas' | 'prospects' | 'searches' | 'competitors' | 'messages';
+  id: 'ideas' | 'prospects' | 'searches' | 'competitors' | 'job' | 'messages';
   label: Key;
   icon: string;
   href: string;
@@ -83,6 +80,18 @@ export const NAV: readonly NavSection[] = [
     ],
   },
   {
+    id: 'job',
+    label: 'nav.job',
+    icon: 'solar:user-id-linear',
+    href: '/app/job',
+    available: true,
+    tabs: [
+      { id: 'offers', label: 'nav.tab.jobOffers', icon: 'solar:magnifer-linear', href: '/app/job/offers', usages: ['job'] },
+      { id: 'applications', label: 'nav.tab.applications', icon: 'solar:checklist-minimalistic-linear', href: '/app/job/applications', usages: ['job'] },
+      { id: 'cv', label: 'nav.tab.cv', icon: 'solar:document-text-linear', href: '/app/job/cv', usages: ['job'] },
+    ],
+  },
+  {
     id: 'messages',
     label: 'nav.messages',
     icon: 'solar:letter-linear',
@@ -97,12 +106,11 @@ export const NAV: readonly NavSection[] = [
 
 /** The sections and tabs a set of usages shows. An empty set shows everything, as before usages existed. */
 export function navFor(usages: readonly Usage[]): NavSection[] {
-  const active = usages.filter((usage) => !COMING_SOON.has(usage));
   const all = usages.length === 0;
   return NAV.flatMap((section) => {
     if (!section.available) return [];
     if (section.always) return [section];
-    const tabs = section.tabs.filter((tab) => all || tab.usages.some((usage) => active.includes(usage)));
+    const tabs = section.tabs.filter((tab) => all || tab.usages.some((usage) => usages.includes(usage)));
     return tabs.length > 0 ? [{ ...section, href: tabs[0]!.href, tabs }] : [];
   });
 }

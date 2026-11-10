@@ -10,11 +10,19 @@
   import { profileStore } from '$lib/stores/profile.svelte';
   import { homeFor } from '$lib/usage/nav';
   import AboutFields from '$lib/components/profile/AboutFields.svelte';
+  import JobPicker from '$lib/components/profile/JobPicker.svelte';
   import TargetPicker from '$lib/components/profile/TargetPicker.svelte';
   import UsagePicker from '$lib/components/profile/UsagePicker.svelte';
-  import { activeTargets, formFrom, savePayload, type ProfileForm, type TargetUsage } from '$lib/components/profile/form';
+  import { activeTargets, formFrom, hasBusiness, savePayload, type BusinessUsage, type ProfileForm } from '$lib/components/profile/form';
 
-  type Step = { kind: 'usages' } | { kind: 'about'; field: 'offer' | 'website' | 'area' } | { kind: 'target'; usage: TargetUsage };
+  type JobPart = 'role' | 'place' | 'contract';
+  type Step =
+    | { kind: 'usages' }
+    | { kind: 'about'; field: 'offer' | 'website' | 'area' }
+    | { kind: 'target'; usage: BusinessUsage }
+    | { kind: 'job'; part: JobPart };
+
+  const JOB_PARTS: readonly JobPart[] = ['role', 'place', 'contract'];
 
   const t = useT();
   const teamId = $derived(teamContextStore.getTeamId());
@@ -26,10 +34,11 @@
 
   const steps = $derived<Step[]>([
     { kind: 'usages' },
-    { kind: 'about', field: 'offer' },
-    { kind: 'about', field: 'website' },
-    { kind: 'about', field: 'area' },
+    ...(hasBusiness(form.usages)
+      ? [{ kind: 'about' as const, field: 'offer' as const }, { kind: 'about' as const, field: 'website' as const }, { kind: 'about' as const, field: 'area' as const }]
+      : []),
     ...activeTargets(form.usages).map((usage) => ({ kind: 'target' as const, usage })),
+    ...(form.usages.includes('job') ? JOB_PARTS.map((part) => ({ kind: 'job' as const, part })) : []),
   ]);
   const step = $derived(steps[Math.min(index, steps.length - 1)]!);
   const last = $derived(index >= steps.length - 1);
@@ -71,6 +80,7 @@
   function title(current: Step): string {
     if (current.kind === 'usages') return t('start.q.usages');
     if (current.kind === 'about') return t(`start.q.${current.field}`);
+    if (current.kind === 'job') return t(`start.q.job.${current.part}`);
     return t(`usage.${current.usage}.who`);
   }
 </script>
@@ -91,6 +101,10 @@
       <UsagePicker bind:usages={form.usages} label={t('start.usagesLegend')} />
     {:else if step.kind === 'about'}
       <AboutFields bind:form show={[step.field]} />
+    {:else if step.kind === 'job'}
+      {#key step.part}
+        <JobPicker id="start-job-{step.part}" bind:job={form.job} {teamId} show={[step.part]} />
+      {/key}
     {:else}
       {#key step.usage}
         <TargetPicker

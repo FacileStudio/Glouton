@@ -63,6 +63,12 @@ export const webhooks = {
     'Nuevo competidor registrado (BODACC)',
     'Neuer Wettbewerber eingetragen (BODACC)',
   ],
+  'webhooks.event.job.offers_found': [
+    'New job offers from a recurring search',
+    "Nouvelles offres d'emploi d'une recherche récurrente",
+    'Nuevas ofertas de empleo de una búsqueda recurrente',
+    'Neue Stellenangebote aus einer wiederkehrenden Suche',
+  ],
   'webhooks.event.team.member_added': ['Member added to the team', "Membre ajouté à l'équipe", 'Miembro añadido al equipo', 'Mitglied zum Team hinzugefügt'],
   'webhooks.event.team.member_removed': ['Member removed from the team', "Membre retiré de l'équipe", 'Miembro eliminado del equipo', 'Mitglied aus dem Team entfernt'],
 } as const satisfies Record<string, Row>;
