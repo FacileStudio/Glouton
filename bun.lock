@@ -54,7 +54,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@facile/blob": "github:FacileStudio/blob#v0.1.0",
-        "@facile/muse": "github:FacileStudio/muse#v0.16.1",
+        "@facile/muse": "github:FacileStudio/muse#v0.17.0",
         "@repo/logger": "workspace:*",
         "@repo/trpc-client": "workspace:*",
         "@repo/types": "workspace:*",
@@ -488,7 +488,7 @@
 
     "@facile/blob": ["@facile/blob@github:FacileStudio/blob#9f2ee73", { "peerDependencies": { "svelte": "^5.29.0" } }, "FacileStudio-blob-9f2ee73", "sha512-wtJxToZT5+kDB9sAH2cgtKkm9IK1uPJKuLPdRHFCefYvENyrtjiCJ6L9wcEMX7KHV0C4IPjZZypgXLADgdB+EQ=="],
 
-    "@facile/muse": ["@facile/muse@github:FacileStudio/muse#b25a33c", { "dependencies": { "gsap": "^3.13.0", "tailwind-merge": "^3.5.0" }, "peerDependencies": { "svelte": "^5.0.0", "tailwindcss": "^4.0.0" } }, "FacileStudio-muse-b25a33c", "sha512-p7bnxSj4q2Sd3RtPbJw6njpV1xZHc4RbixVd6ScEaA4iv7eNF/o7VP53xU2lzUDWUiGCfjEBQrW0U15LFwZYkw=="],
+    "@facile/muse": ["@facile/muse@github:FacileStudio/muse#d037214", { "dependencies": { "gsap": "^3.13.0", "tailwind-merge": "^3.5.0" }, "peerDependencies": { "svelte": "^5.0.0", "tailwindcss": "^4.0.0" } }, "FacileStudio-muse-d037214", "sha512-Y7czFWWcNVTFuDqIFqekQbrL0iz6RhyMHQNB447n01Ir1J7BsMJIuKN6uecbQBBzHWg9+kSbGU79RNBzU/x9fA=="],
 
     "@faker-js/faker": ["@faker-js/faker@10.2.0", "", {}, "sha512-rTXwAsIxpCqzUnZvrxVh3L0QA0NzToqWBLAhV+zDV3MIIwiQhAZHMdPCIaj5n/yADu/tyk12wIPgL6YHGXJP+g=="],
 

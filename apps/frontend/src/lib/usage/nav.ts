@@ -33,17 +33,19 @@ export interface NavSection {
   tabs: readonly NavTab[];
   /** False keeps the slot reserved without showing it. */
   available: boolean;
+  /** Shown for every usage: Ideas, which has no tabs. */
+  always?: boolean;
 }
 
 const PROSPECTING: readonly Usage[] = ['clients', 'missions', 'partners'];
 
 /**
- * The sidebar, top to bottom. The first slot is held for Ideas, which
- * another track builds; it stays hidden until it is available. A section
- * shows when one of its tabs belongs to an active usage.
+ * The sidebar, top to bottom. Ideas comes first in every space, as in every
+ * suite app. Any other section shows when one of its tabs belongs to an
+ * active usage.
  */
 export const NAV: readonly NavSection[] = [
-  { id: 'ideas', label: 'nav.ideas', icon: 'solar:lightbulb-linear', href: '/app/ideas', tabs: [], available: false },
+  { id: 'ideas', label: 'nav.ideas', icon: 'solar:lightbulb-linear', href: '/app/ideas', tabs: [], available: true, always: true },
   {
     id: 'prospects',
     label: 'nav.prospects',
@@ -99,14 +101,15 @@ export function navFor(usages: readonly Usage[]): NavSection[] {
   const all = usages.length === 0;
   return NAV.flatMap((section) => {
     if (!section.available) return [];
+    if (section.always) return [section];
     const tabs = section.tabs.filter((tab) => all || tab.usages.some((usage) => active.includes(usage)));
     return tabs.length > 0 ? [{ ...section, href: tabs[0]!.href, tabs }] : [];
   });
 }
 
-/** Where the app opens: the first visible tab, or the settings when no usage opens anything. */
+/** Where the app opens: the first visible tab, or the settings when no usage opens anything. Ideas is never home. */
 export function homeFor(usages: readonly Usage[]): string {
-  return navFor(usages)[0]?.href ?? '/app/settings/prospecting';
+  return navFor(usages).find((section) => !section.always)?.href ?? '/app/settings/prospecting';
 }
 
 /** True when the path belongs to the section: its own prefix or any of its tabs. */
