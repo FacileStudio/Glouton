@@ -11,6 +11,8 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-11-10
+
 ### Added
 
 - Find a job: the job usage is live, for any trade. It gets its own sidebar entry, after Ideas, with three tabs: Offers, Applications and CV. The start wizard asks for the job title and skills, the place (or remote) and the contracts, and Settings > Prospecting edits the same job block (`targets.job`: role, skills, location, remote, contracts, minimum salary).
