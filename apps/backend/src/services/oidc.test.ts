@@ -49,6 +49,7 @@ const idp = Bun.serve({
 });
 
 const oidc = await import('./oidc');
+const bearer = await import('./bearer');
 const { AuthManager } = await import('@repo/auth');
 
 if (!databaseUrl) console.warn('[oidc.test] TEST_DATABASE_URL unset: skipping the identity DB tests');
@@ -159,5 +160,25 @@ describe.skipIf(!databaseUrl)('identity resolution against the database', () => 
     await expect(
       oidc.loginWithOidc(auth, claims({ email: 'squat@example.com', subject: 'sub-squat' }))
     ).rejects.toMatchObject({ code: 'unverified_account' });
+  });
+
+  test('a first MCP call provisions the account from the access token, a second resolves the same row', async () => {
+    const token = { sub: 'sub-mcp', email: 'mcp-first@example.com', email_verified: true, name: 'Em Cee' };
+    const id = await bearer.bearerUser(auth, bearer.bearerClaims(token));
+    expect(id).toBeString();
+    const user = await db.user.findUnique({ where: { id: id! }, select: { firstName: true, emailVerified: true } });
+    expect(user).toEqual({ firstName: 'Em', emailVerified: true });
+    expect(await bearer.bearerUser(auth, bearer.bearerClaims({ sub: 'sub-mcp' }))).toBe(id);
+  });
+
+  test('an MCP token without a verified email, or for a banned account, is refused', async () => {
+    const unverified = { sub: 'sub-mcp-ghost', email: 'mcp-ghost@example.com', email_verified: false };
+    expect(await bearer.bearerUser(auth, bearer.bearerClaims(unverified))).toBeUndefined();
+    expect(await bearer.bearerUser(auth, bearer.bearerClaims({ sub: 'sub-mcp-none' }))).toBeUndefined();
+    expect(await db.user.findFirst({ where: { email: 'mcp-ghost@example.com' } })).toBeNull();
+    const banned = { sub: 'sub-mcp-banned', email: 'mcp-banned@example.com', email_verified: true };
+    const id = await bearer.bearerUser(auth, bearer.bearerClaims(banned));
+    await db.user.update({ where: { id: id! }, data: { isBanned: true } });
+    expect(await bearer.bearerUser(auth, bearer.bearerClaims(banned))).toBeUndefined();
   });
 });

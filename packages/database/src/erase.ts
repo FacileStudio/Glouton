@@ -36,14 +36,16 @@ async function eraseInTransaction(tx: Prisma.TransactionClient, userId: string):
   await tx.person.updateMany({ where: teamOwned, data: handOver });
   await tx.activity.updateMany({ where: teamOwned, data: handOver });
   await tx.suggestion.updateMany({ where: teamOwned, data: handOver });
+  await tx.mcpAction.deleteMany({ where: { userId } });
 
   await tx.user.delete({ where: { id: userId } });
   return true;
 }
 
 /**
- * Erases one person: their personal rows, sessions, identities and account go
- * (the foreign keys cascade). Rows they authored inside a team are handed to
+ * Erases one person: their personal rows, sessions, identities, account and
+ * pending MCP actions go (the foreign keys cascade; mcp_actions is deleted by
+ * hand, it has no foreign key). Rows they authored inside a team are handed to
  * the "deleted user" row, because the team owns them. Returns false when the
  * user does not exist, so a second call is a no-op.
  */

@@ -26,6 +26,9 @@ import { eraseIdentity } from '@repo/database/erase';
 import { createRegistreSyncRoutes } from './handlers/registre';
 import { applySnapshot, buildImport, startDirectorySync } from './services/registre-spaces';
 import { registreIssuer, registreKeys } from './services/oidc';
+import { bearerClaims, bearerUser } from './services/bearer';
+import { registreVerifier } from '@facile/tronc/mcp';
+import { gloutonMcp } from './handlers/mcp';
 import { delegatedVerifierFromEnv } from './services/delegated';
 import env from './env';
 import { readVersion } from './services/version';
@@ -209,6 +212,35 @@ void deletions?.run();
 
 const verifyDelegated = delegatedVerifierFromEnv(env, registreKeys);
 const ardoiseSync = ardoise.ardoiseDeps(prisma, env, jobs, logger);
+const notify = (scope: Parameters<typeof events.emitToScope>[0], type: string, data: Record<string, unknown>) =>
+  events.emitToScope(scope, type, data);
+
+const mcp =
+  issuer && env.MCP_CONFIRM_KEY
+    ? gloutonMcp({
+        prisma,
+        hooks: ardoiseSync.hooks,
+        notify,
+        inboxUrl: `${env.DOMAIN}/app/messages/inbox`,
+        resource: `${env.DOMAIN}/mcp`,
+        issuer,
+        verifier: await registreVerifier({
+          issuer,
+          resource: `${env.DOMAIN}/mcp`,
+          scopePrefix: 'glouton',
+          audience: env.OIDC_CLIENT_ID,
+          keys: async (header, token) => (await registreKeys())(header, token),
+          resolveUser: (claims) => bearerUser(config.authManager, bearerClaims(claims.payload)),
+          onRefuse: (reason) => logger.debug({ reason }, '[MCP] Token refused'),
+        }),
+        version: readVersion(),
+        confirmKey: env.MCP_CONFIRM_KEY,
+        confirmUrl: `${env.DOMAIN}/app/pending`,
+        audit: logger,
+        onError: (err, tool) => logger.error({ err, tool }, '[MCP] Tool failed'),
+      })
+    : null;
+if (!mcp) logger.warn('[MCP] Disabled: set OIDC_ISSUER and MCP_CONFIRM_KEY to serve /mcp');
 
 const app = new Hono();
 
@@ -298,7 +330,7 @@ app.route('/api/agent', createAgentRoutes({
   hooks: ardoiseSync.hooks,
   verifySession: (token) => config.authManager.verifyToken(token),
   verifyDelegated,
-  notify: (scope, type, data) => events.emitToScope(scope, type, data),
+  notify,
 }));
 
 app.all('/trpc/*', trpcHandler({
@@ -311,7 +343,10 @@ app.all('/trpc/*', trpcHandler({
   courrier: config.courrier,
   bulle: config.bulle,
   web: config.web,
+  mcp: mcp?.pending,
 }));
+
+mcp?.server.mount(app);
 
 app.get('/', (c) => c.json({ message: "Welcome to the Glouton's API !" }));
 

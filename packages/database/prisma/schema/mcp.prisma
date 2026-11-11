@@ -1,0 +1,19 @@
+/// One sensitive MCP action waiting for its person: the same mcp_actions
+/// table as tronc's PENDING_SCHEMA, read and written by @facile/tronc's
+/// SqlPending. An account erasure deletes the person's rows.
+model McpAction {
+  id         String    @id @db.Text
+  userId     String    @map("user_id") @db.Text
+  kind       String    @db.Text
+  target     String    @db.Text
+  digest     String    @db.Text
+  summary    String    @default("") @db.Text
+  clientId   String    @default("") @map("client_id") @db.Text
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz(6)
+  resolvedAt DateTime? @map("resolved_at") @db.Timestamptz(6)
+  outcome    String    @default("") @db.Text
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("mcp_actions")
+}

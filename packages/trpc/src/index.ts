@@ -19,6 +19,7 @@ import { competitorDiscoveryRouter } from './modules/competitor-discovery/router
 import { competitorAiRouter } from './modules/competitor-ai/router';
 import { ideasRouter } from './modules/ideas/router';
 import { jobRouter } from './modules/job/router';
+import { mcpRouter } from './modules/mcp/router';
 import { createOpenApiDocument } from './openapi';
 import { bindProcedures } from './modules/forfait/procedures';
 import { isIdKey } from './modules/forfait/gate';
@@ -44,6 +45,7 @@ export const appRouter = router({
   competitorAi: competitorAiRouter,
   ideas: ideasRouter,
   job: jobRouter,
+  mcp: mcpRouter,
 });
 
 bindProcedures(appRouter._def.procedures, isIdKey);
@@ -81,3 +83,4 @@ export * as prospectSuggest from './modules/prospect/suggest';
 export * as taxonomy from './taxonomy';
 export * as mailTransport from './modules/email/transport';
 export { BulleClient, BulleUnavailableError, bulleFromEnv } from './modules/assistant/bulle';
+export type { McpPending, PendingAction } from './modules/mcp/router';

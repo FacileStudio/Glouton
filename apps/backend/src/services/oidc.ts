@@ -291,14 +291,24 @@ async function recordIdentity(auth: AuthManager, userId: string, claims: OidcCla
 }
 
 /**
- * Signs a person in from verified Registre claims. Two first sign-ins for one
- * new email can race on the unique email: the loser retries once and lands on
- * the row the winner created.
+ * Signs a person in from verified Registre claims and returns a Glouton
+ * session for them.
  */
 export async function loginWithOidc(
   auth: AuthManager,
   claims: OidcClaims
 ): Promise<{ token: string; user: SessionUser }> {
+  const user = await persistOidcUser(auth, claims);
+  return { token: await auth.createToken(user), user };
+}
+
+/**
+ * Writes the account of a person from verified Registre claims, creating it
+ * on their first sign-in. Two first sign-ins for one new email can race on
+ * the unique email: the loser retries once and lands on the row the winner
+ * created.
+ */
+export async function persistOidcUser(auth: AuthManager, claims: OidcClaims): Promise<SessionUser> {
   try {
     return await signIn(auth, claims);
   } catch (error) {
@@ -307,10 +317,7 @@ export async function loginWithOidc(
   }
 }
 
-async function signIn(
-  auth: AuthManager,
-  claims: OidcClaims
-): Promise<{ token: string; user: SessionUser }> {
+async function signIn(auth: AuthManager, claims: OidcClaims): Promise<SessionUser> {
   const { firstName, lastName } = splitName(claims);
 
   const existing = await findOidcUser(claims);
@@ -371,7 +378,7 @@ async function signIn(
 
   await recordIdentity(auth, user.id, claims);
 
-  const sessionUser: SessionUser = {
+  return {
     id: user.id,
     email: user.email,
     firstName: user.firstName,
@@ -382,8 +389,6 @@ async function signIn(
     coverImageUrl: null,
     locale: user.locale,
   };
-
-  return { token: await auth.createToken(sessionUser), user: sessionUser };
 }
 
 export const oidcSuccessUrl = successUrl;

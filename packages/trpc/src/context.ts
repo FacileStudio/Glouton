@@ -10,6 +10,7 @@ import type { BulleClient } from './modules/assistant/bulle';
 import type { WebSearch } from '@repo/websearch';
 import { dbForfait, type ForfaitReader } from './modules/forfait/store';
 import type { PlanMode } from './modules/forfait/gate';
+import type { McpPending } from './modules/mcp/router';
 
 export interface CreateContextOptions extends FetchCreateContextFnOptions {
   prisma: PrismaClient;
@@ -22,6 +23,7 @@ export interface CreateContextOptions extends FetchCreateContextFnOptions {
   bulle?: BulleClient | null;
   web?: Pick<WebSearch, 'fetch'> | null;
   forfait?: ForfaitReader;
+  mcp?: McpPending | null;
   events?: {
     emit: (userId: string, type: string, data?: any) => void;
     broadcast: (type: string, data?: any) => void;
@@ -66,6 +68,7 @@ export const createContext = async (options: CreateContextOptions) => {
     courrier: options.courrier ?? null,
     bulle: options.bulle ?? null,
     web: options.web ?? null,
+    mcp: options.mcp ?? null,
     forfait: options.forfait ?? dbForfait(options.prisma, options.env.OIDC_ISSUER),
     planMode: 'paid' as PlanMode,
   };

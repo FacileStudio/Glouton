@@ -341,11 +341,20 @@ describe.skipIf(!databaseUrl)('erasing a person against the database', () => {
     await db.lead.create({
       data: { userId: ids.stays!, businessName: 'Other lead', email: 'lead-other@erase.test', domain: 'other.test' } as never,
     });
+    const expiresAt = new Date(Date.now() + 60_000);
+    await db.mcpAction.deleteMany({ where: { id: { in: ['erase-gone', 'erase-stays'] } } });
+    await db.mcpAction.createMany({
+      data: [
+        { id: 'erase-gone', userId: ids.gone!, kind: 'delete_company', target: 'c1', digest: 'd', expiresAt },
+        { id: 'erase-stays', userId: ids.stays!, kind: 'delete_company', target: 'c2', digest: 'd', expiresAt },
+      ],
+    });
   });
 
   afterAll(async () => {
     await db.team.deleteMany({ where: { name: 'erase-test' } });
     await db.user.deleteMany({ where: { email: { endsWith: '@erase.test' } } });
+    await db.mcpAction.deleteMany({ where: { id: { in: ['erase-gone', 'erase-stays'] } } });
   });
 
   test('a deleted subject loses their account and personal data, the team keeps its rows, others are untouched', async () => {
@@ -356,6 +365,8 @@ describe.skipIf(!databaseUrl)('erasing a person against the database', () => {
     expect(await db.personEntitlement.count({ where: { sub: 'sub-gone' } })).toBe(0);
     expect(await db.lead.count({ where: { businessName: 'Personal lead' } })).toBe(0);
     expect(await db.teamMember.count({ where: { teamId: ids.team!, userId: ids.gone! } })).toBe(0);
+    expect(await db.mcpAction.count({ where: { userId: ids.gone! } })).toBe(0);
+    expect(await db.mcpAction.count({ where: { id: 'erase-stays' } })).toBe(1);
 
     const teamLead = await db.lead.findFirst({ where: { businessName: 'Team lead' } });
     expect(teamLead?.userId).toBe(erase.DELETED_USER_ID);
