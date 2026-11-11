@@ -27,13 +27,6 @@ import { pending } from './rows/pending';
 const base = {
   'app.name': ['Glouton', 'Glouton', 'Glouton', 'Glouton'],
   'landing.tagline': ['Find. Qualify. Prospect.', 'Trouver. Qualifier. Prospecter.', 'Encontrar. Calificar. Prospectar.', 'Finden. Bewerten. Akquirieren.'],
-  'landing.title': ['Glouton: Facile prospecting', 'Glouton : Prospection Facile', 'Glouton: prospección Facile', 'Glouton: Facile-Akquise'],
-  'landing.description': [
-    'Glouton gathers lead search, qualification and prospecting for Facile.',
-    'Glouton centralise la recherche, la qualification et la prospection de leads pour Facile.',
-    'Glouton reúne la búsqueda, la calificación y la prospección de leads para Facile.',
-    'Glouton bündelt Suche, Bewertung und Akquise von Leads für Facile.'
-  ],
   'landing.footerTagline': [
     'The clean prospecting space for Facile leads.',
     "L'espace de prospection propre pour les pistes Facile.",

@@ -14,11 +14,6 @@
   const metrics = ['m1', 'm2', 'm3'] as const;
 </script>
 
-<svelte:head>
-  <title>{t('landing.title')}</title>
-  <meta name="description" content={t('landing.description')} />
-</svelte:head>
-
 <div class="min-h-dvh bg-fc-page text-fc-fg">
   <LandingHeader
     appName={t('app.name')}
