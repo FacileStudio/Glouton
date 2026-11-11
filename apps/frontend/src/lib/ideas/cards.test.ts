@@ -58,6 +58,11 @@ describe('idea cards', () => {
     expect(toolLabel('opus_create_task', t)).toBe('Create task');
   });
 
+  test("Glouton's MCP tool names keep their translated labels", () => {
+    expect(toolLabel('glouton_draft_save', t)).toBe('ideas.tool.glouton_save_draft');
+    expect(toolLabel('glouton_company_delete', t)).toBe('pending.kind.delete_company');
+  });
+
   test('a 402 carries the upgrade link; other refusals map to a message', () => {
     const parse = (value: unknown) => value as { upgrade_url?: string };
     expect(planRefusal({ data: { code: 'FORBIDDEN', plan_limit: { upgrade_url: 'https://sso.test/up' } } }, parse)).toEqual({
