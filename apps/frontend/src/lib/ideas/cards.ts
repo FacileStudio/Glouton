@@ -23,6 +23,15 @@ const TOOL_KEYS: Record<string, Key> = {
   glouton_update_company: 'ideas.tool.glouton_update_company',
   glouton_create_person: 'ideas.tool.glouton_create_person',
   glouton_update_person: 'ideas.tool.glouton_update_person',
+  glouton_draft_save: 'ideas.tool.glouton_save_draft',
+  glouton_draft_update: 'ideas.tool.glouton_update_draft',
+  glouton_suggestion_create: 'ideas.tool.glouton_suggest',
+  glouton_company_create: 'ideas.tool.glouton_create_company',
+  glouton_company_update: 'ideas.tool.glouton_update_company',
+  glouton_person_create: 'ideas.tool.glouton_create_person',
+  glouton_person_update: 'ideas.tool.glouton_update_person',
+  glouton_company_delete: 'pending.kind.delete_company',
+  glouton_person_delete: 'pending.kind.delete_person',
 };
 
 /** A readable name for a Bulle tool: Glouton's own are translated, others lose their prefix and underscores. */
