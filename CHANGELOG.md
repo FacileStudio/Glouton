@@ -11,6 +11,13 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+## [0.19.1] - 2026-11-11
+
+### Fixed
+
+- Dependencies: hono 4.13, vite 8.3.8, svelte 5.57.3, @sveltejs/kit 2.70.4, axios 1.21.1 and @faker-js/faker 10.6; nodemailer moves from 8 to 10.5 in `packages/smtp`, since most of its advisories have no 8.x fix. Prisma resolves to 7.10.1.
+- Root overrides use carets instead of open `>=` floors, so a fresh resolve cannot jump a major (cookie, undici, devalue, vite and the rest), and shell-quote is pinned to 1.12.0. Transitive advisories (fast-uri, joi, qs, ip-address, nanoid, js-yaml, mysql2 and others) are cleared in range.
+
 ## [0.19.0] - 2026-11-11
 
 ### Added
