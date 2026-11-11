@@ -11,7 +11,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "nodemailer": "^8.0.7"
+    "nodemailer": "^10.5.0"
   },
   "devDependencies": {
     "@repo/tsconfig": "workspace:*",

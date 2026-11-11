@@ -17,6 +17,6 @@
   },
   "dependencies": {
     "@repo/logger": "workspace:*",
-    "axios": "^1.16.1"
+    "axios": "^1.21.1"
   }
 }
