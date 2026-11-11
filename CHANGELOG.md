@@ -11,6 +11,12 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+## [0.19.2] - 2026-11-11
+
+### Fixed
+
+- fix(brand): favicons, touch and manifest icons, the link preview image and `site.webmanifest` come from muse v0.19.2's brand generator, and `app.html` carries its head block: the catalog title "Glouton · Find new clients while you sleep", its description, theme colours and Open Graph and Twitter tags. The landing page no longer sets its own title and description, so the server-rendered page has one of each.
+
 ## [0.19.1] - 2026-11-11
 
 ### Fixed
