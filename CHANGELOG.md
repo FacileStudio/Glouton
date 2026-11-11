@@ -11,6 +11,15 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+### Added
+
+- A remote MCP server at `https://glouton.facile.studio/mcp` on `@facile/tronc` v0.2.0 (spec 2026-07-28, stateless, with the 2025 fallback). It needs a Registre token bound to that resource with `glouton.read` (and `glouton.write` for writes), or a delegated Bulle token for Glouton's client id. The RFC 9728 metadata is at `/.well-known/oauth-protected-resource/mcp` and at the bare path.
+- Fourteen tools, free for every account (no plan needed): `glouton_contacts_search`, `glouton_company_get`, `glouton_person_get`, `glouton_outreach_list`, `glouton_suggestions_list`, `glouton_company_create`, `glouton_company_update`, `glouton_person_create`, `glouton_person_update`, `glouton_draft_save`, `glouton_draft_update`, `glouton_suggestion_create`, `glouton_company_delete` and `glouton_person_delete`. Read tools take `response_format` (concise or detailed) and a cursor. No tool sends mail: drafts and suggestions wait in the agent inbox.
+- The two deletes ask first: through MRTR `input_required` when the client can elicit, otherwise as a pending action with a link to the new confirm page `/app/pending`, where the person confirms or dismisses it. A target that changed after the question is not deleted. The page refuses delegated tokens.
+- A person who never opened Glouton gets their account on their first MCP call, through the sign-in write path (verified email required).
+- Migration `031_mcp_actions.sql` (additive): `mcp_actions`, the kit's pending-actions table. Erasing a person deletes their pending actions.
+- `MCP_CONFIRM_KEY` (32 bytes or more) signs the confirmation questions; without it, or without OIDC, `/mcp` is off.
+
 ### Changed
 
 - Licensed under the GNU Affero General Public License v3.0 only (`AGPL-3.0-only`). See `LICENSE`.

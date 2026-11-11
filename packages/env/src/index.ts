@@ -45,6 +45,7 @@ export const serverEnvSchema = baseSchema
     ARDOISE_WEBHOOK_SECRET: z.preprocess(emptyAsUndefined, z.string().min(16).optional()),
     ARDOISE_DEFAULT_OWNER_EMAIL: z.preprocess(emptyAsUndefined, z.string().email().optional()),
     ARDOISE_WEB_URL: z.preprocess(emptyAsUndefined, z.string().url().default('https://ardoise.facile.studio')),
+    MCP_CONFIRM_KEY: z.preprocess(emptyAsUndefined, z.string().min(32).optional()),
   })
   .superRefine((env, ctx) => {
     if (env.OIDC_ISSUER && (!env.OIDC_CLIENT_ID || !env.OIDC_CLIENT_SECRET)) {

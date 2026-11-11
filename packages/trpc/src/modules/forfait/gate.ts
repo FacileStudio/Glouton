@@ -47,7 +47,8 @@ export const EXEMPT: ReadonlySet<string> = new Set([
  * Procedures about the signed-in person's own account or memberships: they
  * need a session but no plan. `team.leave` and `team.delete` check
  * membership and ownership themselves, so a team without a plan (one not
- * linked to Registre, say) can still be left or removed.
+ * linked to Registre, say) can still be left or removed. The `mcp.*` confirm
+ * page acts only on the person's own pending actions, and MCP is free.
  */
 export const ACCOUNT: ReadonlySet<string> = new Set([
   'user.updateProfile',
@@ -57,6 +58,9 @@ export const ACCOUNT: ReadonlySet<string> = new Set([
   'user.testSmtpConfig',
   'team.leave',
   'team.delete',
+  'mcp.pending',
+  'mcp.confirm',
+  'mcp.dismiss',
 ]);
 
 /**

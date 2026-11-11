@@ -39,6 +39,14 @@ export default defineConfig({
         target: backendUrl,
         changeOrigin: true,
       },
+      '^/mcp(\\?.*)?$': {
+        target: backendUrl,
+        changeOrigin: true,
+      },
+      '/.well-known/oauth-protected-resource': {
+        target: backendUrl,
+        changeOrigin: true,
+      },
     },
     fs: {
       allow: ['..', '../../packages']

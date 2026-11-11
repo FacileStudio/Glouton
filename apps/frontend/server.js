@@ -26,6 +26,8 @@ const isBackendPath = (url = '') =>
   url === '/api/registre/sync' || url.startsWith('/api/registre/sync?') ||
   url === '/api/registre/deletions' || url.startsWith('/api/registre/deletions?') ||
   url.startsWith('/api/agent/') ||
+  url === '/mcp' || url.startsWith('/mcp?') ||
+  url === '/.well-known/oauth-protected-resource' || url.startsWith('/.well-known/oauth-protected-resource/') ||
   url === '/api/integrations/ardoise/webhook' || url.startsWith('/api/integrations/ardoise/webhook?');
 
 function backendPort() {

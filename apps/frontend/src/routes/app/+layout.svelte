@@ -54,7 +54,7 @@
     }),
   );
 
-  const OPEN_BEFORE_START = ['/app/start', '/app/settings', '/app/paywall', '/app/teams'];
+  const OPEN_BEFORE_START = ['/app/start', '/app/settings', '/app/paywall', '/app/teams', '/app/pending'];
 
   $effect(() => {
     if (!profileStore.loaded || !profileStore.value || profileStore.value.onboarded) return;
@@ -106,6 +106,7 @@
     const title = (key: Parameters<typeof t>[0]) => `${t(key)} · ${name}`;
     if (path === '/app/start') return title('start.title');
     if (path === '/app/ideas') return title('title.ideas');
+    if (path === '/app/pending') return title('title.pending');
     if (path.startsWith('/app/hunts/new')) return title('title.newHunt');
     if (path === '/app/searches/schedules') return title('title.schedules');
     if (path.match(/^\/app\/hunts\/.+/)) return title('title.hunt');
