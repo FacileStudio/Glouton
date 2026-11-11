@@ -11,6 +11,8 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+## [0.19.0] - 2026-11-11
+
 ### Added
 
 - A remote MCP server at `https://glouton.facile.studio/mcp` on `@facile/tronc` v0.2.0 (spec 2026-07-28, stateless, with the 2025 fallback). It needs a Registre token bound to that resource with `glouton.read` (and `glouton.write` for writes), or a delegated Bulle token for Glouton's client id. The RFC 9728 metadata is at `/.well-known/oauth-protected-resource/mcp` and at the bare path.
