@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Badge } from '@facile/muse';
+  import { Badge, Tooltip } from '@facile/muse';
   import { useT } from '$lib/i18n';
   import { ratePercent, rateTone, type WinRate } from './labels';
 
@@ -9,9 +9,11 @@
 </script>
 
 {#if percent}
-  <Badge tone={rateTone(rate)} class="shrink-0" title={t('competitors.record', { won: rate.won, lost: rate.lost })}>
-    {t('competitors.winRate')} {percent} · {rate.won}/{rate.total}
-  </Badge>
+  <Tooltip text={t('competitors.record', { won: rate.won, lost: rate.lost })} class="contents">
+    <Badge tone={rateTone(rate)} class="shrink-0">
+      {t('competitors.winRate')} {percent} · {rate.won}/{rate.total}
+    </Badge>
+  </Tooltip>
 {:else}
   <Badge class="shrink-0">{t('competitors.noDeals')}</Badge>
 {/if}

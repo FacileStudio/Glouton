@@ -2,7 +2,7 @@
   import type { HuntFilters } from '$lib/websocket-events';
   import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
-  import { Badge, Button, Icon, IconButton, Spinner, icons } from '@facile/muse';
+  import { Badge, Button, Icon, IconButton, Spinner, icons, Tooltip } from '@facile/muse';
   import { useFormat, useT } from '$lib/i18n';
 
   const t = useT();
@@ -93,9 +93,11 @@
 >
   <div class="flex items-start gap-3">
     <div class="flex min-w-0 flex-1 flex-col gap-1.5">
-      <p class="truncate text-fc-sm font-semibold text-fc-fg" title={huntTitle}>
-        {huntTitle}
-      </p>
+      <Tooltip text={huntTitle} describe={false} class="contents">
+        <p class="truncate text-fc-sm font-semibold text-fc-fg">
+          {huntTitle}
+        </p>
+      </Tooltip>
       <div class="flex flex-wrap items-center gap-2 text-fc-xs text-fc-fg-muted">
         <Badge tone={statusTone}>{statusLabel}</Badge>
         <span>{format.ago(referenceDate)}</span>
@@ -127,21 +129,22 @@
       {/if}
 
       {#if session.status === 'FAILED' && onRelaunch}
-        <Button
-          variant="secondary"
-          size="sm"
-          icon={relaunching ? undefined : 'solar:restart-linear'}
-          onclick={() => onRelaunch!(session.id)}
-          disabled={relaunching}
-          title={t('hunts.relaunch')}
-        >
-          {#if relaunching}
-            <Spinner size="sm" label={t('hunts.relaunching')} />
-            {t('hunts.relaunching')}
-          {:else}
-            {t('hunts.relaunchShort')}
-          {/if}
-        </Button>
+        <Tooltip text={t('hunts.relaunch')} class="contents">
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={relaunching ? undefined : 'solar:restart-linear'}
+            onclick={() => onRelaunch!(session.id)}
+            disabled={relaunching}
+          >
+            {#if relaunching}
+              <Spinner size="sm" label={t('hunts.relaunching')} />
+              {t('hunts.relaunching')}
+            {:else}
+              {t('hunts.relaunchShort')}
+            {/if}
+          </Button>
+        </Tooltip>
       {/if}
 
       {#if (session.status === 'COMPLETED' || session.status === 'FAILED') && onDelete}
@@ -150,7 +153,6 @@
           onclick={() => onDelete!(session.id)}
           disabled={deleting}
           aria-label={t('hunts.delete')}
-          title={t('hunts.delete')}
         >
           {#if deleting}
             <Spinner size="sm" label={t('hunts.deleting')} />

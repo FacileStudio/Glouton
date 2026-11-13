@@ -24,6 +24,7 @@
     Textarea,
     icons,
     toast,
+    Tooltip,
   } from '@facile/muse';
   import { useT } from '$lib/i18n';
 
@@ -366,15 +367,17 @@
                   class="pr-12"
                 />
                 {#if smtpForm.smtpPass}
-                  <button
-                    type="button"
-                    aria-label={t('teams.settings.togglePassword')}
-                    aria-pressed={showSmtpPass}
-                    onclick={() => (showSmtpPass = !showSmtpPass)}
-                    class={revealButtonClass}
-                  >
-                    <Icon icon={showSmtpPass ? icons.eye : icons.eyeClosed} size={16} />
-                  </button>
+                  <Tooltip text={t('teams.settings.togglePassword')} describe={false} class="contents">
+                    <button
+                      type="button"
+                      aria-label={t('teams.settings.togglePassword')}
+                      aria-pressed={showSmtpPass}
+                      onclick={() => (showSmtpPass = !showSmtpPass)}
+                      class={revealButtonClass}
+                    >
+                      <Icon icon={showSmtpPass ? icons.eye : icons.eyeClosed} size={16} />
+                    </button>
+                  </Tooltip>
                 {/if}
               </div>
             </Field>

@@ -29,6 +29,7 @@
     icons,
     settingsRoute,
     toast,
+    Tooltip,
   } from '@facile/muse';
   import { logger } from '@repo/logger';
   import { onMount } from 'svelte';
@@ -251,15 +252,17 @@
                   class="pr-12"
                 />
                 {#if form.smtpPass}
-                  <button
-                    type="button"
-                    onclick={() => (showSmtpPass = !showSmtpPass)}
-                    aria-label={showSmtpPass ? t('settings.smtp.hidePassword') : t('settings.smtp.showPassword')}
-                    aria-pressed={showSmtpPass}
-                    class="absolute top-0 right-0 inline-flex size-11 items-center justify-center rounded-fc-md text-fc-fg-muted transition-colors hover:text-fc-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fc-ring"
-                  >
-                    <Icon icon={showSmtpPass ? icons.eye : icons.eyeClosed} size={16} />
-                  </button>
+                  <Tooltip text={showSmtpPass ? t('settings.smtp.hidePassword') : t('settings.smtp.showPassword')} describe={false} class="contents">
+                    <button
+                      type="button"
+                      onclick={() => (showSmtpPass = !showSmtpPass)}
+                      aria-label={showSmtpPass ? t('settings.smtp.hidePassword') : t('settings.smtp.showPassword')}
+                      aria-pressed={showSmtpPass}
+                      class="absolute top-0 right-0 inline-flex size-11 items-center justify-center rounded-fc-md text-fc-fg-muted transition-colors hover:text-fc-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fc-ring"
+                    >
+                      <Icon icon={showSmtpPass ? icons.eye : icons.eyeClosed} size={16} />
+                    </button>
+                  </Tooltip>
                 {/if}
               </div>
             </Field>

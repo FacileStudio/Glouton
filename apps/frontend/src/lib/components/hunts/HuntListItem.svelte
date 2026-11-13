@@ -2,7 +2,7 @@
   import type { HuntFilters } from '$lib/websocket-events';
   import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
-  import { Badge, Button, Icon, Spinner, icons } from '@facile/muse';
+  import { Badge, Button, Icon, Spinner, icons, Tooltip } from '@facile/muse';
   import { useFormat, useT } from '$lib/i18n';
 
   const t = useT();
@@ -148,20 +148,21 @@
     <div class="flex-1"></div>
 
     {#if onDelete}
-      <Button
-        variant="ghost-danger"
-        size="sm"
-        icon={deleting ? undefined : 'solar:trash-bin-trash-linear'}
-        onclick={() => onDelete!(session.id)}
-        disabled={deleting}
-        title={t('hunts.delete')}
-      >
-        {#if deleting}
-          <Spinner size="sm" label={t('hunts.deleting')} />
-        {:else}
-          {t('hunts.deleteShort')}
-        {/if}
-      </Button>
+      <Tooltip text={t('hunts.delete')} class="contents">
+        <Button
+          variant="ghost-danger"
+          size="sm"
+          icon={deleting ? undefined : 'solar:trash-bin-trash-linear'}
+          onclick={() => onDelete!(session.id)}
+          disabled={deleting}
+        >
+          {#if deleting}
+            <Spinner size="sm" label={t('hunts.deleting')} />
+          {:else}
+            {t('hunts.deleteShort')}
+          {/if}
+        </Button>
+      </Tooltip>
     {/if}
   </div>
 </div>

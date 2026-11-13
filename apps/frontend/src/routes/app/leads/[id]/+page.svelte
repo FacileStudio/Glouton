@@ -4,7 +4,7 @@
   import type { PageProps } from './$types';
   import { fade, fly } from 'svelte/transition';
   import { trpc } from '$lib/trpc';
-  import { Alert, Badge, Button, Card, EmptyState, PageHeader, Spinner, toast } from '@facile/muse';
+  import { Alert, Badge, Button, Card, EmptyState, PageHeader, Spinner, toast, Tooltip } from '@facile/muse';
   import { getFaviconUrl, handleFaviconError } from '$lib/utils/favicon';
   import LeadLocationMap from '$lib/components/leads/LeadLocationMap.svelte';
   import Composer, { type ComposerMessage } from '$lib/components/mail/Composer.svelte';
@@ -379,15 +379,19 @@
             <a href="mailto:{lead.email}" class={rowLinkClass}>
               {@render contactRow('solar:letter-linear', t('leads.detail.primaryEmail'), lead.email)}
               {#if lead.emailVerified === true}
-                <Badge tone="success" class="shrink-0" title={t('leads.detail.verifiedOn', { date: lead.emailVerifiedAt ? formatDate(lead.emailVerifiedAt) : '' })}>
-                  <iconify-icon icon="solar:check-circle-linear" width="12" height="12" class="block"></iconify-icon>
-                  {t('leads.detail.verified')}
-                </Badge>
+                <Tooltip text={t('leads.detail.verifiedOn', { date: lead.emailVerifiedAt ? formatDate(lead.emailVerifiedAt) : '' })} class="contents">
+                  <Badge tone="success" class="shrink-0">
+                    <iconify-icon icon="solar:check-circle-linear" width="12" height="12" class="block"></iconify-icon>
+                    {t('leads.detail.verified')}
+                  </Badge>
+                </Tooltip>
               {:else if lead.emailVerified === false}
-                <Badge tone="danger" class="shrink-0" title={t('leads.detail.invalidTitle', { method: lead.emailVerificationMethod ?? '' })}>
-                  <iconify-icon icon="solar:close-circle-linear" width="12" height="12" class="block"></iconify-icon>
-                  {t('leads.detail.invalid')}
-                </Badge>
+                <Tooltip text={t('leads.detail.invalidTitle', { method: lead.emailVerificationMethod ?? '' })} class="contents">
+                  <Badge tone="danger" class="shrink-0">
+                    <iconify-icon icon="solar:close-circle-linear" width="12" height="12" class="block"></iconify-icon>
+                    {t('leads.detail.invalid')}
+                  </Badge>
+                </Tooltip>
               {:else}
                 <Badge class="shrink-0">
                   <iconify-icon icon="solar:question-circle-linear" width="12" height="12" class="block"></iconify-icon>
