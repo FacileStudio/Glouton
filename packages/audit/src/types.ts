@@ -39,7 +39,7 @@ export const SEODataSchema = z.object({
   canonical: z.string().optional(),
   h1Tags: z.array(z.string()).optional(),
   robotsMeta: z.string().optional(),
-  structuredData: z.array(z.record(z.unknown())).optional(),
+  structuredData: z.array(z.record(z.string(), z.unknown())).optional(),
 });
 
 export const CompanyInfoSchema = z.object({

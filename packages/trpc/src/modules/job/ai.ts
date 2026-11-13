@@ -47,7 +47,7 @@ export const DRAFT_RULES: Record<JobDraftKind, string> = {
   ].join('\n'),
 };
 
-const SCHEMAS: Record<JobDraftKind, z.ZodType<{ text: string }, z.ZodTypeDef, unknown>> = {
+const SCHEMAS: Record<JobDraftKind, z.ZodType<{ text: string }, unknown>> = {
   CV: z.object({ cv: z.string().trim().min(1).max(20_000) }).strict().transform((value) => ({ text: value.cv })),
   LETTER: z.object({ letter: z.string().trim().min(1).max(8000) }).strict().transform((value) => ({ text: value.letter })),
 };

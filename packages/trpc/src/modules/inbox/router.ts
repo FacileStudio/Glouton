@@ -34,7 +34,7 @@ export const suggestionCreateSchema = z.object({
   companyId: z.string().nullish(),
   personId: z.string().nullish(),
   teamId: z.string().uuid().nullish(),
-  payload: z.record(z.unknown()).optional(),
+  payload: z.record(z.string(), z.unknown()).optional(),
 });
 
 /** Spells the fields out so the input type holds under the frontend's looser compiler settings. */

@@ -45,6 +45,7 @@ export const emailRouter = router({
       z.object({
         templateId: z.string(),
         variables: z.record(
+          z.string(),
           z.string()
             .max(1000)
             .refine((val) => !val.includes('\r') && !val.includes('\n'), 'Variable cannot contain line breaks')
@@ -66,6 +67,7 @@ export const emailRouter = router({
         leadId: z.string(),
         templateId: z.string(),
         variables: z.record(
+          z.string(),
           z.string()
             .max(1000)
             .refine((val) => !val.includes('\r') && !val.includes('\n'), 'Variable cannot contain line breaks')
