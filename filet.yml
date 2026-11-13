@@ -1,0 +1,5 @@
+preset: facile
+kind: app
+
+architecture:
+  requiredDirs: [apps/backend, apps/frontend]
