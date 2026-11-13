@@ -10,9 +10,11 @@ services:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U glouton -d glouton"]
-      interval: 10s
+      interval: 30s
       timeout: 5s
       retries: 5
+      start_period: 30s
+      start_interval: 1s
     restart: unless-stopped
 
   glouton-redis:
@@ -34,9 +36,11 @@ services:
       - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
+      interval: 30s
       timeout: 5s
       retries: 5
+      start_period: 30s
+      start_interval: 1s
     restart: unless-stopped
 
   glouton-backend:
@@ -88,9 +92,11 @@ services:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "bun -e \"fetch('http://localhost:3001/health/ready').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
-      interval: 15s
+      interval: 30s
       timeout: 5s
-      retries: 10
+      retries: 3
+      start_period: 60s
+      start_interval: 1s
     restart: unless-stopped
 
   glouton-frontend:
@@ -111,9 +117,11 @@ services:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "bun -e \"fetch('http://localhost:3000/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
-      interval: 15s
+      interval: 30s
       timeout: 5s
-      retries: 10
+      retries: 3
+      start_period: 60s
+      start_interval: 1s
     restart: unless-stopped
 
 volumes:
