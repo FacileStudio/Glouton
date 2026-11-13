@@ -1,18 +1,12 @@
-import { LOCALE_COOKIE, type Locale, type Theme } from '@facile/muse';
+import { LOCALE_COOKIE, type Locale } from '@facile/muse';
+import { createTheme } from '@facile/client/theme';
 
-export const THEME_KEY = 'glouton.theme';
+/** The theme choice, persisted under the key the `app.html` pre-paint script reads. */
+export const theme = createTheme('glouton.theme');
 
 export function persistLocale(locale: Locale): void {
   try {
     document.cookie = `${LOCALE_COOKIE}=${locale}; path=/; max-age=31536000; samesite=lax`;
-  } catch {
-    return;
-  }
-}
-
-export function persistTheme(theme: Theme): void {
-  try {
-    localStorage.setItem(THEME_KEY, theme);
   } catch {
     return;
   }

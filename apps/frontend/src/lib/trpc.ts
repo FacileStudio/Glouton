@@ -11,7 +11,7 @@ export const trpc = createUniversalTrpcClient({
     const state = get(authStore);
     return state.session?.token || null;
   },
-  onUnauthorized: () => authStore.logout(),
+  onUnauthorized: () => void authStore.clear(),
   onPaymentRequired: () => {
     const paywall = resolve('/app/paywall');
     if (window.location.pathname !== paywall) void goto(paywall);

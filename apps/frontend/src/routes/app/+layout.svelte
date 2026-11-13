@@ -12,12 +12,10 @@
     icons,
     getI18n,
     ideasNavItem,
-    readTheme,
-    type Theme,
     type UserMenuOptions,
   } from '@facile/muse';
   import { QUIET } from '@repo/trpc-client';
-  import { SPACES_URL, persistLocale, persistTheme } from '$lib/preferences';
+  import { SPACES_URL, persistLocale, theme } from '$lib/preferences';
   import authStore from '$lib/auth-store';
   import { teamContextStore } from '$lib/stores/team-context.svelte';
   import { ws } from '$lib/websocket';
@@ -81,13 +79,7 @@
     teamContextStore.context.type === 'team' ? teamContextStore.context.teamId : null,
   );
 
-  let theme = $state<Theme>(browser ? readTheme() : 'system');
   let plan = $state<{ allowed: boolean; plans: string[] } | null>(null);
-
-  function changeTheme(next: Theme) {
-    theme = next;
-    persistTheme(next);
-  }
 
   const userMenu = $derived<UserMenuOptions>({
     items: [{ label: t('nav.spaces'), icon: icons.space, href: '/app/teams' }],
@@ -97,8 +89,8 @@
     onSignOut: () => authStore.logout(),
     locale: i18n.locale,
     onLocaleChange: persistLocale,
-    theme,
-    onThemeChange: changeTheme,
+    theme: theme.mode,
+    onThemeChange: (next) => theme.set(next),
   });
 
   function getPageTitle(path: string): string {

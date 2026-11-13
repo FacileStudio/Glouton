@@ -16,7 +16,8 @@
   },
   "dependencies": {
     "@facile/blob": "github:FacileStudio/blob#v0.1.0",
-    "@facile/muse": "github:FacileStudio/muse#v0.17.1",
+    "@facile/client": "github:FacileStudio/facile-client#v0.2.0",
+    "@facile/muse": "github:FacileStudio/muse#v0.19.2",
     "@repo/logger": "workspace:*",
     "@repo/trpc-client": "workspace:*",
     "@repo/types": "workspace:*",

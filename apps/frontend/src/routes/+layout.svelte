@@ -6,7 +6,9 @@
   import { resolve } from '$app/paths';
   import { page } from '$app/state';
   import { Spinner, Toaster, LOCALE_COOKIE, provideLocale } from '@facile/muse';
+  import { redirectToLogin } from '@facile/client';
   import { authStore } from '$lib/auth-store';
+  import { theme } from '$lib/preferences';
 
   let { data, children } = $props();
 
@@ -20,6 +22,7 @@
   if (browser) void import('iconify-icon');
 
   onMount(async () => {
+    theme.restore();
     await authStore.init();
   });
 
@@ -28,7 +31,7 @@
       const path = page.url.pathname;
       const user = $authStore.user;
 
-      if (path.startsWith('/app') && !user) goto(resolve('/login'));
+      if (path.startsWith('/app') && !user) redirectToLogin();
 
       if (path === '/login' && user) goto(resolve('/app'));
     }

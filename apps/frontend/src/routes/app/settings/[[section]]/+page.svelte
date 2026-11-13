@@ -6,7 +6,7 @@
   import { trpc } from '$lib/trpc';
   import { useT } from '$lib/i18n';
   import { QUIET } from '@repo/trpc-client';
-  import { SPACES_URL, persistLocale, persistTheme } from '$lib/preferences';
+  import { SPACES_URL, persistLocale, theme } from '$lib/preferences';
   import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
   import { page } from '$app/state';
@@ -27,10 +27,8 @@
     Switch,
     getI18n,
     icons,
-    readTheme,
     settingsRoute,
     toast,
-    type Theme,
   } from '@facile/muse';
   import { logger } from '@repo/logger';
   import { onMount } from 'svelte';
@@ -67,7 +65,6 @@
   let form = $state<SmtpForm>(emptySmtp());
   let existing = $state<SmtpForm>(emptySmtp());
   let plan = $state<{ allowed: boolean; aiAccess: boolean; plans: string[] } | null>(null);
-  let theme = $state<Theme>('system');
 
   const user = $derived($authStore.user);
   const name = $derived(
@@ -115,11 +112,6 @@
     };
     existing = { ...next };
     form = { ...next };
-  }
-
-  function changeTheme(next: Theme) {
-    theme = next;
-    persistTheme(next);
   }
 
   async function handleTestSmtpConfig() {
@@ -190,7 +182,6 @@
   }
 
   onMount(async () => {
-    theme = readTheme();
     const [smtp, status] = await Promise.allSettled([
       trpc.user.getSmtpConfig.query(),
       trpc.forfait.status.query(undefined, { context: QUIET }),
@@ -213,8 +204,8 @@
     {:else if id === 'preferences'}
       <PreferencesSection
         onLocaleChange={persistLocale}
-        {theme}
-        onThemeChange={changeTheme}
+        theme={theme.mode}
+        onThemeChange={(next) => theme.set(next)}
       />
     {:else if id === 'mail'}
       <MailTransportSettings />
