@@ -11,6 +11,12 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+## [0.20.3] - 2026-11-13
+
+### Changed
+
+- Deploy: healthchecks run every 30 s with a 1 s start interval.
+
 ## [0.20.1] - 2026-11-13
 
 ### Security
