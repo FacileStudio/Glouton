@@ -11,6 +11,14 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+## [0.20.1] - 2026-11-13
+
+### Security
+
+- The backend image ships sonar v0.18.1 instead of v0.14.1. sonar v0.14.1's dependencies carried critical golang.org/x/net advisories that douane could not see: the `sonar` stage ran `go install ...@v0.14.1` with no `go.mod`, so douane reported the scan incomplete. sonar is now built from a pinned module, `apps/backend/sonar/go.mod` and `go.sum` (a `tool` directive), on `golang:1.26.11-alpine3.23`, and `douane scan -fail high` exits 0 on the repository root and on `apps/backend`. Bump sonar with `go get github.com/FacileStudio/sonar@vX.Y.Z && go mod tidy` in that directory.
+- Between 0.14.1 and 0.18.1 sonar's CLI kept every flag and output shape Glouton uses (`search --json -n --engines`, `fetch --public-only --timeout --selector --browser`, the `Title`/`Snippet`/`URL`/`Engine` JSON fields); the new releases add `sonar serve`, and Brave titles now come back as plain text. `packages/websearch/src/sonar-cli.test.ts` pins that contract against a real binary when `SONAR_BIN` is set.
+- `bun run --cwd packages/websearch health -- --fetch` fetches a public page through the shipped binary and checks that the public-only guard refuses an internal address, printing only sizes and verdicts. `filet.yml` leaves `apps/backend/sonar` out of the units, since it holds no Go source.
+
 ## [0.20.0] - 2026-11-13
 
 ### Changed
