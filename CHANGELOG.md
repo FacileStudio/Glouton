@@ -11,6 +11,17 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+## [0.21.0] - 2026-11-14
+
+### Added
+
+- `POST /api/auth/backchannel-logout` receives Registre's OIDC back-channel logout (verified with `jose` per Back-Channel Logout 1.0 §2.6). A valid token revokes every Glouton session of that person issued before it and closes their open WebSockets; signing in again works normally.
+- The frontend loads Vision's tracker (`https://vision.facile.studio/s.js`, with `data-mask`).
+
+### Changed
+
+- `User.sessionsRevokedAt` (migration `032_sessions_revoked_at.sql`, nullable) records the revocation moment.
+
 ## [0.20.4] - 2026-11-13
 
 ### Changed
