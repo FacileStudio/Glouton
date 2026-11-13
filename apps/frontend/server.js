@@ -25,6 +25,7 @@ const isBackendPath = (url = '') =>
   url === '/docs' || url.startsWith('/docs?') || url.startsWith('/docs/') ||
   url === '/api/registre/sync' || url.startsWith('/api/registre/sync?') ||
   url === '/api/registre/deletions' || url.startsWith('/api/registre/deletions?') ||
+  url === '/api/auth/backchannel-logout' || url.startsWith('/api/auth/backchannel-logout?') ||
   url.startsWith('/api/agent/') ||
   url === '/mcp' || url.startsWith('/mcp?') ||
   url === '/.well-known/oauth-protected-resource' || url.startsWith('/.well-known/oauth-protected-resource/') ||

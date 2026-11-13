@@ -3,7 +3,7 @@ import { AuthManager } from '@repo/auth';
 import { UserRole } from '@repo/types';
 import { prisma } from '@repo/database';
 import { eraseUser } from '@repo/database/erase';
-import { userExists } from './session';
+import { sessionValid } from './session';
 
 const databaseUrl = process.env.TEST_DATABASE_URL;
 const secret = process.env.ENCRYPTION_SECRET!;
@@ -17,9 +17,9 @@ const sessionOf = (id: string) => ({
 });
 
 describe('session revocation', () => {
-  test('a token stops verifying once userExists says the user is gone', async () => {
+  test('a token stops verifying once sessionValid says the session is gone', async () => {
     let present = true;
-    const auth = new AuthManager({ encryptionSecret: secret, userExists: async () => present });
+    const auth = new AuthManager({ encryptionSecret: secret, sessionValid: async () => present });
     const token = await auth.createToken(sessionOf('u1'));
     expect((await auth.verifyToken(token))?.id).toBe('u1');
     present = false;
@@ -27,7 +27,7 @@ describe('session revocation', () => {
   });
 
   test.skipIf(!databaseUrl)('an erased person\'s token is rejected, a bystander\'s is not', async () => {
-    const auth = new AuthManager({ encryptionSecret: secret, userExists: userExists(prisma) });
+    const auth = new AuthManager({ encryptionSecret: secret, sessionValid: sessionValid(prisma) });
     const make = (email: string) =>
       prisma.user.create({ data: { email, firstName: 'A', lastName: 'B', password: 'x', emailVerified: true } });
     const gone = await make('session-gone@example.com');

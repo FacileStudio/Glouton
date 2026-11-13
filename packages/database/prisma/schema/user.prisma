@@ -19,6 +19,7 @@ model User {
   suspensionReason   String?   @db.Text
   lastLoginAt        DateTime? @db.Timestamptz(3)
   lastLoginIp        String?   @db.Text
+  sessionsRevokedAt  DateTime? @db.Timestamptz(3)
   smtpHost           String?   @db.Text
   smtpPort           Int?
   smtpSecure         Boolean?

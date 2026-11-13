@@ -15,7 +15,7 @@ import {
   createLivenessHandler,
   createReadinessHandler,
 } from './handlers/health';
-import { wsHandler, websocket, broadcastToUser, broadcastToAll, clients } from './handlers/websocket';
+import { wsHandler, websocket, broadcastToUser, broadcastToAll, clients, disconnectUser } from './handlers/websocket';
 import { events } from './services/events';
 import { checkOrphanedSessions, cleanupStalled } from './services/job-monitor';
 import { registerWorkers } from './services/register-workers';
@@ -25,7 +25,9 @@ import { prismaStateStore } from './services/deletion-state';
 import { eraseIdentity } from '@repo/database/erase';
 import { createRegistreSyncRoutes } from './handlers/registre';
 import { applySnapshot, buildImport, startDirectorySync } from './services/registre-spaces';
-import { registreIssuer, registreKeys } from './services/oidc';
+import { registreIssuer, registreKeys, registreTrust } from './services/oidc';
+import { revokeSubject, verifyLogoutToken } from './services/backchannel-logout';
+import { createBackchannelLogoutRoutes } from './handlers/backchannel-logout';
 import { bearerClaims, bearerUser } from './services/bearer';
 import { registreVerifier } from '@facile/tronc/mcp';
 import { gloutonMcp } from './handlers/mcp';
@@ -277,6 +279,16 @@ app.get('/ws', wsHandler);
 
 if (directory) app.route('/', createRegistreSyncRoutes(directory));
 if (deletions) app.all(DeletionsPath, (c) => deletions.handler(c.req.raw));
+if (issuer) {
+  app.route('/', createBackchannelLogoutRoutes({
+    verify: async (token) => verifyLogoutToken(token, { ...(await registreTrust()), audience: env.OIDC_CLIENT_ID! }),
+    revoke: async (sub) => {
+      const userIds = await revokeSubject(prisma, issuer, sub);
+      userIds.forEach(disconnectUser);
+      return userIds;
+    },
+  }));
+}
 
 function requireInternalAuth(c: Context): boolean {
   const token = c.req.header('x-internal-secret');
