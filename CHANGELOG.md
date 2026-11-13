@@ -11,6 +11,25 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+## [0.20.0] - 2026-11-13
+
+### Changed
+
+- The frontend moves to `@facile/muse` v0.19.2 (from v0.17.1) and adopts `@facile/client` v0.2.0. Its theme store (`createTheme('glouton.theme')` in `$lib/preferences`) replaces the local `persistTheme` and `readTheme` pair, keeps the same storage key and classes, so stored choices survive, and the `app.html` pre-paint script is unchanged.
+- A signed-out visit to `/app` now goes through the suite's shared `redirectToLogin`, which lands on `/login?next=<path>` instead of `/login`.
+- `filet.yml` is `preset: facile` with Glouton's two app directories, so `filet gate .` checks this repository against the suite standard. A root `bunfig.toml` preloads `apps/backend/test-setup.ts`, so `bun test` from the repository root (the gate's test step) gets the same test environment as `apps/backend`. CI's filet job moves from v0.3.0 to v0.20.0.
+- zod moves from 3.25.76 to 4.6.7 in every workspace, which clears GHSA-mrhx-c7xc-m3w5 (memory exhaustion on oversized constrained collections, high, fixed only in 4.6.6). `z.record` now names its key schema, and the job draft schemas drop zod 3's `ZodTypeDef` parameter.
+
+### Fixed
+
+- Choosing a theme in the user menu or in Settings > Preferences now applies at once. It used to be saved but only took effect after a reload.
+- A 401 from the backend now clears the stored session and lets the layout send the browser to the login page. It used to call `auth.logout` with the rejected token, which answered 401 again and fired the same handler before the page could leave.
+
+### Not adopted
+
+- The `@facile/client` fetch kernel (`createApi`). Glouton's browser talks tRPC with a bearer token from the session it stores, and `createApi` speaks porte's cookie session over `/api` with `X-Facile-CSRF`. Adopting it would change the shape of every request. The token stays in `localStorage` until the backend serves a cookie session.
+- douane still reports the scan as incomplete: the `sonar` stage of `apps/backend/Dockerfile` runs `go install github.com/FacileStudio/sonar@v0.14.1` without a `go.mod`, so douane cannot name the module. sonar v0.14.1's own dependencies carry critical golang.org/x/net advisories; v0.18.1's are clear. Moving the image to sonar v0.18.1, built from a committed `go.mod`, is its own release.
+
 ## [0.19.2] - 2026-11-11
 
 ### Fixed
