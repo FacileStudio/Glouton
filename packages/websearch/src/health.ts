@@ -1,4 +1,4 @@
-import { parseSearchOutput, runSonar } from './runner';
+import { parseFetchOutput, parseSearchOutput, runSonar } from './runner';
 import { WebSearchError } from './types';
 
 const ENGINES = ['parallel', 'brave', 'tavily', 'exa', 'firecrawl', 'browserbase', 'brightdata', 'linkup'];
@@ -14,7 +14,21 @@ async function probe(engines?: string): Promise<{ count: number; engines: string
   return { count: results.length, engines: [...new Set(results.map((result) => result.engine))].sort() };
 }
 
+/** Fetches a public page and an internal address through the public-only guard; prints sizes and verdicts only. */
+async function fetchProbe(): Promise<void> {
+  const url = 'https://example.com/';
+  const [page] = parseFetchOutput(await runSonar(config, ['fetch', '--public-only', '--timeout', '20s', '--', url]), [url]);
+  console.log(`fetch: ok chars=${page?.markdown.length ?? 0}`);
+  const internal = await runSonar(config, ['fetch', '--public-only', '--timeout', '10s', '--', 'http://169.254.169.254/']).then(
+    () => 'fail reached',
+    (error: unknown) => (error instanceof WebSearchError && error.message.includes('blocked_internal') ? 'ok blocked' : 'fail error')
+  );
+  console.log(`fetch internal: ${internal}`);
+  if ((page?.markdown.length ?? 0) === 0 || !internal.startsWith('ok')) process.exitCode = 1;
+}
+
 async function main(): Promise<void> {
+  if (process.argv.includes('--fetch')) return fetchProbe();
   if (process.argv.includes('--each')) {
     for (const engine of ENGINES) {
       const outcome = await probe(engine).then(
