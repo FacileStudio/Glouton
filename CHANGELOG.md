@@ -11,6 +11,16 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+## [0.20.4] - 2026-11-13
+
+### Changed
+
+- Frontend: `@facile/muse` moves from v0.19.2 to v0.21.1. Tooltips open after 300 ms, and at once when moving from one to the next.
+
+### Fixed
+
+- Frontend: every icon-only control shows a muse tooltip (Bulle send, search clear, SMTP password reveal), and no element uses the native `title` any more: hunt cards, the leads table, e-mail verification badges and the competitor win-rate badge use muse tooltips.
+
 ## [0.20.3] - 2026-11-13
 
 ### Changed
