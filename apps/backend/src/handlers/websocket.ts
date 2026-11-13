@@ -61,6 +61,14 @@ export function broadcastToUser(userId: string, message: EventMessage) {
   }
 }
 
+/** Closes every open socket of a signed-out user, so a revoked session stops receiving their events. */
+export function disconnectUser(userId: string) {
+  const userClients = clients.get(userId);
+  if (!userClients) return;
+  clients.delete(userId);
+  userClients.forEach((ws) => ws.close(4401, 'Signed out'));
+}
+
 export function broadcastToAll(message: EventMessage) {
   let messageStr: string;
   try {

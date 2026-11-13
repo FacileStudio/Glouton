@@ -3,13 +3,13 @@ import { prisma } from '@repo/database';
 import { QueueManager, createJobConfig } from '@repo/jobs';
 import { redisWebSearch } from '@repo/jobs/workers';
 import env from './env';
-import { userExists } from './services/session';
+import { sessionValid } from './services/session';
 import { bulleFromEnv } from '@repo/trpc';
 import { courrierFromEnv, registreFromEnv } from './services/courrier';
 
 const authManager = new AuthManager({
   encryptionSecret: env.ENCRYPTION_SECRET,
-  userExists: userExists(prisma),
+  sessionValid: sessionValid(prisma),
 });
 
 const jobs = new QueueManager(

@@ -64,11 +64,14 @@ function jwks(jwksUri: string) {
   return jwksCache;
 }
 
-/** The issuer's signing keys, found through OIDC discovery and cached. */
-export async function registreKeys(): Promise<ReturnType<typeof createRemoteJWKSet>> {
+/** The issuer exactly as discovery names it, with its signing keys, both found through OIDC discovery and cached. */
+export async function registreTrust(): Promise<{ issuer: string; keys: ReturnType<typeof createRemoteJWKSet> }> {
   const doc = await discover();
-  return jwks(doc.jwks_uri);
+  return { issuer: doc.issuer, keys: jwks(doc.jwks_uri) };
 }
+
+/** The issuer's signing keys alone. */
+export const registreKeys = async (): Promise<ReturnType<typeof createRemoteJWKSet>> => (await registreTrust()).keys;
 
 const STATE_AUDIENCE = 'oidc-state';
 export const STATE_COOKIE = 'oidc_state';
