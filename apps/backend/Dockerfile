@@ -1,10 +1,13 @@
 FROM oven/bun:1.3.7-alpine AS base
 
-FROM golang:1.27.1-alpine3.23 AS sonar
-ARG SONAR_VERSION=0.14.1
-RUN CGO_ENABLED=0 GOFLAGS=-trimpath go install \
+FROM golang:1.26.11-alpine3.23 AS sonar
+WORKDIR /src
+COPY apps/backend/sonar/go.mod apps/backend/sonar/go.sum ./
+RUN go mod download
+RUN SONAR_VERSION=$(go list -m -f '{{.Version}}' github.com/FacileStudio/sonar | cut -c2-) \
+    && CGO_ENABLED=0 GOFLAGS=-trimpath go build \
     -ldflags "-s -w -X github.com/FacileStudio/sonar/cmd.version=${SONAR_VERSION}" \
-    "github.com/FacileStudio/sonar@v${SONAR_VERSION}"
+    -o /go/bin/sonar github.com/FacileStudio/sonar
 
 FROM base AS deps
 WORKDIR /app

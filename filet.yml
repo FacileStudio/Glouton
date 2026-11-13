@@ -1,5 +1,15 @@
 preset: facile
 kind: app
 
+ignore:
+  - node_modules
+  - vendor
+  - build
+  - dist
+  - testdata
+  - coverage
+  # go.mod and go.sum only: they pin the sonar binary the backend image builds, with no Go source
+  - apps/backend/sonar
+
 architecture:
   requiredDirs: [apps/backend, apps/frontend]
