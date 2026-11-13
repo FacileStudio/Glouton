@@ -2,7 +2,7 @@
   import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
   import { getFaviconUrl, handleFaviconError } from '$lib/utils/favicon';
-  import { Badge, Card, Table } from '@facile/muse';
+  import { Badge, Card, Table, Tooltip } from '@facile/muse';
   import { useFormat, useT } from '$lib/i18n';
 
   const t = useT();
@@ -152,21 +152,24 @@
                 onerror={(e) => handleFaviconError(e.currentTarget)}
               />
             </div>
-            <a
-              href={resolve('/app/leads/[id]', { id: lead.id })}
-              onclick={(e) => e.stopPropagation()}
-              class="max-w-[180px] truncate font-medium text-fc-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fc-ring"
-              title={getLeadTitle(lead)}
-            >
-              {getLeadTitle(lead)}
-            </a>
+            <Tooltip text={getLeadTitle(lead)} describe={false} class="contents">
+              <a
+                href={resolve('/app/leads/[id]', { id: lead.id })}
+                onclick={(e) => e.stopPropagation()}
+                class="max-w-[180px] truncate font-medium text-fc-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fc-ring"
+              >
+                {getLeadTitle(lead)}
+              </a>
+            </Tooltip>
           </div>
         </td>
 
         <td>
           <div class="min-w-0">
             {#if lead.email}
-              <div class="max-w-[180px] truncate text-fc-fg" title={lead.email}>{lead.email}</div>
+              <Tooltip text={lead.email} describe={false} class="contents">
+                <div class="max-w-[180px] truncate text-fc-fg">{lead.email}</div>
+              </Tooltip>
             {/if}
             {#if lead.firstName || lead.lastName}
               <div class="max-w-[180px] truncate text-fc-xs text-fc-fg-muted">
@@ -200,7 +203,9 @@
         </td>
 
         <td>
-          <span class="font-medium text-fc-fg" title={t('leads.scoreTitle', { score: lead.score })}>{lead.score}</span>
+          <Tooltip text={t('leads.scoreTitle', { score: lead.score })} class="contents">
+            <span class="font-medium text-fc-fg">{lead.score}</span>
+          </Tooltip>
         </td>
 
         <td class="whitespace-nowrap text-fc-fg-muted">

@@ -20,7 +20,7 @@
 
 <script lang="ts">
   import { useT } from '$lib/i18n';
-  import { Button, Card, Input, Select } from '@facile/muse';
+  import { Button, Card, Input, Select, Tooltip } from '@facile/muse';
 
   const t = useT();
 
@@ -137,14 +137,16 @@
         class="pr-11 pl-9 text-fc-sm"
       />
       {#if filters.search}
-        <button
-          type="button"
-          onclick={() => (filters.search = '')}
-          aria-label={t('leads.filter.clearSearch')}
-          class="absolute top-1/2 right-0 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-fc-md text-fc-fg-muted transition-colors hover:text-fc-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fc-ring"
-        >
-          <iconify-icon icon="mdi:close" width="16" height="16" class="block"></iconify-icon>
-        </button>
+        <Tooltip text={t('leads.filter.clearSearch')} describe={false} class="contents">
+          <button
+            type="button"
+            onclick={() => (filters.search = '')}
+            aria-label={t('leads.filter.clearSearch')}
+            class="absolute top-1/2 right-0 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-fc-md text-fc-fg-muted transition-colors hover:text-fc-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fc-ring"
+          >
+            <iconify-icon icon="mdi:close" width="16" height="16" class="block"></iconify-icon>
+          </button>
+        </Tooltip>
       {/if}
     </div>
     <Button

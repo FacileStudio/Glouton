@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
-  import { Alert, Button, Input, PlanLimit, Spinner, planLimitFrom, type PlanLimitError } from '@facile/muse';
+  import { Alert, Button, Input, PlanLimit, Spinner, planLimitFrom, type PlanLimitError, Tooltip } from '@facile/muse';
   import { trpc } from '$lib/trpc';
   import { getTrpcErrorMessage } from '$lib/utils/trpc-error';
   import BulleBlob from './BulleBlob.svelte';
@@ -202,7 +202,9 @@
     <form class="flex gap-2" onsubmit={submit}>
       <label for={inputId} class="sr-only">{t('assistant.instructionFor', { name })}</label>
       <Input id={inputId} bind:value={instruction} maxlength={2000} placeholder={t('assistant.askPlaceholder', { name })} disabled={!ready} autocomplete="off" />
-      <Button type="submit" icon="solar:plain-linear" aria-label={t('assistant.send')} disabled={busy || !ready || !instruction.trim()} />
+      <Tooltip text={t('assistant.send')} describe={false} class="contents">
+        <Button type="submit" icon="solar:plain-linear" aria-label={t('assistant.send')} disabled={busy || !ready || !instruction.trim()} />
+      </Tooltip>
     </form>
     {#if result}
       <div class="flex flex-col gap-2 rounded-fc-md bg-fc-surface p-3" aria-live="polite">
