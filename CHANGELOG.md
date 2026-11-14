@@ -11,6 +11,8 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+## [0.23.0] - 2026-11-14
+
 ### Changed
 
 - Every AI call goes through Bulle's `POST /api/ai/complete` instead of the raw `/api/llm` proxy: the writing assistant, next actions, battlecards, change summaries, price extraction, target and segment suggestions and job drafts. The task goes in `prompt` and the contact, page or CV text in `input`, which Bulle treats as untrusted data. Bulle picks the model; Glouton no longer sends the Bulle persona.
