@@ -1,7 +1,8 @@
 import type { PrismaClient } from '@prisma/client';
 import { TRPCError } from '@trpc/server';
-import { StatusError, planRequired, type BulleClient } from '../assistant/bulle';
-import { assistantError, requireBulle } from '../assistant/service';
+import type { BulleClient } from '../assistant/bulle';
+import { requireBulle } from '../assistant/service';
+import { ideasError, requireAi } from './errors';
 import type { ForfaitReader } from '../forfait/store';
 import { pageView, runView, type IdeasPageView, type RunView } from './view';
 
@@ -27,15 +28,6 @@ export interface IdeasSpace {
   upgradeUrl: string;
 }
 
-const REFUSAL_CODES: Record<number, TRPCError['code']> = {
-  400: 'BAD_REQUEST',
-  401: 'PRECONDITION_FAILED',
-  403: 'FORBIDDEN',
-  404: 'NOT_FOUND',
-  409: 'CONFLICT',
-  429: 'TOO_MANY_REQUESTS',
-};
-
 /**
  * The caller's space after a membership check through the same reader the
  * plan gate uses. A team maps to its Registre shared space, which Bulle
@@ -50,19 +42,6 @@ export async function ideasSpace(deps: IdeasDeps, caller: IdeasCaller): Promise<
   if (!verdict) throw new TRPCError({ code: 'FORBIDDEN', message: 'You do not have access to this team' });
   const team = await deps.prisma.team.findUnique({ where: { id: caller.teamId }, select: { registreSpaceId: true } });
   return { spaceId: team?.registreSpaceId ?? null, aiAccess: Boolean(verdict.aiAccess), upgradeUrl: verdict.upgradeUrl };
-}
-
-function requireAi(space: IdeasSpace): void {
-  if (space.aiAccess) return;
-  assistantError(planRequired('Les idées demandent une offre avec accès à l’IA.', space.upgradeUrl));
-}
-
-/** Maps a Bulle failure to the error the page shows, keeping plan refusals' upgrade link. */
-export function ideasError(error: unknown): never {
-  if (error instanceof StatusError) {
-    throw new TRPCError({ code: REFUSAL_CODES[error.status] ?? 'BAD_GATEWAY', message: error.message || `Bulle answered ${error.status}`, cause: error });
-  }
-  return assistantError(error);
 }
 
 async function ask<T>(deps: IdeasDeps, call: (bulle: BulleClient) => Promise<T>): Promise<T> {

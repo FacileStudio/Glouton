@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { jsonObject } from '../assistant/prompt';
+import { jsonObject } from '../assistant/parse';
 
 export const AI_LANGUAGES = ['fr', 'en', 'es', 'de'] as const;
 export type AiLanguage = (typeof AI_LANGUAGES)[number];

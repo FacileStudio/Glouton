@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { complete, type BulleClient } from '../assistant/bulle';
-import { jsonObject } from '../assistant/prompt';
+import { jsonObject } from '../assistant/parse';
 import { requireBulle } from '../assistant/service';
 import { aiError, requireAiAccess } from '../competitor-ai/service';
 import { AiOutputError, systemFor, type AiLanguage } from '../competitor-ai/prompt';

@@ -3,13 +3,12 @@ import type { PrismaClient } from '@prisma/client';
 import { loadContact } from './service';
 import {
   nextActionData,
-  parseNextAction,
-  parseWriteResponse,
   systemPrompt,
   writeData,
   writeTask,
   type ContactContext,
 } from './prompt';
+import { parseNextAction, parseWriteResponse } from './parse';
 
 const contact: ContactContext = {
   person: {

@@ -20,7 +20,7 @@
       "name": "@repo/backend",
       "version": "0.0.0",
       "dependencies": {
-        "@facile/tronc": "github:FacileStudio/tronc-ts#v0.3.0",
+        "@facile/tronc": "github:FacileStudio/tronc-ts#v0.3.1",
         "@hono/trpc-server": "^0.4.2",
         "@repo/courrier": "workspace:*",
         "@repo/database": "workspace:*",
@@ -256,7 +256,7 @@
       "name": "@repo/trpc",
       "version": "0.0.0",
       "dependencies": {
-        "@facile/tronc": "github:FacileStudio/tronc-ts#v0.3.0",
+        "@facile/tronc": "github:FacileStudio/tronc-ts#v0.3.1",
         "@repo/auth-shared": "workspace:*",
         "@repo/courrier": "workspace:*",
         "@repo/database": "workspace:*",
@@ -501,7 +501,7 @@
 
     "@facile/muse": ["@facile/muse@github:FacileStudio/muse#709a22d", { "dependencies": { "gsap": "^3.13.0", "tailwind-merge": "^3.5.0" }, "peerDependencies": { "svelte": "^5.0.0", "tailwindcss": "^4.0.0" } }, "FacileStudio-muse-709a22d", "sha512-YXi7YAF8R1qfUBmx3nWKfeKXo+utYj4dXmqA3IHdrX9Fvp49avnKZ5vTdfl51i1IbnBiy/SydMxzgUH2vo0drQ=="],
 
-    "@facile/tronc": ["@facile/tronc@github:FacileStudio/tronc-ts#177a352", { "dependencies": { "@modelcontextprotocol/client": "2.4.0", "@modelcontextprotocol/server": "2.4.0", "jose": "^6.2.17" } }, "FacileStudio-tronc-ts-177a352", "sha512-S9DKV9OF74cf483Oa/mZy2syKzj/d1OqfYffOnBc6tdWIBlBWdKoBo+fNoi3758GrmCzMhsw5x8xH7aWjPVydg=="],
+    "@facile/tronc": ["@facile/tronc@github:FacileStudio/tronc-ts#1dc398b", { "dependencies": { "@modelcontextprotocol/client": "2.4.0", "@modelcontextprotocol/server": "2.4.0", "jose": "^6.2.17" } }, "FacileStudio-tronc-ts-1dc398b", "sha512-FhTEwSvxt/tkrU+Ys2pROR8iBi6vZ2rMQ+ba30OAFCzY3Ve1uDIvo1B48wkc0io5arOCpM4RQQfM01IjgxXNmw=="],
 
     "@faker-js/faker": ["@faker-js/faker@10.6.0", "", {}, "sha512-3RQHgEtvL1Frl/d1cSreo7qhJ3Gk1OdNUai/CtZ8G+wYeRQnJih3s9xJ9/kgYekPQRdwgh0HXRPqMlzWGwivIQ=="],
 

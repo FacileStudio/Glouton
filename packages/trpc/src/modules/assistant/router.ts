@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import { router, humanProcedure } from '../../trpc';
 import type { Context } from '../../context';
-import { resolveScope } from '../../utils/scope';
-import { aiAccess } from '../competitor-ai/service';
+import { resolveScope, type Scope } from '../../utils/scope';
+import { aiAccess, requireAiAccess } from '../competitor-ai/service';
 import { accessForScope, accessForUser } from '../contact/access';
 import { ASSISTANT_ACTIONS } from './prompt';
 import { assistantStatus, nextAction, write } from './service';
@@ -27,9 +27,15 @@ export const assistantNextActionSchema = z
   .object({ teamId, personId: contactId, companyId: contactId })
   .refine((v) => Boolean(v.personId) !== Boolean(v.companyId), 'Give exactly one of personId or companyId');
 
-async function access(ctx: AuthedContext, team: string | undefined) {
-  if (!team) return accessForUser(ctx.prisma, ctx.user.id, ctx.actor);
-  return accessForScope(await resolveScope(ctx.prisma, ctx.user.id, team, ctx.planMode), ctx.actor);
+async function scopeOf(ctx: AuthedContext, team: string | undefined): Promise<Scope> {
+  return team ? resolveScope(ctx.prisma, ctx.user.id, team, ctx.planMode) : { type: 'personal', userId: ctx.user.id };
+}
+
+/** The contact access of an AI call, refused with plan_required before Bulle when the scope's plan has no ai.access. */
+async function aiCallAccess(ctx: AuthedContext, team: string | undefined) {
+  const scope = await scopeOf(ctx, team);
+  await requireAiAccess(ctx.forfait, scope);
+  return team ? accessForScope(scope, ctx.actor) : accessForUser(ctx.prisma, ctx.user.id, ctx.actor);
 }
 
 function sender(ctx: AuthedContext) {
@@ -39,15 +45,12 @@ function sender(ctx: AuthedContext) {
 export const assistantRouter = router({
   status: humanProcedure
     .input(z.object({ teamId }).optional())
-    .query(async ({ ctx, input }) => {
-      const scope = input?.teamId
-        ? await resolveScope(ctx.prisma, ctx.user.id, input.teamId, ctx.planMode)
-        : ({ type: 'personal', userId: ctx.user.id } as const);
-      return assistantStatus(ctx.bulle, ctx.user.id, await aiAccess(ctx.forfait, scope));
-    }),
+    .query(async ({ ctx, input }) =>
+      assistantStatus(ctx.bulle, ctx.user.id, await aiAccess(ctx.forfait, await scopeOf(ctx, input?.teamId)))
+    ),
 
   write: humanProcedure.input(assistantWriteSchema).mutation(async ({ ctx, input }) =>
-    write(ctx.prisma, ctx.bulle, await access(ctx, input.teamId), sender(ctx), {
+    write(ctx.prisma, ctx.bulle, await aiCallAccess(ctx, input.teamId), sender(ctx), {
       action: input.action,
       instruction: input.instruction,
       subject: input.subject,
@@ -59,7 +62,7 @@ export const assistantRouter = router({
   ),
 
   nextAction: humanProcedure.input(assistantNextActionSchema).mutation(async ({ ctx, input }) =>
-    nextAction(ctx.prisma, ctx.bulle, await access(ctx, input.teamId), sender(ctx), {
+    nextAction(ctx.prisma, ctx.bulle, await aiCallAccess(ctx, input.teamId), sender(ctx), {
       personId: input.personId,
       companyId: input.companyId,
     })

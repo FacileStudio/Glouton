@@ -17,8 +17,6 @@ import {
 import {
   NEXT_ACTION_TASK,
   nextActionData,
-  parseNextAction,
-  parseWriteResponse,
   systemPrompt,
   writeData,
   writeTask,
@@ -28,6 +26,7 @@ import {
   type WriteInput,
   type WriteResult,
 } from './prompt';
+import { parseNextAction, parseWriteResponse } from './parse';
 
 export interface AssistantStatus {
   available: boolean;
@@ -44,6 +43,8 @@ export interface ContactTarget {
 
 const NEEDS_BODY = new Set<WriteInput['action']>(['rewrite', 'shorter', 'warmer', 'formal', 'fix', 'translate', 'subject']);
 
+export const TOO_LARGE_MESSAGE = 'Bulle a refusé la demande : texte trop long ou invalide. Raccourcissez les notes ou le message, puis réessayez.';
+
 export const PLAN_REQUIRED_MESSAGE = 'Les fonctions IA demandent une offre avec accès à l’IA.';
 
 const FAILURE_MESSAGES: Record<BulleFailure, string> = {
@@ -59,6 +60,10 @@ export function assistantError(error: unknown): never {
   }
   if (error instanceof StatusError && error.status === 429) {
     throw new TRPCError({ code: 'TOO_MANY_REQUESTS', message: error.message || 'Bulle daily limit reached', cause: error });
+  }
+  if (error instanceof StatusError && (error.status === 400 || error.status === 413)) {
+    logger.warn({ status: error.status, code: error.code, error: error.message }, '[BULLE] Bulle rejected the request');
+    throw new TRPCError({ code: error.status === 413 ? 'PAYLOAD_TOO_LARGE' : 'BAD_REQUEST', message: TOO_LARGE_MESSAGE, cause: error });
   }
   const failure = bulleFailure(error);
   if (!failure) throw error;

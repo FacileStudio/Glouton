@@ -258,6 +258,32 @@ describe.skipIf(!databaseUrl)('competitor AI through Bulle', () => {
     expect(state.prompts).toHaveLength(0);
   });
 
+  test('the assistant and segment suggestions check ai.access before calling Bulle', async () => {
+    const { bulle, state } = fakeBulle();
+    const refused = [
+      await call('assistant.write', users.bob!, { teamId: ids.teamB, action: 'draft' }, { bulle }),
+      await call('assistant.nextAction', users.bob!, { teamId: ids.teamB, companyId: 'any' }, { bulle }),
+      await call('huntSchedule.suggestSegments', users.bob!, { teamId: ids.teamB }, { bulle }),
+    ];
+    for (const res of refused) {
+      expect(res.status).toBe(403);
+      expect(res.error?.data?.plan_limit).toEqual(expect.objectContaining({ upgrade_url: UPGRADE, key: 'ai.access' }));
+    }
+    expect(state.prompts).toHaveLength(0);
+    const allowed = await call<{ body: string }>('assistant.write', users.alice!, { teamId: ids.teamA, action: 'draft' }, { bulle });
+    expect(allowed.status).toBe(200);
+    expect(state.prompts).toHaveLength(1);
+  });
+
+  test('a 400 or 413 from Bulle says the request is too large or invalid, not that Bulle is down', async () => {
+    const { bulle, state } = fakeBulle();
+    state.answers.push({ status: 413, body: { error: { message: 'input too large' } } }, { status: 400, body: { error: { message: 'bad max_tokens' } } });
+    const tooLarge = await call('assistant.write', users.alice!, { teamId: ids.teamA, action: 'draft' }, { bulle });
+    const invalid = await call('assistant.write', users.alice!, { teamId: ids.teamA, action: 'draft' }, { bulle });
+    expect([tooLarge.status, invalid.status]).toEqual([413, 400]);
+    for (const res of [tooLarge, invalid]) expect((res.error as { message?: string }).message).toContain('trop long ou invalide');
+  });
+
   test('another team cannot draft, summarize, extract or read prices of a competitor', async () => {
     const { bulle } = fakeBulle();
     const input = { teamId: ids.teamB, competitorId: ids.rival };

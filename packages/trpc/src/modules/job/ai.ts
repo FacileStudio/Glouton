@@ -2,7 +2,7 @@ import type { JobDraftKind, PrismaClient } from '@prisma/client';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 import { complete, type BulleClient } from '../assistant/bulle';
-import { jsonObject } from '../assistant/prompt';
+import { jsonObject } from '../assistant/parse';
 import { requireBulle } from '../assistant/service';
 import { DATA_CLOSE, DATA_OPEN, AiOutputError, dataBlock, languageRule, type AiLanguage } from '../competitor-ai/prompt';
 import { aiError, requireAiAccess } from '../competitor-ai/service';

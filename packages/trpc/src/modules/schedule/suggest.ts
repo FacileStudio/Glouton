@@ -1,7 +1,7 @@
 import type { PrismaClient } from '@prisma/client';
 import { TRPCError } from '@trpc/server';
 import { complete, type BulleClient } from '../assistant/bulle';
-import { jsonObject } from '../assistant/prompt';
+import { jsonObject } from '../assistant/parse';
 import { assistantError, requireBulle } from '../assistant/service';
 import { isHuntCategory } from '../../taxonomy';
 import { profileFor, type ProspectProfile } from '../prospect/profile';
@@ -68,7 +68,7 @@ export function parseSegments(raw: string, area: string | null): Segment[] {
     .slice(0, MAX_SEGMENTS);
 }
 
-/** Asks Bulle for target segments from the scope's profile. Bulle gates `ai.access`; its refusal carries the upgrade link. */
+/** Asks Bulle for target segments from the scope's profile. The router checks `ai.access` first; Bulle's own refusal carries the upgrade link. */
 export async function suggestSegments(
   prisma: PrismaClient,
   bulle: BulleClient | null,

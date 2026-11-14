@@ -337,7 +337,10 @@ The `act` claim's `sub` (else `azp`) becomes the actor, recorded on activities a
 suggestion's `createdBy`. Any delegated caller is refused on human-only procedures. The MCP
 confirm page (`mcp.pending`, `mcp.confirm`, `mcp.dismiss`) goes further: it takes only a Glouton
 session JWT, which only the browser SSO callback mints, so no delegated or MCP bearer token can
-confirm an agent's own request.
+confirm an agent's own request. Known limit: the web app keeps that session JWT in
+`localStorage` (`apps/frontend/src/lib/auth-store.ts`), so script running in the page, such as an
+agent driving the person's browser, can read it and confirm. Closing this needs an `HttpOnly`
+cookie session, which the backend does not serve yet.
 
 ## Agent REST API (`/api/agent`)
 
