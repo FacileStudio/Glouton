@@ -106,7 +106,7 @@ export async function suggestTargets(
   input: { usage: TargetUsage; language: AiLanguage; offer?: string; description?: string; area?: string }
 ): Promise<TargetSuggestion> {
   const client = requireBulle(deps.bulle);
-  await requireAiAccess(deps.forfait, scope);
+  const spaceId = await requireAiAccess(deps.forfait, scope);
   if (!input.offer && !input.description) return { nafCodes: [], osmTags: [], keywords: [] };
   try {
     const raw = await complete(client, scope.userId, {
@@ -114,6 +114,7 @@ export async function suggestTargets(
       prompt: GOALS[input.usage],
       input: suggestionPrompt(input),
       maxTokens: 800,
+      spaceId,
     });
     return parseTargetSuggestion(raw);
   } catch (error) {

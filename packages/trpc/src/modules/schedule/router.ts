@@ -91,7 +91,7 @@ export const huntScheduleRouter = router({
     .input(z.object({ teamId, language: z.enum(['fr', 'en']).optional() }))
     .mutation(async ({ ctx, input }) => {
       const scope = await resolveScope(ctx.prisma, ctx.user.id, input.teamId, ctx.planMode);
-      await requireAiAccess(ctx.forfait, scope);
-      return suggestSegments(ctx.prisma, ctx.bulle ?? null, scope, input.language ?? 'fr');
+      const spaceId = await requireAiAccess(ctx.forfait, scope);
+      return suggestSegments(ctx.prisma, ctx.bulle ?? null, scope, input.language ?? 'fr', spaceId);
     }),
 });

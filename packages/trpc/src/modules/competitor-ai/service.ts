@@ -42,17 +42,35 @@ const PRICE_SOURCES = 3;
 const LINK = /\[([^\]]{0,120})\]\(([^)\s]{1,500})\)/g;
 const PAGE_HINT = /(pric|tarif|prix|offre|offer|plan|abonnement|subscription|preise|precio|packages?|formules?)/i;
 
-/** Whether the scope's plan carries ai.access, with the upgrade link; true while plans are not enforced. */
-export async function aiAccess(forfait: ForfaitReader, scope: Scope): Promise<{ allowed: boolean; upgradeUrl: string }> {
-  const verdict = scope.type === 'team' ? await forfait.team(scope.userId, scope.teamId) : await forfait.personal(scope.userId);
-  return { allowed: Boolean(verdict?.aiAccess), upgradeUrl: verdict?.upgradeUrl ?? '' };
+/** Whether an AI call in a scope is allowed, its upgrade link, and the Registre space Bulle checks the plan of. */
+export interface AiScope {
+  allowed: boolean;
+  upgradeUrl: string;
+  spaceId?: string;
 }
 
-/** Refuses with the same plan_required shape Bulle's 402 has, before any quota is spent. */
-export async function requireAiAccess(forfait: ForfaitReader, scope: Scope): Promise<void> {
+/**
+ * Whether an AI call in the scope is allowed: the person's own plan carries
+ * ai.access, or, in a team they belong to, the team space's plan does. A
+ * team call names the team's Registre space so Bulle applies the same rule.
+ * True while plans are not enforced.
+ */
+export async function aiAccess(forfait: ForfaitReader, scope: Scope): Promise<AiScope> {
+  if (scope.type === 'personal') {
+    const own = await forfait.personal(scope.userId);
+    return { allowed: Boolean(own.aiAccess), upgradeUrl: own.upgradeUrl };
+  }
+  const team = await forfait.team(scope.userId, scope.teamId);
+  if (!team) return { allowed: false, upgradeUrl: '' };
+  const allowed = Boolean(team.aiAccess) || Boolean((await forfait.personal(scope.userId)).aiAccess);
+  return { allowed, upgradeUrl: team.upgradeUrl, spaceId: team.spaceId };
+}
+
+/** Refuses with the same plan_required shape Bulle's 402 has, before any quota is spent; returns the space Bulle checks. */
+export async function requireAiAccess(forfait: ForfaitReader, scope: Scope): Promise<string | undefined> {
   const access = await aiAccess(forfait, scope);
-  if (access.allowed) return;
-  assistantError(planRequired(PLAN_REQUIRED_MESSAGE, access.upgradeUrl));
+  if (!access.allowed) assistantError(planRequired(PLAN_REQUIRED_MESSAGE, access.upgradeUrl));
+  return access.spaceId;
 }
 
 /** Maps a model or web failure to the error the web app shows; plan and Bulle failures keep their cause. */
@@ -138,7 +156,7 @@ export async function draftBattlecard(
   language: AiLanguage
 ): Promise<{ proposal: BattlecardDraft; sources: string[] }> {
   const client = requireBulle(deps.bulle);
-  await requireAiAccess(deps.forfait, scope);
+  const spaceId = await requireAiAccess(deps.forfait, scope);
   try {
     const pages = await fetchCompetitorPages(deps, scope, competitor);
     const profile = await profileFor(deps.prisma, scope);
@@ -147,6 +165,7 @@ export async function draftBattlecard(
       prompt: 'Draft the battlecard.',
       input: draftPrompt(competitor, profile, pages),
       maxTokens: 2500,
+      spaceId,
     });
     return { proposal: parseDraft(raw), sources: pages.map((page) => page.url) };
   } catch (error) {
@@ -179,7 +198,7 @@ interface ChangeRow {
   page: { url: string; kind: string; competitor: { name: string } };
 }
 
-async function summarizeBatch(client: BulleClient, userId: string, rows: ChangeRow[], language: AiLanguage) {
+async function summarizeBatch(client: BulleClient, userId: string, spaceId: string | undefined, rows: ChangeRow[], language: AiLanguage) {
   const inputs: ChangeInput[] = rows.map((row, index) => ({
     label: `c${index + 1}`,
     competitorName: row.page.competitor.name,
@@ -193,6 +212,7 @@ async function summarizeBatch(client: BulleClient, userId: string, rows: ChangeR
     prompt: 'Summarise each change.',
     input: summaryPrompt(inputs),
     maxTokens: 300 * rows.length + 200,
+    spaceId,
   });
   const byLabel = parseSummaries(raw, inputs.map((input) => input.label));
   return rows.map((row, index) => ({ id: row.id, summary: byLabel.get(`c${index + 1}`)! }));
@@ -217,7 +237,8 @@ export async function summarizeChanges(
   const cachedRows = await prisma.pageChange.findMany({ where: { ...where, aiSummary: { not: null } }, select: { id: true, aiSummary: true } });
   const summaries: Record<string, string> = Object.fromEntries(cachedRows.map((row) => [row.id, row.aiSummary!]));
   const asScope: Scope = scope.teamId ? { type: 'team', userId: scope.userId, teamId: scope.teamId } : { type: 'personal', userId: scope.userId };
-  if (!deps.bulle || !(await aiAccess(deps.forfait, asScope)).allowed) return { available: false, summaries };
+  const ai = await aiAccess(deps.forfait, asScope);
+  if (!deps.bulle || !ai.allowed) return { available: false, summaries };
 
   const today = startOfDay(now);
   const { remaining } = await summaryBudget(prisma, scope, now);
@@ -235,7 +256,7 @@ export async function summarizeChanges(
     });
     if (claimed.count !== batch.length) continue;
     try {
-      for (const entry of await summarizeBatch(deps.bulle, scope.userId, batch, language)) {
+      for (const entry of await summarizeBatch(deps.bulle, scope.userId, ai.spaceId, batch, language)) {
         await prisma.pageChange.update({ where: { id: entry.id }, data: { aiSummary: entry.summary } });
         summaries[entry.id] = entry.summary;
       }
@@ -326,7 +347,7 @@ export function listPrices(prisma: PrismaClient, competitorId: string) {
  */
 export async function extractPrices(deps: AiDeps, scope: Scope, competitor: Competitor, language: AiLanguage) {
   const client = requireBulle(deps.bulle);
-  await requireAiAccess(deps.forfait, scope);
+  const spaceId = await requireAiAccess(deps.forfait, scope);
   let sources: PriceSource[];
   let prices: ReturnType<typeof parsePrices>;
   try {
@@ -336,6 +357,7 @@ export async function extractPrices(deps: AiDeps, scope: Scope, competitor: Comp
       prompt: 'List the prices.',
       input: pricesPrompt(competitor.name, sources),
       maxTokens: 2000,
+      spaceId,
     });
     prices = parsePrices(raw, sources.length);
   } catch (error) {

@@ -68,12 +68,13 @@ export function parseSegments(raw: string, area: string | null): Segment[] {
     .slice(0, MAX_SEGMENTS);
 }
 
-/** Asks Bulle for target segments from the scope's profile. The router checks `ai.access` first; Bulle's own refusal carries the upgrade link. */
+/** Asks Bulle for target segments from the scope's profile. The router checks `ai.access` first and passes the team's Registre space; Bulle's own refusal carries the upgrade link. */
 export async function suggestSegments(
   prisma: PrismaClient,
   bulle: BulleClient | null,
   scope: Scope,
-  language: 'fr' | 'en'
+  language: 'fr' | 'en',
+  spaceId?: string
 ): Promise<Segment[]> {
   const client = requireBulle(bulle);
   const profile = await profileFor(prisma, scope);
@@ -87,6 +88,7 @@ export async function suggestSegments(
       prompt: 'Propose target segments.',
       input: segmentsPrompt(profile),
       maxTokens: 1200,
+      spaceId,
     });
     return parseSegments(raw, profile.area);
   } catch (error) {
