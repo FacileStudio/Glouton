@@ -11,6 +11,12 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+## [0.23.1] - 2026-11-14
+
+### Fixed
+
+- AI follows the personal or the space plan. In a team, an AI call is allowed when the team space's plan or the member's own plan has `ai.access`, and Glouton sends the team's Registre space as `space_id` on Bulle's `POST /api/ai/complete` (Bulle v3.55.0 applies the same rule and checks membership). A free member of a paid team no longer passes Glouton's check and then gets Bulle's 402, and a paid member of a free team gets AI there too. Personal calls send no `space_id`.
+
 ## [0.23.0] - 2026-11-14
 
 ### Changed
