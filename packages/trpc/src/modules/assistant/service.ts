@@ -1,28 +1,39 @@
 import type { PrismaClient } from '@prisma/client';
 import { TRPCError } from '@trpc/server';
+import { logger } from '@repo/logger';
 import { ownedWhere, type Access } from '../contact/access';
 import { findCompany, findPerson } from '../contact/service';
-import { BulleUnavailableError, type BulleClient, type BulleFailure, type PlanLimit } from './bulle';
 import {
-  nextActionPrompt,
-  parseNextAction,
-  parseWriteResponse,
+  PlanRequired,
+  StatusError,
+  bulleFailure,
+  complete,
+  planLimitFields,
+  planRequired,
+  type BulleClient,
+  type BulleFailure,
+  type PlanLimit,
+} from './bulle';
+import {
+  NEXT_ACTION_TASK,
+  nextActionData,
   systemPrompt,
-  writePrompt,
+  writeData,
+  writeTask,
   type ContactContext,
   type NextActionResult,
   type Sender,
   type WriteInput,
   type WriteResult,
 } from './prompt';
+import { parseNextAction, parseWriteResponse } from './parse';
 
 export interface AssistantStatus {
   available: boolean;
-  reason: 'not_linked' | 'no_key' | 'unreachable' | 'plan_required' | null;
+  reason: BulleFailure | null;
   planLimit?: PlanLimit;
   name: string;
   avatarUrl: string | null;
-  model: string | null;
 }
 
 export interface ContactTarget {
@@ -32,26 +43,32 @@ export interface ContactTarget {
 
 const NEEDS_BODY = new Set<WriteInput['action']>(['rewrite', 'shorter', 'warmer', 'formal', 'fix', 'translate', 'subject']);
 
+export const TOO_LARGE_MESSAGE = 'Bulle a refusé la demande : texte trop long ou invalide. Raccourcissez les notes ou le message, puis réessayez.';
+
+export const PLAN_REQUIRED_MESSAGE = 'Les fonctions IA demandent une offre avec accès à l’IA.';
+
 const FAILURE_MESSAGES: Record<BulleFailure, string> = {
   not_linked: 'Reconnectez votre compte Facile pour utiliser Bulle.',
-  no_key: 'Bulle n’a pas de clé de modèle. Ajoutez-en une dans les réglages de Bulle.',
   unreachable: 'Bulle est injoignable pour le moment. Réessayez dans un instant.',
-  unsupported: 'Le modèle choisi dans Bulle (Google) n’est pas encore pris en charge par Glouton.',
-  plan_required: 'Les fonctions IA demandent une offre avec accès à l’IA.',
+  plan_required: PLAN_REQUIRED_MESSAGE,
 };
-
-function statusReason(reason: BulleFailure): AssistantStatus['reason'] {
-  return reason === 'unsupported' ? 'unreachable' : reason;
-}
 
 /** Turns a Bulle failure into the TRPCError the web app shows; rethrows anything else. */
 export function assistantError(error: unknown): never {
-  if (error instanceof BulleUnavailableError) {
-    const code = error.reason === 'unreachable' ? 'BAD_GATEWAY' : error.reason === 'plan_required' ? 'FORBIDDEN' : 'PRECONDITION_FAILED';
-    const message = error.reason === 'plan_required' ? (error.planLimit?.message ?? FAILURE_MESSAGES.plan_required) : FAILURE_MESSAGES[error.reason];
-    throw new TRPCError({ code, message, cause: error });
+  if (error instanceof PlanRequired) {
+    throw new TRPCError({ code: 'FORBIDDEN', message: error.message || PLAN_REQUIRED_MESSAGE, cause: error });
   }
-  throw error;
+  if (error instanceof StatusError && error.status === 429) {
+    throw new TRPCError({ code: 'TOO_MANY_REQUESTS', message: error.message || 'Bulle daily limit reached', cause: error });
+  }
+  if (error instanceof StatusError && (error.status === 400 || error.status === 413)) {
+    logger.warn({ status: error.status, code: error.code, error: error.message }, '[BULLE] Bulle rejected the request');
+    throw new TRPCError({ code: error.status === 413 ? 'PAYLOAD_TOO_LARGE' : 'BAD_REQUEST', message: TOO_LARGE_MESSAGE, cause: error });
+  }
+  const failure = bulleFailure(error);
+  if (!failure) throw error;
+  if (error instanceof StatusError) logger.warn({ status: error.status, code: error.code, error: error.message }, '[BULLE] Bulle refused the call');
+  throw new TRPCError({ code: failure === 'not_linked' ? 'PRECONDITION_FAILED' : 'BAD_GATEWAY', message: FAILURE_MESSAGES[failure], cause: error });
 }
 
 /** The Bulle client, or BAD_GATEWAY when this server has none. */
@@ -60,38 +77,34 @@ export function requireBulle(bulle: BulleClient | null): BulleClient {
   return bulle;
 }
 
-/** Whether Bulle can write for this user, and how it presents itself. */
-export async function assistantStatus(bulle: BulleClient | null, userId: string): Promise<AssistantStatus> {
-  const down = (reason: AssistantStatus['reason'], planLimit: PlanLimit | null = null): AssistantStatus => ({
+/**
+ * Whether Bulle can write for this user in a scope, and how it presents
+ * itself. The scope's plan must carry ai.access; reading the assistant
+ * profile then proves the token exchange and Bulle itself answer.
+ */
+export async function assistantStatus(
+  bulle: BulleClient | null,
+  userId: string,
+  ai: { allowed: boolean; upgradeUrl: string }
+): Promise<AssistantStatus> {
+  const down = (reason: BulleFailure, planLimit?: PlanLimit): AssistantStatus => ({
     available: false,
     reason,
     ...(planLimit ? { planLimit } : {}),
     name: 'Bulle',
     avatarUrl: null,
-    model: null,
   });
   if (!bulle) return down('unreachable');
+  if (!ai.allowed) return down('plan_required', planLimitFields(planRequired(PLAN_REQUIRED_MESSAGE, ai.upgradeUrl)));
   try {
-    const offer = await bulle.offer(userId);
-    const [profile, probe] = await Promise.all([
-      bulle.profile(userId).catch(() => ({ name: 'Bulle', avatarUrl: null })),
-      bulle.probe(userId, offer.backend).then(
-        () => null,
-        (error: unknown) => error
-      ),
-    ]);
-    const reason = probe instanceof BulleUnavailableError ? statusReason(probe.reason) : probe ? 'unreachable' : null;
-    return {
-      available: reason === null,
-      reason,
-      ...(probe instanceof BulleUnavailableError && probe.planLimit ? { planLimit: probe.planLimit } : {}),
-      name: profile.name,
-      avatarUrl: profile.avatarUrl,
-      model: offer.model || offer.models[0] || null,
-    };
+    const profile = (await bulle.call<{ name?: unknown; avatar_url?: unknown }>(userId, { method: 'GET', segments: ['assistant'] })) ?? {};
+    const name = typeof profile.name === 'string' && profile.name.trim() ? profile.name.trim() : 'Bulle';
+    const avatarUrl = typeof profile.avatar_url === 'string' && profile.avatar_url ? profile.avatar_url : null;
+    return { available: true, reason: null, name, avatarUrl };
   } catch (error) {
-    if (error instanceof BulleUnavailableError) return down(statusReason(error.reason), error.planLimit);
-    throw error;
+    const reason = bulleFailure(error);
+    if (!reason) throw error;
+    return down(reason, error instanceof PlanRequired ? planLimitFields(error) : undefined);
   }
 }
 
@@ -140,10 +153,10 @@ export async function write(
   }
   const contact = await loadContact(prisma, access, input);
   try {
-    const offer = await client.offer(access.userId);
-    const raw = await client.complete(access.userId, offer, {
-      system: systemPrompt(offer.persona, 'write', input.language),
-      user: writePrompt(input, contact, sender),
+    const raw = await complete(client, access.userId, {
+      system: systemPrompt('write', input.language),
+      prompt: writeTask(input),
+      input: writeData(input, contact, sender),
       maxTokens: 2000,
     });
     const result = parseWriteResponse(raw);
@@ -164,10 +177,10 @@ export async function nextAction(
   const client = requireBulle(bulle);
   const contact = await loadContact(prisma, access, target);
   try {
-    const offer = await client.offer(access.userId);
-    const raw = await client.complete(access.userId, offer, {
-      system: systemPrompt(offer.persona, 'nextAction', 'fr'),
-      user: nextActionPrompt(contact, sender),
+    const raw = await complete(client, access.userId, {
+      system: systemPrompt('nextAction', 'fr'),
+      prompt: NEXT_ACTION_TASK,
+      input: nextActionData(contact, sender),
       maxTokens: 1500,
     });
     return parseNextAction(raw);

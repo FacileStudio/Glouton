@@ -1,10 +1,5 @@
+import type { Run, RunState } from '@facile/tronc/bulle';
 import { record, text } from '@repo/courrier';
-
-/** Where a run continues as a conversation; Bulle's continue_path is appended. */
-export const BULLE_APP_URL = 'https://bulle.facile.studio';
-
-/** The run states muse's IdeaCard draws. */
-export type RunState = 'running' | 'needs_approval' | 'done' | 'failed';
 
 export interface IdeaLink {
   label: string;
@@ -50,8 +45,6 @@ export interface RunView {
   continueHref: string;
 }
 
-const FAILED = new Set(['error', 'stopped', 'interrupted']);
-
 /** A link Glouton can render: an absolute http(s) URL, or nothing. */
 export function safeHref(value: unknown): string | undefined {
   const raw = text(value).trim();
@@ -62,18 +55,6 @@ export function safeHref(value: unknown): string | undefined {
   } catch {
     return undefined;
   }
-}
-
-/**
- * The card state of a run status. Bulle reports `waiting` while a call waits
- * for approval; a running run with a pending call reads the same, and every
- * stop that is not `finished` is a failure.
- */
-export function runState(status: string, pending: number): RunState {
-  if (status === 'waiting' || (status === 'running' && pending > 0)) return 'needs_approval';
-  if (status === 'finished') return 'done';
-  if (FAILED.has(status)) return 'failed';
-  return 'running';
 }
 
 function list(value: unknown): unknown[] {
@@ -109,24 +90,22 @@ export function pageView(raw: unknown, upgradeUrl: string): IdeasPageView {
 }
 
 /** Bulle's run view as the card shows it: state, last words, links to what it made, and pending approvals. */
-export function runView(raw: unknown): RunView {
-  const run = record(raw);
+export function runView(run: Run): RunView {
   const approvals = list(run.pending_approvals).map((item) => {
     const approval = record(item);
     return { callId: text(approval.call_id), tool: text(approval.tool), args: approval.args ?? null };
   });
   const outputs = list(run.outputs).flatMap((item) => {
     const output = record(item);
-    const href = safeHref(output.url);
+    const href = text(output.url);
     return href ? [{ label: text(output.preview) || text(output.tool), href }] : [];
   });
-  const path = text(run.continue_path);
   return {
     runId: text(run.id),
-    state: runState(text(run.status), approvals.length),
+    state: run.state,
     summary: text(run.summary),
     outputs,
     approvals: approvals.filter((approval) => approval.callId),
-    continueHref: path.startsWith('/') ? `${BULLE_APP_URL}${path}` : BULLE_APP_URL,
+    continueHref: run.continue_url,
   };
 }

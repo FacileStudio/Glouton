@@ -55,6 +55,7 @@ export const createContext = async (options: CreateContextOptions) => {
 
   return {
     user,
+    session: sessionUser !== null,
     actor,
     scopes,
     prisma: options.prisma,

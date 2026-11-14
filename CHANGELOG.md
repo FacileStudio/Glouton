@@ -11,6 +11,20 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+### Changed
+
+- Every AI call goes through Bulle's `POST /api/ai/complete` instead of the raw `/api/llm` proxy: the writing assistant, next actions, battlecards, change summaries, price extraction, target and segment suggestions and job drafts. The task goes in `prompt` and the contact, page or CV text in `input`, which Bulle treats as untrusted data. Bulle picks the model; Glouton no longer sends the Bulle persona.
+- The hand-written Bulle client is replaced by `@facile/tronc/bulle` (tronc-ts v0.3.1), for the writing assistant and the Ideas page. A 402 keeps its message, entitlement and limit, and an upgrade page that is not https or same-origin is dropped. Bulle's daily cap answers 429.
+- The assistant status, `assistant.write`, `assistant.nextAction` and `huntSchedule.suggestSegments` check the scope's `ai.access` before calling Bulle, as the other AI features already did. The "add a model key" state is gone.
+- A 400 or 413 from Bulle now says the request is too long or invalid, instead of "Bulle est injoignable".
+- MCP: `@facile/tronc` moves from v0.2.0 to v0.3.1 (plain-text 403 and 429, 120 calls a minute per person, at most 100 pending actions listed). Pending actions resolved or expired more than 30 days ago are pruned hourly, and a pending or declined delete answers with tronc's standard text.
+
+### Security
+
+- The MCP confirm page (`mcp.pending`, `mcp.confirm`, `mcp.dismiss`) accepts only a Glouton browser session. A delegated or bearer token is refused even when it names no agent.
+- MCP pending deletes are reused only for the same OAuth client (tronc-ts v0.3.1). Before, a second client of the same person could collect the result of a delete the person confirmed for the first.
+- Known limit: the session JWT the confirm page trusts sits in `localStorage`, so script in the page (an agent driving the person's browser) can read it and confirm. An `HttpOnly` cookie session would close this; the backend does not serve one yet.
+
 ## [0.22.0] - 2026-11-14
 
 ### Added

@@ -117,8 +117,24 @@ const isHuman = t.middleware(({ next, ctx }) => {
   return next();
 });
 
+/**
+ * Lets through only the person's own browser session: a Glouton session
+ * token, which only the SSO sign-in in the browser mints. A delegated or MCP
+ * bearer token is refused even when it names no agent.
+ */
+const isOwnSession = t.middleware(({ next, ctx }) => {
+  if (!ctx.session || ctx.actor) {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message: 'Confirm this in Glouton, signed in in your browser.',
+    });
+  }
+  return next();
+});
+
 const authedProcedure = t.procedure.use(loggingMiddleware).use(isAuthed);
 
 export const protectedProcedure = authedProcedure.use(requiresPlan);
 export const humanProcedure = authedProcedure.use(isHuman).use(requiresPlan);
+export const sessionProcedure = authedProcedure.use(isOwnSession).use(requiresPlan);
 export const adminProcedure = authedProcedure.use(isHuman).use(isAdmin).use(requiresPlan);

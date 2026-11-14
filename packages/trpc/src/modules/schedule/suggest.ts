@@ -1,7 +1,7 @@
 import type { PrismaClient } from '@prisma/client';
 import { TRPCError } from '@trpc/server';
-import type { BulleClient } from '../assistant/bulle';
-import { jsonObject } from '../assistant/prompt';
+import { complete, type BulleClient } from '../assistant/bulle';
+import { jsonObject } from '../assistant/parse';
 import { assistantError, requireBulle } from '../assistant/service';
 import { isHuntCategory } from '../../taxonomy';
 import { profileFor, type ProspectProfile } from '../prospect/profile';
@@ -43,7 +43,7 @@ export function segmentsPrompt(profile: ProspectProfile): string {
     clients.nafCodes.length ? `NAF codes: ${clients.nafCodes.join(', ')}` : null,
     clients.keywords.length ? `Keywords: ${clients.keywords.join(', ')}` : null,
   ];
-  return `# Prospecting profile\n${lines.filter(Boolean).join('\n')}\n\nPropose target segments.`;
+  return `# Prospecting profile\n${lines.filter(Boolean).join('\n')}`;
 }
 
 function text(value: unknown, max: number): string | null {
@@ -68,7 +68,7 @@ export function parseSegments(raw: string, area: string | null): Segment[] {
     .slice(0, MAX_SEGMENTS);
 }
 
-/** Asks Bulle for target segments from the scope's profile. Bulle gates `ai.access`; its refusal carries the upgrade link. */
+/** Asks Bulle for target segments from the scope's profile. The router checks `ai.access` first; Bulle's own refusal carries the upgrade link. */
 export async function suggestSegments(
   prisma: PrismaClient,
   bulle: BulleClient | null,
@@ -82,10 +82,10 @@ export async function suggestSegments(
     throw new TRPCError({ code: 'BAD_REQUEST', message: 'Describe your offer in the prospecting profile first' });
   }
   try {
-    const offer = await client.offer(scope.userId);
-    const raw = await client.complete(scope.userId, offer, {
-      system: [offer.persona.trim(), RULES, languageRule(language)].filter(Boolean).join('\n\n'),
-      user: segmentsPrompt(profile),
+    const raw = await complete(client, scope.userId, {
+      system: [RULES, languageRule(language)].join('\n\n'),
+      prompt: 'Propose target segments.',
+      input: segmentsPrompt(profile),
       maxTokens: 1200,
     });
     return parseSegments(raw, profile.area);

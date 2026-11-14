@@ -14,7 +14,7 @@
     "lint": "eslint src --max-warnings 0"
   },
   "dependencies": {
-    "@facile/tronc": "github:FacileStudio/tronc-ts#v0.2.0",
+    "@facile/tronc": "github:FacileStudio/tronc-ts#v0.3.1",
     "@hono/trpc-server": "^0.4.2",
     "@repo/courrier": "workspace:*",
     "@repo/database": "workspace:*",

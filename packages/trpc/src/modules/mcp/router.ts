@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { router, humanProcedure } from '../../trpc';
+import { router, sessionProcedure } from '../../trpc';
 import type { Context } from '../../context';
 
 /** One MCP action waiting for its person, as the confirm page shows it. */
@@ -31,14 +31,14 @@ function pendingOf(ctx: Context): McpPending {
 }
 
 /**
- * The confirm page of MCP actions. Only a person signed in to Glouton gets
- * through, so an agent never confirms its own request. No plan is needed: MCP
- * is free.
+ * The confirm page of MCP actions. Only the person's own browser session
+ * gets through, never a delegated or bearer token, so an agent never confirms
+ * its own request. No plan is needed: MCP is free.
  */
 export const mcpRouter = router({
-  pending: humanProcedure.query(({ ctx }) => (ctx.mcp ? ctx.mcp.open(ctx.user.id) : [])),
+  pending: sessionProcedure.query(({ ctx }) => (ctx.mcp ? ctx.mcp.open(ctx.user.id) : [])),
 
-  confirm: humanProcedure
+  confirm: sessionProcedure
     .meta(meta)
     .input(actionInput)
     .mutation(async ({ ctx, input }) => {
@@ -46,7 +46,7 @@ export const mcpRouter = router({
       return { id: input.id, confirmed: true };
     }),
 
-  dismiss: humanProcedure
+  dismiss: sessionProcedure
     .meta(meta)
     .input(actionInput)
     .mutation(async ({ ctx, input }) => {

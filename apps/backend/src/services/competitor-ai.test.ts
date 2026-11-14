@@ -5,7 +5,7 @@ const databaseUrl = process.env.TEST_DATABASE_URL;
 process.env.DATABASE_URL = databaseUrl ?? 'postgresql://unused@localhost/unused';
 
 const { fetchRequestHandler } = await import('@trpc/server/adapters/fetch');
-const { appRouter, BulleClient, competitorAi } = await import('@repo/trpc');
+const { appRouter, createBulle, competitorAi } = await import('@repo/trpc');
 const { AiOutputError, DATA_CLOSE, UNTRUSTED_RULE, dataBlock, parseDraft, parsePrices, parseSummaries, offerLinks } = competitorAi;
 
 const { competitorWatch } = await import('@repo/jobs/workers');
@@ -26,7 +26,7 @@ const validDraft = {
   proofPoints: ['120 clients'],
 };
 
-/** A Bulle stand-in at the HTTP level: the real BulleClient parses its answers, including a 402. */
+/** A Bulle stand-in at the HTTP level: the real tronc client parses its answers, including a 402. */
 function fakeBulle() {
   const state = {
     answers: [] as Array<string | { status: number; body: unknown }>,
@@ -34,15 +34,15 @@ function fakeBulle() {
   };
   const fetchImpl = async (url: string | URL | Request, init?: RequestInit) => {
     const path = new URL(String(url)).pathname;
-    if (path === '/api/llm') return Response.json({ backend: 'anthropic', model: 'm-1', models: ['m-1'], persona: '' });
-    const body = JSON.parse(String(init?.body)) as { system: string; messages: Array<{ content: string }> };
-    state.prompts.push({ system: body.system, user: body.messages[0]!.content });
+    if (path !== '/api/ai/complete') return Response.json({ error: { message: 'not found' } }, { status: 404 });
+    const body = JSON.parse(String(init?.body)) as { system: string; prompt: string; input?: string };
+    state.prompts.push({ system: body.system, user: [body.prompt, body.input].filter(Boolean).join('\n\n') });
     const next = state.answers.shift() ?? JSON.stringify(validDraft);
     if (typeof next !== 'string') return Response.json(next.body, { status: next.status });
-    return Response.json({ content: [{ type: 'text', text: next }] });
+    return Response.json({ text: next, model: 'm-1' });
   };
   const tokens = { token: async () => 'token', forget: () => {} };
-  const bulle = new BulleClient({ bulleUrl: 'https://bulle.test', tokens: tokens as never, fetch: fetchImpl as typeof fetch });
+  const bulle = createBulle({ bulleUrl: 'https://bulle.test', tokens: tokens as never, fetch: fetchImpl as typeof fetch });
   return { bulle, state };
 }
 
@@ -258,6 +258,32 @@ describe.skipIf(!databaseUrl)('competitor AI through Bulle', () => {
     expect(state.prompts).toHaveLength(0);
   });
 
+  test('the assistant and segment suggestions check ai.access before calling Bulle', async () => {
+    const { bulle, state } = fakeBulle();
+    const refused = [
+      await call('assistant.write', users.bob!, { teamId: ids.teamB, action: 'draft' }, { bulle }),
+      await call('assistant.nextAction', users.bob!, { teamId: ids.teamB, companyId: 'any' }, { bulle }),
+      await call('huntSchedule.suggestSegments', users.bob!, { teamId: ids.teamB }, { bulle }),
+    ];
+    for (const res of refused) {
+      expect(res.status).toBe(403);
+      expect(res.error?.data?.plan_limit).toEqual(expect.objectContaining({ upgrade_url: UPGRADE, key: 'ai.access' }));
+    }
+    expect(state.prompts).toHaveLength(0);
+    const allowed = await call<{ body: string }>('assistant.write', users.alice!, { teamId: ids.teamA, action: 'draft' }, { bulle });
+    expect(allowed.status).toBe(200);
+    expect(state.prompts).toHaveLength(1);
+  });
+
+  test('a 400 or 413 from Bulle says the request is too large or invalid, not that Bulle is down', async () => {
+    const { bulle, state } = fakeBulle();
+    state.answers.push({ status: 413, body: { error: { message: 'input too large' } } }, { status: 400, body: { error: { message: 'bad max_tokens' } } });
+    const tooLarge = await call('assistant.write', users.alice!, { teamId: ids.teamA, action: 'draft' }, { bulle });
+    const invalid = await call('assistant.write', users.alice!, { teamId: ids.teamA, action: 'draft' }, { bulle });
+    expect([tooLarge.status, invalid.status]).toEqual([413, 400]);
+    for (const res of [tooLarge, invalid]) expect((res.error as { message?: string }).message).toContain('trop long ou invalide');
+  });
+
   test('another team cannot draft, summarize, extract or read prices of a competitor', async () => {
     const { bulle } = fakeBulle();
     const input = { teamId: ids.teamB, competitorId: ids.rival };
@@ -331,7 +357,7 @@ describe.skipIf(!databaseUrl)('competitor AI through Bulle', () => {
       )
     );
     const changeIds = created.map((row) => row.id);
-    const { bulle, state } = fakeBulle();
+    const { state } = fakeBulle();
     let calls = 0;
     const answer = () => {
       calls++;
@@ -339,10 +365,9 @@ describe.skipIf(!databaseUrl)('competitor AI through Bulle', () => {
       return JSON.stringify({ summaries: labels.map((id) => ({ id, summary: `Price moved (${id}).` })) });
     };
     const bulleWithAnswers = {
-      offer: bulle.offer.bind(bulle),
-      complete: async (...args: Parameters<typeof bulle.complete>) => {
-        state.prompts.push({ system: args[2].system, user: args[2].user });
-        return answer();
+      complete: async (_user: string, request: { system?: string; prompt: string; input?: string }) => {
+        state.prompts.push({ system: request.system ?? '', user: [request.prompt, request.input].filter(Boolean).join('\n\n') });
+        return { text: answer(), model: 'm-1' };
       },
     };
     const day = new Date('2026-11-08T09:00:00Z');

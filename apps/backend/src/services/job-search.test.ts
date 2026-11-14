@@ -6,7 +6,7 @@ const databaseUrl = process.env.TEST_DATABASE_URL;
 process.env.DATABASE_URL = databaseUrl ?? 'postgresql://unused@localhost/unused';
 
 const { fetchRequestHandler } = await import('@trpc/server/adapters/fetch');
-const { appRouter, BulleClient, jobSearch, competitorAi } = await import('@repo/trpc');
+const { appRouter, createBulle, jobSearch, competitorAi } = await import('@repo/trpc');
 const { matchOffer, contractsOf, webPosting, canMove, transition, parseJobDraft, docxText, sniffType, rank } = jobSearch;
 const { AiOutputError } = competitorAi;
 
@@ -167,15 +167,15 @@ function fakeBulle() {
   const state = { answers: [] as Array<string | { status: number; body: unknown }>, prompts: [] as Array<{ system: string; user: string }> };
   const fetchImpl = async (url: string | URL | Request, init?: RequestInit) => {
     const path = new URL(String(url)).pathname;
-    if (path === '/api/llm') return Response.json({ backend: 'anthropic', model: 'm-1', models: ['m-1'], persona: '' });
-    const body = JSON.parse(String(init?.body)) as { system: string; messages: Array<{ content: string }> };
-    state.prompts.push({ system: body.system, user: body.messages[0]!.content });
+    if (path !== '/api/ai/complete') return Response.json({ error: { message: 'not found' } }, { status: 404 });
+    const body = JSON.parse(String(init?.body)) as { system: string; prompt: string; input?: string };
+    state.prompts.push({ system: body.system, user: [body.prompt, body.input].filter(Boolean).join('\n\n') });
     const next = state.answers.shift() ?? '{"letter":"Madame, Monsieur, je souhaite rejoindre Acme."}';
     if (typeof next !== 'string') return Response.json(next.body, { status: next.status });
-    return Response.json({ content: [{ type: 'text', text: next }] });
+    return Response.json({ text: next, model: 'm-1' });
   };
   const tokens = { token: async () => 'token', forget: () => {} };
-  return { bulle: new BulleClient({ bulleUrl: 'https://bulle.test', tokens: tokens as never, fetch: fetchImpl as typeof fetch }), state };
+  return { bulle: createBulle({ bulleUrl: 'https://bulle.test', tokens: tokens as never, fetch: fetchImpl as typeof fetch }), state };
 }
 
 function reader(ai: Record<string, boolean>) {

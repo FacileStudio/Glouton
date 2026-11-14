@@ -47,9 +47,6 @@ export const assistant = {
   'leads.pagination.last': ['Last page', 'Dernière page', 'Última página', 'Letzte Seite'],
   'assistant.reason.not_linked.title': ['Sign in to Facile again', 'Reconnectez votre compte Facile', 'Vuelve a conectar tu cuenta de Facile', 'Melden Sie Ihr Facile-Konto erneut an'],
   'assistant.reason.not_linked.text': ['Sign out and back in to let Bulle write with you.', 'Déconnectez-vous puis reconnectez-vous pour autoriser Bulle à écrire avec vous.', 'Cierra sesión y vuelve a iniciarla para que Bulle pueda escribir contigo.', 'Melden Sie sich ab und wieder an, damit Bulle mit Ihnen schreiben darf.'],
-  'assistant.reason.no_key.title': ['Add a key in Bulle', 'Ajoutez une clé dans Bulle', 'Añade una clave en Bulle', 'Fügen Sie in Bulle einen Schlüssel hinzu'],
-  'assistant.reason.no_key.text': ['Bulle needs a model key to write. Add one in the Bulle settings.', 'Bulle a besoin d’une clé de modèle pour rédiger. Ajoutez-la dans les réglages de Bulle.', 'Bulle necesita una clave de modelo para redactar. Añádela en los ajustes de Bulle.', 'Bulle braucht zum Schreiben einen Modellschlüssel. Fügen Sie ihn in den Bulle-Einstellungen hinzu.'],
-  'assistant.reason.no_key.link': ['Open the Bulle settings', 'Ouvrir les réglages de Bulle', 'Abrir los ajustes de Bulle', 'Bulle-Einstellungen öffnen'],
   'assistant.reason.unreachable.title': ['Bulle is not answering', 'Bulle ne répond pas', 'Bulle no responde', 'Bulle antwortet nicht'],
   'assistant.reason.unreachable.text': ['Bulle cannot be reached right now. Try again in a few minutes.', 'Bulle est injoignable pour le moment. Réessayez dans quelques minutes.', 'No se puede contactar con Bulle ahora mismo. Inténtalo de nuevo en unos minutos.', 'Bulle ist im Moment nicht erreichbar. Versuchen Sie es in ein paar Minuten erneut.'],
   'leads.pagination.perPageOption': ['{count} / page', '{count} / page', '{count} / página', '{count} / Seite']
