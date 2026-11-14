@@ -84,7 +84,7 @@ export async function draftForApplication(
   input: { applicationId: string; kind: JobDraftKind; cvId?: string; language: AiLanguage }
 ) {
   const client = requireBulle(deps.bulle);
-  await requireAiAccess(deps.forfait, scope);
+  const spaceId = await requireAiAccess(deps.forfait, scope);
   const application = await loadApplication(deps.prisma, scope, input.applicationId);
   const offer = application.offerId
     ? await deps.prisma.jobOffer.findUnique({ where: { id: application.offerId }, select: { description: true } })
@@ -99,6 +99,7 @@ export async function draftForApplication(
       prompt: 'Write the draft from the job offer and the CV.',
       input: draftPrompt({ title: application.title, company: application.company, location: application.location, description }, cv.text),
       maxTokens: input.kind === 'CV' ? 3000 : 1500,
+      spaceId,
     });
     content = parseJobDraft(input.kind, raw);
   } catch (error) {

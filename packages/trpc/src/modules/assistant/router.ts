@@ -34,8 +34,9 @@ async function scopeOf(ctx: AuthedContext, team: string | undefined): Promise<Sc
 /** The contact access of an AI call, refused with plan_required before Bulle when the scope's plan has no ai.access. */
 async function aiCallAccess(ctx: AuthedContext, team: string | undefined) {
   const scope = await scopeOf(ctx, team);
-  await requireAiAccess(ctx.forfait, scope);
-  return team ? accessForScope(scope, ctx.actor) : accessForUser(ctx.prisma, ctx.user.id, ctx.actor);
+  const spaceId = await requireAiAccess(ctx.forfait, scope);
+  const access = team ? await accessForScope(scope, ctx.actor) : await accessForUser(ctx.prisma, ctx.user.id, ctx.actor);
+  return { ...access, spaceId };
 }
 
 function sender(ctx: AuthedContext) {

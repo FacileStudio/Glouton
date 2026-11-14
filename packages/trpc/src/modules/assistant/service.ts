@@ -72,6 +72,9 @@ export function assistantError(error: unknown): never {
 }
 
 /** The Bulle client, or BAD_GATEWAY when this server has none. */
+/** The contact access of an AI call, with the team's Registre space Bulle checks the plan of. */
+export type AiCallAccess = Access & { spaceId?: string };
+
 export function requireBulle(bulle: BulleClient | null): BulleClient {
   if (!bulle) throw new TRPCError({ code: 'BAD_GATEWAY', message: 'Bulle n’est pas configuré sur ce serveur.' });
   return bulle;
@@ -143,7 +146,7 @@ export async function loadContact(prisma: PrismaClient, access: Access, target: 
 export async function write(
   prisma: PrismaClient,
   bulle: BulleClient | null,
-  access: Access,
+  access: AiCallAccess,
   sender: Sender,
   input: WriteInput & ContactTarget
 ): Promise<WriteResult> {
@@ -158,6 +161,7 @@ export async function write(
       prompt: writeTask(input),
       input: writeData(input, contact, sender),
       maxTokens: 2000,
+      spaceId: access.spaceId,
     });
     const result = parseWriteResponse(raw);
     return input.action === 'subject' ? { ...result, body: input.body ?? '' } : result;
@@ -170,7 +174,7 @@ export async function write(
 export async function nextAction(
   prisma: PrismaClient,
   bulle: BulleClient | null,
-  access: Access,
+  access: AiCallAccess,
   sender: Sender,
   target: ContactTarget
 ): Promise<NextActionResult> {
@@ -182,6 +186,7 @@ export async function nextAction(
       prompt: NEXT_ACTION_TASK,
       input: nextActionData(contact, sender),
       maxTokens: 1500,
+      spaceId: access.spaceId,
     });
     return parseNextAction(raw);
   } catch (error) {

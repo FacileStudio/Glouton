@@ -28,8 +28,8 @@ export interface BulleConfig {
   fetch?: typeof fetch;
 }
 
-/** One completion a Glouton feature asks for: its rules, the task, and the data the task works on. */
-export type Completion = Pick<CompleteRequest, 'system' | 'prompt' | 'input' | 'maxTokens'>;
+/** One completion a Glouton feature asks for: its rules, the task, the data the task works on, and the team's Registre space, if any. */
+export type Completion = Pick<CompleteRequest, 'system' | 'prompt' | 'input' | 'maxTokens' | 'spaceId'>;
 
 /**
  * The tronc Bulle client for Glouton: the user's Registre refresh token is

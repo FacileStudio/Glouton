@@ -22,6 +22,7 @@ export interface ScopeVerdict {
   enforced: boolean;
   upgradeUrl: string;
   aiAccess?: boolean;
+  spaceId?: string;
 }
 
 /** The scopes a person may use now, for cross-scope reads. */
@@ -188,15 +189,17 @@ export function dbForfait(prisma: PrismaClient, fallbackIssuer = process.env.OID
       if (!membership) return null;
       const current = await state();
       const url = upgradeUrl(current?.issuer ?? fallbackIssuer, membership.team.registreSpaceId);
+      const spaceId = membership.team.registreSpaceId ?? undefined;
       if (!current) {
         warnOpen();
-        return { allowed: true, enforced: false, upgradeUrl: url, aiAccess: true };
+        return { allowed: true, enforced: false, upgradeUrl: url, aiAccess: true, spaceId };
       }
       return {
         allowed: enabled(membership.team.entitlements, GLOUTON_ACCESS),
         enforced: true,
         upgradeUrl: url,
         aiAccess: enabled(membership.team.entitlements, AI_ACCESS),
+        spaceId,
       };
     },
 
