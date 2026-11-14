@@ -26,60 +26,60 @@ import { pending } from './rows/pending';
 
 const base = {
   'app.name': ['Glouton', 'Glouton', 'Glouton', 'Glouton'],
-  'landing.tagline': ['Find. Qualify. Prospect.', 'Trouver. Qualifier. Prospecter.', 'Encontrar. Calificar. Prospectar.', 'Finden. Bewerten. Akquirieren.'],
-  'landing.footerTagline': [
-    'The clean prospecting space for Facile leads.',
-    "L'espace de prospection propre pour les pistes Facile.",
-    'El espacio de prospección limpio para los leads de Facile.',
-    'Der saubere Akquise-Bereich für Facile-Leads.'
-  ],
+  'landing.tagline': ['Find your next clients.', 'Trouvez vos prochains clients.', 'Encuentra tus próximos clientes.', 'Finden Sie Ihre nächsten Kunden.'],
+  'landing.footerTagline': ['Prospecting for the Facile suite.', 'La prospection de la suite Facile.', 'La prospección de la suite Facile.', 'Akquise für die Facile-Suite.'],
   'landing.pricing': ['Pricing', 'Tarifs', 'Tarifas', 'Preise'],
+  'landing.features': ['Features', 'Fonctions', 'Funciones', 'Funktionen'],
   'landing.openApp': ['Open the app', "Ouvrir l'app", 'Abrir la app', 'App öffnen'],
   'landing.heroText': [
-    'Glouton turns sales research into clean, prioritised leads that are ready to contact.',
-    'Glouton transforme les recherches commerciales en pistes propres, priorisées et prêtes à contacter.',
-    'Glouton convierte la búsqueda comercial en leads limpios, priorizados y listos para contactar.',
-    'Glouton macht aus Vertriebsrecherche saubere, priorisierte und kontaktbereite Leads.'
+    'Glouton finds local businesses, scores each lead and prepares your outreach.',
+    'Glouton trouve les entreprises locales, note chaque piste et prépare vos relances.',
+    'Glouton encuentra negocios locales, puntúa cada lead y prepara tus contactos.',
+    'Glouton findet lokale Betriebe, bewertet jeden Lead und bereitet Ihre Ansprache vor.'
   ],
-  'landing.f1.title': ['Find the right leads', 'Chercher les bonnes pistes', 'Encontrar los leads adecuados', 'Die richtigen Leads finden'],
+  'landing.f1.title': ['Local hunts', 'Chasses locales', 'Búsquedas locales', 'Lokale Suchläufe'],
   'landing.f1.desc': [
-    'Run hunts on domains, local areas or specialised sources, then let Glouton sort the results.',
-    'Lancez des chasses sur domaines, zones locales ou sources spécialisées, puis laissez Glouton ranger les résultats.',
-    'Lanza búsquedas por dominios, zonas locales o fuentes especializadas y deja que Glouton ordene los resultados.',
-    'Starten Sie Suchläufe über Domains, lokale Gebiete oder Spezialquellen und lassen Sie Glouton die Ergebnisse ordnen.'
+    'Pick a trade and a city. Glouton pulls the businesses from OpenStreetMap.',
+    'Choisissez un métier et une ville. Glouton récupère les entreprises depuis OpenStreetMap.',
+    'Elige un oficio y una ciudad. Glouton trae los negocios de OpenStreetMap.',
+    'Wählen Sie eine Branche und eine Stadt. Glouton holt die Betriebe aus OpenStreetMap.'
   ],
-  'landing.f2.title': ['Qualify without the noise', 'Qualifier sans bruit', 'Calificar sin ruido', 'Bewerten ohne Rauschen'],
+  'landing.f2.title': ['Scored leads', 'Pistes notées', 'Leads puntuados', 'Bewertete Leads'],
   'landing.f2.desc': [
-    'Score, status, contact details, technical signals and sales context live in one usable record.',
-    'Score, statut, coordonnées, signaux techniques et contexte commercial sont regroupés dans une seule fiche exploitable.',
-    'Puntuación, estado, datos de contacto, señales técnicas y contexto comercial en una sola ficha útil.',
-    'Score, Status, Kontaktdaten, technische Signale und Vertriebskontext stehen in einer nutzbaren Karte.'
+    'Glouton rates each lead HOT, WARM or COLD from its website and contact details.',
+    'Glouton classe chaque piste en HOT, WARM ou COLD selon son site et ses coordonnées.',
+    'Glouton clasifica cada lead como HOT, WARM o COLD según su web y sus datos de contacto.',
+    'Glouton stuft jeden Lead nach Website und Kontaktdaten als HOT, WARM oder COLD ein.'
   ],
-  'landing.f3.title': ['Prepare prospecting', 'Préparer la prospection', 'Preparar la prospección', 'Akquise vorbereiten'],
+  'landing.f3.title': ['Competitor watch', 'Veille concurrents', 'Vigilancia de competidores', 'Wettbewerber im Blick'],
   'landing.f3.desc': [
-    'Follow contacts, reminders and ready opportunities without turning the CRM into a haunted spreadsheet.',
-    'Suivez les contacts, les relances et les opportunités prêtes à partir sans transformer le CRM en tableur hanté.',
-    'Sigue contactos, recordatorios y oportunidades listas sin convertir el CRM en una hoja de cálculo embrujada.',
-    'Verfolgen Sie Kontakte, Erinnerungen und bereite Chancen, ohne das CRM in eine Spuk-Tabelle zu verwandeln.'
+    'Watch competitor pages and see what changed since your last visit.',
+    'Surveillez les pages de vos concurrents et voyez ce qui a changé.',
+    'Vigila las páginas de tus competidores y mira qué ha cambiado.',
+    'Beobachten Sie die Seiten Ihrer Wettbewerber und sehen Sie, was sich geändert hat.'
   ],
-  'landing.truth.title': ['One source of truth for leads.', 'Une seule table de vérité pour les leads.', 'Una única fuente de verdad para los leads.', 'Eine einzige Wahrheitsquelle für Leads.'],
-  'landing.truth.text': [
-    'Hunts, audits, maps, qualification, follow-up: everything converges in one readable space.',
-    'Chasses, audits, cartes, qualification, relance: tout converge dans un espace lisible.',
-    'Búsquedas, auditorías, mapas, calificación, seguimiento: todo converge en un espacio legible.',
-    'Suchläufe, Audits, Karten, Bewertung, Nachfassen: alles läuft in einem lesbaren Bereich zusammen.'
+  'landing.f4.title': ['Outreach', 'Relances', 'Contacto', 'Ansprache'],
+  'landing.f4.desc': [
+    'Draft your emails with Bulle and send them from your Courrier inbox.',
+    'Rédigez vos e-mails avec Bulle et envoyez-les depuis Courrier.',
+    'Redacta tus correos con Bulle y envíalos desde tu buzón de Courrier.',
+    'Entwerfen Sie Ihre E-Mails mit Bulle und senden Sie sie aus Courrier.'
   ],
-  'landing.m1.k': ['Sources', 'Sources', 'Fuentes', 'Quellen'],
-  'landing.m1.v': ['Domains, local, platforms', 'Domaines, local, plateformes', 'Dominios, local, plataformas', 'Domains, lokal, Plattformen'],
-  'landing.m2.k': ['Scoring', 'Scoring', 'Puntuación', 'Scoring'],
-  'landing.m2.v': ['HOT, WARM, COLD', 'HOT, WARM, COLD', 'HOT, WARM, COLD', 'HOT, WARM, COLD'],
-  'landing.m3.k': ['Workflow', 'Workflow', 'Flujo de trabajo', 'Workflow'],
-  'landing.m3.v': ['Audit, sort, outreach', 'Audit, tri, outreach', 'Auditoría, filtrado, contacto', 'Audit, Sortierung, Ansprache'],
+  'landing.cta.title': ['Start your first hunt.', 'Lancez votre première chasse.', 'Lanza tu primera búsqueda.', 'Starten Sie Ihren ersten Suchlauf.'],
+  'landing.demo.label': [
+    'A local hunt finds restaurants in Lyon and scores each one.',
+    'Une chasse locale trouve des restaurants à Lyon et note chacun.',
+    'Una búsqueda local encuentra restaurantes en Lyon y puntúa cada uno.',
+    'Ein lokaler Suchlauf findet Restaurants in Lyon und bewertet jedes.'
+  ],
+  'landing.demo.hunt': ['Restaurants in Lyon', 'Restaurants à Lyon', 'Restaurantes en Lyon', 'Restaurants in Lyon'],
+  'landing.demo.launch': ['Start', 'Lancer', 'Iniciar', 'Starten'],
+  'landing.demo.found': ['{count} found', '{count} trouvés', '{count} encontrados', '{count} gefunden'],
   'landing.pricingNote': [
-    'Glouton is included in the Facile Pro and Studio plans. A subscription unlocks the whole app.',
-    "Glouton est inclus dans les offres Pro et Studio de Facile. Un abonnement donne accès à toute l'app.",
-    'Glouton está incluido en las ofertas Pro y Studio de Facile. Una suscripción da acceso a toda la app.',
-    'Glouton ist in den Facile-Angeboten Pro und Studio enthalten. Ein Abonnement schaltet die ganze App frei.'
+    'The Facile Pro and Studio plans include Glouton. A subscription unlocks the whole app.',
+    "Les offres Pro et Studio de Facile incluent Glouton. Un abonnement donne accès à toute l'app.",
+    'Las ofertas Pro y Studio de Facile incluyen Glouton. Una suscripción da acceso a toda la app.',
+    'Die Facile-Angebote Pro und Studio enthalten Glouton. Ein Abonnement schaltet die ganze App frei.'
   ],
   'auth.error.unverified_account': [
     'An unverified Glouton account already uses this address. Ask an administrator to verify it, then sign in again.',
