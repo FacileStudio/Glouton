@@ -1,6 +1,13 @@
 import type { Row } from './types';
 
 export const landing = {
+  'landing.featuresTitle': ['From the map to the inbox', "De la carte à la boîte mail", 'Del mapa a la bandeja de entrada', 'Von der Karte ins Postfach'],
+  'landing.featuresText': [
+    'Find, score, watch and write, in one app.',
+    'Trouver, noter, surveiller et écrire, dans une seule app.',
+    'Encontrar, puntuar, vigilar y escribir, en una sola app.',
+    'Finden, bewerten, beobachten und schreiben, in einer App.'
+  ],
   'landing.tiles.title': ['More than a hunt', "Plus qu'une chasse", 'Más que una búsqueda', 'Mehr als ein Suchlauf'],
   'landing.tiles.creations.title': ['New companies', 'Nouvelles entreprises', 'Empresas nuevas', 'Neue Unternehmen'],
   'landing.tiles.creations.body': [

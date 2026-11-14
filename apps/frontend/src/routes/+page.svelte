@@ -63,15 +63,21 @@
       </div>
     </section>
 
-    <section id="features" class="mx-auto max-w-5xl scroll-mt-20 px-4 py-12 sm:px-6">
-      <ul class="grid gap-4 sm:grid-cols-2">
+    <section id="features" class="mx-auto grid max-w-5xl scroll-mt-20 gap-10 px-4 py-16 sm:px-6 md:grid-cols-[2fr_3fr] md:gap-16 md:py-20">
+      <div>
+        <h2 class="font-fc-title text-2xl font-bold tracking-tight text-fc-fg sm:text-3xl">{t('landing.featuresTitle')}</h2>
+        <p class="mt-4 max-w-sm text-fc-md text-fc-fg-muted">{t('landing.featuresText')}</p>
+      </div>
+      <ul class="space-y-8">
         {#each features as feature (feature.n)}
-          <li class="rounded-fc-lg bg-fc-component p-6">
-            <div class="mb-4 flex size-10 items-center justify-center rounded-fc-md bg-fc-surface">
+          <li class="flex gap-4">
+            <div class="flex size-10 shrink-0 items-center justify-center rounded-fc-md bg-fc-component">
               <iconify-icon icon={feature.icon} width="20" height="20" class="block shrink-0"></iconify-icon>
             </div>
-            <h2 class="text-fc-lg font-bold">{t(`landing.${feature.n}.title` as Key)}</h2>
-            <p class="mt-1.5 text-fc-sm text-fc-fg-muted">{t(`landing.${feature.n}.desc` as Key)}</p>
+            <div class="min-w-0">
+              <h3 class="text-fc-lg font-bold">{t(`landing.${feature.n}.title` as Key)}</h3>
+              <p class="mt-1 text-fc-sm text-fc-fg-muted">{t(`landing.${feature.n}.desc` as Key)}</p>
+            </div>
           </li>
         {/each}
       </ul>
