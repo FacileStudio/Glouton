@@ -11,6 +11,18 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+## [0.22.0] - 2026-11-14
+
+### Added
+
+- The landing shows a mise-en-scene demo of a local hunt: a click on Start, leads arrive scored HOT, WARM or COLD. Reduced motion gets a still frame.
+- A closing sign-in call to action and a Features link in the landing header.
+
+### Changed
+
+- Landing copy is shorter in all four locales: a new hero line, four features (local hunts, scored leads, competitor watch, outreach) and no metrics block.
+- Frontend: `@facile/muse` moves from v0.21.1 to v0.23.0 (Magnetik for titles and body); `@facile/mise-en-scene` v0.2.1 is added.
+
 ## [0.21.0] - 2026-11-14
 
 ### Added
