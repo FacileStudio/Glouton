@@ -11,6 +11,22 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+## [0.25.0] - 2026-11-14
+
+### Added
+
+- The landing's main button is now "Créer un compte gratuit", with "Se connecter avec Facile" beside it, in the hero and the closing call to action. A line under the hero says Glouton comes with the Pro plan.
+- A "Works with the rest of the suite" row: Bulle drafts the first email, follow-ups go out from Courrier, a won lead becomes an Ardoise client.
+- The hunt demo ends on the best lead marked won and created as a client in Ardoise.
+
+### Changed
+
+- New slogan, subtitle, page title and meta description in English, French, Spanish and German: "Vos prochains clients, trouvés pendant que vous dormez." The title and description are now localized server side, and the link preview image and web manifest drop the old "for the studio" text.
+- The pricing block shows only Glouton access per plan, marks Pro as recommended and links to the Suite pricing.
+- Lead scores read hot, warm and cold in each language instead of HOT, WARM and COLD.
+- The features section uses muse's `FeatureSplit`, and every landing icon is bundled, so none renders blank.
+- `@facile/muse` moves from v0.23.0 to v0.24.0.
+
 ## [0.24.1] - 2026-11-14
 
 ### Fixed
