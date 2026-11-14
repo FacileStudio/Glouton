@@ -2,7 +2,10 @@
   import { resolve } from '$app/paths';
   import { Button, LandingFooter, LandingHeader, PricingPlans, SignInWithFacile, icons } from '@facile/muse';
   import authStore from '$lib/auth-store';
+  import BulleTile from '$lib/components/landing/BulleTile.svelte';
+  import CreationsTile from '$lib/components/landing/CreationsTile.svelte';
   import HuntDemo from '$lib/components/landing/HuntDemo.svelte';
+  import WatchTile from '$lib/components/landing/WatchTile.svelte';
   import { useT } from '$lib/i18n';
   import type { Key } from '$lib/i18n/rows';
 
@@ -49,6 +52,15 @@
 
     <section class="mx-auto max-w-5xl px-4 pb-8 sm:px-6">
       <HuntDemo />
+    </section>
+
+    <section class="relative mx-auto max-w-5xl px-4 py-16 sm:px-6 sm:py-20">
+      <h2 class="mb-10 text-center font-fc-title text-2xl font-bold tracking-tight text-fc-fg sm:text-3xl">{t('landing.tiles.title')}</h2>
+      <div class="grid gap-6 md:grid-cols-3">
+        <CreationsTile />
+        <WatchTile />
+        <BulleTile />
+      </div>
     </section>
 
     <section id="features" class="mx-auto max-w-5xl scroll-mt-20 px-4 py-12 sm:px-6">

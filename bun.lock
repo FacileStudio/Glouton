@@ -56,7 +56,7 @@
       "dependencies": {
         "@facile/blob": "github:FacileStudio/blob#v0.1.0",
         "@facile/client": "github:FacileStudio/facile-client#v0.2.0",
-        "@facile/mise-en-scene": "github:FacileStudio/mise-en-scene#v0.2.1",
+        "@facile/mise-en-scene": "github:FacileStudio/mise-en-scene#v0.2.2",
         "@facile/muse": "github:FacileStudio/muse#v0.23.0",
         "@repo/logger": "workspace:*",
         "@repo/trpc-client": "workspace:*",
@@ -497,7 +497,7 @@
 
     "@facile/client": ["@facile/client@github:FacileStudio/facile-client#83ed82c", { "peerDependencies": { "@sveltejs/kit": "^2.0.0", "svelte": "^5.0.0" } }, "FacileStudio-facile-client-83ed82c", "sha512-o0fSs/BDwnIJHqfK8Y7xTvuJFCH1OmW6orYsukd7gIj53UR9SuURDcSHffx69sDPcRH0qTVX9pvKZyZDRnOUiQ=="],
 
-    "@facile/mise-en-scene": ["@facile/mise-en-scene@github:FacileStudio/mise-en-scene#29d936d", { "peerDependencies": { "svelte": "^5.29.0" } }, "FacileStudio-mise-en-scene-29d936d", "sha512-ZWvqtesVLNlH4i+oEBHh/obcLTDhdK+JFtnQYnwxrfEERCG2F111AxzEJ9syJkp2NFztic+oz/o4Y6pSh/KCtA=="],
+    "@facile/mise-en-scene": ["@facile/mise-en-scene@github:FacileStudio/mise-en-scene#7050c6c", { "peerDependencies": { "svelte": "^5.29.0" } }, "FacileStudio-mise-en-scene-7050c6c", "sha512-qXj5cCxgAwYeck9aLtPqx38D3H2csCHA1xUySzpabHH18QGZyDLSLMj8HuXwMieASr3axBLF7V59lS6GvVtEpQ=="],
 
     "@facile/muse": ["@facile/muse@github:FacileStudio/muse#709a22d", { "dependencies": { "gsap": "^3.13.0", "tailwind-merge": "^3.5.0" }, "peerDependencies": { "svelte": "^5.0.0", "tailwindcss": "^4.0.0" } }, "FacileStudio-muse-709a22d", "sha512-YXi7YAF8R1qfUBmx3nWKfeKXo+utYj4dXmqA3IHdrX9Fvp49avnKZ5vTdfl51i1IbnBiy/SydMxzgUH2vo0drQ=="],
 
@@ -2162,6 +2162,8 @@
     "@react-native/eslint-config/eslint-config-prettier": ["eslint-config-prettier@8.10.2", "", { "peerDependencies": { "eslint": ">=7.0.0" }, "bin": { "eslint-config-prettier": "bin/cli.js" } }, "sha512-/IGJ6+Dka158JnP5n5YFMOszjDWrXggGz1LaK/guZq9vZTmniaKlHcsscvkAhn9y4U+BU3JuUdYvtAMcv30y4A=="],
 
     "@redis/client/cluster-key-slot": ["cluster-key-slot@1.1.2", "", {}, "sha512-RMr0FhtfXemyinomL4hrWcYJxmX6deFdCxpJzhDttxgO1+bcCnkk+9drydLVDmAMG7NE6aN/fl4F7ucU/90gAA=="],
+
+    "@repo/trpc/@facile/tronc": ["@facile/tronc@github:FacileStudio/tronc-ts#1dc398b", { "dependencies": { "@modelcontextprotocol/client": "2.4.0", "@modelcontextprotocol/server": "2.4.0", "jose": "^6.2.17" } }, "FacileStudio-tronc-ts-1dc398b", "sha512-FhTEwSvxt/tkrU+Ys2pROR8iBi6vZ2rMQ+ba30OAFCzY3Ve1uDIvo1B48wkc0io5arOCpM4RQQfM01IjgxXNmw=="],
 
     "@rollup/plugin-commonjs/is-reference": ["is-reference@1.2.1", "", { "dependencies": { "@types/estree": "*" } }, "sha512-U82MsXXiFIrjCK4otLT+o2NA2Cd2g5MLoOVXUZjIOhLurrRxpEXzI8O0KZHr3IjLvlAH1kTPYSuqer5T9ZVBKQ=="],
 
