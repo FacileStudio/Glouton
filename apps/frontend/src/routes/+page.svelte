@@ -1,35 +1,64 @@
 <script lang="ts">
   import { resolve } from '$app/paths';
-  import { Button, LandingFooter, LandingHeader, PricingPlans, SignInWithFacile, icons } from '@facile/muse';
+  import {
+    Button,
+    FeatureSplit,
+    LANDING_HEADING,
+    LandingCta,
+    LandingFooter,
+    LandingHeader,
+    PricingPlans,
+    SignInWithFacile,
+    WorksWith,
+    icons,
+    type FeatureItem,
+    type WorksWithApp
+  } from '@facile/muse';
   import authStore from '$lib/auth-store';
   import BulleTile from '$lib/components/landing/BulleTile.svelte';
   import CreationsTile from '$lib/components/landing/CreationsTile.svelte';
   import HuntDemo from '$lib/components/landing/HuntDemo.svelte';
   import WatchTile from '$lib/components/landing/WatchTile.svelte';
+  import { marks } from '$lib/components/landing/icons';
   import { useT } from '$lib/i18n';
-  import type { Key } from '$lib/i18n/rows';
 
   const t = useT();
-  const features = [
-    { icon: 'solar:map-point-search-linear', n: 'f1' },
-    { icon: 'solar:fire-linear', n: 'f2' },
-    { icon: 'solar:eye-linear', n: 'f3' },
-    { icon: 'solar:letter-linear', n: 'f4' }
-  ] as const;
+  const shell = 'mx-auto w-full max-w-5xl px-4 sm:px-6';
+
+  const features: FeatureItem[] = $derived([
+    { icon: 'solar:map-point-search-linear', title: t('landing.f1.title'), text: t('landing.f1.desc') },
+    { icon: 'solar:fire-linear', title: t('landing.f2.title'), text: t('landing.f2.desc') },
+    { icon: icons.eye, title: t('landing.f3.title'), text: t('landing.f3.desc') },
+    { icon: icons.mail, title: t('landing.f4.title'), text: t('landing.f4.desc') }
+  ]);
+
+  const suite: WorksWithApp[] = $derived([
+    { name: 'Bulle', icon: marks.bulle, line: t('landing.with.bulle'), href: 'https://bulle.facile.studio' },
+    { name: 'Courrier', icon: marks.courrier, line: t('landing.with.courrier'), href: 'https://courrier.facile.studio' },
+    { name: 'Ardoise', icon: marks.ardoise, line: t('landing.with.ardoise'), href: 'https://ardoise.facile.studio' }
+  ]);
 </script>
 
-{#snippet cta(size: 'md' | 'lg')}
+<svelte:head>
+  <title>{t('landing.metaTitle')}</title>
+</svelte:head>
+
+{#snippet openApp(size: 'md' | 'lg')}
+  <Button {size} href={resolve('/app')} iconRight={size === 'lg' ? icons.arrow : undefined}>{t('landing.openApp')}</Button>
+{/snippet}
+
+{#snippet cta()}
   {#if $authStore.session}
-    <Button {size} href={resolve('/app')} iconRight={size === 'lg' ? icons.arrow : undefined}>{t('landing.openApp')}</Button>
+    {@render openApp('lg')}
   {:else}
-    <SignInWithFacile />
+    <LandingCta align="center" />
   {/if}
 {/snippet}
 
 <div class="min-h-dvh overflow-x-clip bg-fc-page text-fc-fg">
   <LandingHeader
     appName={t('app.name')}
-    icon="solar:magnet-wave-bold-duotone"
+    icon={marks.glouton}
     links={[
       { label: t('landing.features'), href: '#features' },
       { label: t('landing.pricing'), href: '#tarifs' }
@@ -37,25 +66,26 @@
     skipHref="#main"
   >
     {#snippet actions()}
-      {@render cta('md')}
+      {#if $authStore.session}{@render openApp('md')}{:else}<SignInWithFacile />{/if}
     {/snippet}
   </LandingHeader>
 
   <main id="main">
-    <section class="mx-auto max-w-5xl px-4 pt-20 pb-12 text-center sm:px-6 sm:pt-24">
+    <section class="{shell} pt-20 pb-12 text-center sm:pt-24">
       <h1 class="font-fc-title text-fc-3xl font-bold tracking-tight sm:text-5xl">{t('landing.tagline')}</h1>
       <p class="mx-auto mt-6 max-w-xl text-fc-md text-fc-fg-muted">{t('landing.heroText')}</p>
       <div class="mt-10 flex justify-center">
-        {@render cta('lg')}
+        {@render cta()}
       </div>
+      {#if !$authStore.session}<p class="mt-4 text-fc-sm text-fc-fg-muted">{t('landing.heroPlan')}</p>{/if}
     </section>
 
-    <section class="mx-auto max-w-5xl px-4 pb-8 sm:px-6">
+    <section class="{shell} pb-8">
       <HuntDemo />
     </section>
 
-    <section class="relative mx-auto max-w-5xl px-4 py-16 sm:px-6 sm:py-20">
-      <h2 class="mb-10 text-center font-fc-title text-2xl font-bold tracking-tight text-fc-fg sm:text-3xl">{t('landing.tiles.title')}</h2>
+    <section class="{shell} relative py-16 sm:py-20">
+      <h2 class="mb-10 text-center {LANDING_HEADING}">{t('landing.tiles.title')}</h2>
       <div class="grid gap-6 md:grid-cols-3">
         <CreationsTile />
         <WatchTile />
@@ -63,40 +93,36 @@
       </div>
     </section>
 
-    <section id="features" class="mx-auto grid max-w-5xl scroll-mt-20 gap-10 px-4 py-16 sm:px-6 md:grid-cols-[2fr_3fr] md:gap-16 md:py-20">
-      <div>
-        <h2 class="font-fc-title text-2xl font-bold tracking-tight text-fc-fg sm:text-3xl">{t('landing.featuresTitle')}</h2>
-        <p class="mt-4 max-w-sm text-fc-md text-fc-fg-muted">{t('landing.featuresText')}</p>
-      </div>
-      <ul class="space-y-8">
-        {#each features as feature (feature.n)}
-          <li class="flex gap-4">
-            <div class="flex size-10 shrink-0 items-center justify-center rounded-fc-md bg-fc-component">
-              <iconify-icon icon={feature.icon} width="20" height="20" class="block shrink-0"></iconify-icon>
-            </div>
-            <div class="min-w-0">
-              <h3 class="text-fc-lg font-bold">{t(`landing.${feature.n}.title` as Key)}</h3>
-              <p class="mt-1 text-fc-sm text-fc-fg-muted">{t(`landing.${feature.n}.desc` as Key)}</p>
-            </div>
-          </li>
-        {/each}
-      </ul>
-    </section>
+    <FeatureSplit
+      id="features"
+      class="{shell} scroll-mt-20 py-16 md:py-20"
+      title={t('landing.featuresTitle')}
+      description={t('landing.featuresText')}
+      {features}
+    />
 
     <div id="tarifs" class="hidden scroll-mt-20 has-[section]:block">
-      <div class="mx-auto max-w-5xl px-4 py-20 sm:px-6">
-        <PricingPlans title={t('landing.pricing')} highlight={['glouton.access']} />
-        <p class="mt-8 text-center text-fc-sm text-fc-fg-muted">{t('landing.pricingNote')}</p>
-      </div>
+      <PricingPlans
+        class="{shell} py-20"
+        title={t('landing.pricing')}
+        headingClass={LANDING_HEADING}
+        highlight={['glouton.access']}
+        highlightOnly
+        recommended="pro"
+        suiteHref="https://suite.facile.studio/#tarifs"
+        suiteNote={t('landing.pricingNote')}
+      />
     </div>
 
-    <section class="mx-auto max-w-5xl px-4 py-20 text-center sm:px-6">
-      <h2 class="font-fc-title text-fc-2xl font-bold tracking-tight">{t('landing.cta.title')}</h2>
+    <section class="{shell} py-20 text-center">
+      <h2 class={LANDING_HEADING}>{t('landing.cta.title')}</h2>
       <div class="mt-8 flex justify-center">
-        {@render cta('lg')}
+        {@render cta()}
       </div>
     </section>
+
+    <WorksWith class="{shell} pb-20" apps={suite} />
   </main>
 
-  <LandingFooter appName={t('app.name')} icon="solar:magnet-wave-bold-duotone" tagline={t('landing.footerTagline')} />
+  <LandingFooter appName={t('app.name')} icon={marks.glouton} tagline={t('landing.footerTagline')} />
 </div>

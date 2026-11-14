@@ -1,7 +1,7 @@
 {
   "name": "Glouton",
   "short_name": "Glouton",
-  "description": "Crawls the web, detects the technical stack of each site and qualifies leads for the studio.",
+  "description": "Glouton finds businesses near you, scores every lead and drafts the first message.",
   "icons": [
     {
       "src": "/icon-192.png",

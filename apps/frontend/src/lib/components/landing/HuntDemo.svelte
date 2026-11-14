@@ -1,9 +1,11 @@
 <script lang="ts">
   import { tick } from 'svelte';
   import { fade } from 'svelte/transition';
-  import { Badge, Button } from '@facile/muse';
+  import { Badge, Button, Icon } from '@facile/muse';
   import { Bar, Cursor, Roll, Stage, Window, cursorAt, grow, type Act } from '@facile/mise-en-scene';
   import { useT } from '$lib/i18n';
+  import ArdoiseToast from './ArdoiseToast.svelte';
+  import { marks } from './icons';
 
   type Phase = 'idle' | 'running' | 'done';
   type Score = 'HOT' | 'WARM' | 'COLD';
@@ -18,11 +20,14 @@
     { name: 'La Table de Léon', city: 50, score: 'COLD', logo: 'var(--color-fc-danger)' }
   ];
   const NAV = [58, 64, 52, 46];
+  const TEMP = { HOT: 'temp.HOT', WARM: 'temp.WARM', COLD: 'temp.COLD' } as const;
 
   let phase = $state<Phase>('idle');
   let shown = $state(0);
   let cursor = $state(cursorAt());
   let launch = $state<HTMLElement>();
+  let won = $state(false);
+  let rows = $state<HTMLElement[]>([]);
 
   const status = $derived(
     phase === 'idle' ? t('hunts.status.pending') : phase === 'running' ? t('hunts.status.processing') : t('hunts.status.completed')
@@ -32,12 +37,18 @@
   function reset() {
     phase = 'idle';
     shown = 0;
+    won = false;
     cursor.visible = false;
   }
 
   function poster() {
     phase = 'done';
     shown = LEADS.length;
+    won = true;
+  }
+
+  function score(i: number, value: Score) {
+    return won && i === 0 ? t('close.WON') : t(TEMP[value]);
   }
 
   async function script(act: Act) {
@@ -57,7 +68,14 @@
     }
     await act.wait(500);
     phase = 'done';
-    await act.wait(2200);
+    await act.wait(800);
+    cursor.visible = true;
+    await act.move(cursor, act.point(rows[0], 0.9, 0.5));
+    await act.click(cursor);
+    won = true;
+    await act.wait(300);
+    cursor.visible = false;
+    await act.wait(2800);
     reset();
     await act.wait(600);
   }
@@ -65,7 +83,7 @@
 
 {#snippet nav()}
   <div class="flex items-center gap-2 px-5 pt-3 pb-5 font-fc-title text-[15px] font-bold text-fc-fg">
-    <iconify-icon icon="solar:magnet-wave-bold-duotone" width="20" height="20"></iconify-icon>
+    <Icon icon={marks.glouton} size={20} />
     <span>Glouton</span>
   </div>
   <div class="grid gap-1 px-3">
@@ -111,15 +129,17 @@
         </div>
 
         <ul class="hd-list">
-          {#each LEADS.slice(0, shown) as lead (lead.name)}
-            <li class="hd-row" in:grow out:fade={{ duration: 200 }}>
+          {#each LEADS.slice(0, shown) as lead, i (lead.name)}
+            <li bind:this={rows[i]} class="hd-row" in:grow out:fade={{ duration: 200 }}>
               <span class="size-8 shrink-0 rounded-fc-md" style="background:{lead.logo}"></span>
               <span class="flex min-w-0 flex-1 flex-col gap-1.5">
                 <span class="truncate text-fc-sm font-bold text-fc-fg">{lead.name}</span>
                 <Bar w="{lead.city}%" />
               </span>
               {#if !compact}<span class="hd-mail"><Bar w="80%" /></span>{/if}
-              <span class="hd-score"><Badge tone={lead.score === 'HOT' ? 'danger' : 'neutral'}>{lead.score}</Badge></span>
+              <span class="hd-score">
+                <Badge tone={won && i === 0 ? 'success' : lead.score === 'HOT' ? 'danger' : 'neutral'}><Roll value={score(i, lead.score)} /></Badge>
+              </span>
             </li>
           {/each}
           {#if shown === 0}
@@ -131,6 +151,8 @@
             {/each}
           {/if}
         </ul>
+
+        <ArdoiseToast show={won} {compact} lead={LEADS[0].name} />
       </div>
     </Window>
     <Cursor {cursor} />
@@ -139,16 +161,17 @@
 
 <style>
   .hd-body {
+    position: relative;
     display: flex;
     flex-direction: column;
-    gap: 18px;
+    gap: 14px;
     height: 100%;
     padding: 24px 28px;
     font-family: var(--font-fc-body);
   }
 
   .hd-compact {
-    gap: 14px;
+    gap: 12px;
     padding: 16px;
   }
 
@@ -178,7 +201,7 @@
     display: flex;
     align-items: center;
     gap: 14px;
-    padding: 10px 6px;
+    padding: 6px;
   }
 
   .hd-ghost {
@@ -187,7 +210,7 @@
 
   .hd-score {
     display: flex;
-    width: 64px;
+    width: 88px;
     flex-shrink: 0;
     justify-content: flex-end;
   }

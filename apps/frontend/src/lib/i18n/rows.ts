@@ -27,61 +27,6 @@ import { landing } from './rows/landing';
 
 const base = {
   'app.name': ['Glouton', 'Glouton', 'Glouton', 'Glouton'],
-  'landing.tagline': ['Find your next clients.', 'Trouvez vos prochains clients.', 'Encuentra tus próximos clientes.', 'Finden Sie Ihre nächsten Kunden.'],
-  'landing.footerTagline': ['Prospecting for the Facile suite.', 'La prospection de la suite Facile.', 'La prospección de la suite Facile.', 'Akquise für die Facile-Suite.'],
-  'landing.pricing': ['Pricing', 'Tarifs', 'Tarifas', 'Preise'],
-  'landing.features': ['Features', 'Fonctions', 'Funciones', 'Funktionen'],
-  'landing.openApp': ['Open the app', "Ouvrir l'app", 'Abrir la app', 'App öffnen'],
-  'landing.heroText': [
-    'Glouton finds local businesses, scores each lead and prepares your outreach.',
-    'Glouton trouve les entreprises locales, note chaque piste et prépare vos relances.',
-    'Glouton encuentra negocios locales, puntúa cada lead y prepara tus contactos.',
-    'Glouton findet lokale Betriebe, bewertet jeden Lead und bereitet Ihre Ansprache vor.'
-  ],
-  'landing.f1.title': ['Local hunts', 'Chasses locales', 'Búsquedas locales', 'Lokale Suchläufe'],
-  'landing.f1.desc': [
-    'Pick a trade and a city. Glouton pulls the businesses from OpenStreetMap.',
-    'Choisissez un métier et une ville. Glouton récupère les entreprises depuis OpenStreetMap.',
-    'Elige un oficio y una ciudad. Glouton trae los negocios de OpenStreetMap.',
-    'Wählen Sie eine Branche und eine Stadt. Glouton holt die Betriebe aus OpenStreetMap.'
-  ],
-  'landing.f2.title': ['Scored leads', 'Pistes notées', 'Leads puntuados', 'Bewertete Leads'],
-  'landing.f2.desc': [
-    'Glouton rates each lead HOT, WARM or COLD from its website and contact details.',
-    'Glouton classe chaque piste en HOT, WARM ou COLD selon son site et ses coordonnées.',
-    'Glouton clasifica cada lead como HOT, WARM o COLD según su web y sus datos de contacto.',
-    'Glouton stuft jeden Lead nach Website und Kontaktdaten als HOT, WARM oder COLD ein.'
-  ],
-  'landing.f3.title': ['Competitor watch', 'Veille concurrents', 'Vigilancia de competidores', 'Wettbewerber im Blick'],
-  'landing.f3.desc': [
-    'Watch competitor pages and see what changed since your last visit.',
-    'Surveillez les pages de vos concurrents et voyez ce qui a changé.',
-    'Vigila las páginas de tus competidores y mira qué ha cambiado.',
-    'Beobachten Sie die Seiten Ihrer Wettbewerber und sehen Sie, was sich geändert hat.'
-  ],
-  'landing.f4.title': ['Outreach', 'Relances', 'Contacto', 'Ansprache'],
-  'landing.f4.desc': [
-    'Draft your emails with Bulle and send them from your Courrier inbox.',
-    'Rédigez vos e-mails avec Bulle et envoyez-les depuis Courrier.',
-    'Redacta tus correos con Bulle y envíalos desde tu buzón de Courrier.',
-    'Entwerfen Sie Ihre E-Mails mit Bulle und senden Sie sie aus Courrier.'
-  ],
-  'landing.cta.title': ['Start your first hunt.', 'Lancez votre première chasse.', 'Lanza tu primera búsqueda.', 'Starten Sie Ihren ersten Suchlauf.'],
-  'landing.demo.label': [
-    'A local hunt finds restaurants in Lyon and scores each one.',
-    'Une chasse locale trouve des restaurants à Lyon et note chacun.',
-    'Una búsqueda local encuentra restaurantes en Lyon y puntúa cada uno.',
-    'Ein lokaler Suchlauf findet Restaurants in Lyon und bewertet jedes.'
-  ],
-  'landing.demo.hunt': ['Restaurants in Lyon', 'Restaurants à Lyon', 'Restaurantes en Lyon', 'Restaurants in Lyon'],
-  'landing.demo.launch': ['Start', 'Lancer', 'Iniciar', 'Starten'],
-  'landing.demo.found': ['{count} found', '{count} trouvés', '{count} encontrados', '{count} gefunden'],
-  'landing.pricingNote': [
-    'The Facile Pro and Studio plans include Glouton. A subscription unlocks the whole app.',
-    "Les offres Pro et Studio de Facile incluent Glouton. Un abonnement donne accès à toute l'app.",
-    'Las ofertas Pro y Studio de Facile incluyen Glouton. Una suscripción da acceso a toda la app.',
-    'Die Facile-Angebote Pro und Studio enthalten Glouton. Ein Abonnement schaltet die ganze App frei.'
-  ],
   'auth.error.unverified_account': [
     'An unverified Glouton account already uses this address. Ask an administrator to verify it, then sign in again.',
     "Un compte Glouton non vérifié utilise déjà cette adresse. Demandez à un administrateur de le vérifier, puis reconnectez-vous.",

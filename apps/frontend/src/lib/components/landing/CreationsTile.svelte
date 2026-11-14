@@ -3,6 +3,7 @@
   import { Badge, Icon } from '@facile/muse';
   import { Bar, Tile, grow, type Act } from '@facile/mise-en-scene';
   import { useT } from '$lib/i18n';
+  import './icons';
   import TileStage from './TileStage.svelte';
 
   const t = useT();
