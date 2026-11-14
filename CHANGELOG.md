@@ -11,6 +11,16 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+## [0.24.0] - 2026-11-14
+
+### Added
+
+- The landing shows three animated tiles under the hunt demo: new company creations flagged without a website, a competitor price change with its AI summary, and Bulle drafting a first email. Copy in English, French, Spanish and German.
+
+### Changed
+
+- `@facile/mise-en-scene` moves from v0.2.1 to v0.2.2.
+
 ## [0.23.1] - 2026-11-14
 
 ### Fixed
