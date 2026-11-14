@@ -11,6 +11,12 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+## [0.24.1] - 2026-11-14
+
+### Fixed
+
+- The landing no longer stacks two card grids: the four features now sit in a two-column split, a short heading on the left and a compact icon list on the right.
+
 ## [0.24.0] - 2026-11-14
 
 ### Added
