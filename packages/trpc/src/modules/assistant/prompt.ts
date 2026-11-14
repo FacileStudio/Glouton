@@ -98,10 +98,9 @@ function languageRule(language: Language): string {
   return language === 'en' ? 'Write in English.' : 'Write in French (vouvoiement unless the context shows tutoiement).';
 }
 
-/** The system prompt: the user's Bulle persona, then the Glouton rules for the task. */
-export function systemPrompt(persona: string, task: 'write' | 'nextAction', language: Language): string {
-  const rules = task === 'write' ? WRITING_RULES : NEXT_ACTION_RULES;
-  return [persona.trim(), rules, languageRule(language)].filter(Boolean).join('\n\n');
+/** The system prompt: the Glouton rules for the task, then the language. */
+export function systemPrompt(task: 'write' | 'nextAction', language: Language): string {
+  return [task === 'write' ? WRITING_RULES : NEXT_ACTION_RULES, languageRule(language)].join('\n\n');
 }
 
 function fullName(p: { firstName: string | null; lastName: string | null }): string {
@@ -157,27 +156,31 @@ function senderLine(sender: Sender): string {
   return name ? `Sender: ${name}` : 'Sender: unknown';
 }
 
-/** The user message for a writing action: task, instruction, current draft and contact facts. */
-export function writePrompt(input: WriteInput, contact: ContactContext, sender: Sender): string {
+/** The task of a writing action, with the instruction the user typed. */
+export function writeTask(input: WriteInput): string {
   return [
     `# Task\n${ACTION_TASKS[input.action]}`,
     input.instruction?.trim() ? `# Instruction from the user\n${input.instruction.trim()}` : null,
-    `# Current subject\n${input.subject?.trim() || '(empty)'}`,
-    `# Current body\n${input.body?.trim() || '(empty)'}`,
-    `# Contact\n${contactBlock(contact)}`,
-    `# ${senderLine(sender)}`,
   ]
     .filter(Boolean)
     .join('\n\n');
 }
 
-/** The user message for a next-action suggestion. */
-export function nextActionPrompt(contact: ContactContext, sender: Sender): string {
+/** The material of a writing action: current draft, contact facts and sender. */
+export function writeData(input: WriteInput, contact: ContactContext, sender: Sender): string {
   return [
-    '# Task\nSuggest the next action with this contact.',
+    `# Current subject\n${input.subject?.trim() || '(empty)'}`,
+    `# Current body\n${input.body?.trim() || '(empty)'}`,
     `# Contact\n${contactBlock(contact)}`,
     `# ${senderLine(sender)}`,
   ].join('\n\n');
+}
+
+export const NEXT_ACTION_TASK = 'Suggest the next action with this contact.';
+
+/** The material of a next-action suggestion: contact facts and sender. */
+export function nextActionData(contact: ContactContext, sender: Sender): string {
+  return [`# Contact\n${contactBlock(contact)}`, `# ${senderLine(sender)}`].join('\n\n');
 }
 
 /** The first JSON object in a model answer, fenced or not, or null. */

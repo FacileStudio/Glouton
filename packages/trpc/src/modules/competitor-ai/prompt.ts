@@ -39,9 +39,9 @@ export function languageRule(language: AiLanguage): string {
   return `Write every text value in ${LANGUAGE_NAMES[language]}.`;
 }
 
-/** The system prompt every competitor AI call uses: Bulle's persona, the task rules, the data rule and the language. */
-export function systemFor(persona: string, rules: string, language: AiLanguage): string {
-  return [persona.trim(), rules, UNTRUSTED_RULE, languageRule(language)].filter(Boolean).join('\n\n');
+/** The system prompt every competitor AI call uses: the task rules, the data rule and the language. */
+export function systemFor(rules: string, language: AiLanguage): string {
+  return [rules, UNTRUSTED_RULE, languageRule(language)].join('\n\n');
 }
 
 function strictParse<T>(raw: string, schema: z.ZodType<T>): T {
@@ -107,7 +107,6 @@ export function draftPrompt(
     `# Our offer\n${ours || 'Not described.'}`,
     '# Competitor pages',
     ...pages.map((page) => dataBlock(page.url, page.text, 8000)),
-    'Draft the battlecard.',
   ].join('\n\n');
 }
 
@@ -151,7 +150,6 @@ export function summaryPrompt(changes: ChangeInput[]): string {
         .join('\n');
       return `# Change ${change.label}\nCompetitor: ${change.competitorName}\nPage kind: ${change.kind}\nChanged: ${change.changePercent}%\n${dataBlock(change.url, diff, 4000)}`;
     }),
-    'Summarise each change.',
   ].join('\n\n');
 }
 
@@ -203,7 +201,6 @@ export function pricesPrompt(competitorName: string, pages: Array<{ url: string;
   return [
     `# Competitor\n${competitorName}`,
     ...pages.map((page, index) => `# Page ${index + 1}\n${dataBlock(page.url, page.text, 10_000)}`),
-    'List the prices.',
   ].join('\n\n');
 }
 

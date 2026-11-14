@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { BulleClient } from '../assistant/bulle';
+import { complete, type BulleClient } from '../assistant/bulle';
 import { jsonObject } from '../assistant/prompt';
 import { requireBulle } from '../assistant/service';
 import { aiError, requireAiAccess } from '../competitor-ai/service';
@@ -83,14 +83,15 @@ export function parseTargetSuggestion(raw: string): TargetSuggestion {
   };
 }
 
-/** The user message: what the space does and who it looks for, as plain lines. */
-export function suggestionPrompt(input: { usage: TargetUsage; offer?: string; description?: string; area?: string }): string {
-  const lines = [
+/** The material: what the space does and who it looks for, as plain lines. */
+export function suggestionPrompt(input: { offer?: string; description?: string; area?: string }): string {
+  return [
     input.offer ? `What the user does: ${input.offer}` : null,
     input.description ? `Who the user looks for: ${input.description}` : null,
     input.area ? `Area: ${input.area}` : null,
-  ];
-  return `${GOALS[input.usage]}\n\n${lines.filter(Boolean).join('\n')}`;
+  ]
+    .filter(Boolean)
+    .join('\n');
 }
 
 /**
@@ -108,10 +109,10 @@ export async function suggestTargets(
   await requireAiAccess(deps.forfait, scope);
   if (!input.offer && !input.description) return { nafCodes: [], osmTags: [], keywords: [] };
   try {
-    const offer = await client.offer(scope.userId);
-    const raw = await client.complete(scope.userId, offer, {
-      system: systemFor(offer.persona, RULES, input.language),
-      user: suggestionPrompt(input),
+    const raw = await complete(client, scope.userId, {
+      system: systemFor(RULES, input.language),
+      prompt: GOALS[input.usage],
+      input: suggestionPrompt(input),
       maxTokens: 800,
     });
     return parseTargetSuggestion(raw);

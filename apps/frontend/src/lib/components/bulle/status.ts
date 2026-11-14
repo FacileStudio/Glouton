@@ -10,8 +10,6 @@ export type NextAction = Awaited<ReturnType<typeof trpc.assistant.nextAction.mut
 export type ApplyMode = 'replace' | 'insert';
 export type BulleMood = 'idle' | 'thinking' | 'done' | 'unavailable';
 
-export const BULLE_SETTINGS_URL = 'https://bulle.facile.studio';
-
 const cache = new Map<string, Promise<AssistantStatus>>();
 
 /** Loads Bulle's availability once per scope; a failed load is forgotten so the next panel retries. */
@@ -26,8 +24,7 @@ export function assistantStatus(teamId: string | undefined): Promise<AssistantSt
   return pending;
 }
 
-export const REASONS: Record<Exclude<AssistantReason, 'plan_required'>, { title: Key; text: Key; link?: Key }> = {
+export const REASONS: Record<Exclude<AssistantReason, 'plan_required'>, { title: Key; text: Key }> = {
   not_linked: { title: 'assistant.reason.not_linked.title', text: 'assistant.reason.not_linked.text' },
-  no_key: { title: 'assistant.reason.no_key.title', text: 'assistant.reason.no_key.text', link: 'assistant.reason.no_key.link' },
   unreachable: { title: 'assistant.reason.unreachable.title', text: 'assistant.reason.unreachable.text' },
 };

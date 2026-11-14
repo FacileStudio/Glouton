@@ -334,7 +334,10 @@ Bulle reaches Glouton with a Registre RFC 8693 token-exchange access token. The 
   `email` claim when `email_verified` is `true`, and is not banned
 
 The `act` claim's `sub` (else `azp`) becomes the actor, recorded on activities and as a
-suggestion's `createdBy`. Any delegated caller is refused on human-only procedures.
+suggestion's `createdBy`. Any delegated caller is refused on human-only procedures. The MCP
+confirm page (`mcp.pending`, `mcp.confirm`, `mcp.dismiss`) goes further: it takes only a Glouton
+session JWT, which only the browser SSO callback mints, so no delegated or MCP bearer token can
+confirm an agent's own request.
 
 ## Agent REST API (`/api/agent`)
 

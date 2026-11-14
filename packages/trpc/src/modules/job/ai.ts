@@ -1,7 +1,7 @@
 import type { JobDraftKind, PrismaClient } from '@prisma/client';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
-import type { BulleClient } from '../assistant/bulle';
+import { complete, type BulleClient } from '../assistant/bulle';
 import { jsonObject } from '../assistant/prompt';
 import { requireBulle } from '../assistant/service';
 import { DATA_CLOSE, DATA_OPEN, AiOutputError, dataBlock, languageRule, type AiLanguage } from '../competitor-ai/prompt';
@@ -61,9 +61,9 @@ export function parseJobDraft(kind: JobDraftKind, raw: string): string {
   return parsed.data.text;
 }
 
-/** The system prompt of a job draft: Bulle's persona, the task, the data rule and the language. */
-export function jobSystem(persona: string, kind: JobDraftKind, language: AiLanguage): string {
-  return [persona.trim(), DRAFT_RULES[kind], JOB_UNTRUSTED_RULE, languageRule(language)].filter(Boolean).join('\n\n');
+/** The system prompt of a job draft: the task, the data rule and the language. */
+export function jobSystem(kind: JobDraftKind, language: AiLanguage): string {
+  return [DRAFT_RULES[kind], JOB_UNTRUSTED_RULE, languageRule(language)].join('\n\n');
 }
 
 /** The user message: the offer and the CV, each in its own data block. */
@@ -94,10 +94,10 @@ export async function draftForApplication(
   const cv = await cvTextFor(deps.prisma, scope.userId, scope, input.cvId);
   let content: string;
   try {
-    const bulleOffer = await client.offer(scope.userId);
-    const raw = await client.complete(scope.userId, bulleOffer, {
-      system: jobSystem(bulleOffer.persona, input.kind, input.language),
-      user: draftPrompt({ title: application.title, company: application.company, location: application.location, description }, cv.text),
+    const raw = await complete(client, scope.userId, {
+      system: jobSystem(input.kind, input.language),
+      prompt: 'Write the draft from the job offer and the CV.',
+      input: draftPrompt({ title: application.title, company: application.company, location: application.location, description }, cv.text),
       maxTokens: input.kind === 'CV' ? 3000 : 1500,
     });
     content = parseJobDraft(input.kind, raw);

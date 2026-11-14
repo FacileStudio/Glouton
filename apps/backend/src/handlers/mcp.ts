@@ -11,6 +11,7 @@ import {
   type AuditLogger,
   type Caller,
   type Options,
+  type Outcome,
   type Pending,
   type RateLimit,
   type Server,
@@ -97,11 +98,7 @@ export function gloutonMcp(deps: McpDeps): GloutonMcp {
 /** The two deletes. Each asks the person first and runs only on their answer. */
 function deleteTools(prisma: PrismaClient, confirmations: Confirmations): Tool[] {
   const access = (caller: Caller) => accessForUser(prisma, caller.userId, caller.actor || caller.clientId || 'mcp', 'free');
-  const pendingReply = (confirmUrl: string | undefined) => ({
-    status: STATUS_PENDING,
-    confirm_url: confirmUrl,
-    message: 'Nothing was deleted yet. Give the user this link to confirm in Glouton.',
-  });
+  const pendingReply = (outcome: Outcome) => ({ status: STATUS_PENDING, confirm_url: outcome.confirmUrl, message: outcome.message });
 
   const deleteCompany = newTool<{ company_id: string }>({
     name: 'glouton_company_delete',
@@ -116,11 +113,14 @@ function deleteTools(prisma: PrismaClient, confirmations: Confirmations): Tool[]
       required: ['company_id'],
     },
   }, guarded('Call glouton_contacts_search to find valid ids.', async ({ company_id }, req) => {
-    if (retrying(req.ctx)) return { status: (await confirmations.resume(req, 'delete_company')).status, company_id };
+    if (retrying(req.ctx)) {
+      const resumed = await confirmations.resume(req, 'delete_company');
+      return { status: resumed.status, message: resumed.message, company_id };
+    }
     const company = await contactService.findCompany(prisma, await access(req.caller), company_id);
     const question = `Delete the company "${company.name}" and its people from Glouton?`;
     const { result, outcome } = await confirmations.request(req, 'delete_company', company.id, question);
-    return result ?? pendingReply(outcome.confirmUrl);
+    return result ?? pendingReply(outcome);
   }));
 
   const deletePerson = newTool<{ person_id: string }>({
@@ -136,11 +136,14 @@ function deleteTools(prisma: PrismaClient, confirmations: Confirmations): Tool[]
       required: ['person_id'],
     },
   }, guarded('Call glouton_contacts_search to find valid ids.', async ({ person_id }, req) => {
-    if (retrying(req.ctx)) return { status: (await confirmations.resume(req, 'delete_person')).status, person_id };
+    if (retrying(req.ctx)) {
+      const resumed = await confirmations.resume(req, 'delete_person');
+      return { status: resumed.status, message: resumed.message, person_id };
+    }
     const person = await contactService.findPerson(prisma, await access(req.caller), person_id);
     const name = [person.firstName, person.lastName].filter(Boolean).join(' ') || person.email || person.id;
     const { result, outcome } = await confirmations.request(req, 'delete_person', person.id, `Delete the person "${name}" from Glouton?`);
-    return result ?? pendingReply(outcome.confirmUrl);
+    return result ?? pendingReply(outcome);
   }));
 
   return [deleteCompany, deletePerson];

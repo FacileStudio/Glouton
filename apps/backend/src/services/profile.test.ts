@@ -5,7 +5,7 @@ const databaseUrl = process.env.TEST_DATABASE_URL;
 process.env.DATABASE_URL = databaseUrl ?? 'postgresql://unused@localhost/unused';
 
 const { fetchRequestHandler } = await import('@trpc/server/adapters/fetch');
-const { appRouter, BulleUnavailableError, discovery, prospectProfile, prospectSuggest, taxonomy } = await import('@repo/trpc');
+const { appRouter, PlanRequired, discovery, prospectProfile, prospectSuggest, taxonomy } = await import('@repo/trpc');
 
 const silent = { warn: () => {}, info: () => {}, error: () => {}, debug: () => {}, child: () => silent };
 
@@ -21,15 +21,14 @@ function reader(teams: string[], aiAccess: boolean) {
   };
 }
 
-type FakeBulle = { calls: number; offer: () => Promise<unknown>; complete: () => Promise<string> };
+type FakeBulle = { calls: number; complete: () => Promise<{ text: string; model: string }> };
 
 function fakeBulle(answer: () => string): FakeBulle {
   const bulle: FakeBulle = {
     calls: 0,
-    offer: async () => ({ backend: 'anthropic', model: 'm', models: ['m'], persona: '' }),
     complete: async () => {
       bulle.calls++;
-      return answer();
+      return { text: answer(), model: 'm' };
     },
   };
   return bulle;
@@ -176,7 +175,7 @@ describe('AI suggestions', () => {
 
   test("Bulle's own 402 shows the same upsell, an unreadable answer is 422, a good one comes back as chips", async () => {
     const refusing = fakeBulle(() => {
-      throw new BulleUnavailableError('plan_required', 'plan', { key: 'ai.access', upgrade_url: 'https://sso.test/up' });
+      throw new PlanRequired({ code: 'payment_required', message: 'plan', upgrade_url: 'https://sso.test/up', key: 'ai.access', limit: 0 });
     });
     const refused = await call(noDb, 'prospect.suggestTargets', user, reader([], true), input, true, refusing);
     expect(refused.status).toBe(403);

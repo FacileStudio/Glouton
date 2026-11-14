@@ -2,11 +2,12 @@ import { describe, expect, test } from 'bun:test';
 import type { PrismaClient } from '@prisma/client';
 import { loadContact } from './service';
 import {
-  nextActionPrompt,
+  nextActionData,
   parseNextAction,
   parseWriteResponse,
   systemPrompt,
-  writePrompt,
+  writeData,
+  writeTask,
   type ContactContext,
 } from './prompt';
 
@@ -36,12 +37,13 @@ const contact: ContactContext = {
 const sender = { firstName: 'Yann', lastName: null };
 
 describe('prompt building', () => {
-  test('the user message carries the task, the draft and the contact facts', () => {
-    const prompt = writePrompt(
-      { action: 'reply', instruction: 'Propose un appel jeudi', body: 'Merci pour votre retour', language: 'fr' },
-      contact,
-      sender
-    );
+  test('the task carries the instruction, the data the draft and the contact facts', () => {
+    const input = { action: 'reply', instruction: 'Propose un appel jeudi', body: 'Merci pour votre retour', language: 'fr' } as const;
+    const task = writeTask(input);
+    const prompt = writeData(input, contact, sender);
+    expect(task).toContain('Propose un appel jeudi');
+    expect(task).not.toContain('Merci pour votre retour');
+    expect(prompt).not.toContain('Propose un appel jeudi');
     for (const fact of [
       'Claire Martin',
       'claire@boulangerie.test',
@@ -51,7 +53,6 @@ describe('prompt building', () => {
       'Lyon',
       'WARM',
       '2026-10-20 email.sent: Premier contact',
-      'Propose un appel jeudi',
       'Merci pour votre retour',
       'Sender: Yann',
     ]) {
@@ -62,15 +63,14 @@ describe('prompt building', () => {
 
   test('without a contact the prompt says so instead of inventing one', () => {
     const empty = { person: null, company: null, people: [], activities: [] };
-    expect(nextActionPrompt(empty, sender)).toContain('No contact selected.');
+    expect(nextActionData(empty, sender)).toContain('No contact selected.');
   });
 
-  test('the system prompt keeps the persona, asks for JSON and defaults to French', () => {
-    const fr = systemPrompt('You are Pip.', 'write', 'fr');
-    expect(fr.startsWith('You are Pip.')).toBe(true);
+  test('the system prompt asks for JSON and defaults to French', () => {
+    const fr = systemPrompt('write', 'fr');
     expect(fr).toContain('{"subject": string | null, "body": string, "note": string | null}');
     expect(fr).toContain('Write in French');
-    expect(systemPrompt('', 'nextAction', 'en')).toContain('Write in English.');
+    expect(systemPrompt('nextAction', 'en')).toContain('Write in English.');
   });
 });
 

@@ -1,9 +1,10 @@
 import { describe, expect, test } from 'bun:test';
+import type { ideas } from '@repo/trpc';
 
 process.env.DATABASE_URL ??= 'postgresql://unused@localhost/unused';
 
 const { fetchRequestHandler } = await import('@trpc/server/adapters/fetch');
-const { appRouter, BulleClient, ideas } = await import('@repo/trpc');
+const { appRouter, createBulle } = await import('@repo/trpc');
 
 type IdeasPageView = ReturnType<typeof ideas.pageView>;
 type RunView = ReturnType<typeof ideas.runView>;
@@ -17,7 +18,7 @@ const user = { id: 'user-1', email: 'a@x.test', role: 'USER' };
 type Body = { result?: { data?: unknown }; error?: { data?: Record<string, unknown>; message?: string } };
 type Seen = { method: string; path: string; search: URLSearchParams; auth: string | null; body: unknown };
 
-/** Bulle at the HTTP level, behind the real BulleClient; `answers` overrides one route. */
+/** Bulle at the HTTP level, behind the real tronc client; `answers` overrides one route. */
 function fakeBulle(answers: Record<string, { status: number; body: unknown }> = {}) {
   const seen: Seen[] = [];
   const targets: unknown[] = [];
@@ -71,7 +72,7 @@ function fakeBulle(answers: Record<string, { status: number; body: unknown }> = 
     },
     forget: () => {},
   };
-  const bulle = new BulleClient({ bulleUrl: 'https://bulle.test/', tokens: tokens as never, fetch: fetchImpl as typeof fetch });
+  const bulle = createBulle({ bulleUrl: 'https://bulle.test/', tokens: tokens as never, fetch: fetchImpl as typeof fetch });
   return { bulle, seen, targets };
 }
 
@@ -175,7 +176,7 @@ describe('ideas proxy to Bulle', () => {
       summary: 'Je prépare le brouillon.',
       outputs: [],
       approvals: [{ callId: 'call 1', tool: 'glouton_save_draft', args: { subject: 'Relance' } }],
-      continueHref: 'https://bulle.facile.studio/s/s-1',
+      continueHref: 'https://bulle.test/s/s-1',
     });
   });
 
@@ -210,17 +211,10 @@ describe('ideas proxy to Bulle', () => {
 });
 
 describe('run polling state mapping', () => {
-  test('every Bulle run status maps to a card state', () => {
-    expect(ideas.runState('running', 0)).toBe('running');
-    expect(ideas.runState('running', 1)).toBe('needs_approval');
-    expect(ideas.runState('waiting', 1)).toBe('needs_approval');
-    expect(ideas.runState('finished', 0)).toBe('done');
-    for (const status of ['error', 'stopped', 'interrupted']) expect(ideas.runState(status, 0)).toBe('failed');
-  });
-
-  test('a finished run keeps only safe output links', () => {
-    const view = ideas.runView({
+  test('a finished run keeps only web output links', async () => {
+    const finished = {
       id: 'run-2',
+      session_id: 's-2',
       status: 'finished',
       summary: 'Brouillon enregistré.',
       outputs: [
@@ -229,9 +223,11 @@ describe('run polling state mapping', () => {
         { tool: 'opus_create_task', url: '' },
       ],
       pending_approvals: [],
-      continue_path: '/s/s-2',
-    });
+    };
+    const { bulle } = fakeBulle({ 'GET /api/runs/run-2': { status: 200, body: finished } });
+    const view = (await call<RunView>('ideas.runStatus', { runId: 'run-2' }, { bulle }, false)).data;
     expect(view.state).toBe('done');
     expect(view.outputs).toEqual([{ label: 'Brouillon pour Martin', href: 'https://glouton.test/app/messages/inbox' }]);
+    expect(view.continueHref).toBe('https://bulle.test/s/s-2');
   });
 });

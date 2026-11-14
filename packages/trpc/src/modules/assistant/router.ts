@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { router, humanProcedure } from '../../trpc';
 import type { Context } from '../../context';
 import { resolveScope } from '../../utils/scope';
+import { aiAccess } from '../competitor-ai/service';
 import { accessForScope, accessForUser } from '../contact/access';
 import { ASSISTANT_ACTIONS } from './prompt';
 import { assistantStatus, nextAction, write } from './service';
@@ -39,8 +40,10 @@ export const assistantRouter = router({
   status: humanProcedure
     .input(z.object({ teamId }).optional())
     .query(async ({ ctx, input }) => {
-      if (input?.teamId) await resolveScope(ctx.prisma, ctx.user.id, input.teamId, ctx.planMode);
-      return assistantStatus(ctx.bulle, ctx.user.id);
+      const scope = input?.teamId
+        ? await resolveScope(ctx.prisma, ctx.user.id, input.teamId, ctx.planMode)
+        : ({ type: 'personal', userId: ctx.user.id } as const);
+      return assistantStatus(ctx.bulle, ctx.user.id, await aiAccess(ctx.forfait, scope));
     }),
 
   write: humanProcedure.input(assistantWriteSchema).mutation(async ({ ctx, input }) =>

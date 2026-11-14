@@ -1,9 +1,10 @@
 import type { Competitor, CompetitorPricePeriod, Prisma, PrismaClient } from '@prisma/client';
 import { TRPCError } from '@trpc/server';
 import { WebSearchError, type WebSearch } from '@repo/websearch';
+import { RegistreReconnectError } from '@repo/courrier';
 import { logger } from '@repo/logger';
-import { BulleUnavailableError, type BulleClient } from '../assistant/bulle';
-import { assistantError, requireBulle } from '../assistant/service';
+import { PlanRequired, StatusError, complete, planRequired, type BulleClient } from '../assistant/bulle';
+import { PLAN_REQUIRED_MESSAGE, assistantError, requireBulle } from '../assistant/service';
 import { quotaKey } from '../competitor-discovery/sources';
 import { cleanPageUrl } from '../competitor-watch/service';
 import { AI_SUMMARIES_DAILY, limit } from '../forfait/features';
@@ -51,12 +52,7 @@ export async function aiAccess(forfait: ForfaitReader, scope: Scope): Promise<{ 
 export async function requireAiAccess(forfait: ForfaitReader, scope: Scope): Promise<void> {
   const access = await aiAccess(forfait, scope);
   if (access.allowed) return;
-  assistantError(
-    new BulleUnavailableError('plan_required', 'Les fonctions IA demandent une offre avec accès à l’IA.', {
-      key: 'ai.access',
-      upgrade_url: access.upgradeUrl || undefined,
-    })
-  );
+  assistantError(planRequired(PLAN_REQUIRED_MESSAGE, access.upgradeUrl));
 }
 
 /** Maps a model or web failure to the error the web app shows; plan and Bulle failures keep their cause. */
@@ -144,12 +140,12 @@ export async function draftBattlecard(
   const client = requireBulle(deps.bulle);
   await requireAiAccess(deps.forfait, scope);
   try {
-    const offer = await client.offer(scope.userId);
     const pages = await fetchCompetitorPages(deps, scope, competitor);
     const profile = await profileFor(deps.prisma, scope);
-    const raw = await client.complete(scope.userId, offer, {
-      system: systemFor(offer.persona, DRAFT_RULES, language),
-      user: draftPrompt(competitor, profile, pages),
+    const raw = await complete(client, scope.userId, {
+      system: systemFor(DRAFT_RULES, language),
+      prompt: 'Draft the battlecard.',
+      input: draftPrompt(competitor, profile, pages),
       maxTokens: 2500,
     });
     return { proposal: parseDraft(raw), sources: pages.map((page) => page.url) };
@@ -192,10 +188,10 @@ async function summarizeBatch(client: BulleClient, userId: string, rows: ChangeR
     changePercent: Math.round(row.changeRatio * 1000) / 10,
     lines: Array.isArray(row.diff) ? (row.diff as Array<{ op: string; text: string }>) : [],
   }));
-  const offer = await client.offer(userId);
-  const raw = await client.complete(userId, offer, {
-    system: systemFor(offer.persona, SUMMARY_RULES, language),
-    user: summaryPrompt(inputs),
+  const raw = await complete(client, userId, {
+    system: systemFor(SUMMARY_RULES, language),
+    prompt: 'Summarise each change.',
+    input: summaryPrompt(inputs),
     maxTokens: 300 * rows.length + 200,
   });
   const byLabel = parseSummaries(raw, inputs.map((input) => input.label));
@@ -245,7 +241,7 @@ export async function summarizeChanges(
       }
     } catch (error) {
       logger.warn({ err: error, scope }, '[COMPETITOR_AI] Change summaries failed');
-      if (error instanceof BulleUnavailableError && error.reason !== 'unreachable') break;
+      if (error instanceof PlanRequired || error instanceof RegistreReconnectError || error instanceof StatusError) break;
     }
   }
   return { available: true, summaries };
@@ -334,11 +330,11 @@ export async function extractPrices(deps: AiDeps, scope: Scope, competitor: Comp
   let sources: PriceSource[];
   let prices: ReturnType<typeof parsePrices>;
   try {
-    const offer = await client.offer(scope.userId);
     sources = await priceSources(deps, scope, competitor);
-    const raw = await client.complete(scope.userId, offer, {
-      system: systemFor(offer.persona, PRICE_RULES, language),
-      user: pricesPrompt(competitor.name, sources),
+    const raw = await complete(client, scope.userId, {
+      system: systemFor(PRICE_RULES, language),
+      prompt: 'List the prices.',
+      input: pricesPrompt(competitor.name, sources),
       maxTokens: 2000,
     });
     prices = parsePrices(raw, sources.length);

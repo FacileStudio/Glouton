@@ -5,7 +5,6 @@
   import { getTrpcErrorMessage } from '$lib/utils/trpc-error';
   import BulleBlob from './BulleBlob.svelte';
   import {
-    BULLE_SETTINGS_URL,
     REASONS,
     assistantStatus,
     type ApplyMode,
@@ -170,9 +169,6 @@
   {:else if reason}
     <Alert tone={status?.reason === 'unreachable' || statusError ? 'warning' : 'info'} title={t(reason.title)}>
       <p>{t(reason.text)}</p>
-      {#if reason.link}
-        <a class="mt-1 inline-block font-medium underline" href={BULLE_SETTINGS_URL} target="_blank" rel="external noopener noreferrer">{t(reason.link)}</a>
-      {/if}
     </Alert>
   {:else if task === 'next'}
     <Button icon="solar:lightbulb-linear" onclick={suggest} disabled={busy || !ready}>

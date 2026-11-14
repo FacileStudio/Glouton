@@ -29,7 +29,7 @@ import { registreIssuer, registreKeys, registreTrust } from './services/oidc';
 import { revokeSubject, verifyLogoutToken } from './services/backchannel-logout';
 import { createBackchannelLogoutRoutes } from './handlers/backchannel-logout';
 import { bearerClaims, bearerUser } from './services/bearer';
-import { registreVerifier } from '@facile/tronc/mcp';
+import { SqlPending, keepPruned, registreVerifier } from '@facile/tronc/mcp';
 import { gloutonMcp } from './handlers/mcp';
 import { delegatedVerifierFromEnv } from './services/delegated';
 import env from './env';
@@ -217,10 +217,12 @@ const ardoiseSync = ardoise.ardoiseDeps(prisma, env, jobs, logger);
 const notify = (scope: Parameters<typeof events.emitToScope>[0], type: string, data: Record<string, unknown>) =>
   events.emitToScope(scope, type, data);
 
+const mcpStore = new SqlPending((sql, params) => prisma.$queryRawUnsafe(sql, ...params));
 const mcp =
   issuer && env.MCP_CONFIRM_KEY
     ? gloutonMcp({
         prisma,
+        store: mcpStore,
         hooks: ardoiseSync.hooks,
         notify,
         inboxUrl: `${env.DOMAIN}/app/messages/inbox`,
@@ -243,6 +245,7 @@ const mcp =
       })
     : null;
 if (!mcp) logger.warn('[MCP] Disabled: set OIDC_ISSUER and MCP_CONFIRM_KEY to serve /mcp');
+else keepPruned(mcpStore, { onError: (err) => logger.warn({ err }, '[MCP] Pruning pending actions failed') });
 
 const app = new Hono();
 

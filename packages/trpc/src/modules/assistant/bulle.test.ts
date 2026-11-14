@@ -1,14 +1,16 @@
 import { describe, expect, test } from 'bun:test';
-import { COURRIER_AUDIENCE, COURRIER_SCOPES, RegistreTokens } from '@repo/courrier';
-import { BULLE_TARGET, BulleClient, BulleUnavailableError } from './bulle';
-import { assistantStatus } from './service';
+import { COURRIER_AUDIENCE, COURRIER_SCOPES, RegistreReconnectError, RegistreTokens } from '@repo/courrier';
+import { BULLE_TARGET, PlanRequired, complete, createBulle, planLimitOf } from './bulle';
+import { assistantError, assistantStatus } from './service';
 
 interface Seen {
   url: string;
   init: RequestInit;
 }
 
-function fakeSuite(options: { backend: string; noKey?: boolean; noPlan?: boolean; refreshToken?: string | null }) {
+const PAID = { allowed: true, upgradeUrl: 'https://sso.test/spaces' };
+
+function fakeSuite(options: { noPlan?: boolean; refreshToken?: string | null; upgradeUrl?: string } = {}) {
   const seen: Seen[] = [];
   let refreshes = 0;
   let current = options.refreshToken === undefined ? 'rt-1' : options.refreshToken;
@@ -29,24 +31,13 @@ function fakeSuite(options: { backend: string; noKey?: boolean; noPlan?: boolean
       return Response.json({ access_token: `${form.get('audience')}-token`, expires_in: 300 });
     }
     const path = new URL(url).pathname;
-    if (path === '/api/llm') {
-      return Response.json({ backend: options.backend, model: 'm-1', models: ['m-1', 'm-2'], persona: 'You are Pip.' });
-    }
     if (path === '/api/assistant') return Response.json({ name: 'Pip', avatar_url: 'https://bulle.test/pip.png' });
-    if (options.noPlan && path.startsWith('/api/llm/')) {
-      return Response.json(
-        { error: { message: 'AI features need a paid plan.', upgrade_url: 'https://sso.test/spaces' } },
-        { status: 402 }
-      );
+    if (options.noPlan) {
+      const upgrade = options.upgradeUrl ?? 'https://sso.test/spaces';
+      return Response.json({ error: { code: 'payment_required', message: 'AI features need a paid plan.', upgrade_url: upgrade, key: 'ai.access', limit: 3 } }, { status: 402 });
     }
-    if (options.noKey) return Response.json({ error: `no key for ${options.backend}` }, { status: 409 });
-    if (path === '/api/llm/anthropic/v1/messages') {
-      return Response.json({ content: [{ type: 'text', text: '{"subject":"Hi","body":"Hello","note":null}' }] });
-    }
-    if (path === '/api/llm/openrouter/chat/completions' || path === '/api/llm/openai/chat/completions') {
-      return Response.json({ choices: [{ message: { role: 'assistant', content: 'Bonjour' } }] });
-    }
-    return Response.json({ ok: true });
+    if (path === '/api/ai/complete') return Response.json({ text: ' {"subject":"Hi","body":"Hello","note":null} ', model: 'm-1' });
+    return Response.json({ error: { message: 'not found' } }, { status: 404 });
   }) as typeof fetch;
   const tokens = new RegistreTokens({
     issuer: 'https://registre.test/',
@@ -55,69 +46,44 @@ function fakeSuite(options: { backend: string; noKey?: boolean; noPlan?: boolean
     fetch: fakeFetch,
     store: { load: async () => current, save: async (_user, token) => void (current = token) },
   });
-  const bulle = new BulleClient({ bulleUrl: 'https://bulle.test/', tokens, fetch: fakeFetch });
+  const bulle = createBulle({ bulleUrl: 'https://bulle.test/', tokens, fetch: fakeFetch });
   return { bulle, tokens, seen, refreshes: () => refreshes };
 }
-
-const prompt = { system: 'SYSTEM', user: 'USER', maxTokens: 100 };
 
 function sentBody(seen: Seen[], suffix: string) {
   const call = seen.find((s) => s.url.endsWith(suffix));
   if (!call) throw new Error(`no call to ${suffix}`);
-  return { body: JSON.parse(String(call.init.body)), headers: call.init.headers as Record<string, string> };
+  return { body: JSON.parse(String(call.init.body)), headers: new Headers(call.init.headers) };
 }
 
-describe('BulleClient', () => {
-  test('speaks the Anthropic messages format to the anthropic backend', async () => {
-    const suite = fakeSuite({ backend: 'anthropic' });
-    const offer = await suite.bulle.offer('u1');
-    expect(offer).toEqual({ backend: 'anthropic', model: 'm-1', models: ['m-1', 'm-2'], persona: 'You are Pip.' });
-    expect(await suite.bulle.complete('u1', offer, prompt)).toBe('{"subject":"Hi","body":"Hello","note":null}');
-    const { body, headers } = sentBody(suite.seen, '/api/llm/anthropic/v1/messages');
-    expect(body).toEqual({ model: 'm-1', max_tokens: 100, system: 'SYSTEM', messages: [{ role: 'user', content: 'USER' }] });
-    expect(headers['anthropic-version']).toBe('2023-06-01');
-    expect(headers.Authorization).toBe('Bearer bulle-token');
+describe('the Bulle client', () => {
+  test('completes through /api/ai/complete with the exchanged token, the task and the data apart, and no space_id', async () => {
+    const suite = fakeSuite();
+    const answer = await complete(suite.bulle, 'u1', { system: 'SYSTEM', prompt: 'TASK', input: 'DATA', maxTokens: 100 });
+    expect(answer).toBe('{"subject":"Hi","body":"Hello","note":null}');
+    const { body, headers } = sentBody(suite.seen, '/api/ai/complete');
+    expect(body).toEqual({ system: 'SYSTEM', prompt: 'TASK', input: 'DATA', max_tokens: 100 });
+    expect(headers.get('authorization')).toBe('Bearer bulle-token');
+    expect(suite.seen.some((s) => s.url.includes('/api/llm'))).toBe(false);
   });
 
-  test('speaks OpenAI-compatible chat to openrouter', async () => {
-    const suite = fakeSuite({ backend: 'openrouter' });
-    const offer = await suite.bulle.offer('u1');
-    expect(await suite.bulle.complete('u1', offer, prompt)).toBe('Bonjour');
-    const { body } = sentBody(suite.seen, '/api/llm/openrouter/chat/completions');
-    expect(body.messages).toEqual([
-      { role: 'system', content: 'SYSTEM' },
-      { role: 'user', content: 'USER' },
-    ]);
-    expect(body.system).toBeUndefined();
-  });
-
-  test('maps a Bulle 409 to no_key, in the client and in status', async () => {
-    const suite = fakeSuite({ backend: 'openai', noKey: true });
-    const offer = await suite.bulle.offer('u1');
-    const error = await suite.bulle.complete('u1', offer, prompt).catch((e: unknown) => e);
-    expect(error).toBeInstanceOf(BulleUnavailableError);
-    expect((error as BulleUnavailableError).reason).toBe('no_key');
-    expect(await assistantStatus(suite.bulle, 'u1')).toEqual({
-      available: false,
-      reason: 'no_key',
+  test('reports the assistant profile, and a lost grant as not_linked', async () => {
+    expect(await assistantStatus(fakeSuite().bulle, 'u1', PAID)).toEqual({
+      available: true,
+      reason: null,
       name: 'Pip',
       avatarUrl: 'https://bulle.test/pip.png',
-      model: 'm-1',
     });
-  });
-
-  test('refuses the google backend and reports a lost grant as not_linked', async () => {
-    const google = fakeSuite({ backend: 'google' });
-    const offer = await google.bulle.offer('u1');
-    const error = await google.bulle.complete('u1', offer, prompt).catch((e: unknown) => e);
-    expect((error as BulleUnavailableError).reason).toBe('unsupported');
-    const unlinked = fakeSuite({ backend: 'openrouter', refreshToken: null });
-    expect((await assistantStatus(unlinked.bulle, 'u1')).reason).toBe('not_linked');
-    expect((await assistantStatus(null, 'u1')).reason).toBe('unreachable');
+    const unlinked = fakeSuite({ refreshToken: null });
+    expect((await assistantStatus(unlinked.bulle, 'u1', PAID)).reason).toBe('not_linked');
+    const error = await complete(unlinked.bulle, 'u1', { prompt: 'TASK' }).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(RegistreReconnectError);
+    expect(() => assistantError(error)).toThrow('Reconnectez votre compte Facile');
+    expect((await assistantStatus(null, 'u1', PAID)).reason).toBe('unreachable');
   });
 
   test('Courrier and Bulle tokens for one user share a single refresh', async () => {
-    const suite = fakeSuite({ backend: 'openrouter' });
+    const suite = fakeSuite();
     const courrier = { audience: COURRIER_AUDIENCE, scopes: COURRIER_SCOPES, label: 'Courrier' };
     const [a, b] = await Promise.all([suite.tokens.token('u1', courrier), suite.tokens.token('u1', BULLE_TARGET)]);
     expect([a, b]).toEqual([`${COURRIER_AUDIENCE}-token`, 'bulle-token']);
@@ -129,24 +95,38 @@ describe('BulleClient', () => {
   });
 });
 
-describe('a Bulle 402', () => {
-  test('complete fails with plan_required and the upgrade link', async () => {
-    const { bulle } = fakeSuite({ backend: 'anthropic', noPlan: true });
-    const offer = await bulle.offer('user-1');
-    const error = await bulle.complete('user-1', offer, prompt).catch((e: unknown) => e);
-    expect(error).toBeInstanceOf(BulleUnavailableError);
-    expect((error as BulleUnavailableError).reason).toBe('plan_required');
-    expect((error as BulleUnavailableError).planLimit).toEqual({
+describe('a plan without AI', () => {
+  test("Bulle's 402 becomes FORBIDDEN with the plan limit and its upgrade link", async () => {
+    const { bulle } = fakeSuite({ noPlan: true });
+    const error = await complete(bulle, 'user-1', { prompt: 'TASK' }).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(PlanRequired);
+    let refused: { code?: string; cause?: unknown } = {};
+    try {
+      assistantError(error);
+    } catch (thrown) {
+      refused = thrown as typeof refused;
+    }
+    expect(refused.code).toBe('FORBIDDEN');
+    expect(planLimitOf(refused)).toEqual({
       message: 'AI features need a paid plan.',
       upgrade_url: 'https://sso.test/spaces',
+      key: 'ai.access',
+      limit: 3,
     });
   });
 
-  test('status reports plan_required with the limit', async () => {
-    const { bulle } = fakeSuite({ backend: 'anthropic', noPlan: true });
-    const status = await assistantStatus(bulle, 'user-1');
+  test('an unsafe upgrade URL never reaches the page', async () => {
+    const { bulle } = fakeSuite({ noPlan: true, upgradeUrl: 'javascript:alert(1)' });
+    const error = await complete(bulle, 'user-1', { prompt: 'TASK' }).catch((e: unknown) => e);
+    expect(planLimitOf({ cause: error })?.upgrade_url).toBeUndefined();
+  });
+
+  test('status reports plan_required from the scope plan before calling Bulle', async () => {
+    const suite = fakeSuite();
+    const status = await assistantStatus(suite.bulle, 'user-1', { allowed: false, upgradeUrl: 'https://sso.test/spaces/s1' });
     expect(status.available).toBe(false);
     expect(status.reason).toBe('plan_required');
-    expect(status.planLimit?.upgrade_url).toBe('https://sso.test/spaces');
+    expect(status.planLimit).toMatchObject({ key: 'ai.access', upgrade_url: 'https://sso.test/spaces/s1' });
+    expect(suite.seen).toHaveLength(0);
   });
 });

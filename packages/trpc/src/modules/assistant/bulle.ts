@@ -1,73 +1,25 @@
-import {
-  RegistreReconnectError,
-  readJson,
-  record,
-  text,
-  type ExchangeTarget,
-  type RegistreTokens,
-} from '@repo/courrier';
+import { Client, PlanRequired, StatusError, UnreachableError, type CompleteRequest } from '@facile/tronc/bulle';
+import { RegistreReconnectError, type ExchangeTarget, type RegistreTokens } from '@repo/courrier';
 import { logger } from '@repo/logger';
+
+export { PlanRequired, StatusError, UnreachableError } from '@facile/tronc/bulle';
 
 export const BULLE_TARGET: ExchangeTarget = { audience: 'bulle', scopes: 'bulle.read bulle.write', label: 'Bulle' };
 
-const ANTHROPIC_VERSION = '2023-06-01';
-const READ_TIMEOUT_MS = 10_000;
-const CHAT_TIMEOUT_MS = 90_000;
+const COMPLETE_TIMEOUT_MS = 90_000;
 
-/** Why Bulle cannot answer: no Registre grant, no model key, Bulle down, or a backend Glouton cannot speak. */
-export type BulleFailure = 'not_linked' | 'no_key' | 'unreachable' | 'unsupported' | 'plan_required';
+/** The Bulle client of @facile/tronc, acting as a Glouton user with their exchanged token. */
+export type BulleClient = Client;
 
-/** The 402 body Bulle sends when the plan has no ai.access: a message and where to upgrade. */
+/** Why Bulle cannot answer: no Registre grant, no AI in the plan, or Bulle unreachable or refusing. */
+export type BulleFailure = 'not_linked' | 'unreachable' | 'plan_required';
+
+/** The plan limit the web app shows: Bulle's 402 fields, with an unsafe upgrade page already dropped. */
 export interface PlanLimit {
   message?: string;
   upgrade_url?: string;
   key?: string;
-  limit?: number | string;
-}
-
-/** Thrown by BulleClient for every failure, tagged with the reason the UI shows. */
-export class BulleUnavailableError extends Error {
-  constructor(
-    readonly reason: BulleFailure,
-    message: string,
-    readonly planLimit: PlanLimit | null = null
-  ) {
-    super(message);
-    this.name = 'BulleUnavailableError';
-  }
-}
-
-/** A refusal from one of Bulle's own routes (not a plan refusal), with its HTTP status and message. */
-export class BulleRefusal extends Error {
-  constructor(
-    readonly status: number,
-    message: string
-  ) {
-    super(message);
-    this.name = 'BulleRefusal';
-  }
-}
-
-/** How a request reads Bulle's answer: the LLM proxy, a key probe, or one of Bulle's JSON routes. */
-type Mode = 'llm' | 'probe' | 'api';
-
-/** The model setup Bulle offers this user, persona included. */
-export interface BulleOffer {
-  backend: string;
-  model: string;
-  models: string[];
-  persona: string;
-}
-
-export interface BulleProfile {
-  name: string;
-  avatarUrl: string | null;
-}
-
-export interface ChatPrompt {
-  system: string;
-  user: string;
-  maxTokens: number;
+  limit?: number;
 }
 
 export interface BulleConfig {
@@ -76,209 +28,69 @@ export interface BulleConfig {
   fetch?: typeof fetch;
 }
 
-type Json = Record<string, unknown>;
+/** One completion a Glouton feature asks for: its rules, the task, and the data the task works on. */
+export type Completion = Pick<CompleteRequest, 'system' | 'prompt' | 'input' | 'maxTokens'>;
 
-/** Reads a 402 body, bare or wrapped in tronc's `{error}` envelope, into the fields the web app shows. */
-export function planLimitFrom(body: unknown): PlanLimit {
-  const outer = record(body);
-  const inner = typeof outer.error === 'object' && outer.error !== null ? record(outer.error) : outer;
-  const limit = inner.limit;
-  return {
-    message: text(inner.message) || undefined,
-    upgrade_url: text(inner.upgrade_url) || undefined,
-    key: text(inner.key) || undefined,
-    limit: typeof limit === 'number' || typeof limit === 'string' ? limit : undefined,
-  };
+/**
+ * The tronc Bulle client for Glouton: the user's Registre refresh token is
+ * exchanged for audience bulle, a 401 forgets that token before the one
+ * retry, and a failed exchange other than a needed reconnect is unreachable.
+ */
+export function createBulle(config: BulleConfig): Client {
+  return new Client({
+    url: config.bulleUrl,
+    fetch: config.fetch,
+    forget: (user) => config.tokens.forget(user, BULLE_TARGET),
+    token: async (user) => {
+      try {
+        return await config.tokens.token(user, BULLE_TARGET);
+      } catch (error) {
+        if (error instanceof RegistreReconnectError) throw error;
+        logger.warn({ err: error, userId: user }, '[BULLE] Registre token exchange failed');
+        throw new UnreachableError('Registre token exchange for Bulle failed', error);
+      }
+    },
+  });
 }
 
-/** The message of an error body, bare (`{error: "..."}`) or in tronc's `{error: {message}}` envelope. */
-function refusalMessage(body: unknown): string {
-  const error = record(body).error;
-  return typeof error === 'string' ? error : text(record(error).message);
+/** The refusal Glouton gives before calling Bulle when the scope's plan has no ai.access, shaped like Bulle's 402. */
+export function planRequired(message: string, upgradeUrl: string): PlanRequired {
+  return new PlanRequired({ code: 'payment_required', message, upgrade_url: upgradeUrl, key: 'ai.access', limit: 0 });
+}
+
+/** The reason a Bulle call failed, or null when the error did not come from Bulle. */
+export function bulleFailure(error: unknown): BulleFailure | null {
+  if (error instanceof PlanRequired) return 'plan_required';
+  if (error instanceof RegistreReconnectError) return 'not_linked';
+  if (error instanceof UnreachableError || error instanceof StatusError) return 'unreachable';
+  return null;
+}
+
+/** The fields of a plan refusal, for the tRPC error body and the status. */
+export function planLimitFields(error: PlanRequired): PlanLimit {
+  return {
+    message: error.message || undefined,
+    upgrade_url: error.upgradeUrl || undefined,
+    key: error.key || undefined,
+    limit: error.limit || undefined,
+  };
 }
 
 /** The plan limit a failed call carries, or undefined for any other error. */
 export function planLimitOf(error: { cause?: unknown }): PlanLimit | undefined {
-  return error.cause instanceof BulleUnavailableError ? (error.cause.planLimit ?? undefined) : undefined;
+  return error.cause instanceof PlanRequired ? planLimitFields(error.cause) : undefined;
 }
 
-function chatRequest(offer: BulleOffer, model: string, prompt: ChatPrompt): { path: string; body: Json; headers: Json } {
-  if (offer.backend === 'anthropic') {
-    return {
-      path: 'v1/messages',
-      headers: { 'anthropic-version': ANTHROPIC_VERSION },
-      body: {
-        model,
-        max_tokens: prompt.maxTokens,
-        system: prompt.system,
-        messages: [{ role: 'user', content: prompt.user }],
-      },
-    };
-  }
-  if (offer.backend === 'openai' || offer.backend === 'openrouter') {
-    return {
-      path: 'chat/completions',
-      headers: {},
-      body: {
-        model,
-        max_tokens: prompt.maxTokens,
-        messages: [
-          { role: 'system', content: prompt.system },
-          { role: 'user', content: prompt.user },
-        ],
-      },
-    };
-  }
-  throw new BulleUnavailableError('unsupported', `Bulle backend ${offer.backend || 'unknown'} is not supported`);
-}
-
-function chatText(backend: string, body: unknown): string {
-  if (backend === 'anthropic') {
-    const blocks = Array.isArray(record(body).content) ? (record(body).content as unknown[]) : [];
-    return blocks
-      .map(record)
-      .filter((block) => block.type === 'text')
-      .map((block) => text(block.text))
-      .join('');
-  }
-  const choices = Array.isArray(record(body).choices) ? (record(body).choices as unknown[]) : [];
-  return text(record(record(choices[0]).message).content);
-}
-
-const PROBE_PATHS: Record<string, string> = {
-  anthropic: 'v1/models?limit=1',
-  openai: 'models',
-  openrouter: 'key',
-};
-
-/**
- * Calls Bulle as a Glouton user: a Registre token-exchanged JWT (aud bulle)
- * reads the user's model offer and assistant profile, and chat completions go
- * through Bulle's key-holding proxy in the backend's own wire format
- * (Anthropic messages, or OpenAI-compatible chat for openai and openrouter).
- * Every failure is a BulleUnavailableError.
- */
-export class BulleClient {
-  private readonly baseUrl: string;
-  private readonly http: typeof fetch;
-
-  constructor(private readonly config: BulleConfig) {
-    this.baseUrl = config.bulleUrl.replace(/\/$/, '');
-    this.http = config.fetch ?? fetch;
-  }
-
-  /** The backend, default model and persona Bulle runs for this user. */
-  async offer(userId: string): Promise<BulleOffer> {
-    const body = record(await this.request(userId, 'GET', '/api/llm', READ_TIMEOUT_MS));
-    const models = Array.isArray(body.models) ? body.models.map(text).filter(Boolean) : [];
-    return { backend: text(body.backend), model: text(body.model), models, persona: text(body.persona) };
-  }
-
-  /** The assistant's display name and avatar, as the user set them in Bulle. */
-  async profile(userId: string): Promise<BulleProfile> {
-    const body = record(await this.request(userId, 'GET', '/api/assistant', READ_TIMEOUT_MS));
-    return { name: text(body.name).trim() || 'Bulle', avatarUrl: text(body.avatar_url) || null };
-  }
-
-  /** Resolves when Bulle holds a key for the backend; a cheap GET that spends no tokens. */
-  async probe(userId: string, backend: string): Promise<void> {
-    const path = PROBE_PATHS[backend];
-    if (!path) throw new BulleUnavailableError('unsupported', `Bulle backend ${backend || 'unknown'} is not supported`);
-    await this.request(userId, 'GET', `/api/llm/${backend}/${path}`, READ_TIMEOUT_MS, undefined, {}, 'probe');
-  }
-
-  /**
-   * One of Bulle's JSON routes (the Ideas API, say) as this user, returning
-   * the body. A 402 is plan_required; any other 4xx is a BulleRefusal with its
-   * status, and a 5xx or a network failure is unreachable.
-   */
-  async call(userId: string, method: string, path: string, payload?: unknown): Promise<unknown> {
-    return this.request(userId, method, path, READ_TIMEOUT_MS, payload, {}, 'api');
-  }
-
-  /** One chat completion, returned as the model's text. */
-  async complete(userId: string, offer: BulleOffer, prompt: ChatPrompt): Promise<string> {
-    const model = offer.model || offer.models[0];
-    if (!model) throw new BulleUnavailableError('unreachable', 'Bulle offers no model');
-    const call = chatRequest(offer, model, prompt);
-    const body = await this.request(userId, 'POST', `/api/llm/${offer.backend}/${call.path}`, CHAT_TIMEOUT_MS, call.body, call.headers);
-    const answer = chatText(offer.backend, body).trim();
-    if (!answer) throw new BulleUnavailableError('unreachable', 'Bulle returned an empty answer');
-    return answer;
-  }
-
-  private async send(
-    token: string,
-    method: string,
-    path: string,
-    timeoutMs: number,
-    payload: unknown,
-    headers: Json
-  ): Promise<Response> {
-    return this.http(`${this.baseUrl}${path}`, {
-      method,
-      headers: {
-        ...(headers as Record<string, string>),
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/json',
-        ...(payload === undefined ? {} : { 'Content-Type': 'application/json' }),
-      },
-      body: payload === undefined ? undefined : JSON.stringify(payload),
-      signal: AbortSignal.timeout(timeoutMs),
-    });
-  }
-
-  private async token(userId: string): Promise<string> {
-    try {
-      return await this.config.tokens.token(userId, BULLE_TARGET);
-    } catch (error) {
-      if (error instanceof RegistreReconnectError) throw new BulleUnavailableError('not_linked', error.message);
-      logger.warn({ err: error, userId }, '[BULLE] Registre token exchange failed');
-      throw new BulleUnavailableError('unreachable', 'Registre token exchange for Bulle failed');
-    }
-  }
-
-  private async request(
-    userId: string,
-    method: string,
-    path: string,
-    timeoutMs: number,
-    payload?: unknown,
-    headers: Json = {},
-    mode: Mode = 'llm'
-  ): Promise<unknown> {
-    let response: Response;
-    try {
-      response = await this.send(await this.token(userId), method, path, timeoutMs, payload, headers);
-      if (response.status === 401 && mode !== 'probe') {
-        this.config.tokens.forget(userId, BULLE_TARGET);
-        response = await this.send(await this.token(userId), method, path, timeoutMs, payload, headers);
-      }
-    } catch (error) {
-      if (error instanceof BulleUnavailableError) throw error;
-      logger.warn({ err: error, path }, '[BULLE] Request failed');
-      throw new BulleUnavailableError('unreachable', 'Bulle is unreachable');
-    }
-    const body = await readJson(response);
-    if (response.status === 402) {
-      const limit = planLimitFrom(body);
-      throw new BulleUnavailableError('plan_required', limit.message || 'Bulle needs a plan with AI access', limit);
-    }
-    if (mode === 'api' && response.status >= 400 && response.status < 500) {
-      throw new BulleRefusal(response.status, refusalMessage(body) || `Bulle answered ${response.status}`);
-    }
-    if (response.status === 409) throw new BulleUnavailableError('no_key', text(record(body).error) || 'no key');
-    if (mode === 'probe' && response.status < 500) return body;
-    if (!response.ok) {
-      logger.warn({ status: response.status, path, error: record(body).error ?? body }, '[BULLE] Bulle answered with an error');
-      throw new BulleUnavailableError('unreachable', `Bulle answered ${response.status}`);
-    }
-    return body;
-  }
+/** One completion through Bulle's POST /api/ai/complete, returned as the model's text. */
+export async function complete(client: BulleClient, userId: string, request: Completion): Promise<string> {
+  const answer = await client.complete(userId, request, COMPLETE_TIMEOUT_MS);
+  const text = (answer.text ?? (answer.json === undefined ? '' : JSON.stringify(answer.json))).trim();
+  if (!text) throw new UnreachableError('empty answer');
+  return text;
 }
 
 /** The Bulle client, or null when BULLE_URL or the Registre client is not configured. */
-export function bulleFromEnv(env: { BULLE_URL?: string }, tokens: RegistreTokens | null): BulleClient | null {
+export function bulleFromEnv(env: { BULLE_URL?: string }, tokens: RegistreTokens | null): Client | null {
   if (!env.BULLE_URL) {
     logger.info('[BULLE] BULLE_URL unset: the writing assistant is off');
     return null;
@@ -287,5 +99,5 @@ export function bulleFromEnv(env: { BULLE_URL?: string }, tokens: RegistreTokens
     logger.warn('[BULLE] BULLE_URL is set but OIDC is not configured: the writing assistant stays off');
     return null;
   }
-  return new BulleClient({ bulleUrl: env.BULLE_URL, tokens });
+  return createBulle({ bulleUrl: env.BULLE_URL, tokens });
 }

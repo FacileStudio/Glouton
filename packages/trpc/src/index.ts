@@ -82,5 +82,5 @@ export * as prospectProfile from './modules/prospect/profile';
 export * as prospectSuggest from './modules/prospect/suggest';
 export * as taxonomy from './taxonomy';
 export * as mailTransport from './modules/email/transport';
-export { BulleClient, BulleUnavailableError, bulleFromEnv } from './modules/assistant/bulle';
+export { PlanRequired, StatusError, UnreachableError, bulleFromEnv, createBulle, planRequired, type BulleClient } from './modules/assistant/bulle';
 export type { McpPending, PendingAction } from './modules/mcp/router';
