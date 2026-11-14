@@ -11,6 +11,12 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+## [0.25.1] - 2026-11-14
+
+### Fixed
+
+- muse v0.26.0: every landing pricing button ("Commencer gratuitement", "Choisir Pro", "Choisir Studio") opens Registre's sign-up page in the page locale (`https://sso.facile.studio/signup?lang=fr`) instead of `/spaces`, which asked a signed-out visitor to sign in.
+
 ## [0.25.0] - 2026-11-14
 
 ### Added
