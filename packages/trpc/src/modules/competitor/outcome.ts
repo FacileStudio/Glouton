@@ -7,7 +7,7 @@ import type { CloseLeadInput } from './schemas';
 import { notFound } from './service';
 
 /** Loads a lead and checks the caller owns it or belongs to its team; anything else reads as not found. */
-async function loadLead(prisma: PrismaClient, userId: string, leadId: string, mode: PlanMode, declaredTeamId?: string) {
+export async function loadLead(prisma: PrismaClient, userId: string, leadId: string, mode: PlanMode, declaredTeamId?: string) {
   const lead = await prisma.lead.findUnique({ where: { id: leadId }, select: { id: true, userId: true, teamId: true } });
   if (!lead) throw notFound('Lead not found');
   if (lead.teamId) {

@@ -17,6 +17,7 @@ import { huntScheduleRouter } from './modules/schedule/router';
 import { prospectRouter } from './modules/prospect/router';
 import { competitorDiscoveryRouter } from './modules/competitor-discovery/router';
 import { competitorAiRouter } from './modules/competitor-ai/router';
+import { leadScoreRouter } from './modules/lead-score/router';
 import { ideasRouter } from './modules/ideas/router';
 import { jobRouter } from './modules/job/router';
 import { mcpRouter } from './modules/mcp/router';
@@ -43,6 +44,7 @@ export const appRouter = router({
   prospect: prospectRouter,
   competitorDiscovery: competitorDiscoveryRouter,
   competitorAi: competitorAiRouter,
+  leadScore: leadScoreRouter,
   ideas: ideasRouter,
   job: jobRouter,
   mcp: mcpRouter,
@@ -75,6 +77,7 @@ export * as competitorRules from './modules/competitor/rules';
 export * as schedules from './modules/schedule';
 export * as discovery from './modules/competitor-discovery';
 export * as competitorAi from './modules/competitor-ai';
+export * as leadScore from './modules/lead-score';
 export * as ideas from './modules/ideas';
 export * as jobSearch from './modules/job';
 export { profileFor, type ProspectProfile } from './modules/prospect/profile';
