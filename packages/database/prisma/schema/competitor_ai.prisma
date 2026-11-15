@@ -7,15 +7,68 @@ enum CompetitorPricePeriod {
   YEAR
 }
 
-/// One price Bulle read on a competitor's pricing page. A new extraction
-/// replaces every row of the competitor. snapshotId points at the stored page
-/// text it came from and is cleared when that snapshot is pruned; sourceUrl
-/// stays.
+enum PriceEventKind {
+  PRICE_CHANGED
+  PLAN_ADDED
+  PLAN_REMOVED
+  FREE_TIER_APPEARED
+  FREE_TIER_REMOVED
+}
+
+/// One run of price extraction for a competitor, kept for good so prices have a
+/// history. trigger is manual (the user asked) or watch (a watched pricing page
+/// changed); changeId is the page change that started a watch run.
+model PriceExtraction {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Text
+  competitorId String   @db.Text
+  trigger      String   @default("manual") @db.Text
+  changeId     String?  @db.Text
+  extractedAt  DateTime @default(now()) @db.Timestamptz(3)
+
+  competitor Competitor        @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+  change     PageChange?       @relation(fields: [changeId], references: [id], onDelete: SetNull)
+  prices     CompetitorPrice[]
+  events     PriceEvent[]
+
+  @@index([competitorId, extractedAt])
+  @@index([changeId])
+}
+
+/// What moved between two consecutive extractions of a competitor. notifiedAt
+/// is set when a digest carried the event.
+model PriceEvent {
+  id           String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Text
+  competitorId String                 @db.Text
+  extractionId String                 @db.Text
+  kind         PriceEventKind
+  plan         String                 @db.Text
+  oldPrice     Float?
+  newPrice     Float?
+  currency     String?                @db.Text
+  period       CompetitorPricePeriod?
+  percent      Float?
+  notifiedAt   DateTime?              @db.Timestamptz(3)
+  createdAt    DateTime               @default(now()) @db.Timestamptz(3)
+
+  competitor Competitor      @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+  extraction PriceExtraction @relation(fields: [extractionId], references: [id], onDelete: Cascade)
+
+  @@index([competitorId, createdAt])
+  @@index([extractionId])
+  @@index([notifiedAt])
+}
+
+/// One price Bulle read on a competitor's pricing page. Rows are never
+/// replaced: each belongs to an extraction, and the newest extraction is the
+/// current list. snapshotId points at the stored page text it came from and
+/// is cleared when that snapshot is pruned; sourceUrl stays. extractionId is
+/// null only on rows written before history was kept.
 model CompetitorPrice {
   id            String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Text
   competitorId  String                 @db.Text
   watchedPageId String?                @db.Text
   snapshotId    String?                @db.Text
+  extractionId  String?                @db.Text
   name          String                 @db.Text
   price         Float?
   currency      String?                @db.Text
@@ -28,8 +81,10 @@ model CompetitorPrice {
   competitor Competitor    @relation(fields: [competitorId], references: [id], onDelete: Cascade)
   page       WatchedPage?  @relation(fields: [watchedPageId], references: [id], onDelete: SetNull)
   snapshot   PageSnapshot? @relation(fields: [snapshotId], references: [id], onDelete: SetNull)
+  extraction PriceExtraction? @relation(fields: [extractionId], references: [id], onDelete: Cascade)
 
   @@index([competitorId, position])
   @@index([snapshotId])
   @@index([watchedPageId])
+  @@index([extractionId])
 }

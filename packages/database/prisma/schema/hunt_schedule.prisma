@@ -16,6 +16,7 @@ model TeamProspectProfile {
   userId           String   @db.Text
   teamId           String?  @db.Text
   offerDescription String?  @db.Text
+  ownPricing       String?  @db.Text
   area             String?  @db.Text
   targetCategories String[] @default([])
   nafCodes         String[] @default([])
