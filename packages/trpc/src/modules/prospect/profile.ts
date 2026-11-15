@@ -56,6 +56,7 @@ export interface ProspectProfile {
   usages: Usage[];
   onboarded: boolean;
   offerDescription: string | null;
+  ownPricing: string | null;
   website: string | null;
   area: string | null;
   remote: boolean;
@@ -97,6 +98,7 @@ export const jobTargetSchema = targetSchema.extend({
 export const profileFieldsSchema = z.object({
   usages: z.array(z.enum(USAGES)).min(1, 'Pick at least one usage').max(USAGES.length).optional(),
   offerDescription: z.string().trim().max(4000).nullish(),
+  ownPricing: z.string().trim().max(4000).nullish(),
   area: z.string().trim().max(200).nullish(),
   remote: z.boolean().optional(),
   website: z
@@ -192,6 +194,7 @@ export function present(row: TeamProspectProfile | null): ProspectProfile {
     usages: row && usages.length === 0 ? [...LEGACY_USAGES] : usages,
     onboarded: Boolean(row),
     offerDescription: row?.offerDescription ?? null,
+    ownPricing: row?.ownPricing ?? null,
     website: row?.website ?? null,
     area: row?.area ?? null,
     remote: row?.remote ?? false,
@@ -231,6 +234,7 @@ export async function saveProfile(prisma: PrismaClient, scope: Scope, fields: Pr
     usages,
     targets: targets as unknown as Prisma.InputJsonValue,
     ...(fields.offerDescription !== undefined ? { offerDescription: fields.offerDescription || null } : {}),
+    ...(fields.ownPricing !== undefined ? { ownPricing: fields.ownPricing || null } : {}),
     ...(fields.area !== undefined ? { area: fields.area || null } : {}),
     ...(fields.remote !== undefined ? { remote: fields.remote } : {}),
     ...(fields.website !== undefined ? { website: domainOf(fields.website) } : {}),

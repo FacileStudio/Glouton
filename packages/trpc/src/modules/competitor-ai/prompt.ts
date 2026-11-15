@@ -40,11 +40,11 @@ export function languageRule(language: AiLanguage): string {
 }
 
 /** The system prompt every competitor AI call uses: the task rules, the data rule and the language. */
-export function systemFor(rules: string, language: AiLanguage): string {
-  return [rules, UNTRUSTED_RULE, languageRule(language)].join('\n\n');
+export function systemFor(rules: string, language: AiLanguage, untrusted: string = UNTRUSTED_RULE): string {
+  return [rules, untrusted, languageRule(language)].join('\n\n');
 }
 
-function strictParse<T>(raw: string, schema: z.ZodType<T>): T {
+export function strictParse<T>(raw: string, schema: z.ZodType<T>): T {
   const json = jsonObject(raw);
   if (!json) throw new AiOutputError();
   const parsed = schema.safeParse(json);

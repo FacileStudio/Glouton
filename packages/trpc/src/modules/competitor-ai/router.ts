@@ -3,6 +3,8 @@ import { router, protectedProcedure, humanProcedure } from '../../trpc';
 import type { Context } from '../../context';
 import { loadCompetitor } from '../competitor/service';
 import { AI_LANGUAGES } from './prompt';
+import { recommend } from './advice';
+import { extractPrices, listPrices, priceTimeline } from './prices';
 import * as service from './service';
 
 const id = z.string().uuid();
@@ -13,6 +15,7 @@ const row = { model: 'competitor', key: 'competitorId' } as const;
 export const competitorScope = z.object({ teamId, competitorId: id });
 export const competitorAiSchema = competitorScope.extend({ language });
 export const summarizeSchema = competitorScope.extend({ language, changeIds: z.array(id).min(1).max(30) });
+export const timelineSchema = competitorScope.extend({ limit: z.number().int().min(1).max(50).default(20) });
 export const snapshotSchema = competitorScope.extend({ snapshotId: id });
 
 function deps(ctx: Context): service.AiDeps {
@@ -37,12 +40,22 @@ export const competitorAiRouter = router({
 
   extractPrices: humanProcedure.meta({ forfait: { row } }).input(competitorAiSchema).mutation(async ({ ctx, input }) => {
     const { row: competitor, scope } = await loadCompetitor(ctx.prisma, ctx.user.id, input.competitorId, ctx.planMode, input.teamId);
-    return service.extractPrices(deps(ctx), scope, competitor, input.language);
+    return extractPrices(deps(ctx), scope, competitor, input.language);
+  }),
+
+  recommend: humanProcedure.meta({ forfait: { row } }).input(competitorAiSchema).mutation(async ({ ctx, input }) => {
+    const { row: competitor, scope } = await loadCompetitor(ctx.prisma, ctx.user.id, input.competitorId, ctx.planMode, input.teamId);
+    return recommend(deps(ctx), scope, competitor, input.language);
   }),
 
   prices: protectedProcedure.meta({ forfait: { free: true, row } }).input(competitorScope).query(async ({ ctx, input }) => {
     const { row: competitor } = await loadCompetitor(ctx.prisma, ctx.user.id, input.competitorId, ctx.planMode, input.teamId);
-    return service.listPrices(ctx.prisma, competitor.id);
+    return listPrices(ctx.prisma, competitor.id);
+  }),
+
+  priceTimeline: protectedProcedure.meta({ forfait: { free: true, row } }).input(timelineSchema).query(async ({ ctx, input }) => {
+    const { row: competitor } = await loadCompetitor(ctx.prisma, ctx.user.id, input.competitorId, ctx.planMode, input.teamId);
+    return priceTimeline(ctx.prisma, competitor.id, input.limit);
   }),
 
   snapshot: protectedProcedure.meta({ forfait: { free: true, row } }).input(snapshotSchema).query(async ({ ctx, input }) => {

@@ -5,7 +5,7 @@ import { createOpportunityScraperWorker } from './opportunity-scraper';
 import { createCompanyCreationWorker } from './company-creation';
 import type { CourrierClient } from '@repo/courrier';
 import type { WebSearch } from '@repo/websearch';
-import { createCompetitorWatchWorker, type DigestSummarizer } from './competitor-watch';
+import { createCompetitorWatchWorker, type DigestSummarizer, type PriceChange } from './competitor-watch';
 import type { ScopeGate } from '../types';
 import {
   createCourrierContactsImportWorker,
@@ -17,6 +17,7 @@ export interface WorkerDependencies {
   allowed?: ScopeGate;
   websearch?: WebSearch | null;
   summarize?: DigestSummarizer;
+  onPriceChange?: (change: PriceChange) => Promise<unknown>;
 }
 
 export interface EventEmitter {
@@ -34,7 +35,7 @@ export function createWorkers(events: EventEmitter, deps: WorkerDependencies = {
     'company-creation': createCompanyCreationWorker(events),
     'courrier-reply-sync': createCourrierReplySyncWorker(deps.courrier ?? null, deps.allowed),
     'courrier-contacts-import': createCourrierContactsImportWorker(deps.courrier ?? null, events, deps.allowed),
-    'competitor-watch': createCompetitorWatchWorker(deps.websearch ?? null, events, deps.allowed, deps.summarize),
+    'competitor-watch': createCompetitorWatchWorker(deps.websearch ?? null, events, deps.allowed, deps.summarize, deps.onPriceChange),
   };
 }
 
