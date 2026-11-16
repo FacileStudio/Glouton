@@ -11,6 +11,7 @@ export const composer = {
   'composer.noTemplate': ['No template', 'Sans modèle', 'Sin plantilla', 'Ohne Vorlage'],
   'composer.via': ['Sending via {transport}', 'Envoi via {transport}', 'Envío con {transport}', 'Versand über {transport}'],
   'composer.notConfigured': ['Sending not set up', 'Envoi non configuré', 'Envío sin configurar', 'Versand nicht eingerichtet'],
+  'composer.bulleOpen': ['Write with AI', "Écrire avec l'IA", 'Escribir con IA', 'Mit KI schreiben'],
   'composer.bulleApplied': ['{name} changed the message.', '{name} a modifié le message.', '{name} ha cambiado el mensaje.', '{name} hat die Nachricht geändert.'],
   'composer.undo': ['Undo', 'Annuler', 'Deshacer', 'Rückgängig'],
   'composer.saveDraft': ['Save the draft', 'Enregistrer le brouillon', 'Guardar el borrador', 'Entwurf speichern'],

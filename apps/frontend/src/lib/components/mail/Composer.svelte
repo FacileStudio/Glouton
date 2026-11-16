@@ -265,10 +265,10 @@
             {/if}
           {/if}
           <BulleButton
-            variant="chip"
+            variant="icon"
             name={bulleName}
             mood={bulleMood}
-            label={bulleName}
+            aria-label={t('composer.bulleOpen')}
             aria-expanded={bulleOpen}
             aria-controls="{uid}-bulle-panel"
             onclick={() => (bulleOpen = !bulleOpen)}
