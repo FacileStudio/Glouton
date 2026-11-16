@@ -11,6 +11,12 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+## [0.25.2] - 2026-11-16
+
+### Security
+
+- The app loads the Vision tracker from its own origin (`/vision-tracker.js`) instead of `https://vision.facile.studio/s.js`. Before, a script served by another app ran inside Glouton with access to the page and the signed-in session. The copy is pinned in `apps/frontend/static/`, and it still loads only on `glouton.facile.studio`.
+
 ## [0.25.1] - 2026-11-14
 
 ### Fixed
