@@ -24,6 +24,8 @@ import { ideas } from './rows/ideas';
 import { job } from './rows/job';
 import { pending } from './rows/pending';
 import { landing } from './rows/landing';
+import { fit } from './rows/fit';
+import { strategy } from './rows/strategy';
 
 const base = {
   'app.name': ['Glouton', 'Glouton', 'Glouton', 'Glouton'],
@@ -100,6 +102,6 @@ const base = {
   'paywall.loadFailed': ['Could not load the link to the plans. Try again later.', 'Impossible de charger le lien vers les forfaits. Réessayez plus tard.', 'No se pudo cargar el enlace a los planes. Inténtalo más tarde.', 'Der Link zu den Tarifen konnte nicht geladen werden. Versuchen Sie es später erneut.']
 } as const satisfies Record<string, Row>;
 
-export const rows = { ...base, ...common, ...settings, ...assistant, ...hunts, ...hunts2, ...leads, ...leads2, ...contacts, ...composer, ...outreach, ...missions, ...creations, ...teams, ...teams2, ...competitors, ...watch, ...schedules, ...discovery, ...webhooks, ...competitorAi, ...profile, ...ideas, ...job, ...pending, ...landing };
+export const rows = { ...base, ...common, ...settings, ...assistant, ...hunts, ...hunts2, ...leads, ...leads2, ...contacts, ...composer, ...outreach, ...missions, ...creations, ...teams, ...teams2, ...competitors, ...watch, ...schedules, ...discovery, ...webhooks, ...competitorAi, ...profile, ...ideas, ...job, ...pending, ...landing, ...fit, ...strategy };
 
 export type Key = keyof typeof rows;

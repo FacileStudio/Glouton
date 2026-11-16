@@ -11,6 +11,7 @@
   import { teamContextStore } from '$lib/stores/team-context.svelte';
   import { useFormat, useT } from '$lib/i18n';
   import CloseLeadModal from '$lib/components/competitors/CloseLeadModal.svelte';
+  import FitCard from '$lib/components/leads/FitCard.svelte';
 
   const t = useT();
   const format = useFormat();
@@ -88,6 +89,7 @@
   let loading = $state(true);
   const expandedEmails = new SvelteSet<string>();
   let composerOpen = $state(false);
+  let mailStart = $state<{ subject: string; body: string } | null>(null);
   let isFavorite = $state(false);
   let togglingFavorite = $state(false);
   let closeOpen = $state(false);
@@ -311,13 +313,18 @@
         {/if}
 
         {#if lead!.email}
-          <Button onclick={() => (composerOpen = true)} icon="solar:letter-linear">Envoyer un e-mail</Button>
+          <Button onclick={() => { mailStart = null; composerOpen = true; }} icon="solar:letter-linear">Envoyer un e-mail</Button>
         {/if}
       {/snippet}
     </PageHeader>
 
     <div class="grid grid-cols-1 gap-4 lg:grid-cols-5">
       <div class="flex flex-col gap-4 lg:col-span-2">
+        <FitCard
+          {leadId}
+          {teamId}
+          onWrite={lead.email ? () => { mailStart = { subject: '', body: t('fit.explain.starter') }; composerOpen = true; } : undefined}
+        />
         <Card class="flex flex-col gap-4">
           <div class="flex items-start gap-4">
             <div class="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-fc-md bg-fc-surface text-fc-lg font-semibold text-fc-fg-muted">
@@ -684,6 +691,7 @@
   <Composer
     bind:open={composerOpen}
     person={{ ...lead, companyName: lead.businessName || lead.companyInfo?.name || lead.domain }}
+    initial={mailStart}
     onSend={sendToLead}
     onDone={loadData}
   />

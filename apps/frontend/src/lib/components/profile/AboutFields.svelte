@@ -3,7 +3,7 @@
   import { useT } from '$lib/i18n';
   import type { ProfileForm } from './form';
 
-  let { form = $bindable(), show = ['offer', 'website', 'area'] }: { form: ProfileForm; show?: Array<'offer' | 'website' | 'area'> } = $props();
+  let { form = $bindable(), show = ['offer', 'website', 'area'] }: { form: ProfileForm; show?: Array<'offer' | 'ownPricing' | 'website' | 'area'> } = $props();
 
   const t = useT();
 </script>
@@ -19,6 +19,11 @@
         bind:value={form.offer}
         placeholder={t('profile.offerExample')}
       />
+    </Field>
+  {/if}
+  {#if show.includes('ownPricing')}
+    <Field label={t('profile.ownPricing')} helper={t('profile.ownPricingHint')} for="profile-own-pricing" class="w-full">
+      <Textarea id="profile-own-pricing" rows={3} maxlength={4000} class="field-sizing-content min-h-24 max-h-[60vh] w-full" bind:value={form.ownPricing} />
     </Field>
   {/if}
   {#if show.includes('website')}

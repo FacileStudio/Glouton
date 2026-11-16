@@ -4,7 +4,10 @@
   import { QUIET } from '@repo/trpc-client';
   import { trpc } from '$lib/trpc';
   import { getTrpcErrorMessage } from '$lib/utils/trpc-error';
+  import type { RouterOutputs } from '@repo/trpc-client';
   import { useFormat, useLocale, useT } from '$lib/i18n';
+  import { rows, type Key } from '$lib/i18n/rows';
+  import PriceTimeline from './PriceTimeline.svelte';
   import { aiLanguage } from './ai';
   import { shortUrl } from './watch';
 
@@ -29,10 +32,31 @@
   let refused = $state<PlanLimitError | null>(null);
   let failure = $state<string | null>(null);
   let snapshot = $state<Snapshot | null>(null);
+  let timeline = $state<RouterOutputs['competitorAi']['priceTimeline']>([]);
+  let autoStatus = $state<string | null>(null);
+
+  function statusKey(status: string): Key {
+    const key = `priceStatus.${status}`;
+    return (key in rows ? key : 'priceStatus.unknown') as Key;
+  }
+
+  async function loadHistory() {
+    try {
+      const [history, changes] = await Promise.all([
+        trpc.competitorAi.priceTimeline.query({ competitorId, teamId, limit: 20 }),
+        trpc.competitorWatch.changes.query({ competitorId, teamId, limit: 20 }),
+      ]);
+      timeline = history;
+      autoStatus = changes.find((change) => change.page.kind === 'PRICING' && change.priceStatus)?.priceStatus ?? null;
+    } catch {
+      timeline = [];
+    }
+  }
 
   async function load() {
     try {
       prices = await trpc.competitorAi.prices.query({ competitorId, teamId });
+      if (!compact) await loadHistory();
     } catch (error) {
       toast.danger(getTrpcErrorMessage(error));
     } finally {
@@ -46,6 +70,7 @@
     failure = null;
     try {
       prices = await trpc.competitorAi.extractPrices.mutate({ competitorId, teamId, language: aiLanguage(locale()) }, { context: QUIET });
+      await loadHistory();
       toast.success(t('competitorAi.extracted'));
     } catch (error) {
       const data = (error as { data?: { code?: string; plan_limit?: unknown } } | null)?.data;
@@ -99,6 +124,12 @@
     {/if}
   </div>
   <PlanLimit error={refused} />
+  {#if !compact && autoStatus}
+    <p class="text-fc-sm wrap-anywhere {autoStatus === 'extracted' ? 'text-fc-fg-muted' : 'text-fc-fg'}" role="status">
+      <span class="font-medium">{t('priceStatus.title')}:</span>
+      {t(statusKey(autoStatus))}
+    </p>
+  {/if}
   {#if failure}<Alert tone="danger">{failure}</Alert>{/if}
 
   {#if loading}
@@ -130,6 +161,16 @@
           <Button variant="ghost" size="sm" icon="solar:document-text-linear" onclick={() => openSnapshot(source.snapshotId!)}>{t('competitorAi.snapshot')}</Button>
         {/if}
       {/each}
+    </div>
+  {/if}
+  {#if !compact}
+    <div class="flex flex-col gap-2">
+      <h4 class="text-fc-sm font-semibold text-fc-fg">{t('timeline.title')}</h4>
+      {#if timeline.length === 0}
+        <p class="text-fc-sm text-fc-fg-muted">{t('timeline.empty')}</p>
+      {:else}
+        <PriceTimeline extractions={timeline} />
+      {/if}
     </div>
   {/if}
 </Card>

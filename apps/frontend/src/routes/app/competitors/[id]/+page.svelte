@@ -26,6 +26,7 @@
   import ChangeTimeline from '$lib/components/competitors/ChangeTimeline.svelte';
   import BattlecardDraft from '$lib/components/competitors/BattlecardDraft.svelte';
   import PricesPanel from '$lib/components/competitors/PricesPanel.svelte';
+  import StrategyCard from '$lib/components/competitors/StrategyCard.svelte';
   import { SMALL_SAMPLE, leadName, ratePercent, type CompetitorCard } from '$lib/components/competitors/labels';
 
   const t = useT();
@@ -183,6 +184,20 @@
     {/if}
 
     <PricesPanel {competitorId} {teamId} />
+    <StrategyCard
+      {competitorId}
+      {teamId}
+      current={{
+        overview: card.overview,
+        whyWeWin: card.whyWeWin,
+        whyWeLose: card.whyWeLose,
+        objections: card.objections,
+        landmines: card.landmines,
+        pricing: card.pricing,
+        proofPoints: card.proofPoints,
+      }}
+      onSaved={refresh}
+    />
 
     <div class="flex flex-col gap-4">
       <WatchPanel {competitorId} {teamId} domain={card.domain} onChanged={() => timelineKey++} />
