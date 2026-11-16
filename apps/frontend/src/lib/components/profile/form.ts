@@ -22,6 +22,7 @@ export interface JobTarget extends Target {
 export interface ProfileForm {
   usages: Usage[];
   offer: string;
+  ownPricing: string;
   website: string;
   area: string;
   remote: boolean;
@@ -42,6 +43,7 @@ export function formFrom(profile: Profile | null): ProfileForm {
   return {
     usages: (profile?.usages ?? []) as Usage[],
     offer: profile?.offerDescription ?? '',
+    ownPricing: profile?.ownPricing ?? '',
     website: profile?.website ?? '',
     area: profile?.area ?? '',
     remote: profile?.remote ?? false,
@@ -85,6 +87,7 @@ export function savePayload(form: ProfileForm, teamId: string | undefined) {
     teamId,
     usages: form.usages,
     offerDescription: form.offer,
+    ownPricing: form.ownPricing,
     website: form.website.trim() || null,
     area: form.area,
     remote: form.remote,

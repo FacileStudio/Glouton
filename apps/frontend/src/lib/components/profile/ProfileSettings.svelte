@@ -88,7 +88,7 @@
 
 <SettingsSection title={t('profile.about.title')} description={t('profile.about.description')}>
   <SettingsRow stacked>
-    <AboutFields bind:form />
+    <AboutFields bind:form show={['offer', 'ownPricing', 'website', 'area']} />
   </SettingsRow>
 </SettingsSection>
 

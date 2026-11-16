@@ -31,7 +31,7 @@ function fakeSuite(options: { noPlan?: boolean; refreshToken?: string | null; up
       return Response.json({ access_token: `${form.get('audience')}-token`, expires_in: 300 });
     }
     const path = new URL(url).pathname;
-    if (path === '/api/assistant') return Response.json({ name: 'Pip', avatar_url: 'https://bulle.test/pip.png' });
+    if (path === '/api/assistant/profile') return Response.json({ name: 'Pip', avatar_url: 'https://bulle.test/pip.png' });
     if (options.noPlan) {
       const upgrade = options.upgradeUrl ?? 'https://sso.test/spaces';
       return Response.json({ error: { code: 'payment_required', message: 'AI features need a paid plan.', upgrade_url: upgrade, key: 'ai.access', limit: 3 } }, { status: 402 });

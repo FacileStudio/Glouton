@@ -52,12 +52,16 @@ model PageChange {
   notifiedAt    DateTime? @db.Timestamptz(3)
   aiSummary     String?   @db.Text
   aiSummaryAt   DateTime? @db.Timestamptz(3)
+  priceAttemptAt DateTime? @db.Timestamptz(3)
+  priceStatus   String?   @db.Text
   createdAt     DateTime  @default(now()) @db.Timestamptz(3)
 
   page WatchedPage @relation(fields: [watchedPageId], references: [id], onDelete: Cascade)
+  priceExtractions PriceExtraction[]
 
   @@index([watchedPageId, createdAt])
   @@index([watchedPageId, seen])
   @@index([notifiedAt])
   @@index([aiSummaryAt])
+  @@index([priceAttemptAt])
 }

@@ -90,25 +90,36 @@ export async function assistantStatus(
   userId: string,
   ai: { allowed: boolean; upgradeUrl: string }
 ): Promise<AssistantStatus> {
-  const down = (reason: BulleFailure, planLimit?: PlanLimit): AssistantStatus => ({
+  const down = (reason: BulleFailure, who: Profile = ANONYMOUS, planLimit?: PlanLimit): AssistantStatus => ({
     available: false,
     reason,
     ...(planLimit ? { planLimit } : {}),
-    name: 'Bulle',
-    avatarUrl: null,
+    ...who,
   });
   if (!bulle) return down('unreachable');
-  if (!ai.allowed) return down('plan_required', planLimitFields(planRequired(PLAN_REQUIRED_MESSAGE, ai.upgradeUrl)));
+  if (!ai.allowed) return down('plan_required', ANONYMOUS, planLimitFields(planRequired(PLAN_REQUIRED_MESSAGE, ai.upgradeUrl)));
   try {
-    const profile = (await bulle.call<{ name?: unknown; avatar_url?: unknown }>(userId, { method: 'GET', segments: ['assistant'] })) ?? {};
-    const name = typeof profile.name === 'string' && profile.name.trim() ? profile.name.trim() : 'Bulle';
-    const avatarUrl = typeof profile.avatar_url === 'string' && profile.avatar_url ? profile.avatar_url : null;
-    return { available: true, reason: null, name, avatarUrl };
+    return { available: true, reason: null, ...(await readProfile(bulle, userId)) };
   } catch (error) {
     const reason = bulleFailure(error);
     if (!reason) throw error;
-    return down(reason, error instanceof PlanRequired ? planLimitFields(error) : undefined);
+    return down(reason, ANONYMOUS, error instanceof PlanRequired ? planLimitFields(error) : undefined);
   }
+}
+
+interface Profile {
+  name: string;
+  avatarUrl: string | null;
+}
+
+const ANONYMOUS: Profile = { name: 'Bulle', avatarUrl: null };
+
+/** The assistant's name and avatar from Bulle's free GET /api/assistant/profile, the one source of the name. */
+async function readProfile(bulle: BulleClient, userId: string): Promise<Profile> {
+  const profile = (await bulle.call<{ name?: unknown; avatar_url?: unknown }>(userId, { method: 'GET', segments: ['assistant', 'profile'] })) ?? {};
+  const name = typeof profile.name === 'string' && profile.name.trim() ? profile.name.trim() : ANONYMOUS.name;
+  const avatarUrl = typeof profile.avatar_url === 'string' && profile.avatar_url ? profile.avatar_url : null;
+  return { name, avatarUrl };
 }
 
 /** Loads the person or company, its people and last 10 activities, all inside the caller's access. */

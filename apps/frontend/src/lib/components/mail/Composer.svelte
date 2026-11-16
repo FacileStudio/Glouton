@@ -19,13 +19,13 @@
   import { tick, untrack } from 'svelte';
   import { resolve } from '$app/paths';
   import { MediaQuery } from 'svelte/reactivity';
-  import { Badge, Button, Drawer, Field, Input, Modal, Select, Spinner, Textarea, toast } from '@facile/muse';
+  import { Badge, BulleButton, Button, Field, Input, Modal, Select, Spinner, Textarea, toast } from '@facile/muse';
   import { trpc } from '$lib/trpc';
   import { getTrpcErrorMessage } from '$lib/utils/trpc-error';
   import { teamContextStore } from '$lib/stores/team-context.svelte';
   import { personName } from '$lib/components/contacts/labels';
   import BullePanel from '$lib/components/bulle/BullePanel.svelte';
-  import type { ApplyMode, WriteResult } from '$lib/components/bulle/status';
+  import { assistantStatus, type ApplyMode, type BulleMood, type WriteResult } from '$lib/components/bulle/status';
 
   const t = useT();
 
@@ -68,8 +68,10 @@
   let templates = $state<Template[]>([]);
   let transport = $state<Transport | null>(null);
   let busy = $state<'save' | 'send' | 'template' | null>(null);
-  let bulleShown = $state(true);
-  let sheetOpen = $state(false);
+  let bulleOpen = $state(false);
+  let bulleMood = $state<BulleMood>('idle');
+  let bulleName = $state('Bulle');
+  let undo = $state<{ subject: string; body: string } | null>(null);
 
   const recipients = $derived(person ? [person] : people);
   const recipient = $derived(recipients.find((r) => r.id === personId) ?? null);
@@ -89,6 +91,8 @@
     draftId = draft?.id ?? null;
     personId = person?.id ?? people.find((p) => p.email)?.id ?? people[0]?.id ?? '';
     templateId = '';
+    undo = null;
+    bulleOpen = false;
     void loadMeta();
   }
 
@@ -100,6 +104,7 @@
       ]);
       templates = [...t];
       transport = s;
+      assistantStatus(teamId).then((status) => (bulleName = status.name || 'Bulle'), () => {});
     } catch (error) {
       toast.danger(getTrpcErrorMessage(error));
     }
@@ -129,6 +134,7 @@
   }
 
   function applyBulle(result: WriteResult, mode: ApplyMode) {
+    undo = { subject, body };
     if (mode === 'replace') {
       if (result.subject) subject = result.subject;
       if (result.body) body = result.body;
@@ -183,9 +189,15 @@
     }
   }
 
+  function undoBulle() {
+    if (!undo) return;
+    subject = undo.subject;
+    body = undo.body;
+    undo = null;
+  }
+
   async function focusBulle() {
-    if (desktop.current) bulleShown = true;
-    else sheetOpen = true;
+    bulleOpen = true;
     await tick();
     requestAnimationFrame(() => document.getElementById(bulleInputId)?.focus());
   }
@@ -204,12 +216,8 @@
 
 <svelte:window onkeydown={onKeydown} />
 
-{#snippet bulle()}
-  <BullePanel context={bulleContext} {subject} {body} inputId={bulleInputId} onApply={applyBulle} />
-{/snippet}
-
-<Modal bind:open title={draft ? t('composer.editDraft') : t('composer.new')} showClose class="max-w-5xl">
-  <div class="grid grid-cols-1 gap-5 {desktop.current && bulleShown ? 'lg:grid-cols-[minmax(0,1fr)_20rem]' : ''}">
+<Modal bind:open title={draft ? t('composer.editDraft') : t('composer.new')} showClose class="max-w-2xl">
+  <div class="min-w-0">
     <form class="flex min-w-0 flex-col gap-4" onsubmit={(e) => { e.preventDefault(); void send(); }}>
       {#if person}
         <Field label={t('composer.to')}>
@@ -256,15 +264,15 @@
               </a>
             {/if}
           {/if}
-          <Button
-            size="sm"
-            variant="ghost"
-            icon="solar:magic-stick-3-linear"
-            aria-expanded={desktop.current ? bulleShown : sheetOpen}
-            onclick={() => (desktop.current ? (bulleShown = !bulleShown) : (sheetOpen = true))}
-          >
-            {desktop.current && bulleShown ? t('composer.hideBulle') : 'Bulle'}
-          </Button>
+          <BulleButton
+            variant="icon"
+            name={bulleName}
+            mood={bulleMood}
+            aria-label={t('composer.bulleOpen')}
+            aria-expanded={bulleOpen}
+            aria-controls="{uid}-bulle-panel"
+            onclick={() => (bulleOpen = !bulleOpen)}
+          />
         </div>
         <div class="flex flex-wrap gap-2">
           {#if !onSend}
@@ -279,17 +287,25 @@
           </Button>
         </div>
       </div>
+      {#if undo}
+        <p class="flex flex-wrap items-center gap-2 text-fc-sm text-fc-fg-muted" role="status">
+          {t('composer.bulleApplied', { name: bulleName })}
+          <Button type="button" size="sm" variant="secondary" icon="solar:undo-left-round-linear" onclick={undoBulle}>{t('composer.undo')}</Button>
+        </p>
+      {/if}
       {#if desktop.current}
         <p class="text-fc-xs text-fc-fg-muted">{t('composer.shortcuts')}</p>
       {/if}
     </form>
-
-    {#if desktop.current && bulleShown}
-      <aside class="pl-5">{@render bulle()}</aside>
-    {/if}
+    <div class="mt-4" id="{uid}-bulle-panel" hidden={!bulleOpen}>
+      <BullePanel
+        context={bulleContext}
+        {subject}
+        {body}
+        inputId={bulleInputId}
+        bind:mood={bulleMood}
+        onApply={applyBulle}
+      />
+    </div>
   </div>
-
-  {#if !desktop.current}
-    <Drawer bind:open={sheetOpen} title="Bulle" showClose>{@render bulle()}</Drawer>
-  {/if}
 </Modal>

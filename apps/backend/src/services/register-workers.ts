@@ -171,7 +171,8 @@ export function registerWorkers(
     maxRetriesPerRequest: null,
   });
   const summarize = competitorAi.digestSummarizer({ prisma, bulle, forfait: reader });
-  const workers = createWorkers(events, { courrier, allowed, websearch, summarize });
+  const onPriceChange = competitorAi.autoPriceExtractor({ prisma, bulle, forfait: reader });
+  const workers = createWorkers(events, { courrier, allowed, websearch, summarize, onPriceChange });
 
   const skipped = markSkipped(prisma);
   const notify = (scope: { type: 'personal' | 'team'; userId: string; teamId?: string | null }, type: string, data: Record<string, unknown>) =>

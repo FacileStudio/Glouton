@@ -11,7 +11,9 @@ export const composer = {
   'composer.noTemplate': ['No template', 'Sans modèle', 'Sin plantilla', 'Ohne Vorlage'],
   'composer.via': ['Sending via {transport}', 'Envoi via {transport}', 'Envío con {transport}', 'Versand über {transport}'],
   'composer.notConfigured': ['Sending not set up', 'Envoi non configuré', 'Envío sin configurar', 'Versand nicht eingerichtet'],
-  'composer.hideBulle': ['Hide Bulle', 'Masquer Bulle', 'Ocultar Bulle', 'Bulle ausblenden'],
+  'composer.bulleOpen': ['Write with AI', "Écrire avec l'IA", 'Escribir con IA', 'Mit KI schreiben'],
+  'composer.bulleApplied': ['{name} changed the message.', '{name} a modifié le message.', '{name} ha cambiado el mensaje.', '{name} hat die Nachricht geändert.'],
+  'composer.undo': ['Undo', 'Annuler', 'Deshacer', 'Rückgängig'],
   'composer.saveDraft': ['Save the draft', 'Enregistrer le brouillon', 'Guardar el borrador', 'Entwurf speichern'],
   'composer.shortcuts': ['Ctrl or ⌘ + Enter to send · Ctrl or ⌘ + J for Bulle', 'Ctrl ou ⌘ + Entrée pour envoyer · Ctrl ou ⌘ + J pour Bulle', 'Ctrl o ⌘ + Intro para enviar · Ctrl o ⌘ + J para Bulle', 'Strg oder ⌘ + Eingabe zum Senden · Strg oder ⌘ + J für Bulle']
 } as const satisfies Record<string, Row>;

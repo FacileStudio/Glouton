@@ -1,4 +1,4 @@
-import type { Competitor, CompetitorPricePeriod, Prisma, PrismaClient } from '@prisma/client';
+import type { Competitor, Prisma, PrismaClient } from '@prisma/client';
 import { TRPCError } from '@trpc/server';
 import { WebSearchError, type WebSearch } from '@repo/websearch';
 import { RegistreReconnectError } from '@repo/courrier';
@@ -14,13 +14,10 @@ import type { Scope } from '../../utils/scope';
 import {
   AiOutputError,
   DRAFT_RULES,
-  PRICE_RULES,
   SUMMARY_RULES,
   draftPrompt,
   parseDraft,
-  parsePrices,
   parseSummaries,
-  pricesPrompt,
   summaryPrompt,
   systemFor,
   type AiLanguage,
@@ -38,7 +35,6 @@ export interface AiDeps {
 
 const EXTRA_PAGES = 2;
 const SUMMARY_BATCH = 5;
-const PRICE_SOURCES = 3;
 const LINK = /\[([^\]]{0,120})\]\(([^)\s]{1,500})\)/g;
 const PAGE_HINT = /(pric|tarif|prix|offre|offer|plan|abonnement|subscription|preise|precio|packages?|formules?)/i;
 
@@ -113,7 +109,7 @@ export function offerLinks(markdown: string, base: string): string[] {
 }
 
 /** The homepage plus up to two pricing or offer pages: watched ones first, then links found on the homepage. */
-async function fetchCompetitorPages(
+export async function fetchCompetitorPages(
   deps: AiDeps,
   scope: Scope,
   competitor: Competitor
@@ -173,11 +169,11 @@ export async function draftBattlecard(
   }
 }
 
-function startOfDay(now: Date): Date {
+export function startOfDay(now: Date): Date {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 }
 
-const changeScope = (scope: { userId: string; teamId: string | null }): Prisma.PageChangeWhereInput => ({
+export const changeScope = (scope: { userId: string; teamId: string | null }): Prisma.PageChangeWhereInput => ({
   page: { competitor: scope.teamId ? { teamId: scope.teamId } : { userId: scope.userId, teamId: null } },
 });
 
@@ -288,104 +284,6 @@ export function digestSummarizer(deps: AiDeps) {
       return new Map();
     }
   };
-}
-
-const PERIODS: Record<string, CompetitorPricePeriod> = {
-  one_time: 'ONE_TIME',
-  hour: 'HOUR',
-  day: 'DAY',
-  week: 'WEEK',
-  month: 'MONTH',
-  year: 'YEAR',
-};
-
-interface PriceSource {
-  url: string;
-  text: string;
-  watchedPageId: string | null;
-  snapshotId: string | null;
-}
-
-/** The latest snapshot of each watched pricing page; without any, the pricing page found on the homepage, fetched now. */
-async function priceSources(deps: AiDeps, scope: Scope, competitor: Competitor): Promise<PriceSource[]> {
-  const pages = await deps.prisma.watchedPage.findMany({
-    where: { competitorId: competitor.id, kind: 'PRICING' },
-    orderBy: { createdAt: 'asc' },
-    take: PRICE_SOURCES,
-    select: { id: true, url: true, snapshots: { orderBy: { fetchedAt: 'desc' }, take: 1, select: { id: true, text: true } } },
-  });
-  const stored = pages
-    .filter((page) => page.snapshots[0])
-    .map((page) => ({ url: page.url, text: page.snapshots[0]!.text, watchedPageId: page.id, snapshotId: page.snapshots[0]!.id }));
-  if (stored.length > 0) return stored;
-  const fetched = await fetchCompetitorPages(deps, scope, competitor);
-  const pricing = fetched.slice(1);
-  return (pricing.length > 0 ? pricing : fetched.slice(0, 1)).map((page) => ({ ...page, watchedPageId: null, snapshotId: null }));
-}
-
-const priceSelect = {
-  id: true,
-  name: true,
-  price: true,
-  currency: true,
-  unit: true,
-  period: true,
-  sourceUrl: true,
-  snapshotId: true,
-  extractedAt: true,
-} as const;
-
-/** The prices last extracted for a competitor, in page order. */
-export function listPrices(prisma: PrismaClient, competitorId: string) {
-  return prisma.competitorPrice.findMany({ where: { competitorId }, orderBy: { position: 'asc' }, select: priceSelect });
-}
-
-/**
- * Reads the prices on a competitor's pricing pages through Bulle and replaces
- * the competitor's price list with them. Bulle's answer is validated first,
- * so a bad answer leaves the previous list untouched.
- */
-export async function extractPrices(deps: AiDeps, scope: Scope, competitor: Competitor, language: AiLanguage) {
-  const client = requireBulle(deps.bulle);
-  const spaceId = await requireAiAccess(deps.forfait, scope);
-  let sources: PriceSource[];
-  let prices: ReturnType<typeof parsePrices>;
-  try {
-    sources = await priceSources(deps, scope, competitor);
-    const raw = await complete(client, scope.userId, {
-      system: systemFor(PRICE_RULES, language),
-      prompt: 'List the prices.',
-      input: pricesPrompt(competitor.name, sources),
-      maxTokens: 2000,
-      spaceId,
-    });
-    prices = parsePrices(raw, sources.length);
-  } catch (error) {
-    return aiError(error);
-  }
-  const now = (deps.now ?? (() => new Date()))();
-  await deps.prisma.$transaction([
-    deps.prisma.competitorPrice.deleteMany({ where: { competitorId: competitor.id } }),
-    deps.prisma.competitorPrice.createMany({
-      data: prices.map((entry, position) => {
-        const source = sources[entry.source - 1]!;
-        return {
-          competitorId: competitor.id,
-          watchedPageId: source.watchedPageId,
-          snapshotId: source.snapshotId,
-          name: entry.name,
-          price: entry.price,
-          currency: entry.currency,
-          unit: entry.unit,
-          period: entry.period ? PERIODS[entry.period] : null,
-          sourceUrl: source.url,
-          position,
-          extractedAt: now,
-        };
-      }),
-    }),
-  ]);
-  return listPrices(deps.prisma, competitor.id);
 }
 
 /** One stored snapshot of a competitor's watched page, or not found when it belongs to another competitor. */

@@ -5,12 +5,13 @@ import { createWebSearch, type KeyValueStore, type WebSearch } from '@repo/webse
 import Redis from 'ioredis';
 import { allowEveryScope, type JobConfig, type JobDefinition, type ScopeGate } from '../../types';
 import type { EventEmitter } from '../index';
-import { runWatch, type Digest, type WatchScope } from './run';
+import { runWatch, type Digest, type PriceChange, type WatchScope } from './run';
 
 export { normalizeText, hashText, stripTracking, MAX_TEXT_LENGTH } from './normalize';
 export { diffText, type DiffLine, type TextDiff } from './diff';
 export { parseRobots, isAllowed, loadRobots, ALLOW_ALL, ROBOT_TOKEN, type RobotsPolicy } from './robots';
 export { recordFetch, prune } from './record';
+export { pendingPriceEvents } from './digest';
 export {
   runWatch,
   interleaveByHost,
@@ -22,6 +23,8 @@ export {
   type CheckStatus,
   type Digest,
   type DigestItem,
+  type DigestPriceEvent,
+  type PriceChange,
   type WatchDeps,
   type WatchResult,
   type WatchScope,
@@ -44,14 +47,16 @@ export type DigestSummarizer = (scope: WatchScope, changeIds: string[]) => Promi
 /**
  * Sends one digest in the app and, for a team, to its webhooks (Antenne)
  * subscribed to `competitor.changes`. With a summarizer, each item carries
- * its AI summary when one exists.
+ * its AI summary when one exists. Price events the run raised travel in the
+ * same message as `priceEvents`.
  */
 export function digestSender(events?: EventEmitter, summarize?: DigestSummarizer) {
   return async (digest: Digest): Promise<void> => {
     const { scope, quotaSkipped } = digest;
     const summaries = summarize ? await summarize(scope, digest.items.map((item) => item.changeId)) : new Map<string, string>();
     const items = digest.items.map((item) => ({ ...item, summary: summaries.get(item.changeId) ?? null }));
-    const data = { count: items.length, quotaSkipped, items };
+    const priceEvents = digest.priceEvents ?? [];
+    const data = { count: items.length, quotaSkipped, items, priceEvents };
     const target = scope.teamId
       ? { type: 'team' as const, userId: scope.userId, teamId: scope.teamId }
       : { type: 'personal' as const, userId: scope.userId };
@@ -67,14 +72,15 @@ export function createCompetitorWatchWorker(
   web: WebSearch | null,
   events?: EventEmitter,
   allowed: ScopeGate = allowEveryScope,
-  summarize?: DigestSummarizer
+  summarize?: DigestSummarizer,
+  onPriceChange?: (change: PriceChange) => Promise<unknown>
 ): JobDefinition<object, void> {
   return {
     name: COMPETITOR_WATCH,
     processor: async () => {
       if (!web) return;
       try {
-        const result = await runWatch({ prisma, web, allowed, sendDigest: digestSender(events, summarize) });
+        const result = await runWatch({ prisma, web, allowed, sendDigest: digestSender(events, summarize), onPriceChange });
         logger.info(result, '[WATCH] Competitor pages checked');
       } catch (error) {
         logger.error({ err: error }, '[WATCH] Competitor page check failed');

@@ -4,6 +4,8 @@
   import { getFaviconUrl, handleFaviconError } from '$lib/utils/favicon';
   import { Badge, Card, Table, Tooltip } from '@facile/muse';
   import { useFormat, useT } from '$lib/i18n';
+  import FitPill from './FitPill.svelte';
+  import type { FitItem } from './fit';
 
   const t = useT();
   const format = useFormat();
@@ -29,11 +31,13 @@
     sortBy = $bindable(),
     sortOrder = $bindable(),
     onSort,
+    fits = new Map(),
   }: {
     leads: Lead[];
     sortBy: string;
     sortOrder: 'asc' | 'desc';
     onSort: (column: string) => void;
+    fits?: Map<string, FitItem>;
   } = $props();
 
   function getRelativeTime(date: string): string {
@@ -51,6 +55,7 @@
   ]);
 
   const trailingSortColumns = $derived<{ key: string; label: string; active: string[] }[]>([
+    { key: 'fit', label: t('fit.col'), active: ['fit'] },
     { key: 'score', label: t('leads.sort.score'), active: ['score'] },
     { key: 'createdAt', label: t('leads.col.added'), active: ['createdAt'] },
   ]);
@@ -104,6 +109,7 @@
           <span class="min-w-0 flex-1 truncate text-fc-sm font-medium text-fc-fg">
             {getLeadTitle(lead)}
           </span>
+          {#if fits.has(lead.id)}<FitPill fit={fits.get(lead.id)!} />{/if}
           <Badge tone={getStatusTone(lead.status)} class="shrink-0">{lead.status}</Badge>
           {#if lead.contacted}
             <Badge class="shrink-0">{t('leads.contacted')}</Badge>
@@ -200,6 +206,10 @@
               <Badge>{t('leads.contacted')}</Badge>
             {/if}
           </div>
+        </td>
+
+        <td>
+          {#if fits.get(lead.id)}<FitPill fit={fits.get(lead.id)!} />{:else}<span class="text-fc-fg-muted">—</span>{/if}
         </td>
 
         <td>

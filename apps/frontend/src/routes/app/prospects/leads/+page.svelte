@@ -12,6 +12,8 @@
   import AuditBanner from '$lib/components/leads/AuditBanner.svelte';
   import LeadsTable from '$lib/components/leads/LeadsTable.svelte';
   import LeadsMap from '$lib/components/leads/LeadsMap.svelte';
+  import BestLeads from '$lib/components/leads/BestLeads.svelte';
+  import type { FitItem } from '$lib/components/leads/fit';
   import PaginationControls from '$lib/components/leads/PaginationControls.svelte';
   import { setupAuditListeners, setupHuntListeners, type AuditSession, type HuntSession } from '$lib/websocket-events';
   import { teamContextStore } from '$lib/stores/team-context.svelte';
@@ -23,6 +25,7 @@
   
   let leads = $state<RouterOutputs['lead']['query']['list']['leads']>([]);
   let stats = $state<RouterOutputs['lead']['query']['getStats'] | null>(null);
+  let fits = $state(new Map<string, FitItem>());
   let auditSessions = $state<AuditSession[]>([]);
   let huntSessions = $state<HuntSession[]>([]);
   let initialLoading = $state(true);
@@ -142,7 +145,7 @@
       hasGps: (params.get('hasGps') as '' | 'true' | 'false') || '',
       hasEmail: (params.get('hasEmail') as '' | 'true' | 'false') || '',
     };
-    const validSortCols = ['domain', 'email', 'city', 'country', 'score', 'status', 'createdAt'];
+    const validSortCols = ['domain', 'email', 'city', 'country', 'score', 'status', 'createdAt', 'fit'];
     const urlSortBy = params.get('sortBy');
     if (urlSortBy && validSortCols.includes(urlSortBy)) sortBy = urlSortBy;
     if (params.get('sortOrder') === 'asc') sortOrder = 'asc';
@@ -164,7 +167,7 @@
 
     wsUnsubscribers = [...auditUnsubscribers, ...huntUnsubscribers];
 
-    await Promise.all([loadData(), loadStats()]);
+    await Promise.all([loadData(), loadStats(), loadFits()]);
     mounted = true;
   });
 
@@ -192,8 +195,8 @@
           hasPhone: filters.hasPhone !== '' ? filters.hasPhone === 'true' : undefined,
           hasGps: filters.hasGps !== '' ? filters.hasGps === 'true' : undefined,
           hasEmail: filters.hasEmail !== '' ? filters.hasEmail === 'true' : undefined,
-          sortBy: sortBy as 'domain' | 'email' | 'city' | 'country' | 'score' | 'status' | 'createdAt',
-          sortOrder: sortOrder,
+          sortBy: (sortBy === 'fit' ? 'createdAt' : sortBy) as 'domain' | 'email' | 'city' | 'country' | 'score' | 'status' | 'createdAt',
+          sortOrder: sortBy === 'fit' ? 'desc' : sortOrder,
         }),
         trpc.lead.audit.list.query({ teamId }),
       ]);
@@ -213,6 +216,15 @@
     } finally {
       initialLoading = false;
       loadingData = false;
+    }
+  }
+
+  async function loadFits() {
+    try {
+      const ranked = await trpc.leadScore.list.query({ teamId, limit: 100 });
+      fits = new Map(ranked.items.map((item) => [item.leadId, item]));
+    } catch (error) {
+      console.error('Error loading fit scores:', error);
     }
   }
 
@@ -383,10 +395,15 @@
     auditSessions.find((s) => s.status === 'PENDING' || s.status === 'PROCESSING')
   );
 
-  let processedLeads = $derived(leads);
+  let processedLeads = $derived(
+    sortBy === 'fit'
+      ? leads.toSorted((a, b) => ((fits.get(b.id)?.score ?? -1) - (fits.get(a.id)?.score ?? -1)) * (sortOrder === 'asc' ? -1 : 1))
+      : leads
+  );
 
   const sortOptions = $derived([
     { label: t('leads.sort.date'), value: 'createdAt' },
+    { label: t('fit.sort'), value: 'fit' },
     { label: t('leads.sort.score'), value: 'score' },
     { label: t('leads.sort.domain'), value: 'domain' },
     { label: t('leads.sort.email'), value: 'email' },
@@ -449,6 +466,7 @@
   {/if}
 
   {#if !initialLoading}
+    <BestLeads />
     <StatsCards {stats} />
   {/if}
 
@@ -486,7 +504,7 @@
         : t('leads.none')}
     />
   {:else}
-    <LeadsTable leads={processedLeads} bind:sortBy bind:sortOrder onSort={handleSort} />
+    <LeadsTable leads={processedLeads} {fits} bind:sortBy bind:sortOrder onSort={handleSort} />
   {/if}
 
   {#if totalPages > 1}

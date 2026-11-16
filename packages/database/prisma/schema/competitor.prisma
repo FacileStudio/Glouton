@@ -27,6 +27,8 @@ model Competitor {
   watchedPages WatchedPage[]
   suggestions  CompetitorSuggestion[]
   prices       CompetitorPrice[]
+  priceExtractions PriceExtraction[]
+  priceEvents  PriceEvent[]
 
   @@index([userId])
   @@index([teamId])

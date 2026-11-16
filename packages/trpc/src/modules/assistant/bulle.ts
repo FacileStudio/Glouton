@@ -8,6 +8,9 @@ export const BULLE_TARGET: ExchangeTarget = { audience: 'bulle', scopes: 'bulle.
 
 const COMPLETE_TIMEOUT_MS = 90_000;
 
+/** The message of the failure a Registre token exchange for Bulle ends in, so callers can tell it from a Bulle outage. */
+export const TOKEN_EXCHANGE_FAILED = 'Registre token exchange for Bulle failed';
+
 /** The Bulle client of @facile/tronc, acting as a Glouton user with their exchanged token. */
 export type BulleClient = Client;
 
@@ -47,7 +50,7 @@ export function createBulle(config: BulleConfig): Client {
       } catch (error) {
         if (error instanceof RegistreReconnectError) throw error;
         logger.warn({ err: error, userId: user }, '[BULLE] Registre token exchange failed');
-        throw new UnreachableError('Registre token exchange for Bulle failed', error);
+        throw new UnreachableError(TOKEN_EXCHANGE_FAILED, error);
       }
     },
   });

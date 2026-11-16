@@ -1,13 +1,12 @@
 <script lang="ts">
-  import { Alert, Badge, Button, Card, PlanLimit, Spinner, planLimitFrom, toast, type PlanLimitError } from '@facile/muse';
+  import { Alert, Button, Card, PlanLimit, Spinner, planLimitFrom, toast, type PlanLimitError } from '@facile/muse';
   import { QUIET } from '@repo/trpc-client';
   import { trpc } from '$lib/trpc';
   import { getTrpcErrorMessage } from '$lib/utils/trpc-error';
   import { useLocale, useT } from '$lib/i18n';
-  import type { Key } from '$lib/i18n/rows';
-  import { DRAFT_FIELDS, acceptedValue, addedItems, aiLanguage, hasNews, type BattlecardFields, type DraftField } from './ai';
+  import { DRAFT_FIELDS, acceptedValue, aiLanguage, hasNews, type BattlecardFields, type DraftField } from './ai';
+  import ProposalFields from './ProposalFields.svelte';
   import { shortUrl } from './watch';
-  import type { Objection } from './labels';
 
   interface Props {
     competitorId: string;
@@ -28,16 +27,6 @@
   let saving = $state<DraftField | null>(null);
   let refused = $state<PlanLimitError | null>(null);
   let failure = $state<string | null>(null);
-
-  const TITLES: Record<DraftField, Key> = {
-    overview: 'competitors.section.overview',
-    pricing: 'competitors.section.pricing',
-    whyWeWin: 'competitors.section.whyWeWin',
-    whyWeLose: 'competitors.section.whyWeLose',
-    objections: 'competitors.section.objections',
-    landmines: 'competitors.section.landmines',
-    proofPoints: 'competitors.section.proofPoints',
-  };
 
   function messageFor(error: unknown): string {
     const code = (error as { data?: { code?: string } } | null)?.data?.code;
@@ -88,10 +77,6 @@
     proposal = null;
     pending = [];
   }
-
-  function itemText(item: string | Objection): string {
-    return typeof item === 'string' ? item : [item.objection, item.response].filter(Boolean).join(' → ');
-  }
 </script>
 
 <div class="flex flex-col gap-3">
@@ -124,36 +109,7 @@
       {#if pending.length === 0}
         <p class="text-fc-sm text-fc-fg-muted">{t('competitorAi.nothingNew')}</p>
       {:else}
-        <ul class="flex flex-col gap-3">
-          {#each pending as field (field)}
-            <li class="flex flex-col gap-3 rounded-fc-md bg-fc-surface p-3">
-              <p class="text-fc-sm font-semibold text-fc-fg">{t(TITLES[field])}</p>
-              {#if field === 'overview' || field === 'pricing'}
-                <div class="grid grid-cols-1 gap-2 md:grid-cols-2">
-                  <div class="flex flex-col gap-1 rounded-fc-md bg-fc-component p-2">
-                    <Badge class="w-fit shrink-0">{t('competitorAi.current')}</Badge>
-                    <p class="text-fc-sm whitespace-pre-line text-fc-fg-muted">{current[field] || '—'}</p>
-                  </div>
-                  <div class="flex flex-col gap-1 rounded-fc-md bg-fc-success/10 p-2">
-                    <Badge tone="success" class="w-fit shrink-0">{t('competitorAi.proposed')}</Badge>
-                    <p class="text-fc-sm whitespace-pre-line text-fc-fg">{proposal[field]}</p>
-                  </div>
-                </div>
-              {:else}
-                <div class="flex flex-col gap-1 rounded-fc-md bg-fc-success/10 p-2">
-                  <Badge tone="success" class="w-fit shrink-0">{t('competitorAi.added')}</Badge>
-                  <ul class="flex list-disc flex-col gap-1 pl-5 text-fc-sm text-fc-fg">
-                    {#each addedItems(field, current, proposal) as item, index (index)}<li>{itemText(item)}</li>{/each}
-                  </ul>
-                </div>
-              {/if}
-              <div class="flex flex-wrap gap-2">
-                <Button size="sm" icon="solar:check-circle-linear" onclick={() => accept(field)} disabled={saving !== null}>{t('competitorAi.accept')}</Button>
-                <Button size="sm" variant="ghost" onclick={() => discard(field)} disabled={saving !== null}>{t('competitorAi.discard')}</Button>
-              </div>
-            </li>
-          {/each}
-        </ul>
+        <ProposalFields {current} {proposal} {pending} {saving} onAccept={accept} onDiscard={discard} />
       {/if}
 
       {#if sources.length > 0}

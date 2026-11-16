@@ -9,13 +9,10 @@
     MobileNav,
     PageTransition,
     toast,
-    icons,
     getI18n,
     ideasNavItem,
     type UserMenuOptions,
   } from '@facile/muse';
-  import { QUIET } from '@repo/trpc-client';
-  import { SPACES_URL, persistLocale, theme } from '$lib/preferences';
   import authStore from '$lib/auth-store';
   import { teamContextStore } from '$lib/stores/team-context.svelte';
   import { ws } from '$lib/websocket';
@@ -79,18 +76,10 @@
     teamContextStore.context.type === 'team' ? teamContextStore.context.teamId : null,
   );
 
-  let plan = $state<{ allowed: boolean; plans: string[] } | null>(null);
-
   const userMenu = $derived<UserMenuOptions>({
-    items: [{ label: t('nav.spaces'), icon: icons.space, href: '/app/teams' }],
     settingsHref: '/app/settings',
-    subscription: { plan: plan?.allowed ? plan.plans.join(' / ') : t('settings.subscription.none'), href: SPACES_URL },
     helpHref: 'https://github.com/FacileStudio/Glouton/tree/main/docs',
     onSignOut: () => authStore.logout(),
-    locale: i18n.locale,
-    onLocaleChange: persistLocale,
-    theme: theme.mode,
-    onThemeChange: (next) => theme.set(next),
   });
 
   function getPageTitle(path: string): string {
@@ -191,12 +180,6 @@
     inboxCount.refresh();
     void profileStore.load(activeSpaceId ?? undefined);
     void ideasStore.load(activeSpaceId ?? undefined);
-    try {
-      const teamId = activeSpaceId ?? undefined;
-      plan = await trpc.forfait.status.query(teamId ? { teamId } : undefined, { context: QUIET });
-    } catch {
-      plan = null;
-    }
     try {
       teams = await trpc.team.list.query();
       if (activeSpaceId && !teams.some((t) => t.id === activeSpaceId)) {

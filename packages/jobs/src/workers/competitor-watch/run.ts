@@ -1,6 +1,7 @@
 import type { Prisma, PrismaClient, WatchedPageKind } from '@prisma/client';
 import { WebSearchError, type WebSearch } from '@repo/websearch';
 import { allowEveryScope, type ScopeGate } from '../../types';
+import { notePricing, readChangedPrices } from './pricing';
 import { prune, recordFetch } from './record';
 import { deliverDigests } from './digest';
 import { isAllowed, loadRobots, type RobotsPolicy } from './robots';
@@ -45,11 +46,32 @@ export interface DigestItem {
   summary?: string | null;
 }
 
+/** One price event as the digest lists it. */
+export interface DigestPriceEvent {
+  eventId: string;
+  competitorId: string;
+  competitorName: string;
+  kind: 'PRICE_CHANGED' | 'PLAN_ADDED' | 'PLAN_REMOVED' | 'FREE_TIER_APPEARED' | 'FREE_TIER_REMOVED';
+  plan: string;
+  oldPrice: number | null;
+  newPrice: number | null;
+  currency: string | null;
+  percent: number | null;
+}
+
 /** The single daily message a scope receives. */
 export interface Digest {
   scope: WatchScope;
   items: DigestItem[];
+  priceEvents?: DigestPriceEvent[];
   quotaSkipped: number;
+}
+
+/** The pricing page changes of one competitor a run recorded, handed to the price extraction hook. */
+export interface PriceChange {
+  scope: WatchScope;
+  competitorId: string;
+  changeIds: string[];
 }
 
 export interface WatchDeps {
@@ -61,6 +83,7 @@ export interface WatchDeps {
   now?: () => Date;
   domainIntervalMs?: number;
   sendDigest?: (digest: Digest) => Promise<void>;
+  onPriceChange?: (change: PriceChange) => Promise<unknown>;
 }
 
 export interface WatchResult {
@@ -75,7 +98,8 @@ interface Page {
   url: string;
   selector: string | null;
   thresholdPct: number;
-  competitor: { userId: string; teamId: string | null };
+  kind: WatchedPageKind;
+  competitor: { id: string; userId: string; teamId: string | null };
 }
 
 /** The key a scope's websearch quota is counted under: the team, or the person for personal work. */
@@ -155,7 +179,9 @@ function bump(skipped: WatchResult['skipped'], status: CheckStatus): void {
 /**
  * The daily run: checks every due page of every scope that has a plan,
  * through the websearch fetch quota, robots.txt and a per-host pause, then
- * sends one digest per scope with the changes no digest carried yet.
+ * reads the prices of each competitor whose pricing page changed, then
+ * sends one digest per scope with the changes and price events no digest
+ * carried yet.
  */
 export async function runWatch(deps: WatchDeps): Promise<WatchResult> {
   const { prisma, web } = deps;
@@ -168,7 +194,7 @@ export async function runWatch(deps: WatchDeps): Promise<WatchResult> {
   const due = await prisma.watchedPage.findMany({
     where: dueWhere(now()),
     orderBy: { createdAt: 'asc' },
-    select: { id: true, url: true, selector: true, thresholdPct: true, competitor: { select: { userId: true, teamId: true } } },
+    select: { id: true, url: true, selector: true, thresholdPct: true, kind: true, competitor: { select: { id: true, userId: true, teamId: true } } },
   });
 
   const verdicts = new Map<string, boolean>();
@@ -177,6 +203,7 @@ export async function runWatch(deps: WatchDeps): Promise<WatchResult> {
   const quotaSkipped = new Map<string, number>();
   const run: RunState = { prisma, web, robotsFor, policies: new Map(), lastHit: new Map(), interval, sleep, now };
   const result: WatchResult = { checked: 0, changed: 0, skipped: {}, digests: 0 };
+  const pricingChanges = new Map<string, PriceChange>();
 
   for (const page of interleaveByHost(due)) {
     const scope = { userId: page.competitor.userId, teamId: page.competitor.teamId };
@@ -196,11 +223,14 @@ export async function runWatch(deps: WatchDeps): Promise<WatchResult> {
       data: { lastStatus: status, ...(checked ? { lastCheckedAt: now() } : {}) },
     });
     if (checked) result.checked++;
-    if (status === 'changed') result.changed++;
-    else if (!['baseline', 'unchanged', 'minor'].includes(status)) bump(result.skipped, status);
+    if (status === 'changed') {
+      result.changed++;
+      await notePricing(prisma, page, scope, pricingChanges);
+    } else if (!['baseline', 'unchanged', 'minor'].includes(status)) bump(result.skipped, status);
     await prune(prisma, page.id);
   }
 
+  await readChangedPrices(pricingChanges, deps.onPriceChange);
   result.digests = await deliverDigests(prisma, scopes, quotaSkipped, now(), deps.sendDigest);
   return result;
 }
