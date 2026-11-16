@@ -11,6 +11,21 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+## [0.26.0] - 2026-11-16
+
+### Added
+
+- Leads get a fit score from 0 to 100 with its reasons: a Fit column and sort, a Best leads this week block, and on a lead an Explain action that writes the explanation and a next step, then opens the composer.
+- Competitor prices keep their history: each extraction is kept with its events (price changed, plan added or removed, free tier appeared or removed), shown as a timeline.
+- When a watched pricing page changes, Glouton extracts the prices automatically for paid accounts, at most 10 times a day per account, and says why when it skips.
+- A strategy card asks Bulle what to do about a competitor: what changed, what it means, options with trade-offs, talking points for emails, and a battlecard update you accept field by field.
+- The profile takes your own prices, which the strategy card compares against.
+
+### Changed
+
+- The composer's Bulle button is the blob alone and opens the writing actions inline, with an undo.
+- Bulle's button and panel come from muse v0.30.0, and the avatar menu is down to Account, Settings, Help and Sign out.
+
 ## [0.25.2] - 2026-11-16
 
 ### Security
