@@ -11,6 +11,12 @@ in the root `package.json`.
 
 ## [Unreleased]
 
+## [0.26.1] - 2026-11-16
+
+### Fixed
+
+- Tabs match the button height and keep even padding, with the highlight placed from the real tab box (muse v0.32.0).
+
 ## [0.26.0] - 2026-11-16
 
 ### Added
