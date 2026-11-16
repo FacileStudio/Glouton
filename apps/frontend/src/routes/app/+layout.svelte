@@ -9,13 +9,10 @@
     MobileNav,
     PageTransition,
     toast,
-    icons,
     getI18n,
     ideasNavItem,
     type UserMenuOptions,
   } from '@facile/muse';
-  import { QUIET } from '@repo/trpc-client';
-  import { SPACES_URL, persistLocale, theme } from '$lib/preferences';
   import authStore from '$lib/auth-store';
   import { teamContextStore } from '$lib/stores/team-context.svelte';
   import { ws } from '$lib/websocket';
@@ -78,8 +75,6 @@
   const activeSpaceId = $derived(
     teamContextStore.context.type === 'team' ? teamContextStore.context.teamId : null,
   );
-
-  let plan = $state<{ allowed: boolean; plans: string[] } | null>(null);
 
   const userMenu = $derived<UserMenuOptions>({
     settingsHref: '/app/settings',
@@ -185,12 +180,6 @@
     inboxCount.refresh();
     void profileStore.load(activeSpaceId ?? undefined);
     void ideasStore.load(activeSpaceId ?? undefined);
-    try {
-      const teamId = activeSpaceId ?? undefined;
-      plan = await trpc.forfait.status.query(teamId ? { teamId } : undefined, { context: QUIET });
-    } catch {
-      plan = null;
-    }
     try {
       teams = await trpc.team.list.query();
       if (activeSpaceId && !teams.some((t) => t.id === activeSpaceId)) {
