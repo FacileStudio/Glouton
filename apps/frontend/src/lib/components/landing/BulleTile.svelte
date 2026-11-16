@@ -1,7 +1,6 @@
 <script lang="ts">
-  import { Button } from '@facile/muse';
+  import { BulleButton, Button } from '@facile/muse';
   import { Bar, Roll, Stream, Tile, grow, type Act } from '@facile/mise-en-scene';
-  import BulleBlob from '$lib/components/bulle/BulleBlob.svelte';
   import type { BulleMood } from '$lib/components/bulle/status';
   import { useT } from '$lib/i18n';
   import TileStage from './TileStage.svelte';
@@ -51,7 +50,7 @@
   <TileStage {script} {reset} {poster}>
     <div class="bt-panel absolute top-5 right-6 bottom-[26px] left-6 flex flex-col gap-3 overflow-hidden rounded-fc-lg bg-fc-page p-3">
       <div class="flex items-center gap-2.5">
-        <BulleBlob {mood} size={30} />
+        <BulleButton variant="icon" {mood} size={30} tabindex={-1} aria-hidden="true" class="pointer-events-none size-auto" />
         <div class="flex min-w-0 flex-1 flex-col">
           <span class="text-fc-sm font-semibold text-fc-fg">Bulle</span>
           <Roll class="h-4 text-fc-xs leading-4 text-fc-fg-muted" value={status} />

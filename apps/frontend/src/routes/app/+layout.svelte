@@ -82,15 +82,9 @@
   let plan = $state<{ allowed: boolean; plans: string[] } | null>(null);
 
   const userMenu = $derived<UserMenuOptions>({
-    items: [{ label: t('nav.spaces'), icon: icons.space, href: '/app/teams' }],
     settingsHref: '/app/settings',
-    subscription: { plan: plan?.allowed ? plan.plans.join(' / ') : t('settings.subscription.none'), href: SPACES_URL },
     helpHref: 'https://github.com/FacileStudio/Glouton/tree/main/docs',
     onSignOut: () => authStore.logout(),
-    locale: i18n.locale,
-    onLocaleChange: persistLocale,
-    theme: theme.mode,
-    onThemeChange: (next) => theme.set(next),
   });
 
   function getPageTitle(path: string): string {
